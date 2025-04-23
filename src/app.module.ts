@@ -4,16 +4,16 @@ import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DatabaseService } from './database/database.service';
 import { DatabaseModule } from './database/database.module';
-import { UserModule } from './user/user.module';
 import configuration from './config/configuration';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [ConfigModule.forRoot(
     {
       isGlobal: true,
-        load: [configuration],
-      envFilePath: `.env${process.env.NODE_ENV ? '.' + process.env.NODE_ENV : ''}`,
+      load: [configuration],
+      envFilePath: `.env.${process.env.NODE_ENV}`,
     }
   ), 
   ThrottlerModule.forRootAsync({
@@ -23,15 +23,17 @@ import { ThrottlerModule } from '@nestjs/throttler';
         throttlers: [
           {
             ttl: configService.get<number>('throttle.ttl', 60000),
-            limit: configService.get<number>('throttle.limit', 1000),
+            limit: configService.get<number>('throttle.limit', 10000),
           },
         ],
       }),
     }),
     DatabaseModule, 
-    UserModule
   ],
   controllers: [AppController],
-  providers: [AppService, DatabaseService],
+  providers: [AppService, DatabaseService, {
+  provide: APP_GUARD,
+  useClass: ThrottlerGuard
+}],
 })
 export class AppModule {}

@@ -30,12 +30,13 @@ async function bootstrap() {
   
   // Use compression
   app.use(compression());
+
   
   // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
+      // whitelist: true,
+      // forbidNonWhitelisted: true,
       transform: true,
     }),
   );
@@ -45,8 +46,8 @@ async function bootstrap() {
     app.useGlobalInterceptors(new LoggingInterceptor());
     
     const config = new DocumentBuilder()
-      .setTitle('NestJS API')
-      .setDescription('NestJS API with Prisma and PostgreSQL')
+      .setTitle('Ocean AdTech API')
+      .setDescription('Programmatic AdTech API description')
       .setVersion('1.0')
       .addBearerAuth()
       .build();
