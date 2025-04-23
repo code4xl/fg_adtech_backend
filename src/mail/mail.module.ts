@@ -6,34 +6,34 @@ import { join } from 'path';
 import { MailService } from './mail.service';
 
 @Module({
-    imports: [
-        MailerModule.forRootAsync({
-            imports: [ConfigModule],
-            inject: [ConfigService],
-            useFactory: (config: ConfigService) => ({
-                transport: {
-                    host: config.get('mail.host'),
-                    port: config.get('mail.port'),
-                    secure: config.get('mail.secure'),
-                    auth: {
-                        user: config.get('mail.user'),
-                        pass: config.get('mail.password'),
-                    },
-                },
-                defaults: {
-                    from: `"No Reply" <${config.get('mail.from')}>`,
-                },
-                template: {
-                    dir: join(__dirname, '..', 'mail', 'templates'),
-                    adapter: new HandlebarsAdapter(),
-                    options: {
-                        strict: true,
-                    },
-                },
-            }),
-        }),
-    ],
-    providers: [MailService],
-    exports: [MailService],
+  imports: [
+    MailerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        transport: {
+          host: config.get<string>('mail.host'),
+          port: config.get<string>('mail.port'),
+          secure: config.get<string>('mail.secure'),
+          auth: {
+            user: config.get<string>('mail.user'),
+            pass: config.get<string>('mail.password'),
+          },
+        },
+        defaults: {
+          from: `"No Reply" <${config.get('mail.from')}>`,
+        },
+        template: {
+          dir: join(__dirname, '..', 'mail', 'templates'),
+          adapter: new HandlebarsAdapter(),
+          options: {
+            strict: true,
+          },
+        },
+      }),
+    }),
+  ],
+  providers: [MailService],
+  exports: [MailService],
 })
-export class MailModule { }
+export class MailModule {}
