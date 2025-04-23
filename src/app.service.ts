@@ -1,15 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { DatabaseService } from './database/database.service';
+import { PrismaService } from './prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class AppService {
-   constructor(
+  constructor(
     private configService: ConfigService,
-    private prisma: DatabaseService,
-  ) {}
-   async findAll() {
-        // Use Prisma client
-    const data = await this.prisma.dummy.findMany();
+    private prisma: PrismaService,
+  ) { }
+  async findAll() {
+    // Use Prisma client
+    const data = await this.prisma.advertiser.findMany();
     return data;
   }
 }

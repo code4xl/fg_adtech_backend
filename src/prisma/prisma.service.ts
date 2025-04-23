@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
-export class DatabaseService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   constructor(private configService: ConfigService) {
     super({
       datasources: {
@@ -11,7 +11,7 @@ export class DatabaseService extends PrismaClient implements OnModuleInit, OnMod
           url: configService.get('database.url'),
         },
       },
-      log: ['query', 'warn', 'error'],
+      log: ['warn', 'error'],
       errorFormat: 'pretty',
     })
   }
