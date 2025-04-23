@@ -1,24 +1,37 @@
 import { Module } from '@nestjs/common';
-import { UsersModule } from './users/users.module';
-import { ConfigModule } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import dbConfig from './config/db.config';
-import dbConfigProduction from './config/db.config.production';
-
-const modules = [
-  UsersModule,
-]
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { DatabaseService } from './database/database.service';
+import { DatabaseModule } from './database/database.module';
+import { UserModule } from './user/user.module';
+import configuration from './config/configuration';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
-  imports: [
-    ConfigModule.forRoot({
+  imports: [ConfigModule.forRoot(
+    {
       isGlobal: true,
-      load: [dbConfig, dbConfigProduction],
+        load: [configuration],
+      envFilePath: `.env${process.env.NODE_ENV ? '.' + process.env.NODE_ENV : ''}`,
+    }
+  ), 
+  ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        throttlers: [
+          {
+            ttl: configService.get<number>('throttle.ttl', 60000),
+            limit: configService.get<number>('throttle.limit', 1000),
+          },
+        ],
+      }),
     }),
-    TypeOrmModule.forRootAsync({
-      useFactory: process.env.NODE_ENV === "production" ? dbConfigProduction : dbConfig,
-    }),
-    ...modules,
+    DatabaseModule, 
+    UserModule
   ],
+  controllers: [AppController],
+  providers: [AppService, DatabaseService],
 })
-export class AppModule { }
+export class AppModule {}
