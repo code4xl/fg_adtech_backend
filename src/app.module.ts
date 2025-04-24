@@ -14,6 +14,7 @@ import { AdvertiserModule } from './advertiser/advertiser.module';
 import { SuccessInterceptor } from './common/interceptors/success.interceptor';
 import { AllExceptionsFilter } from './common/filters/global.exception';
 import { ExceptionsModule } from './common/exceptions/exceptions.module';
+import { CampaignModule } from './campaign/campaign.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { ExceptionsModule } from './common/exceptions/exceptions.module';
     PublishersModule,
     AdvertiserModule,
     ExceptionsModule,
+    // CampaignModule,
   ],
   controllers: [AppController],
   providers: [

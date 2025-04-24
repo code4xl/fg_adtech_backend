@@ -1,0 +1,3 @@
+model Campaign{
+    id Int @id @default(autoincrement())
+}

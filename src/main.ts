@@ -16,7 +16,7 @@ async function bootstrap() {
     logger: new ConsoleLogger({
       json: false,
       colors: true,
-      logLevels: ['error', 'warn', 'debug', 'verbose', 'fatal'],
+      logLevels: ['error', 'warn', 'debug', 'verbose', 'fatal', 'log'],
       prefix: 'OceanAdTech',
     }),
   });

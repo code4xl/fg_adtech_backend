@@ -15,14 +15,17 @@ import {
   ApiBearerAuth,
   ApiBody,
 } from '@nestjs/swagger';
-import { AdvertiserAuthenticationGuard, PublisherAuthenticationGuard } from 'src/common/guards/local.guard';
+import {
+  AdvertiserAuthenticationGuard,
+  PublisherAuthenticationGuard,
+} from 'src/common/guards/local.guard';
 import { AdvertiserGuard, PublisherGuard } from 'src/common/guards/auth.guard';
 import { CreateAdvertiserDto } from 'src/advertiser/dto/create-advertiser.dto';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   @Post('signup')
   @ApiOperation({ summary: 'Register a new advertiser' })
@@ -77,8 +80,11 @@ export class AuthController {
   @UseGuards(AdvertiserGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get Advertiser profile' })
-  @ApiResponse({ status: 200, description: 'Advertiser Profile retrieved successfully.' })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Advertiser Profile retrieved successfully.',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized. Asif' })
   getAdvertiserProfile(@Request() req): any {
     return req.user;
   }
@@ -88,7 +94,10 @@ export class AuthController {
   @UseGuards(PublisherGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get Publisher profile' })
-  @ApiResponse({ status: 200, description: 'Publisher Profile retrieved successfully.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Publisher Profile retrieved successfully.',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   getPublisherProfile(@Request() req): any {
     return req.user;
