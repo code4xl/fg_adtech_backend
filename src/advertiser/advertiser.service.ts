@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { CreateAdvertiserDto } from './dto/create-advertiser.dto';
 import { UpdateAdvertiserDto } from './dto/update-advertiser.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { ResourceNotFoundException } from 'src/common/interceptors/custom.interceptor';
+import { ResourceNotFoundException } from 'src/common/exceptions/custom.exception';
 
 @Injectable()
 export class AdvertiserService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   findAll() {
     return `This action returns all advertiser`;
@@ -16,11 +16,11 @@ export class AdvertiserService {
     let advertiser = await this.prisma.advertiser.findUnique({
       where: {
         id,
-      }
-    })
+      },
+    });
 
     if (!advertiser) {
-      throw new ResourceNotFoundException("Advertiser", id);
+      throw new ResourceNotFoundException('Advertiser', id);
     }
 
     return advertiser;
