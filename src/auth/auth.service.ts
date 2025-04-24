@@ -23,18 +23,18 @@ export class AuthService {
             where: { email: createAdvertiserDto.email },
         });
 
-        if (existingUser) {
-            throw new DuplicateResourceException('Advertiser', 'email', createAdvertiserDto.email);
-        }
+        // if (existingUser) {
+        //     throw new DuplicateResourceException('Advertiser', 'email', createAdvertiserDto.email);
+        // }
 
         // Check if mobile already exists
         const existingMobile = await this.prisma.advertiser.findUnique({
             where: { mobile: createAdvertiserDto.mobile },
         });
 
-        if (existingMobile) {
-            throw new DuplicateResourceException('Advertiser', 'mobile', createAdvertiserDto.mobile);
-        }
+        // if (existingMobile) {
+        //     throw new DuplicateResourceException('Advertiser', 'mobile', createAdvertiserDto.mobile);
+        // }
 
         // Hash password
         const hashedPassword = await bcrypt.hash(createAdvertiserDto.password, 10);
