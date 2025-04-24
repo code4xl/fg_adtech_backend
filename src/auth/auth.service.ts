@@ -97,18 +97,29 @@ export class AuthService {
         return { message: 'Email verified successfully' };
     }
 
-    async validateUser(email: string, password: string) {
-        const user = await this.prisma.advertiser.findUnique({
-            where: { email },
-        });
+    async validateUser(email: string, password: string, role: 'advertiser' | 'publisher') {
+        let user;
+
+        // Find user in the appropriate database based on role
+        if (role === 'advertiser') {
+            user = await this.prisma.advertiser.findUnique({
+                where: { email },
+            });
+
+            // Check if email is verified for advertisers
+            if (user && !user.emailVerifiedAt) {
+                throw new UnauthorizedException('Please verify your email first');
+            }
+        } else if (role === 'publisher') {
+            user = await this.prisma.publisher.findUnique({
+                where: { email },
+            });
+
+            // Note: No email verification check for publishers as per your requirements
+        }
 
         if (!user) {
             return null;
-        }
-
-        // Check if email is verified
-        if (!user.emailVerifiedAt) {
-            throw new UnauthorizedException('Please verify your email first');
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -119,20 +130,41 @@ export class AuthService {
 
         // Remove password from returned object
         const { password: _, ...result } = user;
-        return result;
+
+        // Add role to the user object for use in token generation and authorization
+        return { ...result, role };
     }
 
     async login(user: any) {
-        const payload = { sub: user.id, email: user.email };
+        // Create JWT payload with user ID, email and role
+        const payload = {
+            sub: user.id,
+            email: user.email,
+            role: user.role
+        };
+
+        // Generate response data based on role
+        const userData = {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+        };
+
+        // Add specific fields based on user type
+        if (user.role === 'advertiser') {
+            Object.assign(userData, {
+                name: user.name,
+                companyName: user.companyName,
+            });
+        } else if (user.role === 'publisher') {
+            Object.assign(userData, {
+                name: `${user.firstName} ${user.lastName}`,
+            });
+        }
 
         return {
             accessToken: this.jwtService.sign(payload),
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                companyName: user.companyName,
-            },
+            user: userData,
         };
     }
 

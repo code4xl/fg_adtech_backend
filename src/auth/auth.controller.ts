@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   Controller,
   Post,
@@ -7,7 +6,6 @@ import {
   UseGuards,
   Request,
   Param,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
@@ -15,16 +13,16 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiBody,
 } from '@nestjs/swagger';
 import { CreateAdvertiserDto } from 'src/advertisers/dto/create-advertiser.dto';
-import { LocalAuthGuard } from 'src/common/guards/local.guard';
-import { LoginDto } from './dto/login.dto';
-import { JwtAuthGuard } from 'src/common/guards/jwt.guard';
+import { AdvertiserAuthenticationGuard, PublisherAuthenticationGuard } from 'src/common/guards/local.guard';
+import { AdvertiserGuard, PublisherGuard } from 'src/common/guards/auth.guard';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('signup')
   @ApiOperation({ summary: 'Register a new advertiser' })
@@ -33,16 +31,25 @@ export class AuthController {
     description: 'Advertiser has been successfully registered.',
   })
   @ApiResponse({ status: 400, description: 'Bad request.' })
-  async signup(@Body() createAdvertiserDto: CreateAdvertiserDto) {
+  async advertiserSignup(@Body() createAdvertiserDto: CreateAdvertiserDto) {
     return this.authService.signup(createAdvertiserDto);
   }
 
-  @Post('login')
-  @UseGuards(LocalAuthGuard)
-  @ApiOperation({ summary: 'Login with credentials' })
+  @Post('advertiser/login')
+  @UseGuards(AdvertiserAuthenticationGuard)
+  @ApiOperation({ summary: 'Login as an advertiser' })
   @ApiResponse({ status: 200, description: 'Authentication successful.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  async login(@Body() loginDto: LoginDto, @Request() req) {
+  async advertiserLogin(@Request() req) {
+    return this.authService.login(req.user);
+  }
+
+  @Post('publisher/login')
+  @UseGuards(PublisherAuthenticationGuard)
+  @ApiOperation({ summary: 'Login as a publisher' })
+  @ApiResponse({ status: 200, description: 'Authentication successful.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  async publisherLogin(@Request() req) {
     return this.authService.login(req.user);
   }
 
@@ -54,16 +61,6 @@ export class AuthController {
     return this.authService.verifyEmail(token);
   }
 
-  @Get('profile')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get user profile' })
-  @ApiResponse({ status: 200, description: 'Profile retrieved successfully.' })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  getProfile(@Request() req): any {
-    return req.user;
-  }
-
   @Post('resend-verification')
   @ApiOperation({ summary: 'Resend verification email' })
   @ApiResponse({ status: 200, description: 'Verification email sent.' })
@@ -73,5 +70,27 @@ export class AuthController {
   })
   async resendVerification(@Body() { email }: { email: string }) {
     return this.authService.resendVerificationEmail(email);
+  }
+
+  // Test Routes for advertiser
+  @Get('advertiser/profile')
+  @UseGuards(AdvertiserGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Advertiser profile' })
+  @ApiResponse({ status: 200, description: 'Advertiser Profile retrieved successfully.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  getAdvertiserProfile(@Request() req): any {
+    return req.user;
+  }
+
+  // Test Routes for publisher
+  @Get('publisher/profile')
+  @UseGuards(PublisherGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Publisher profile' })
+  @ApiResponse({ status: 200, description: 'Publisher Profile retrieved successfully.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  getPublisherProfile(@Request() req): any {
+    return req.user;
   }
 }

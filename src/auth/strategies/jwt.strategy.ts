@@ -21,8 +21,22 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         });
     }
 
+    // Main validate method called by Passport
     async validate(payload: any) {
-        const user = await this.prisma.advertiser.findUnique({
+        // Check which role is in the token and call the appropriate validation method
+        if (payload.role === 'advertiser') {
+            const user = await this.validateAdvertiser(payload);
+            return { ...user, role: 'advertiser' };
+        } else if (payload.role === 'publisher') {
+            const user = await this.validatePublisher(payload);
+            return { ...user, role: 'publisher' };
+        } else {
+            throw new UnauthorizedException('Invalid user role');
+        }
+    }
+
+    async validateAdvertiser(payload: any) {
+        const advertiser = await this.prisma.advertiser.findUnique({
             where: { id: payload.sub },
             select: {
                 id: true,
@@ -34,14 +48,39 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             },
         });
 
-        if (!user) {
-            throw new UnauthorizedException('User not found');
+        if (!advertiser) {
+            throw new UnauthorizedException('Advertiser not found');
         }
 
-        if (!user.emailVerifiedAt) {
+        if (!advertiser.emailVerifiedAt) {
             throw new UnauthorizedException('Email not verified');
         }
 
-        return user;
+        return advertiser;
+    }
+
+    async validatePublisher(payload: any) {
+        const publisher = await this.prisma.publisher.findUnique({
+            where: { id: payload.sub },
+            select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                emailVerifiedAt: true,
+            },
+        });
+
+        if (!publisher) {
+            throw new UnauthorizedException('Publisher not found');
+        }
+
+        // // Note: If you don't want to require email verification for publishers,
+        // // you can remove this check
+        // if (!publisher.emailVerifiedAt) {
+        //     throw new UnauthorizedException('Email not verified');
+        // }
+
+        return publisher;
     }
 }

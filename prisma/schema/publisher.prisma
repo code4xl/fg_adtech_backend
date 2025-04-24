@@ -1,0 +1,9 @@
+model Publisher {
+    id              Int       @id @default(autoincrement())
+    firstName       String
+    lastName        String
+    email           String    @unique
+    emailVerifiedAt DateTime?
+    password        String
+    rememberToken   String?
+}
