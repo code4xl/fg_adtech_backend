@@ -9,6 +9,7 @@ import morgan from 'morgan';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { SuccessInterceptor } from './common/interceptors/success.interceptor';
 import { AllExceptionsFilter } from './common/filters/global.exception';
+import { ErrorConfigService } from './common/exceptions/error-config.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -34,7 +35,8 @@ async function bootstrap() {
   app.useGlobalInterceptors(new SuccessInterceptor());
 
   // Apply global exception filter for error responses
-  app.useGlobalFilters(new AllExceptionsFilter());
+  const errorConfigService = app.get(ErrorConfigService);
+  app.useGlobalFilters(new AllExceptionsFilter(errorConfigService));
 
   // Global validation pipe
   app.useGlobalPipes(

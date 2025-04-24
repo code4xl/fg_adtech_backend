@@ -13,6 +13,7 @@ import { AdvertiserModule } from './advertiser/advertiser.module';
 
 import { SuccessInterceptor } from './common/interceptors/success.interceptor';
 import { AllExceptionsFilter } from './common/filters/global.exception';
+import { ExceptionsModule } from './common/exceptions/exceptions.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { AllExceptionsFilter } from './common/filters/global.exception';
     AuthModule,
     PublishersModule,
     AdvertiserModule,
+    ExceptionsModule,
   ],
   controllers: [AppController],
   providers: [

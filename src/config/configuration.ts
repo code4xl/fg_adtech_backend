@@ -1,4 +1,3 @@
-
 export default () => ({
   port: process.env.PORT == undefined ? 3000 : parseInt(process.env.PORT, 10),
   database: {
@@ -10,8 +9,12 @@ export default () => ({
     expiresIn: process.env.JWT_EXPIRES_IN || '60m',
   },
   throttle: {
-    ttl: process.env.THROTTLE_TTL ? parseInt(process.env.THROTTLE_TTL, 10) : 60000,
-    limit: process.env.THROTTLE_LIMIT ? parseInt(process.env.THROTTLE_LIMIT, 10) : 10000,
+    ttl: process.env.THROTTLE_TTL
+      ? parseInt(process.env.THROTTLE_TTL, 10)
+      : 60000,
+    limit: process.env.THROTTLE_LIMIT
+      ? parseInt(process.env.THROTTLE_LIMIT, 10)
+      : 10000,
   },
   mail: {
     host: process.env.MAIL_HOST,
@@ -20,5 +23,8 @@ export default () => ({
     user: process.env.MAIL_USER,
     password: process.env.MAIL_PASSWORD,
     from: process.env.MAIL_FROM,
+  },
+  error: {
+    prefix: process.env.ERROR_PREFIX || 'Error',
   },
 });

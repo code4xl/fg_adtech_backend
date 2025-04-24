@@ -1,17 +1,24 @@
 // src/common/exceptions/custom-exceptions.ts
-import { HttpException, HttpStatus } from '@nestjs/common';
-export const prefix = 'OceanAdTech';
+import { HttpException, HttpStatus, Inject } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ErrorConfigService } from './error-config.service';
+
 export class CustomException extends HttpException {
   constructor(
     message: string,
     status: HttpStatus,
     public readonly code: string,
+    @Inject(ErrorConfigService) private errorConfigService?: ErrorConfigService,
   ) {
+    const formattedCode = errorConfigService
+      ? errorConfigService.formatErrorCode(code, status)
+      : `OceanAdTech_${code}_${status}`;
+
     super(
       {
         message,
         status,
-        code: `${prefix}_${code}_${status}`,
+        code: formattedCode,
       },
       status,
     );
@@ -88,5 +95,11 @@ export class RateLimitedException extends CustomException {
 export class PaymentRequiredException extends CustomException {
   constructor(message = 'Payment required') {
     super(message, HttpStatus.PAYMENT_REQUIRED, 'PAYMENT_REQUIRED');
+  }
+}
+
+export class MovedPermanentlyException extends CustomException {
+  constructor(message = 'Moved permanently') {
+    super(message, HttpStatus.MOVED_PERMANENTLY, 'MOVED_PERMANENTLY');
   }
 }

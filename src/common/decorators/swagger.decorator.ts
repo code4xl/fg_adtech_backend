@@ -127,44 +127,26 @@ export const ApiStandardErrors = () => {
     ApiResponse({
       status: HttpStatus.BAD_REQUEST,
       description: 'Bad Request',
-      schema: {
-        allOf: [{ $ref: getSchemaPath(ErrorResponseDto) }],
-      },
     }),
     ApiResponse({
       status: HttpStatus.UNAUTHORIZED,
       description: 'Unauthorized',
-      schema: {
-        allOf: [{ $ref: getSchemaPath(ErrorResponseDto) }],
-      },
     }),
     ApiResponse({
       status: HttpStatus.FORBIDDEN,
       description: 'Forbidden',
-      schema: {
-        allOf: [{ $ref: getSchemaPath(ErrorResponseDto) }],
-      },
     }),
     ApiResponse({
       status: HttpStatus.NOT_FOUND,
       description: 'Not Found',
-      schema: {
-        allOf: [{ $ref: getSchemaPath(ErrorResponseDto) }],
-      },
     }),
     ApiResponse({
       status: HttpStatus.CONFLICT,
       description: 'Conflict',
-      schema: {
-        allOf: [{ $ref: getSchemaPath(ErrorResponseDto) }],
-      },
     }),
     ApiResponse({
       status: HttpStatus.INTERNAL_SERVER_ERROR,
       description: 'Internal Server Error',
-      schema: {
-        allOf: [{ $ref: getSchemaPath(ErrorResponseDto) }],
-      },
     }),
   );
 };
