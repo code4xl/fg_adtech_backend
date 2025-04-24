@@ -1,11 +1,12 @@
-import { Injectable, ConflictException, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { ConfigService } from '@nestjs/config';
-import { CreateAdvertiserDto } from 'src/advertisers/dto/create-advertiser.dto';
+import { CreateAdvertiserDto } from 'src/advertiser/dto/create-advertiser.dto';
+import { DuplicateResourceException } from 'src/common/interceptors/custom.interceptor';
 
 @Injectable()
 export class AuthService {
@@ -23,7 +24,7 @@ export class AuthService {
         });
 
         if (existingUser) {
-            throw new ConflictException('Email already in use');
+            throw new DuplicateResourceException('Advertiser', 'email', createAdvertiserDto.email);
         }
 
         // Check if mobile already exists
@@ -32,7 +33,7 @@ export class AuthService {
         });
 
         if (existingMobile) {
-            throw new ConflictException('Mobile number already in use');
+            throw new DuplicateResourceException('Advertiser', 'mobile', createAdvertiserDto.mobile);
         }
 
         // Hash password

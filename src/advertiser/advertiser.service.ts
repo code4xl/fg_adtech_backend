@@ -2,25 +2,28 @@ import { Injectable } from '@nestjs/common';
 import { CreateAdvertiserDto } from './dto/create-advertiser.dto';
 import { UpdateAdvertiserDto } from './dto/update-advertiser.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { ResourceNotFoundException } from 'src/common/interceptors/custom.interceptor';
 
 @Injectable()
-export class AdvertisersService {
-  constructor(
-    private readonly prisma: PrismaService,
-  ) { }
-
-  create(createAdvertiserDto: CreateAdvertiserDto) {
-    // let advertiser = this.prisma.advertiser.create({});
-
-    return 'This action adds a new advertiser';
-  }
+export class AdvertiserService {
+  constructor(private readonly prisma: PrismaService) { }
 
   findAll() {
-    return `This action returns all advertisers`;
+    return `This action returns all advertiser`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} advertiser`;
+  async findOne(id: number) {
+    let advertiser = await this.prisma.advertiser.findUnique({
+      where: {
+        id,
+      }
+    })
+
+    if (!advertiser) {
+      throw new ResourceNotFoundException("Advertiser", id);
+    }
+
+    return advertiser;
   }
 
   update(id: number, updateAdvertiserDto: UpdateAdvertiserDto) {

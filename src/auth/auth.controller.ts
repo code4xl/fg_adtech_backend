@@ -15,9 +15,9 @@ import {
   ApiBearerAuth,
   ApiBody,
 } from '@nestjs/swagger';
-import { CreateAdvertiserDto } from 'src/advertisers/dto/create-advertiser.dto';
 import { AdvertiserAuthenticationGuard, PublisherAuthenticationGuard } from 'src/common/guards/local.guard';
 import { AdvertiserGuard, PublisherGuard } from 'src/common/guards/auth.guard';
+import { CreateAdvertiserDto } from 'src/advertiser/dto/create-advertiser.dto';
 
 @ApiTags('auth')
 @Controller('auth')

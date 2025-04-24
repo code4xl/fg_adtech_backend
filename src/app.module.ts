@@ -6,10 +6,10 @@ import configuration from './config/configuration';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
-import { AdvertisersModule } from './advertisers/advertisers.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PublishersModule } from './publishers/publishers.module';
 import { PrismaService } from './prisma/prisma.service';
+import { AdvertiserModule } from './advertiser/advertiser.module';
 
 @Module({
   imports: [ConfigModule.forRoot(
@@ -34,7 +34,7 @@ import { PrismaService } from './prisma/prisma.service';
     PrismaModule,
     AuthModule,
     PublishersModule,
-    AdvertisersModule,
+    AdvertiserModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService, {
