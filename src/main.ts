@@ -8,19 +8,17 @@ import { ConfigService } from '@nestjs/config';
 import morgan from 'morgan';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { SuccessInterceptor } from './common/interceptors/success.interceptor';
-import { AllExceptionsFilter } from './common/interceptors/global.interceptor';
+import { AllExceptionsFilter } from './common/filters/global.exception';
+import { ErrorConfigService } from './common/exceptions/error-config.service';
+
 async function bootstrap() {
-
   const app = await NestFactory.create(AppModule, {
-    logger: new ConsoleLogger(
-      {
-        json: false,
-        colors: true,
-        logLevels: ['error', 'warn', 'debug', 'verbose', 'fatal', 'log'],
-        prefix: "OceanAdTech",
-      }
-    )
-
+    logger: new ConsoleLogger({
+      json: false,
+      colors: true,
+      logLevels: ['error', 'warn', 'debug', 'verbose', 'fatal'],
+      prefix: 'OceanAdTech',
+    }),
   });
   const configService = app.get(ConfigService);
 
@@ -28,7 +26,7 @@ async function bootstrap() {
   app.enableCors();
 
   // Use Helmet for security headers
-  app.use(helmet())
+  app.use(helmet());
 
   // Use compression
   app.use(compression());
@@ -37,8 +35,8 @@ async function bootstrap() {
   app.useGlobalInterceptors(new SuccessInterceptor());
 
   // Apply global exception filter for error responses
-  app.useGlobalFilters(new AllExceptionsFilter());
-
+  const errorConfigService = app.get(ErrorConfigService);
+  app.useGlobalFilters(new AllExceptionsFilter(errorConfigService));
 
   // Global validation pipe
   app.useGlobalPipes(
@@ -50,7 +48,7 @@ async function bootstrap() {
   );
   // Swagger API documentation
   if (process.env.NODE_ENV !== 'production') {
-    app.use(morgan("dev"))
+    app.use(morgan('dev'));
     app.useGlobalInterceptors(new LoggingInterceptor());
 
     const config = new DocumentBuilder()
