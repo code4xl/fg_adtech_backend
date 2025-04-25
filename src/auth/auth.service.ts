@@ -8,7 +8,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
-import { ConfigService } from '@nestjs/config';
 import { CreateAdvertiserDto } from 'src/advertiser/dto/create-advertiser.dto';
 import { DuplicateResourceException } from 'src/common/exceptions/custom.exception';
 
@@ -18,7 +17,6 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private mailService: MailService,
-    private configService: ConfigService,
   ) { }
 
   async signup(createAdvertiserDto: CreateAdvertiserDto) {
@@ -111,10 +109,11 @@ export class AuthService {
     return { message: 'Email verified successfully' };
   }
 
+  // This function gets called from the LocalStrategy to validate which user is logging in.
   async validateUser(
     email: string,
     password: string,
-    role: 'advertiser' | 'publisher',
+    role: 'advertiser' | 'publisher' | 'admin',
   ) {
     let user;
 
@@ -134,6 +133,10 @@ export class AuthService {
       });
 
       // Note: No email verification check for publishers as per your requirements
+    } else if (role === 'admin') {
+      user = await this.prisma.admin.findUnique({
+        where: { email },
+      });
     }
 
     if (!user) {
@@ -153,6 +156,7 @@ export class AuthService {
     return { ...result, role };
   }
 
+  // The localstrategy will return the user object to this function and it will generate a JWT token for the user.
   async login(user: any) {
     // Create JWT payload with user ID, email and role
     const payload = {
@@ -162,27 +166,27 @@ export class AuthService {
     };
 
     // Generate response data based on role
-    const userData = {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    };
+    // const userData = user;
 
     // Add specific fields based on user type
-    if (user.role === 'advertiser') {
-      Object.assign(userData, {
-        name: user.name,
-        companyName: user.companyName,
-      });
-    } else if (user.role === 'publisher') {
-      Object.assign(userData, {
-        name: `${user.firstName} ${user.lastName}`,
-      });
-    }
+    // if (user.role === 'advertiser') {
+    //   Object.assign(userData, {
+    //     name: user.name,
+    //     companyName: user.companyName,
+    //   });
+    // } else if (user.role === 'publisher') {
+    //   Object.assign(userData, {
+    //     name: `${user.firstName} ${user.lastName}`,
+    //   });
+    // } else if (user.role === 'admin') {
+    //   Object.assign(userData, {
+    //     name: user.name,
+    //   });
+    // }
 
     return {
       accessToken: this.jwtService.sign(payload),
-      user: userData,
+      user: user,
     };
   }
 

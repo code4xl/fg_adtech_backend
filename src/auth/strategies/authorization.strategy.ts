@@ -30,6 +30,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         } else if (payload.role === 'publisher') {
             const user = await this.validatePublisher(payload);
             return { ...user, role: 'publisher' };
+        } else if (payload.role === 'admin') {
+            const user = await this.validateAdmin(payload);
+            return { ...user, role: 'admin' };
         } else {
             throw new UnauthorizedException('Invalid user role');
         }
@@ -82,5 +85,29 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         // }
 
         return publisher;
+    }
+
+    async validateAdmin(payload: any) {
+        const admin = await this.prisma.admin.findUnique({
+            where: { id: payload.sub },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                emailVerifiedAt: true,
+            },
+        });
+
+        if (!admin) {
+            throw new UnauthorizedException('Admin not found');
+        }
+
+        // // Note: If you don't want to require email verification for admins,
+        // // you can remove this check
+        // if (!admin.emailVerifiedAt) {
+        //     throw new UnauthorizedException('Email not verified');
+        // }
+
+        return admin;
     }
 }

@@ -9,13 +9,13 @@ import {
 
 @Injectable()
 export class AdvertiserService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   findAll() {
     return `This action returns all advertiser`;
   }
 
-  async findOne(id: number) {
+  async findOne(id: string) {
     let advertiser = await this.prisma.advertiser.findUnique({
       where: {
         id,

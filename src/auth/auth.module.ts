@@ -5,8 +5,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { AuthController } from './auth.controller';
-import { LocalAdvertiserStrategy, LocalPublisherStrategy } from './strategies/local.strategy';
-import { JwtStrategy } from './strategies/jwt.strategy';
+import { LocalAdminStrategy, LocalAdvertiserStrategy, LocalPublisherStrategy } from './strategies/authentication.strategy';
+import { JwtStrategy } from './strategies/authorization.strategy';
 import { MailModule } from 'src/mail/mail.module';
 
 @Module({
@@ -30,6 +30,7 @@ import { MailModule } from 'src/mail/mail.module';
     AuthService,
     LocalAdvertiserStrategy,
     LocalPublisherStrategy,
+    LocalAdminStrategy,
     JwtStrategy
   ],
   exports: [AuthService],

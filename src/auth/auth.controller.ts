@@ -16,18 +16,20 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import {
+  AdminAuthenticationGuard,
   AdvertiserAuthenticationGuard,
   PublisherAuthenticationGuard,
-} from 'src/common/guards/local.guard';
-import { AdvertiserGuard, PublisherGuard } from 'src/common/guards/auth.guard';
+} from 'src/common/guards/authorization.guard';
+import { AdminGuard, AdvertiserGuard, PublisherGuard } from 'src/common/guards/authentication.guard';
 import { CreateAdvertiserDto } from 'src/advertiser/dto/create-advertiser.dto';
+import { LoginDto } from './dto/login.dto';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
-  @Post('signup')
+  @Post('advertiser/signup')
   @ApiOperation({ summary: 'Register a new advertiser' })
   @ApiResponse({
     status: 201,
@@ -43,7 +45,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Login as an advertiser' })
   @ApiResponse({ status: 200, description: 'Authentication successful.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  async advertiserLogin(@Request() req) {
+  async advertiserLogin(@Body() LoginDto: LoginDto, @Request() req) {
     return this.authService.login(req.user);
   }
 
@@ -52,14 +54,24 @@ export class AuthController {
   @ApiOperation({ summary: 'Login as a publisher' })
   @ApiResponse({ status: 200, description: 'Authentication successful.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  async publisherLogin(@Request() req) {
+  async publisherLogin(@Body() LoginDto: LoginDto, @Request() req) {
     return this.authService.login(req.user);
   }
 
-  @Get('verify/:token')
+  @Post('admin/login')
+  @UseGuards(AdminAuthenticationGuard)
+  @ApiOperation({ summary: 'Login as a admin' })
+  @ApiResponse({ status: 200, description: 'Authentication successful.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  async adminLogin(@Body() LoginDto: LoginDto, @Request() req) {
+    return this.authService.login(req.user);
+  }
+
+  @Get('advertiser/verify/:token')
   @ApiOperation({ summary: 'Verify email address' })
   @ApiResponse({ status: 200, description: 'Email verified successfully.' })
   @ApiResponse({ status: 400, description: 'Invalid or expired token.' })
+  @ApiBody({ required: false })
   async verifyEmail(@Param('token') token: string) {
     return this.authService.verifyEmail(token);
   }
@@ -84,7 +96,7 @@ export class AuthController {
     status: 200,
     description: 'Advertiser Profile retrieved successfully.',
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized. Asif' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
   getAdvertiserProfile(@Request() req): any {
     return req.user;
   }
@@ -100,6 +112,20 @@ export class AuthController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   getPublisherProfile(@Request() req): any {
+    return req.user;
+  }
+
+  // Test Routes for Admin
+  @Get('admin/profile')
+  @UseGuards(AdminGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Admin profile' })
+  @ApiResponse({
+    status: 200,
+    description: 'Admin Profile retrieved successfully.',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  getAdminProfile(@Request() req): any {
     return req.user;
   }
 }

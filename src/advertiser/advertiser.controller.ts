@@ -23,7 +23,7 @@ import { ErrorResponseDto } from 'src/common/dto/api-response.dto';
 
 @Controller('advertiser')
 export class AdvertiserController {
-  constructor(private readonly advertiserService: AdvertiserService) {}
+  constructor(private readonly advertiserService: AdvertiserService) { }
 
   @Get()
   findAll() {
@@ -36,7 +36,7 @@ export class AdvertiserController {
     description: 'Advertiser moved permanently',
   })
   findOne(@Param('id') id: string) {
-    return this.advertiserService.findOne(+id);
+    return this.advertiserService.findOne(id);
   }
 
   @Patch(':id')
