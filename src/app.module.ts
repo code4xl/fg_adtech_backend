@@ -15,6 +15,7 @@ import { SuccessInterceptor } from './common/interceptors/success.interceptor';
 import { AllExceptionsFilter } from './common/filters/global.exception';
 import { ExceptionsModule } from './common/exceptions/exceptions.module';
 import { AdminModule } from './admin/admin.module';
+import { CampaignModule } from './campaign/campaign.module';
 
 @Module({
   imports: [
@@ -60,4 +61,4 @@ import { AdminModule } from './admin/admin.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
