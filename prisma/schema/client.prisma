@@ -1,17 +1,19 @@
 model Client {
-    id                String                @id @default(uuid()) @db.Uuid
+    id                String      @id @default(uuid()) @db.Uuid
     name              String
-    email             String                @unique
+    email             String      @unique
     password          String
     mobile            String
     companyName       String
     hqLocation        String
-    companySize       AdvertiserCompanySize
+    companySize       CompanySize
     registeredAddress String
     companyGSTIN      String
     PAN               String
     CIN               String
     website           String
-    createdAt         DateTime              @default(now())
-    updatedAt         DateTime              @updatedAt
+    createdAt         DateTime    @default(now())
+    updatedAt         DateTime    @updatedAt
+    Advertiser        Advertiser? @relation(fields: [advertiserId], references: [id])
+    advertiserId      String?     @db.Uuid
 }
