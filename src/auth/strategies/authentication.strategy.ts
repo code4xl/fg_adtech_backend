@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from '../auth.service';
 import { Request } from 'express';
+import { BadRequestException } from 'src/common/exceptions/custom.exception';
 
 @Injectable()
 export class LocalAdvertiserStrategy extends PassportStrategy(Strategy, 'advertiser') {

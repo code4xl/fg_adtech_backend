@@ -16,6 +16,9 @@ export default () => ({
       ? parseInt(process.env.THROTTLE_LIMIT, 10)
       : 10000,
   },
+  auth: {
+    verificationTokenExpiry: process.env.VERIFICATION_TOKEN_EXPIRY,
+  },
   mail: {
     host: process.env.MAIL_HOST,
     port: process.env.MAIL_PORT ? parseInt(process.env.MAIL_PORT, 10) : 587,

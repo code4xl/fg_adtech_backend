@@ -7,11 +7,11 @@ export class MailService {
   constructor(
     private mailerService: MailerService,
     private configService: ConfigService,
-  ) {}
+  ) { }
 
-  async sendVerificationEmail(email: string, name: string, token: string) {
+  async sendVerificationEmail(email: string, name: string, role: string, token: string) {
     const appUrl = this.configService.get<string>('APP_URL');
-    const verificationUrl = `${appUrl}/auth/verify/${token}`;
+    const verificationUrl = `${appUrl}/auth/${role}/verify/${token}`;
 
     await this.mailerService.sendMail({
       to: email,
@@ -24,18 +24,18 @@ export class MailService {
     });
   }
 
-  // async sendPasswordResetEmail(email: string, name: string, token: string) {
-  //     const appUrl = this.configService.get<string>('APP_URL');
-  //     const resetUrl = `${appUrl}/auth/reset-password/${token}`;
+  async sendPasswordResetEmail(email: string, name: string, token: string) {
+    const appUrl = this.configService.get<string>('APP_URL');
+    const resetUrl = `${appUrl}/auth/reset-password/${token}`;
 
-  //     await this.mailerService.sendMail({
-  //         to: email,
-  //         subject: 'Password Reset Request',
-  //         template: './password-reset', // Create this template in the templates directory
-  //         context: {
-  //             name,
-  //             resetUrl,
-  //         },
-  //     });
-  // }
+    await this.mailerService.sendMail({
+      to: email,
+      subject: 'Password Reset Request',
+      template: './password-reset', // Create this template in the templates directory
+      context: {
+        name,
+        resetUrl,
+      },
+    });
+  }
 }

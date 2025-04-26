@@ -1,131 +1,63 @@
-import { Injectable, ExecutionContext } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { UnauthorizedException } from '../exceptions/custom.exception';
 
 /**
- * AdvertiserGuard - Protects routes that require advertiser authentication
- *
- * This guard extends the JWT authentication guard and adds role-specific validation.
- * It ensures that:
- * 1. The request contains a valid JWT token (authenticated user)
- * 2. The user has the 'advertiser' role
- *
- * The guard performs these checks in sequence:
- * 1. First, it validates the JWT token using the parent JWT strategy
- * 2. If the token is valid, it then checks if the user has the advertiser role
- * 3. If either check fails, access is denied
- *
- * This prevents cross-role access - publishers cannot access advertiser-only routes
- * even if they have a valid JWT token.
- *
+ * AdvertiserAuthGuard - Used specifically for advertiser login
+ * 
+ * This guard protects the advertiser login endpoint and uses the 'advertiser' 
+ * strategy defined in LocalAdvertiserStrategy.
+ * 
+ * When applied to a route, it will:
+ * 1. Extract email and password from the request body
+ * 2. Call the validateAdvertiser method from AuthService
+ * 3. If credentials are valid, it attaches the user to the request object
+ * 4. If credentials are invalid, it throws an UnauthorizedException
+ * 
  * Example usage:
- * @Get('advertiser/dashboard')
- * @UseGuards(JwtAdvertiserGuard)
- * getDashboard() { ... }
+ * @Post('advertiser/login')
+ * @UseGuards(AdvertiserAuthGuard)
+ * async login(@Request() req) { ... }
  */
 @Injectable()
-export class AdvertiserGuard extends AuthGuard('jwt') {
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    // First ensure JWT validation is done
-    const isJwtValid = await super.canActivate(context);
+export class AdvertiserAuthenticationGuard extends AuthGuard('advertiser') { }
 
-    if (!isJwtValid) {
-      return false;
-    }
-
-    // Get the request object
-    const request = context.switchToHttp().getRequest();
-    const user = request.user;
-
-    // Check if the user has the advertiser role
-    if (!user || user.role !== 'advertiser') {
-      throw new UnauthorizedException('Advertiser');
-    }
-
-    return true;
-  }
-}
 
 /**
- * PublisherGuard - Protects routes that require publisher authentication
- *
- * This guard extends the JWT authentication guard and adds role-specific validation.
- * It ensures that:
- * 1. The request contains a valid JWT token (authenticated user)
- * 2. The user has the 'publisher' role
- *
- * The guard performs these checks in sequence:
- * 1. First, it validates the JWT token using the parent JWT strategy
- * 2. If the token is valid, it then checks if the user has the publisher role
- * 3. If either check fails, access is denied
- *
- * This prevents cross-role access - advertisers cannot access publisher-only routes
- * even if they have a valid JWT token.
- *
+ * PublisherAuthGuard - Used specifically for publisher login
+ * 
+ * This guard protects the publisher login endpoint and uses the 'publisher'
+ * strategy defined in LocalPublisherStrategy.
+ * 
+ * When applied to a route, it will:
+ * 1. Extract email and password from the request body
+ * 2. Call the validatePublisher method from AuthService
+ * 3. If credentials are valid, it attaches the user to the request object
+ * 4. If credentials are invalid, it throws an UnauthorizedException
+ * 
  * Example usage:
- * @Get('publisher/dashboard')
- * @UseGuards(JwtPublisherGuard)
- * getDashboard() { ... }
+ * @Post('publisher/login')
+ * @UseGuards(PublisherAuthGuard)
+ * async login(@Request() req) { ... }
  */
 @Injectable()
-export class PublisherGuard extends AuthGuard('jwt') {
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    // First ensure JWT validation is done
-    const isJwtValid = await super.canActivate(context);
-
-    if (!isJwtValid) {
-      return false;
-    }
-
-    // Get the request object
-    const request = context.switchToHttp().getRequest();
-    const user = request.user;
-
-    // Check if the user has the publisher role
-    if (!user || user.role !== 'publisher') {
-      throw new UnauthorizedException();
-    }
-
-    return true;
-  }
-}
-
+export class PublisherAuthenticationGuard extends AuthGuard('publisher') { }
 
 /**
- * AdminGuard - Protects routes that require admin authentication
- *
- * This guard extends the JWT authentication guard and adds role-specific validation.
- * It ensures that:
- * 1. The request contains a valid JWT token (authenticated user)
- * 2. The user has the 'admin' role
- *
- * The guard performs these checks in sequence:
- * 1. First, it validates the JWT token using the parent JWT strategy
- * 2. If the token is valid, it then checks if the user has the admin role
- * 3. If either check fails, access is denied
- *
- * This prevents cross-role access - advertisers cannot access admin-only routes
- * even if they have a valid JWT token.
+ * AdminAuthGuard - Used specifically for admin login
+ * 
+ * This guard protects the publisher login endpoint and uses the 'publisher'
+ * strategy defined in LocalAdminStrategy.
+ * 
+ * When applied to a route, it will:
+ * 1. Extract email and password from the request body
+ * 2. Call the validatePublisher method from AuthService
+ * 3. If credentials are valid, it attaches the user to the request object
+ * 4. If credentials are invalid, it throws an UnauthorizedException
+ * 
+ * Example usage:
+ * @Post('publisher/login')
+ * @UseGuards(PublisherAuthGuard)
+ * async login(@Request() req) { ... }
  */
 @Injectable()
-export class AdminGuard extends AuthGuard('jwt') {
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    // First ensure JWT validation is done
-    const isJwtValid = await super.canActivate(context);
-
-    if (!isJwtValid) {
-      return false;
-    }
-
-    // Get the request object
-    const request = context.switchToHttp().getRequest();
-    const user = request.user;
-
-    // Check if the user has the publisher role
-    if (!user || user.role !== 'admin') {
-      throw new UnauthorizedException();
-    }
-
-    return true;
-  }
-}
+export class AdminAuthenticationGuard extends AuthGuard('admin') { }
