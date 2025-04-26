@@ -34,10 +34,10 @@ export class ClientController {
     status: HttpStatus.CONFLICT,
     description: 'Client with this email, pan or gstin already exists',
   })
-  @Post()
-  create(@Body() createClientDto: CreateClientDto) {
-    return this.clientService.create(createClientDto);
-  }
+  // @Post()
+  // create(@Body() createClientDto: CreateClientDto) {
+  //   return this.clientService.create(createClientDto);
+  // }
 
   @Get()
   findAll() {

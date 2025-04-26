@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { faker } from '@faker-js/faker';
 import * as bcrypt from 'bcryptjs';
-import { AdvertiserCompanySize } from '@prisma/client';
+import { CompanySize } from '@prisma/client';
 import { BaseSeeder } from '../base.seeder';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -33,7 +33,7 @@ export class AdvertiserSeeder extends BaseSeeder {
                 const verificationStatus = faker.datatype.boolean(0.8); // 80% chance of verified email
 
                 // Get random company size
-                const companySizes = Object.values(AdvertiserCompanySize);
+                const companySizes = Object.values(CompanySize);
                 const companySize = faker.helpers.arrayElement(companySizes);
 
                 advertiserData.push({
@@ -58,7 +58,7 @@ export class AdvertiserSeeder extends BaseSeeder {
                 mobile: '+12025550179',
                 companyName: 'Example Advertising Inc.',
                 hqLocation: 'Chicago, IL',
-                companySize: AdvertiserCompanySize.FIFTY_ONE_TO_TWO_HUNDRED,
+                companySize: CompanySize.FIFTY_ONE_TO_TWO_HUNDRED,
                 emailVerifiedAt: new Date(),
                 createdAt: new Date(),
                 updatedAt: new Date(),

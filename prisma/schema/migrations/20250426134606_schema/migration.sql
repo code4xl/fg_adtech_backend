@@ -41,22 +41,38 @@ CREATE TABLE "Campaign" (
 
 -- CreateTable
 CREATE TABLE "Client" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
+    "password" TEXT NOT NULL,
     "mobile" TEXT NOT NULL,
     "companyName" TEXT NOT NULL,
     "hqLocation" TEXT NOT NULL,
     "companySize" "CompanySize" NOT NULL,
     "registeredAddress" TEXT NOT NULL,
-    "gstin" TEXT,
-    "cin" TEXT,
-    "pan" TEXT,
+    "companyGSTIN" TEXT NOT NULL,
+    "PAN" TEXT NOT NULL,
+    "CIN" TEXT NOT NULL,
+    "website" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "advertiserId" UUID NOT NULL,
+    "advertiserId" UUID,
 
     CONSTRAINT "Client_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Product" (
+    "id" UUID NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "price" DECIMAL(10,2) NOT NULL,
+    "stock" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "userId" UUID NOT NULL,
+
+    CONSTRAINT "Product_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -70,6 +86,18 @@ CREATE TABLE "Publisher" (
     "rememberToken" TEXT,
 
     CONSTRAINT "Publisher_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "User" (
+    "id" UUID NOT NULL,
+    "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "password" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -91,22 +119,13 @@ CREATE UNIQUE INDEX "Advertiser_resetPasswordToken_key" ON "Advertiser"("resetPa
 CREATE UNIQUE INDEX "Client_email_key" ON "Client"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Client_mobile_key" ON "Client"("mobile");
-
--- CreateIndex
-CREATE INDEX "Client_advertiserId_idx" ON "Client"("advertiserId");
-
--- CreateIndex
-CREATE INDEX "Client_email_idx" ON "Client"("email");
-
--- CreateIndex
-CREATE INDEX "Client_gstin_idx" ON "Client"("gstin");
-
--- CreateIndex
-CREATE INDEX "Client_pan_idx" ON "Client"("pan");
-
--- CreateIndex
 CREATE UNIQUE INDEX "Publisher_email_key" ON "Publisher"("email");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
 -- AddForeignKey
-ALTER TABLE "Client" ADD CONSTRAINT "Client_advertiserId_fkey" FOREIGN KEY ("advertiserId") REFERENCES "Advertiser"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Client" ADD CONSTRAINT "Client_advertiserId_fkey" FOREIGN KEY ("advertiserId") REFERENCES "Advertiser"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Product" ADD CONSTRAINT "Product_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
