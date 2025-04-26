@@ -19,7 +19,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "prisma:migrate": "pnpm prisma migrate dev",
+    "prisma:migrate": "pnpm prisma migrate dev --name schema changed",
     "prisma:generate": "pnpm prisma generate",
     "prisma:reset": "pnpm prisma migrate reset",
     "prisma:studio": "pnpm prisma studio"
@@ -36,6 +36,7 @@
     "@nestjs/swagger": "^11.1.5",
     "@nestjs/throttler": "^6.4.0",
     "@prisma/client": "^6.6.0",
+    "@scalar/nestjs-api-reference": "^0.4.11",
     "bcryptjs": "^3.0.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",

@@ -10,6 +10,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { SuccessInterceptor } from './common/interceptors/success.interceptor';
 import { AllExceptionsFilter } from './common/filters/global.exception';
 import { ErrorConfigService } from './common/exceptions/error-config.service';
+import { apiReference } from '@scalar/nestjs-api-reference';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -26,7 +27,19 @@ async function bootstrap() {
   app.enableCors();
 
   // Use Helmet for security headers
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: [`'self'`],
+          scriptSrc: [`'self'`, `'unsafe-inline'`, 'cdn.jsdelivr.net'],
+          styleSrc: [`'self'`, `'unsafe-inline'`, 'cdn.jsdelivr.net'],
+          imgSrc: [`'self'`, 'data:', 'cdn.jsdelivr.net'],
+          connectSrc: [`'self'`],
+        },
+      },
+    }),
+  );
 
   // Use compression
   app.use(compression());
@@ -52,14 +65,29 @@ async function bootstrap() {
     app.useGlobalInterceptors(new LoggingInterceptor());
 
     const config = new DocumentBuilder()
-      .setTitle('Ocean AdTech API')
-      .setDescription('Programmatic AdTech API description')
+      .setTitle('OceanAdTech API Documentation')
+      .setDescription('Documentation for OceanAdTech API')
       .setVersion('1.0')
+      .setOpenAPIVersion('3.0.0')
       .addBearerAuth()
       .build();
 
     const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api', app, document);
+    SwaggerModule.setup('api', app, document, {
+      swaggerUiEnabled: false,
+      customSiteTitle: 'OceanAdTech API Docs',
+      explorer: true,
+      jsonDocumentUrl: '/api-json',
+      useGlobalPrefix: true,
+    });
+
+    app.use(
+      '/api',
+      apiReference({
+        content: document,
+        theme: 'bluePlanet',
+      }),
+    );
   }
 
   const port = configService.get<number>('port') || 3000;

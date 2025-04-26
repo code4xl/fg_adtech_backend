@@ -10,6 +10,7 @@ import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateAdvertiserDto } from 'src/advertiser/dto/create-advertiser.dto';
 import { DuplicateResourceException } from 'src/common/exceptions/custom.exception';
+import { Role } from 'src/common/types/role';
 
 @Injectable()
 export class AuthService {
@@ -17,7 +18,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private mailService: MailService,
-  ) { }
+  ) {}
 
   async signup(createAdvertiserDto: CreateAdvertiserDto) {
     // Check if email already exists
@@ -68,12 +69,13 @@ export class AuthService {
         companySize: true,
       },
     });
-
+    let role: Role = 'advertiser';
     // Send verification email
     await this.mailService.sendVerificationEmail(
       user.email,
       user.name,
       verificationToken,
+      role,
     );
 
     return {
@@ -211,12 +213,13 @@ export class AuthService {
       where: { id: user.id },
       data: { verificationToken },
     });
-
+    let role: Role = 'advertiser';
     // Send verification email
     await this.mailService.sendVerificationEmail(
       user.email,
       user.name,
       verificationToken,
+      role,
     );
 
     return { message: 'Verification email sent' };

@@ -1,11 +1,11 @@
 import { Controller, UseGuards } from '@nestjs/common';
 import { CampaignService } from './campaign.service';
-import { AdvertiserGuard } from 'src/common/guards/authentication.guard';
+import { AdvertiserGuard } from 'src/common/guards/authorization.guard';
 
 @Controller('campaign')
 @UseGuards(AdvertiserGuard)
 export class CampaignController {
-  constructor(private readonly campaignService: CampaignService) { }
+  constructor(private readonly campaignService: CampaignService) {}
 
   // @Get()
   // async findAll() {

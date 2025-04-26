@@ -16,6 +16,7 @@ import { AllExceptionsFilter } from './common/filters/global.exception';
 import { ExceptionsModule } from './common/exceptions/exceptions.module';
 import { AdminModule } from './admin/admin.module';
 import { CampaignModule } from './campaign/campaign.module';
+import { ClientModule } from './client/client.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { CampaignModule } from './campaign/campaign.module';
     AdvertiserModule,
     ExceptionsModule,
     AdminModule,
+    ClientModule,
   ],
   controllers: [AppController],
   providers: [

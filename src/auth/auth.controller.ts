@@ -19,15 +19,19 @@ import {
   AdminAuthenticationGuard,
   AdvertiserAuthenticationGuard,
   PublisherAuthenticationGuard,
+} from 'src/common/guards/authentication.guard';
+import {
+  AdminGuard,
+  AdvertiserGuard,
+  PublisherGuard,
 } from 'src/common/guards/authorization.guard';
-import { AdminGuard, AdvertiserGuard, PublisherGuard } from 'src/common/guards/authentication.guard';
 import { CreateAdvertiserDto } from 'src/advertiser/dto/create-advertiser.dto';
 import { LoginDto } from './dto/login.dto';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   @Post('advertiser/signup')
   @ApiOperation({ summary: 'Register a new advertiser' })

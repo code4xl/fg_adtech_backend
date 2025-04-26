@@ -1,24 +1,26 @@
-// enum AdvertiserCompanySize {
-//     ONE_TO_TEN // 1-10
-//     ELEVEN_TO_FIFTY // 11-50
-//     FIFTY_ONE_TO_TWO_HUNDRED // 51-200
-//     TWO_HUNDRED_ONE_TO_FIVE_HUNDRED // 201-500
-//     FIVE_HUNDRED_ONE_TO_ONE_THOUSAND // 501-1000
-//     ONE_THOUSAND_AND_ABOVE // 1001+
-// }
 model Client {
-    id                String                @id @default(uuid()) @db.Uuid
-    name              String
-    email             String                @unique
-    mobile            String
-    companyName       String
-    hqLocation        String
-    companySize       AdvertiserCompanySize
-    registeredAddress String
-    companyGSTIN      String
-    PAN               String
-    CIN               String
-    website           String
-    createdAt         DateTime              @default(now())
-    updatedAt         DateTime              @updatedAt
+  id                String         @id @default(uuid())
+  name              String
+  email             String      @unique
+  mobile            String      @unique
+  companyName       String
+  hqLocation        String
+  companySize       CompanySize
+  registeredAddress String
+  gstin             String?     // Goods and Services Tax Identification Number
+  cin               String?     // Corporate Identity Number
+  pan               String?     // Permanent Account Number
+  
+  // Timestamps
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  
+  // Relationship with Advertiser
+  advertiser        Advertiser  @relation(fields: [advertiserId], references: [id])
+  advertiserId      String      @db.Uuid
+  
+  @@index([advertiserId])
+  @@index([email])
+  @@index([gstin])
+  @@index([pan])
 }
