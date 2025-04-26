@@ -9,8 +9,12 @@ import { MailService } from '../mail/mail.service';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateAdvertiserDto } from 'src/advertiser/dto/create-advertiser.dto';
-import { DuplicateResourceException } from 'src/common/exceptions/custom.exception';
-import { Role } from 'src/common/types/role';
+import {
+  DuplicateResourceException,
+  EmailAlreadyVerifiedException,
+  ResourceNotFoundException,
+} from 'src/common/exceptions/custom.exception';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
@@ -18,10 +22,11 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private mailService: MailService,
+    private config: ConfigService,
   ) {}
 
+  // This function is used to register a new advertiser.
   async signup(createAdvertiserDto: CreateAdvertiserDto) {
-    // Check if email already exists
     const existingUser = await this.prisma.advertiser.findUnique({
       where: { email: createAdvertiserDto.email },
     });
@@ -50,8 +55,16 @@ export class AuthService {
     // Hash password
     const hashedPassword = await bcrypt.hash(createAdvertiserDto.password, 10);
 
-    // Generate verification token
-    const verificationToken = uuidv4();
+    // Generate verification token using jwt
+    const verificationToken = this.jwtService.sign(
+      {
+        email: createAdvertiserDto.email,
+        purpose: 'email_verification',
+      },
+      {
+        expiresIn: this.config.get('auth.verificationTokenExpiry'),
+      },
+    );
 
     // Create user without verifying email yet
     const user = await this.prisma.advertiser.create({
@@ -61,19 +74,13 @@ export class AuthService {
         emailVerifiedAt: null, // Will be set when email is verified
         verificationToken, // Add this field to your Prisma schema
       },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        companyName: true,
-        companySize: true,
-      },
     });
     let role: Role = 'advertiser';
     // Send verification email
     await this.mailService.sendVerificationEmail(
       user.email,
       user.name,
+      'advertiser',
       verificationToken,
       role,
     );
@@ -86,29 +93,42 @@ export class AuthService {
   }
 
   async verifyEmail(token: string) {
-    // Find user by verification token
-    const user = await this.prisma.advertiser.findFirst({
-      where: { verificationToken: token },
-    });
+    try {
+      const payload = this.jwtService.verify(token);
 
-    if (!user) {
+      const user = await this.prisma.advertiser.findUnique({
+        where: { email: payload.email },
+      });
+
+      if (!user) {
+        throw new ResourceNotFoundException('User');
+      }
+
+      if (user.emailVerifiedAt) {
+        return 'Email already verified';
+      }
+
+      if (user.verificationToken !== token) {
+        throw new BadRequestException('Invalid verification token');
+      }
+
+      await this.prisma.advertiser.update({
+        where: { id: user.id },
+        data: {
+          emailVerifiedAt: new Date(),
+          verificationToken: null,
+        },
+      });
+
+      return { message: 'Email verified successfully' };
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        throw new BadRequestException(
+          'Verification token has expired. Please request a new one.',
+        );
+      }
       throw new BadRequestException('Invalid verification token');
     }
-
-    if (user.emailVerifiedAt) {
-      return { message: 'Email already verified' };
-    }
-
-    // Update user to mark email as verified
-    await this.prisma.advertiser.update({
-      where: { id: user.id },
-      data: {
-        emailVerifiedAt: new Date(),
-        verificationToken: null, // Clear the token after use
-      },
-    });
-
-    return { message: 'Email verified successfully' };
   }
 
   // This function gets called from the LocalStrategy to validate which user is logging in.
@@ -198,15 +218,23 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new BadRequestException('User not found');
+      throw new ResourceNotFoundException('User');
     }
 
     if (user.emailVerifiedAt) {
-      throw new BadRequestException('Email already verified');
+      throw new EmailAlreadyVerifiedException();
     }
 
-    // Generate new verification token
-    const verificationToken = uuidv4();
+    // Generate verification token using jwt
+    const verificationToken = this.jwtService.sign(
+      {
+        email,
+        purpose: 'email_verification',
+      },
+      {
+        expiresIn: this.config.get('auth.verificationTokenExpiry'),
+      },
+    );
 
     // Update user with new verification token
     await this.prisma.advertiser.update({
@@ -218,10 +246,11 @@ export class AuthService {
     await this.mailService.sendVerificationEmail(
       user.email,
       user.name,
+      'advertiser',
       verificationToken,
       role,
     );
 
-    return { message: 'Verification email sent' };
+    return 'Verification email resent successfully';
   }
 }

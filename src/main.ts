@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { ConsoleLogger, ValidationPipe } from '@nestjs/common';
+import { BadRequestException, ConsoleLogger, ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import compression from 'compression';
 import { ConfigService } from '@nestjs/config';
@@ -57,6 +57,17 @@ async function bootstrap() {
       // whitelist: true,
       // forbidNonWhitelisted: true,
       transform: true,
+      exceptionFactory: (errors) => {
+        const messages = errors.map((error: any) => ({
+          field: error.property,
+          message: Object.values(error.constraints).join(', ')
+        }));
+        return new BadRequestException({
+          statusCode: 400,
+          message: 'Validation failed',
+          errors: messages
+        });
+      }
     }),
   );
   // Swagger API documentation

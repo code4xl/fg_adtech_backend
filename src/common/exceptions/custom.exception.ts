@@ -103,3 +103,10 @@ export class MovedPermanentlyException extends CustomException {
     super(message, HttpStatus.MOVED_PERMANENTLY, 'MOVED_PERMANENTLY');
   }
 }
+
+
+export class EmailAlreadyVerifiedException extends CustomException {
+  constructor(message = 'Email has already been verified') {
+    super(message, HttpStatus.CONFLICT, 'EMAIL_ALREADY_VERIFIED');
+  }
+}

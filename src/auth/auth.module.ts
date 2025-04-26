@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -8,6 +8,7 @@ import { AuthController } from './auth.controller';
 import { LocalAdminStrategy, LocalAdvertiserStrategy, LocalPublisherStrategy } from './strategies/authentication.strategy';
 import { JwtStrategy } from './strategies/authorization.strategy';
 import { MailModule } from 'src/mail/mail.module';
+import { LoginValidationMiddleware } from './middlewares/login.middleware';
 
 @Module({
   imports: [
@@ -36,4 +37,14 @@ import { MailModule } from 'src/mail/mail.module';
   exports: [AuthService],
 })
 
-export class AuthModule { }
+export class AuthModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(LoginValidationMiddleware)
+      .forRoutes(
+        { path: 'auth/admin/login', method: RequestMethod.POST },
+        { path: 'auth/advertiser/login', method: RequestMethod.POST },
+        { path: 'auth/publisher/login', method: RequestMethod.POST }
+      );
+  }
+}

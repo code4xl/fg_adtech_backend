@@ -6,6 +6,8 @@ import {
   UseGuards,
   Request,
   Param,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
@@ -53,6 +55,26 @@ export class AuthController {
     return this.authService.login(req.user);
   }
 
+  @Get('advertiser/verify/:token')
+  @ApiOperation({ summary: 'Verify email address' })
+  @ApiResponse({ status: 200, description: 'Email verified successfully.' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired token.' })
+  @ApiBody({ required: false })
+  async verifyEmail(@Param('token') token: string) {
+    return this.authService.verifyEmail(token);
+  }
+
+  @Post('advertiser/resendVerification')
+  @ApiOperation({ summary: 'Resend verification email' })
+  @ApiResponse({ status: 200, description: 'Verification email sent.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Email not found or already verified.',
+  })
+  async resendVerification(@Body() { email }: { email: string }) {
+    return this.authService.resendVerificationEmail(email);
+  }
+
   @Post('publisher/login')
   @UseGuards(PublisherAuthenticationGuard)
   @ApiOperation({ summary: 'Login as a publisher' })
@@ -67,28 +89,12 @@ export class AuthController {
   @ApiOperation({ summary: 'Login as a admin' })
   @ApiResponse({ status: 200, description: 'Authentication successful.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  async adminLogin(@Body() LoginDto: LoginDto, @Request() req) {
-    return this.authService.login(req.user);
-  }
-
-  @Get('advertiser/verify/:token')
-  @ApiOperation({ summary: 'Verify email address' })
-  @ApiResponse({ status: 200, description: 'Email verified successfully.' })
-  @ApiResponse({ status: 400, description: 'Invalid or expired token.' })
-  @ApiBody({ required: false })
-  async verifyEmail(@Param('token') token: string) {
-    return this.authService.verifyEmail(token);
-  }
-
-  @Post('resend-verification')
-  @ApiOperation({ summary: 'Resend verification email' })
-  @ApiResponse({ status: 200, description: 'Verification email sent.' })
   @ApiResponse({
     status: 400,
-    description: 'Email not found or already verified.',
+    description: 'Bad Request - Missing required fields.',
   })
-  async resendVerification(@Body() { email }: { email: string }) {
-    return this.authService.resendVerificationEmail(email);
+  async adminLogin(@Body() LoginDto: LoginDto, @Request() req) {
+    return this.authService.login(req.user);
   }
 
   // Test Routes for advertiser
