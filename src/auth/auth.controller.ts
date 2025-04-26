@@ -6,8 +6,6 @@ import {
   UseGuards,
   Request,
   Param,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
@@ -95,12 +93,13 @@ export class AuthController {
   @ApiOperation({ summary: 'Login as a admin' })
   @ApiResponse({ status: 200, description: 'Authentication successful.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  @ApiResponse({ status: 400, description: 'Bad Request - Missing required fields.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request - Missing required fields.',
+  })
   async adminLogin(@Body() LoginDto: LoginDto, @Request() req) {
     return this.authService.login(req.user);
   }
-
-
 
   // Test Routes for advertiser
   @Get('advertiser/profile')

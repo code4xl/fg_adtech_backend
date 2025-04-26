@@ -9,7 +9,11 @@ import { MailService } from '../mail/mail.service';
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateAdvertiserDto } from 'src/advertiser/dto/create-advertiser.dto';
-import { DuplicateResourceException, EmailAlreadyVerifiedException, ResourceNotFoundException } from 'src/common/exceptions/custom.exception';
+import {
+  DuplicateResourceException,
+  EmailAlreadyVerifiedException,
+  ResourceNotFoundException,
+} from 'src/common/exceptions/custom.exception';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -19,7 +23,7 @@ export class AuthService {
     private jwtService: JwtService,
     private mailService: MailService,
     private config: ConfigService,
-  ) { }
+  ) {}
 
   // This function is used to register a new advertiser.
   async signup(createAdvertiserDto: CreateAdvertiserDto) {
@@ -55,11 +59,11 @@ export class AuthService {
     const verificationToken = this.jwtService.sign(
       {
         email: createAdvertiserDto.email,
-        purpose: 'email_verification'
+        purpose: 'email_verification',
       },
       {
-        expiresIn: this.config.get("auth.verificationTokenExpiry")
-      }
+        expiresIn: this.config.get('auth.verificationTokenExpiry'),
+      },
     );
 
     // Create user without verifying email yet
@@ -118,7 +122,9 @@ export class AuthService {
       return { message: 'Email verified successfully' };
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
-        throw new BadRequestException('Verification token has expired. Please request a new one.');
+        throw new BadRequestException(
+          'Verification token has expired. Please request a new one.',
+        );
       }
       throw new BadRequestException('Invalid verification token');
     }
@@ -226,11 +232,11 @@ export class AuthService {
     const verificationToken = this.jwtService.sign(
       {
         email,
-        purpose: 'email_verification'
+        purpose: 'email_verification',
       },
       {
-        expiresIn: this.config.get("auth.verificationTokenExpiry")
-      }
+        expiresIn: this.config.get('auth.verificationTokenExpiry'),
+      },
     );
 
     // Update user with new verification token

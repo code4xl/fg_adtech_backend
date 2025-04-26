@@ -1,7 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { BadRequestException, ConsoleLogger, ValidationPipe } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConsoleLogger,
+  ValidationPipe,
+} from '@nestjs/common';
 import helmet from 'helmet';
 import compression from 'compression';
 import { ConfigService } from '@nestjs/config';
@@ -10,6 +14,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { SuccessInterceptor } from './common/interceptors/success.interceptor';
 import { AllExceptionsFilter } from './common/filters/global.exception';
 import { ErrorConfigService } from './common/exceptions/error-config.service';
+import { apiReference } from '@scalar/nestjs-api-reference';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -26,7 +31,19 @@ async function bootstrap() {
   app.enableCors();
 
   // Use Helmet for security headers
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: [`'self'`],
+          scriptSrc: [`'self'`, `'unsafe-inline'`, 'cdn.jsdelivr.net'],
+          styleSrc: [`'self'`, `'unsafe-inline'`, 'cdn.jsdelivr.net'],
+          imgSrc: [`'self'`, 'data:', 'cdn.jsdelivr.net'],
+          connectSrc: [`'self'`, `'https://5x2p27zf-3000.inc1.devtunnels.ms`],
+        },
+      },
+    }),
+  );
 
   // Use compression
   app.use(compression());
@@ -47,14 +64,14 @@ async function bootstrap() {
       exceptionFactory: (errors) => {
         const messages = errors.map((error: any) => ({
           field: error.property,
-          message: Object.values(error.constraints).join(', ')
+          message: Object.values(error.constraints).join(', '),
         }));
         return new BadRequestException({
           statusCode: 400,
           message: 'Validation failed',
-          errors: messages
+          errors: messages,
         });
-      }
+      },
     }),
   );
   // Swagger API documentation
@@ -63,14 +80,31 @@ async function bootstrap() {
     app.useGlobalInterceptors(new LoggingInterceptor());
 
     const config = new DocumentBuilder()
-      .setTitle('Ocean AdTech API')
-      .setDescription('Programmatic AdTech API description')
+      .setTitle('OceanAdTech API Documentation')
+      .setDescription('Documentation for OceanAdTech API')
       .setVersion('1.0')
+      .setOpenAPIVersion('3.0.0')
+      .addServer('http://localhost:3000', 'Local Server')
+      .addServer('https://5x2p27zf-3000.inc1.devtunnels.ms', 'Dev Tunnel')
       .addBearerAuth()
       .build();
 
     const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api', app, document);
+    SwaggerModule.setup('api', app, document, {
+      swaggerUiEnabled: false,
+      customSiteTitle: 'OceanAdTech API Docs',
+      explorer: true,
+      jsonDocumentUrl: '/api-json',
+      useGlobalPrefix: true,
+    });
+
+    app.use(
+      '/api',
+      apiReference({
+        content: document,
+        theme: 'bluePlanet',
+      }),
+    );
   }
 
   const port = configService.get<number>('port') || 3000;
