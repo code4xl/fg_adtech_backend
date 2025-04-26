@@ -75,14 +75,13 @@ export class AuthService {
         verificationToken, // Add this field to your Prisma schema
       },
     });
-    let role: Role = 'advertiser';
+
     // Send verification email
     await this.mailService.sendVerificationEmail(
       user.email,
       user.name,
       'advertiser',
       verificationToken,
-      role,
     );
 
     return {
@@ -241,14 +240,13 @@ export class AuthService {
       where: { id: user.id },
       data: { verificationToken },
     });
-    let role: Role = 'advertiser';
+
     // Send verification email
     await this.mailService.sendVerificationEmail(
       user.email,
       user.name,
       'advertiser',
       verificationToken,
-      role,
     );
 
     return 'Verification email resent successfully';

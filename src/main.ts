@@ -1,7 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { BadRequestException, ConsoleLogger, ValidationPipe } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConsoleLogger,
+  ValidationPipe,
+} from '@nestjs/common';
 import helmet from 'helmet';
 import compression from 'compression';
 import { ConfigService } from '@nestjs/config';
@@ -35,7 +39,7 @@ async function bootstrap() {
           scriptSrc: [`'self'`, `'unsafe-inline'`, 'cdn.jsdelivr.net'],
           styleSrc: [`'self'`, `'unsafe-inline'`, 'cdn.jsdelivr.net'],
           imgSrc: [`'self'`, 'data:', 'cdn.jsdelivr.net'],
-          connectSrc: [`'self'`],
+          connectSrc: [`'self'`, `'https://5x2p27zf-3000.inc1.devtunnels.ms`],
         },
       },
     }),
@@ -60,14 +64,14 @@ async function bootstrap() {
       exceptionFactory: (errors) => {
         const messages = errors.map((error: any) => ({
           field: error.property,
-          message: Object.values(error.constraints).join(', ')
+          message: Object.values(error.constraints).join(', '),
         }));
         return new BadRequestException({
           statusCode: 400,
           message: 'Validation failed',
-          errors: messages
+          errors: messages,
         });
-      }
+      },
     }),
   );
   // Swagger API documentation
@@ -80,6 +84,8 @@ async function bootstrap() {
       .setDescription('Documentation for OceanAdTech API')
       .setVersion('1.0')
       .setOpenAPIVersion('3.0.0')
+      .addServer('http://localhost:3000', 'Local Server')
+      .addServer('https://5x2p27zf-3000.inc1.devtunnels.ms', 'Dev Tunnel')
       .addBearerAuth()
       .build();
 

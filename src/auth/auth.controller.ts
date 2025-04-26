@@ -6,8 +6,6 @@ import {
   UseGuards,
   Request,
   Param,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
