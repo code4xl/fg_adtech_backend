@@ -22,9 +22,15 @@
     "prisma:migrate": "pnpm prisma migrate dev",
     "prisma:generate": "pnpm prisma generate",
     "prisma:reset": "pnpm prisma migrate reset",
-    "prisma:studio": "pnpm prisma studio"
+    "prisma:studio": "pnpm prisma studio",
+    "seed": "ts-node -r tsconfig-paths/register src/cli.ts db:seed",
+    "seed:clean": "ts-node -r tsconfig-paths/register src/cli.ts db:seed -- --clean",
+    "seed:module": "ts-node -r tsconfig-paths/register src/cli.ts db:seed:module",
+    "seed:info": "ts-node -r tsconfig-paths/register src/cli.ts db:seed:info",
+    "db:clean": "ts-node -r tsconfig-paths/register src/cli.ts db:clean"
   },
   "dependencies": {
+    "@faker-js/faker": "^9.7.0",
     "@nestjs-modules/mailer": "^2.0.2",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
@@ -47,6 +53,7 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "nest-winston": "^1.10.2",
+    "nestjs-command": "^3.1.5",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
@@ -63,7 +70,6 @@
     "@nestjs/testing": "^11.0.1",
     "@swc/cli": "^0.6.0",
     "@swc/core": "^1.10.7",
-    "@types/bcrypt": "^5.0.2",
     "@types/compression": "^1.7.5",
     "@types/express": "^5.0.0",
     "@types/helmet": "^4.0.0",

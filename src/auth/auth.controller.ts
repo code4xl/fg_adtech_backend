@@ -20,9 +20,10 @@ import {
 import {
   AdminAuthenticationGuard,
   AdvertiserAuthenticationGuard,
+  ClientAuthenticationGuard,
   PublisherAuthenticationGuard,
 } from 'src/common/guards/authentication.guard';
-import { AdminGuard, AdvertiserGuard, PublisherGuard } from 'src/common/guards/authorization.guard';
+import { AdminGuard, AdvertiserGuard, ClientGuard, PublisherGuard } from 'src/common/guards/authorization.guard';
 import { CreateAdvertiserDto } from 'src/advertiser/dto/create-advertiser.dto';
 import { LoginDto } from './dto/login.dto';
 
@@ -80,6 +81,15 @@ export class AuthController {
     return this.authService.login(req.user);
   }
 
+  @Post('client/login')
+  @UseGuards(ClientAuthenticationGuard)
+  @ApiOperation({ summary: 'Login as a client' })
+  @ApiResponse({ status: 200, description: 'Authentication successful.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  async clientLogin(@Body() LoginDto: LoginDto, @Request() req) {
+    return this.authService.login(req.user);
+  }
+
   @Post('admin/login')
   @UseGuards(AdminAuthenticationGuard)
   @ApiOperation({ summary: 'Login as a admin' })
@@ -117,6 +127,20 @@ export class AuthController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   getPublisherProfile(@Request() req): any {
+    return req.user;
+  }
+
+  // Test Routes for publisher
+  @Get('client/profile')
+  @UseGuards(ClientGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Client profile' })
+  @ApiResponse({
+    status: 200,
+    description: 'Client Profile retrieved successfully.',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  getClientProfile(@Request() req): any {
     return req.user;
   }
 

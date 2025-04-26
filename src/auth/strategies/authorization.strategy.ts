@@ -33,6 +33,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         } else if (payload.role === 'admin') {
             const user = await this.validateAdmin(payload);
             return { ...user, role: 'admin' };
+        } else if (payload.role === 'client') {
+            const user = await this.validateClient(payload);
+            return { ...user, role: 'client' };
         } else {
             throw new UnauthorizedException('Invalid user role');
         }
@@ -87,6 +90,29 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         return publisher;
     }
 
+    async validateClient(payload: any) {
+        const client = await this.prisma.client.findUnique({
+            where: { id: payload.sub },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+            },
+        });
+
+        if (!client) {
+            throw new UnauthorizedException('Client not found');
+        }
+
+        // // Note: If you don't want to require email verification for clients,
+        // // you can remove this check
+        // if (!client.emailVerifiedAt) {
+        //     throw new UnauthorizedException('Email not verified');
+        // }
+
+        return client;
+    }
+
     async validateAdmin(payload: any) {
         const admin = await this.prisma.admin.findUnique({
             where: { id: payload.sub },
@@ -109,4 +135,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
         return admin;
     }
+
+
 }

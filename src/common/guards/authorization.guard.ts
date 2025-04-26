@@ -90,6 +90,29 @@ export class PublisherGuard extends AuthGuard('jwt') {
   }
 }
 
+@Injectable()
+export class ClientGuard extends AuthGuard('jwt') {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    // First ensure JWT validation is done
+    const isJwtValid = await super.canActivate(context);
+
+    if (!isJwtValid) {
+      return false;
+    }
+
+    // Get the request object
+    const request = context.switchToHttp().getRequest();
+    const user = request.user;
+
+    // Check if the user has the publisher role
+    if (!user || user.role !== 'client') {
+      throw new UnauthorizedException();
+    }
+
+    return true;
+  }
+}
+
 
 /**
  * AdminGuard - Protects routes that require admin authentication
@@ -129,3 +152,6 @@ export class AdminGuard extends AuthGuard('jwt') {
     return true;
   }
 }
+
+
+

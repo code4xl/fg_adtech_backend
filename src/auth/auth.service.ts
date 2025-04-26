@@ -128,7 +128,7 @@ export class AuthService {
   async validateUser(
     email: string,
     password: string,
-    role: 'advertiser' | 'publisher' | 'admin',
+    role: 'advertiser' | 'publisher' | 'client' | 'admin',
   ) {
     let user;
 
@@ -150,6 +150,10 @@ export class AuthService {
       // Note: No email verification check for publishers as per your requirements
     } else if (role === 'admin') {
       user = await this.prisma.admin.findUnique({
+        where: { email },
+      });
+    } else if (role === 'client') {
+      user = await this.prisma.client.findUnique({
         where: { email },
       });
     }

@@ -46,6 +46,26 @@ export class LocalPublisherStrategy extends PassportStrategy(Strategy, 'publishe
 }
 
 @Injectable()
+export class LocalClientStrategy extends PassportStrategy(Strategy, 'client') {
+    constructor(private authService: AuthService) {
+        super({
+            usernameField: 'email',
+            passwordField: 'password',
+        });
+    }
+
+    async validate(email: string, password: string): Promise<any> {
+        const user = await this.authService.validateUser(email, password, 'client');
+
+        if (!user) {
+            throw new UnauthorizedException('Invalid credentials');
+        }
+
+        return user;
+    }
+}
+
+@Injectable()
 export class LocalAdminStrategy extends PassportStrategy(Strategy, 'admin') {
     constructor(private authService: AuthService) {
         super({
