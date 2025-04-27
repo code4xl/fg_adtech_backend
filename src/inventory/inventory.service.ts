@@ -3,12 +3,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { UpdateInventoryDto } from './dto/update-inventory.dto';
 import { InventoryQueryDto } from './dto/inventory-query.dto';
+import { InventorySearchDto } from './dto/inventory-search.dto';
 import { 
   ResourceNotFoundException, 
   BadRequestException,
   DuplicateResourceException 
 } from '../common/exceptions/custom.exception';
 import { ApprovalStatus, Prisma } from '@prisma/client';
+import { PerformanceQueryDto } from './dto/performance-query.dto';
 
 @Injectable()
 export class InventoryService {
@@ -313,4 +315,225 @@ async findPendingApprovals(query: InventoryQueryDto) {
       }
     };
   }
+
+
+  // for advertiser here : 
+  async findAvailableForAdvertiser(advertiserId: string, query: InventorySearchDto) {
+    // Only return approved and active inventory
+    const where: Prisma.AdInventoryWhereInput = {
+      approvalStatus: ApprovalStatus.APPROVED,
+      isActive: true
+    };
+  
+    // Apply filters from query parameters
+    if (query.format) where.format = query.format;
+    if (query.position) where.position = query.position;
+    if (query.minWidth) where.width = { gte: query.minWidth };
+    if (query.minHeight) where.height = { gte: query.minHeight };
+    
+    // Filter by categories if provided
+    if (query.categoryIds && query.categoryIds.length > 0) {
+      where.categories = {
+        some: {
+          categoryId: { in: query.categoryIds }
+        }
+      };
+    }
+  
+    // Check for blocked advertisers
+    where.blockedAdvertisers = {
+      none: {
+        advertiserId
+      }
+    };
+  
+    // Use default values for pagination parameters
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const sortBy = query.sortBy ?? 'createdAt';
+    const sortOrder = query.sortOrder ?? 'desc';
+  
+    const [total, inventories] = await Promise.all([
+      this.prisma.adInventory.count({ where }),
+      this.prisma.adInventory.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: {
+          [sortBy as string]: sortOrder
+        },
+        include: {
+          // Include only necessary data for advertisers
+          categories: {
+            include: {
+              category: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              }
+            }
+          },
+          // Include current floor price
+          floorPrices: {
+            where: {
+              startDate: { lte: new Date() },
+              OR: [
+                { endDate: { gte: new Date() } },
+                { endDate: null }
+              ]
+            },
+            orderBy: {
+              startDate: 'desc'
+            },
+            take: 1
+          },
+          // Include average performance metrics
+          _count: {
+            select: {
+              impressions: true
+            }
+          }
+        }
+      })
+    ]);
+  
+    // Format the response to hide sensitive publisher data
+    const formattedInventories = inventories.map(inventory => ({
+      id: inventory.id,
+      name: inventory.name,
+      width: inventory.width,
+      height: inventory.height,
+      format: inventory.format,
+      position: inventory.position,
+      categories: inventory.categories.map(cat => cat.category),
+      floorPrice: inventory.floorPrices[0]?.basePrice || 0.01,
+      currency: inventory.floorPrices[0]?.currency || 'USD',
+      viewabilityScore: inventory.viewabilityScore,
+      estimatedImpressions: this.calculateEstimatedImpressions(inventory._count.impressions)
+    }));
+  
+    return {
+      items: formattedInventories,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+  }
+
+  async getInventoryPerformanceForAdvertisers(query: PerformanceQueryDto) {
+    const { format, categoryIds, days = 30 } = query;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    
+    // Build the where condition for inventory
+    const where: any = {
+      approvalStatus: ApprovalStatus.APPROVED,
+      isActive: true
+    };
+    
+    if (format) {
+      where.format = format;
+    }
+    
+    if (categoryIds && categoryIds.length > 0) {
+      where.categories = {
+        some: {
+          categoryId: { in: categoryIds }
+        }
+      };
+    }
+    
+    // Get all matching inventory IDs
+    const inventoryIds = await this.prisma.adInventory.findMany({
+      where,
+      select: { id: true }
+    }).then(results => results.map(item => item.id));
+    
+    if (inventoryIds.length === 0) {
+      return {
+        timeframe: `${days} days`,
+        metrics: {
+          totalInventoryCount: 0,
+          formats: {},
+          categories: {},
+          performance: {
+            impressions: 0,
+            clicks: 0,
+            ctr: 0
+          }
+        }
+      };
+    }
+    
+    // Get impression and click counts for these inventories
+    const [impressions, clicks, inventoryStats] = await Promise.all([
+      this.prisma.impression.count({
+        where: {
+          inventoryId: { in: inventoryIds },
+          createdAt: { gte: startDate }
+        }
+      }),
+      this.prisma.click.count({
+        where: {
+          impression: {
+            inventoryId: { in: inventoryIds }
+          },
+          createdAt: { gte: startDate }
+        }
+      }),
+      // Get counts by format
+      this.prisma.adInventory.groupBy({
+        by: ['format'],
+        where: {
+          id: { in: inventoryIds }
+        },
+        _count: true
+      })
+    ]);
+    
+    // Calculate metrics
+    const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+    
+    // Format the output
+    const formatStats = {};
+    inventoryStats.forEach(stat => {
+      formatStats[stat.format] = stat._count;
+    });
+    
+    return {
+      timeframe: `${days} days`,
+      metrics: {
+        totalInventoryCount: inventoryIds.length,
+        formats: formatStats,
+        performance: {
+          impressions,
+          clicks,
+          ctr: ctr.toFixed(2) + '%',
+          estimatedDailyImpressions: Math.round(impressions / days)
+        }
+      }
+    };
+  }
+
+  // Helper function to estimate available impressions based on historical data
+  private calculateEstimatedImpressions(historicalCount: number): number {
+    // This would use historical data to estimate future availability
+    // Simplified version for example
+    return Math.round(historicalCount * 0.85); // 85% of historical as estimate
+  }
+
+  async getAllCategories() {
+    return this.prisma.contentCategory.findMany({
+      select: {
+        id: true,
+        name: true,
+        parentId: true
+      }
+    });
+  }
+ 
 }
