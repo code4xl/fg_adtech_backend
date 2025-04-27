@@ -17,6 +17,7 @@ import { ExceptionsModule } from './common/exceptions/exceptions.module';
 import { AdminModule } from './admin/admin.module';
 import { CampaignModule } from './campaign/campaign.module';
 import { ClientModule } from './client/client.module';
+import { InventoryModule } from './inventory/inventory.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { ClientModule } from './client/client.module';
     ExceptionsModule,
     AdminModule,
     ClientModule,
+    InventoryModule,
   ],
   controllers: [AppController],
   providers: [

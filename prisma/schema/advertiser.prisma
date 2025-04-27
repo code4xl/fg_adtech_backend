@@ -21,4 +21,8 @@ model Advertiser {
     resetPasswordToken   String?               @unique // For password reset
     resetPasswordExpires DateTime? // Password reset token expiration
     clients              Client[] // Relationship with Client
+    
+
+        // Relations
+    blockedInventories InventoryBlockedAdvertiser[]
 }

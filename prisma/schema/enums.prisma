@@ -1,0 +1,37 @@
+enum InventoryFormat {
+  BANNER
+  NATIVE
+  VIDEO
+  INTERSTITIAL
+  REWARDED
+}
+
+enum InventoryPosition {
+  ABOVE_FOLD
+  BELOW_FOLD
+  SIDEBAR
+  FOOTER
+  HEADER
+  IN_CONTENT
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TargetingRuleType {
+  DEVICE
+  GEOGRAPHIC
+  BROWSER
+  OS
+  TIME
+  AUDIENCE
+}
+
+enum PublisherStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING
+}

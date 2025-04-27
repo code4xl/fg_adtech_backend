@@ -2,9 +2,11 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { Logger } from '@nestjs/common';
 
 export abstract class BaseSeeder {
-    protected readonly logger = new Logger(this.constructor.name);
+    protected readonly logger: Logger;
 
-    constructor(protected readonly prisma: PrismaService) { }
+    constructor(protected readonly prisma: PrismaService) {
+        this.logger = new Logger(this.constructor.name);
+    }
 
     /**
      * Get the name of the module/table this seeder handles

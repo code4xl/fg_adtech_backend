@@ -1,20 +1,22 @@
-import { Module } from '@nestjs/common';
+import { Module, Type } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { AdminSeeder } from './modules/admin.seeder';
 import { AdvertiserSeeder } from './modules/advertiser.seeder';
 import { UserSeeder } from './modules/user.seeder';
 import { ProductSeeder } from './modules/product.seeder';
+import { PublisherSeeder } from './modules/publisher.seeder';
 import { MainSeederService } from './main.seeder';
 import { DependencyResolver } from './tools/dependency.resolver';
 import { SeederRegistry } from './tools/seeders.registry';
-
+import { ISeeder } from './interfaces/seeder.interface';
 
 // Add new seeders to this array
-const SEEDERS = [
+const SEEDERS: Type<ISeeder>[] = [
     AdminSeeder,
     AdvertiserSeeder,
     UserSeeder,
     ProductSeeder,
+    PublisherSeeder,
 ];
 
 @Module({
@@ -26,7 +28,7 @@ const SEEDERS = [
         ...SEEDERS,
         {
             provide: 'SEEDERS',
-            useFactory: (...seeders) => seeders,
+            useFactory: (...seeders: ISeeder[]) => seeders,
             inject: SEEDERS,
         },
     ],
