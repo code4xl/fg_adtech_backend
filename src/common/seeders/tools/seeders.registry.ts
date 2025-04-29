@@ -1,50 +1,37 @@
 import { Injectable, Type } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import { BaseSeeder } from '../base.seeder';
+import { ISeeder } from '../interfaces/seeder.interface';
 
-/**
- * Registry for all seeders in the application
- * Provides methods to get all seeders or specific seeders by module name
- */
 @Injectable()
 export class SeederRegistry {
-    private seeders: BaseSeeder[] = [];
+    private readonly seeders = new Map<string, Type<ISeeder>>();
 
-    constructor(private moduleRef: ModuleRef) { }
+    constructor(private moduleRef: ModuleRef) {}
 
-    /**
-     * Register all available seeders
-     * @param seederTypes Array of seeder class types
-     */
-    registerSeeders(seederTypes: Type<BaseSeeder>[]) {
-        this.seeders = seederTypes.map(type => this.moduleRef.get(type));
+    registerSeeders(seeders: Type<ISeeder>[]): void {
+        for (const seeder of seeders) {
+            const instance = this.moduleRef.get(seeder, { strict: false }) as ISeeder;
+            this.seeders.set(instance.getModuleName().toLowerCase(), seeder);
+        }
     }
 
-    /**
-     * Get all registered seeders
-     */
-    getAllSeeders(): BaseSeeder[] {
-        return this.seeders;
-    }
-
-    /**
-     * Get a specific seeder by module name
-     */
-    getSeederByModule(moduleName: string): BaseSeeder | undefined {
-        return this.seeders.find(seeder => seeder.getModuleName() === moduleName);
-    }
-
-    /**
-     * Get all available module names
-     */
-    getAvailableModules(): string[] {
-        return this.seeders.map(seeder => seeder.getModuleName());
-    }
-
-    /**
-     * Check if a module exists
-     */
     moduleExists(moduleName: string): boolean {
-        return this.seeders.some(seeder => seeder.getModuleName() === moduleName);
+        return this.seeders.has(moduleName.toLowerCase());
+    }
+
+    getAllSeeders(): ISeeder[] {
+        return Array.from(this.seeders.values()).map(
+            (seeder) => this.moduleRef.get(seeder, { strict: false }) as ISeeder
+        );
+    }
+
+    getSeeder(moduleName: string): ISeeder | undefined {
+        const SeederClass = this.seeders.get(moduleName.toLowerCase());
+        if (!SeederClass) return undefined;
+        return this.moduleRef.get(SeederClass, { strict: false });
+    }
+
+    getAvailableModules(): string[] {
+        return Array.from(this.seeders.keys());
     }
 }

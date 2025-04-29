@@ -1,12 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { faker } from '@faker-js/faker';
 import { BaseSeeder } from '../base.seeder';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class ProductSeeder extends BaseSeeder {
-    protected readonly logger = new Logger(ProductSeeder.name);
-
     constructor(protected readonly prisma: PrismaService) {
         super(prisma);
     }

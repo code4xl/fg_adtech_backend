@@ -1,0 +1,12 @@
+model Click {
+  id                String               @id @default(uuid()) @db.Uuid
+  impressionId      String               @db.Uuid
+  createdAt         DateTime             @default(now())
+  // Add other click-related fields as needed
+  ipAddress         String?
+  userAgent         String?
+  referrer          String?
+  
+  // Relations
+  impression        Impression           @relation(fields: [impressionId], references: [id])
+}

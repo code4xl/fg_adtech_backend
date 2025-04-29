@@ -1,0 +1,10 @@
+model Impression {
+  id                String               @id @default(uuid()) @db.Uuid
+  inventoryId       String               @db.Uuid
+  createdAt         DateTime             @default(now())
+  // Add other impression fields as needed
+
+  // Relations
+  inventory         AdInventory          @relation(fields: [inventoryId], references: [id])
+  clicks            Click[]              // Add this line
+}

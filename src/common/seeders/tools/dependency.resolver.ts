@@ -1,149 +1,251 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { BaseSeeder } from '../base.seeder';
+// import { Injectable, Logger } from '@nestjs/common';
+// import { BaseSeeder } from '../base.seeder';
 
-/**
- * Responsible for resolving dependencies between seeders
- * and determining the correct order for seeding and cleaning
- */
+// /**
+//  * Responsible for resolving dependencies between seeders
+//  * and determining the correct order for seeding and cleaning
+//  */
+// @Injectable()
+// export class DependencyResolver {
+//     private readonly logger = new Logger(DependencyResolver.name);
+
+//     /**
+//      * Sort seeders based on their dependencies
+//      * Uses topological sort to ensure seeders run in the correct order
+//      */
+//     resolveSeederOrder(seeders: BaseSeeder[]): BaseSeeder[] {
+//         const moduleMap = new Map<string, BaseSeeder>();
+//         const graph = new Map<string, string[]>();
+
+//         // Build the dependency graph
+//         for (const seeder of seeders) {
+//             const moduleName = seeder.getModuleName();
+//             moduleMap.set(moduleName, seeder);
+//             graph.set(moduleName, seeder.getDependencies());
+//         }
+
+//         // Perform topological sort
+//         const visited = new Set<string>();
+//         const sorted: string[] = [];
+
+//         const visit = (moduleName: string, path: string[] = []) => {
+//             // Detect circular dependencies
+//             if (path.includes(moduleName)) {
+//                 const cycle = [...path.slice(path.indexOf(moduleName)), moduleName].join(' -> ');
+//                 throw new Error(`Circular dependency detected: ${cycle}`);
+//             }
+
+//             if (visited.has(moduleName)) return;
+
+//             visited.add(moduleName);
+
+//             // Visit dependencies first
+//             const dependencies = graph.get(moduleName) || [];
+//             for (const dependency of dependencies) {
+//                 if (!moduleMap.has(dependency)) {
+//                     this.logger.warn(`Missing dependency: ${dependency} for module ${moduleName}`);
+//                     continue;
+//                 }
+//                 visit(dependency, [...path, moduleName]);
+//             }
+
+//             // Add to sorted list
+//             sorted.push(moduleName);
+//         };
+
+//         // Visit all modules
+//         for (const moduleName of moduleMap.keys()) {
+//             if (!visited.has(moduleName)) {
+//                 visit(moduleName);
+//             }
+//         }
+
+//         // Map back to seeder instances and filter out undefined values
+//         return sorted
+//             .map(moduleName => moduleMap.get(moduleName))
+//             .filter((seeder): seeder is BaseSeeder => seeder !== undefined);
+//     }
+
+//     /**
+//      * Return the seeders in the reverse order for cleaning
+//      * Ensures child tables are cleaned before parent tables
+//      */
+//     resolveCleanerOrder(seeders: BaseSeeder[]): BaseSeeder[] {
+//         return [...this.resolveSeederOrder(seeders)].reverse();
+//     }
+
+//     /**
+//      * Get all dependent modules for a given module
+//      * This includes both direct and indirect dependencies
+//      */
+//     getDependentModules(targetModule: string, seeders: BaseSeeder[]): Set<string> {
+//         const dependents = new Set<string>();
+//         const moduleMap = new Map<string, string[]>();
+
+//         // Build reverse dependency graph
+//         for (const seeder of seeders) {
+//             const moduleName = seeder.getModuleName();
+//             const dependencies = seeder.getDependencies();
+
+//             for (const dependency of dependencies) {
+//                 if (!moduleMap.has(dependency)) {
+//                     moduleMap.set(dependency, []);
+//                 }
+//                 moduleMap.get(dependency)!.push(moduleName);
+//             }
+//         }
+
+//         // Recursive function to find all dependent modules
+//         const findDependents = (module: string) => {
+//             const directDependents = moduleMap.get(module) || [];
+
+//             for (const dependent of directDependents) {
+//                 if (!dependents.has(dependent)) {
+//                     dependents.add(dependent);
+//                     findDependents(dependent);
+//                 }
+//             }
+//         };
+
+//         findDependents(targetModule);
+//         return dependents;
+//     }
+
+//     /**
+//      * Get all dependencies and dependents for a target module
+//      * This ensures we get all modules that need to be processed 
+//      * when seeding a specific module
+//      */
+//     getModuleDependencyChain(targetModule: string, seeders: BaseSeeder[]): string[] {
+//         const seederMap = new Map<string, BaseSeeder>();
+//         seeders.forEach(seeder => seederMap.set(seeder.getModuleName(), seeder));
+
+//         // Get the target seeder
+//         const targetSeeder = seeders.find(s => s.getModuleName() === targetModule);
+//         if (!targetSeeder) {
+//             throw new Error(`Module ${targetModule} not found`);
+//         }
+
+//         // Get all dependencies
+//         const dependencies = new Set<string>();
+//         const collectDependencies = (moduleName: string) => {
+//             const seeder = seederMap.get(moduleName);
+//             if (!seeder) return;
+
+//             for (const dep of seeder.getDependencies()) {
+//                 dependencies.add(dep);
+//                 collectDependencies(dep);
+//             }
+//         };
+
+//         collectDependencies(targetModule);
+
+//         // Get all modules that depend on this module
+//         const dependents = this.getDependentModules(targetModule, seeders);
+
+//         // Combine and return unique list
+//         return [...new Set([...dependencies, targetModule, ...dependents])];
+//     }
+// }
+
+import { Injectable } from '@nestjs/common';
+import { ISeeder } from '../interfaces/seeder.interface';
+
 @Injectable()
 export class DependencyResolver {
-    private readonly logger = new Logger(DependencyResolver.name);
-
-    /**
-     * Sort seeders based on their dependencies
-     * Uses topological sort to ensure seeders run in the correct order
-     */
-    resolveSeederOrder(seeders: BaseSeeder[]): BaseSeeder[] {
-        const moduleMap = new Map<string, BaseSeeder>();
-        const graph = new Map<string, string[]>();
-
-        // Build the dependency graph
-        for (const seeder of seeders) {
-            const moduleName = seeder.getModuleName();
-            moduleMap.set(moduleName, seeder);
-            graph.set(moduleName, seeder.getDependencies());
-        }
-
-        // Perform topological sort
+    resolveSeederOrder(seeders: ISeeder[]): ISeeder[] {
+        const seederMap = new Map<string, ISeeder>();
         const visited = new Set<string>();
-        const sorted: string[] = [];
+        const temp = new Set<string>();
+        const result: ISeeder[] = [];
 
-        const visit = (moduleName: string, path: string[] = []) => {
-            // Detect circular dependencies
-            if (path.includes(moduleName)) {
-                const cycle = [...path.slice(path.indexOf(moduleName)), moduleName].join(' -> ');
-                throw new Error(`Circular dependency detected: ${cycle}`);
-            }
+        // Create a map of module names to seeders
+        seeders.forEach(seeder => {
+            seederMap.set(seeder.getModuleName(), seeder);
+        });
 
-            if (visited.has(moduleName)) return;
-
-            visited.add(moduleName);
-
-            // Visit dependencies first
-            const dependencies = graph.get(moduleName) || [];
-            for (const dependency of dependencies) {
-                if (!moduleMap.has(dependency)) {
-                    this.logger.warn(`Missing dependency: ${dependency} for module ${moduleName}`);
-                    continue;
-                }
-                visit(dependency, [...path, moduleName]);
-            }
-
-            // Add to sorted list
-            sorted.push(moduleName);
-        };
-
-        // Visit all modules
-        for (const moduleName of moduleMap.keys()) {
-            if (!visited.has(moduleName)) {
-                visit(moduleName);
-            }
-        }
-
-        // Map back to seeder instances and filter out undefined values
-        return sorted
-            .map(moduleName => moduleMap.get(moduleName))
-            .filter((seeder): seeder is BaseSeeder => seeder !== undefined);
-    }
-
-    /**
-     * Return the seeders in the reverse order for cleaning
-     * Ensures child tables are cleaned before parent tables
-     */
-    resolveCleanerOrder(seeders: BaseSeeder[]): BaseSeeder[] {
-        return [...this.resolveSeederOrder(seeders)].reverse();
-    }
-
-    /**
-     * Get all dependent modules for a given module
-     * This includes both direct and indirect dependencies
-     */
-    getDependentModules(targetModule: string, seeders: BaseSeeder[]): Set<string> {
-        const dependents = new Set<string>();
-        const moduleMap = new Map<string, string[]>();
-
-        // Build reverse dependency graph
-        for (const seeder of seeders) {
+        // Topological sort function
+        const visit = (seeder: ISeeder) => {
             const moduleName = seeder.getModuleName();
-            const dependencies = seeder.getDependencies();
 
-            for (const dependency of dependencies) {
-                if (!moduleMap.has(dependency)) {
-                    moduleMap.set(dependency, []);
-                }
-                moduleMap.get(dependency)!.push(moduleName);
+            if (temp.has(moduleName)) {
+                throw new Error(`Circular dependency detected involving ${moduleName}`);
             }
-        }
 
-        // Recursive function to find all dependent modules
-        const findDependents = (module: string) => {
-            const directDependents = moduleMap.get(module) || [];
+            if (!visited.has(moduleName)) {
+                temp.add(moduleName);
 
-            for (const dependent of directDependents) {
-                if (!dependents.has(dependent)) {
-                    dependents.add(dependent);
-                    findDependents(dependent);
-                }
+                // Visit dependencies first
+                const dependencies = seeder.getDependencies();
+                dependencies.forEach(depName => {
+                    const depSeeder = seederMap.get(depName);
+                    if (depSeeder) {
+                        visit(depSeeder);
+                    }
+                });
+
+                temp.delete(moduleName);
+                visited.add(moduleName);
+                result.push(seeder);
             }
         };
 
-        findDependents(targetModule);
-        return dependents;
+        // Visit all seeders
+        seeders.forEach(seeder => {
+            if (!visited.has(seeder.getModuleName())) {
+                visit(seeder);
+            }
+        });
+
+        return result;
     }
 
-    /**
-     * Get all dependencies and dependents for a target module
-     * This ensures we get all modules that need to be processed 
-     * when seeding a specific module
-     */
-    getModuleDependencyChain(targetModule: string, seeders: BaseSeeder[]): string[] {
-        const seederMap = new Map<string, BaseSeeder>();
-        seeders.forEach(seeder => seederMap.set(seeder.getModuleName(), seeder));
+    resolveCleanerOrder(seeders: ISeeder[]): ISeeder[] {
+        // For cleaning, we want to reverse the seeding order
+        return this.resolveSeederOrder(seeders).reverse();
+    }
 
-        // Get the target seeder
-        const targetSeeder = seeders.find(s => s.getModuleName() === targetModule);
-        if (!targetSeeder) {
-            throw new Error(`Module ${targetModule} not found`);
-        }
+    getModuleDependencyChain(moduleName: string, allSeeders: ISeeder[]): string[] {
+        const seederMap = new Map<string, ISeeder>();
+        const chain = new Set<string>();
 
-        // Get all dependencies
-        const dependencies = new Set<string>();
-        const collectDependencies = (moduleName: string) => {
-            const seeder = seederMap.get(moduleName);
+        // Create a map of module names to seeders
+        allSeeders.forEach(seeder => {
+            seederMap.set(seeder.getModuleName(), seeder);
+        });
+
+        // Function to add dependencies recursively
+        const addDependencies = (name: string) => {
+            const seeder = seederMap.get(name);
             if (!seeder) return;
 
-            for (const dep of seeder.getDependencies()) {
-                dependencies.add(dep);
-                collectDependencies(dep);
-            }
+            chain.add(name);
+
+            // Add all dependencies
+            seeder.getDependencies().forEach(depName => {
+                if (!chain.has(depName)) {
+                    addDependencies(depName);
+                }
+            });
         };
 
-        collectDependencies(targetModule);
+        // Function to add dependents recursively
+        const addDependents = (name: string) => {
+            allSeeders.forEach(seeder => {
+                if (seeder.getDependencies().includes(name)) {
+                    const depName = seeder.getModuleName();
+                    if (!chain.has(depName)) {
+                        chain.add(depName);
+                        addDependents(depName);
+                    }
+                }
+            });
+        };
 
-        // Get all modules that depend on this module
-        const dependents = this.getDependentModules(targetModule, seeders);
+        // Start with the requested module
+        addDependencies(moduleName);
+        addDependents(moduleName);
 
-        // Combine and return unique list
-        return [...new Set([...dependencies, targetModule, ...dependents])];
+        return Array.from(chain);
     }
 }

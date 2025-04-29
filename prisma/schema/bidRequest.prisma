@@ -1,0 +1,9 @@
+model BidRequest {
+  id                String               @id @default(uuid()) @db.Uuid
+  inventoryId       String               @db.Uuid
+  createdAt         DateTime           @default(now())
+  // Add other bid request fields as needed
+
+  // Relations
+  inventory         AdInventory        @relation(fields: [inventoryId], references: [id])
+}

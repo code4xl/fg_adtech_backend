@@ -1,14 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { faker } from '@faker-js/faker';
 import * as bcrypt from 'bcryptjs';
-import { BaseSeeder } from '../base.seeder';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { ISeeder } from '../interfaces/seeder.interface';
 
 @Injectable()
-export class AdminSeeder extends BaseSeeder {
-    constructor(protected readonly prisma: PrismaService) {
-        super(prisma);
-    }
+export class AdminSeeder implements ISeeder {
+    private readonly logger = new Logger(AdminSeeder.name);
+
+    constructor(private readonly prisma: PrismaService) {}
 
     getModuleName(): string {
         return 'Admin';
