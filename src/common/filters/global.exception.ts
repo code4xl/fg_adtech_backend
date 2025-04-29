@@ -15,7 +15,7 @@ import { ErrorConfigService } from '../exceptions/error-config.service';
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
-  constructor(private errorConfigService: ErrorConfigService) {}
+  constructor(private errorConfigService: ErrorConfigService) { }
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();

@@ -58,22 +58,11 @@ async function bootstrap() {
   // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
-      // whitelist: true,
-      // forbidNonWhitelisted: true,
       transform: true,
-      exceptionFactory: (errors) => {
-        const messages = errors.map((error: any) => ({
-          field: error.property,
-          message: Object.values(error.constraints).join(', '),
-        }));
-        return new BadRequestException({
-          statusCode: 400,
-          message: 'Validation failed',
-          errors: messages,
-        });
-      },
     }),
   );
+
+
   // Swagger API documentation
   if (process.env.NODE_ENV !== 'production') {
     app.use(morgan('dev'));
