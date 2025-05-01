@@ -13,7 +13,7 @@ export class AdminService {
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} admin`;
+    return `This action returns a  hahah #${id} admin`;
   }
 
   update(id: number, updateAdminDto: UpdateAdminDto) {

@@ -1,4 +1,3 @@
-// inventory/dto/inventory-search.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
 import { 
   IsEnum, 

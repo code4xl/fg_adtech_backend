@@ -1,30 +1,40 @@
 import { Module } from '@nestjs/common';
-import { InventoryController } from './inventory.controller';
+// import { InventoryController } from './inventory.controller'; // Original controller
+import { AdminInventoryController } from './admin-inventory.controller'; // New admin controller
 import { InventoryService } from './inventory.service';
 import { FloorPriceController } from './floor-price.controller';
 import { FloorPriceService } from './floor-price.service';
 import { InventoryOwnerGuard } from './guards/inventory-owner.guard';
-import { InventoryAdminController } from './admin.controller';
-import { AdvertiserInventoryController } from './advertiser-inventory.controller';
+// import { AdvertiserInventoryController } from './admin-inventory.controller';
 import { CategoryService } from './category.service';
+import { AdminCategoryController } from './admin-category.controller';
+import { PublisherService } from '../publishers/publisher.service';
+import { AdminPublisherController } from '../publishers/admin.publisher.controller';
 
 @Module({
   controllers: [
-    InventoryController,
+    // Original controllers (may need to be updated/deprecated)
+    // InventoryController,
     FloorPriceController,
-    AdvertiserInventoryController,
-    InventoryAdminController
+    // AdvertiserInventoryController,
+
+    // New admin controllers
+    AdminInventoryController,
+    AdminCategoryController,
+    AdminPublisherController
   ],
   providers: [
     InventoryService,
     FloorPriceService,
     InventoryOwnerGuard,
-    CategoryService
+    CategoryService,
+    PublisherService
   ],
   exports: [
     InventoryService,
     FloorPriceService,
-    CategoryService
+    CategoryService,
+    PublisherService
   ]
 })
 export class InventoryModule {}
