@@ -109,11 +109,15 @@ jobs:
         run: |
           echo "Starting deployment to EC2 at $(date)"
 
+          # Verify SSH files before connecting
+          ls -la ~/.ssh
+          echo "Key file size: $(wc -c < ~/.ssh/id_rsa) bytes"
+
           # Test SSH connection with debugging
           echo "Testing SSH connection with verbose output..."
           ssh -v -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_HOST }} echo "SSH connection successful"
 
-          # Deploy with explicit identity file
+          # If the test succeeded, proceed with deployment
           ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_HOST }} << 'ENDSSH'
             echo "=== Starting deployment script on EC2 instance ==="
             echo "Current directory: $(pwd)"
@@ -148,7 +152,6 @@ jobs:
               npm install -g pnpm@8
             fi
             
-            cd /programmatic_adtech_backend
             # Install dependencies
             echo "Installing dependencies with pnpm..."
             pnpm install
@@ -252,12 +255,26 @@ jobs:
     steps:
       - name: Configure SSH for Cleanup
         run: |
+          # Create .ssh directory
           mkdir -p ~/.ssh
-          # Write private key from secrets to file
+
+          # Write private key
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          # Set up minimal SSH config
-          echo -e "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null\n" > ~/.ssh/config
+
+          # Verify file exists and has content
+          ls -la ~/.ssh
+          if [ ! -s ~/.ssh/id_rsa ]; then
+            echo "ERROR: SSH key file is empty or does not exist"
+            exit 1
+          fi
+
+          # Create known_hosts file
+          touch ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+          # Create basic config
+          echo -e "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile ~/.ssh/known_hosts\n" > ~/.ssh/config
 
       - name: Clean up
         run: |
