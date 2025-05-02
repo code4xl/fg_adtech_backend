@@ -9,7 +9,7 @@ export class AppController {
   getHello(): any {
     return {
       status: '200',
-      message: 'Server is running',
+      message: 'Server is running successfully',
     };
   }
 }

@@ -20,7 +20,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 10.1.0
+          version: 10.9.0
 
       - name: Install dependencies
         run: pnpm install
@@ -48,8 +48,28 @@ jobs:
           # Pull latest changes on the EC2 instance
           ssh $SSH_USER@$SSH_HOST "cd /home/ubuntu/nestjs-app/programmatic_adtech_backend && \
             git pull origin production && \
+            export NVM_DIR=\$HOME/.nvm && \
+            [ -s \$NVM_DIR/nvm.sh ] && \. \$NVM_DIR/nvm.sh && \
             pnpm install && \
             pnpm run prisma:generate && \
             pnpm run build && \
             pm2 stop nest-app || true && \
             pm2 start dist/main.js --name nest-app || pm2 restart nest-app"
+
+      - name: Verify deployment
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          # Wait for the application to start
+          sleep 10
+
+          # Check health endpoint
+          response=$(curl -s -o /dev/null -w "%{http_code}" http://$SSH_HOST:3000/health || echo "Failed to connect")
+
+          if [ "$response" = "200" ]; then
+            echo "✅ Deployment successful! Health check passed."
+          else
+            echo "❌ Health check failed with status: $response"
+            echo "Checking application logs..."
+            ssh ${{ secrets.SSH_USER }}@$SSH_HOST "pm2 logs nest-app --lines 20"
+          fi
