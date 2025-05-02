@@ -84,8 +84,8 @@ async function bootstrap() {
       .setDescription('Documentation for OceanAdTech API')
       .setVersion('1.0')
       .setOpenAPIVersion('3.0.0')
-      .addServer('http://localhost:3000', 'Local Server')
-      .addServer('https://5x2p27zf-3000.inc1.devtunnels.ms', 'Dev Tunnel')
+      .addServer('http://16.16.226.252', 'Production Server')
+      .addServer('http://localhost:3000', 'Development Server')
       .addBearerAuth()
       .build();
 
