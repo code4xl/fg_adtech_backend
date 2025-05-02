@@ -39,7 +39,11 @@ async function bootstrap() {
           scriptSrc: [`'self'`, `'unsafe-inline'`, 'cdn.jsdelivr.net'],
           styleSrc: [`'self'`, `'unsafe-inline'`, 'cdn.jsdelivr.net'],
           imgSrc: [`'self'`, 'data:', 'cdn.jsdelivr.net'],
-          connectSrc: [`'self'`, `'https://5x2p27zf-3000.inc1.devtunnels.ms`],
+          connectSrc: [
+            `'self'`,
+            `'https://5x2p27zf-3000.inc1.devtunnels.ms`,
+            'http://16.16.226.252',
+          ],
         },
       },
     }),
