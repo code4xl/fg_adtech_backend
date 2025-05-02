@@ -105,27 +105,16 @@ jobs:
       - name: Setup deployment timestamp
         run: echo "DEPLOY_TIMESTAMP=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
 
-      - name: Configure SSH
-        run: |
-          mkdir -p ~/.ssh
-          # Write private key from secrets to file
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          # Set up SSH config for this host
-          echo -e "Host ${{ secrets.EC2_HOST }}\n\tUser ubuntu\n\tIdentityFile ~/.ssh/id_rsa\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
-          # Add host key
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-
       - name: Deploy to EC2
         run: |
           echo "Starting deployment to EC2 at $(date)"
 
-          # Test SSH connection
-          echo "Testing SSH connection..."
-          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} echo "SSH connection successful"
+          # Test SSH connection with debugging
+          echo "Testing SSH connection with verbose output..."
+          ssh -v -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_HOST }} echo "SSH connection successful"
 
-          # Deploy if SSH connection test passed
-          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'ENDSSH'
+          # Deploy with explicit identity file
+          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_HOST }} << 'ENDSSH'
             echo "=== Starting deployment script on EC2 instance ==="
             echo "Current directory: $(pwd)"
             echo "Deployment started at: $(date)"
@@ -159,6 +148,7 @@ jobs:
               npm install -g pnpm@8
             fi
             
+            cd /programmatic_adtech_backend
             # Install dependencies
             echo "Installing dependencies with pnpm..."
             pnpm install
@@ -266,14 +256,12 @@ jobs:
           # Write private key from secrets to file
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          # Set up SSH config for this host
-          echo -e "Host ${{ secrets.EC2_HOST }}\n\tUser ubuntu\n\tIdentityFile ~/.ssh/id_rsa\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
-          # Add host key
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          # Set up minimal SSH config
+          echo -e "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null\n" > ~/.ssh/config
 
       - name: Clean up
         run: |
-          ssh -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/id_rsa ubuntu@${{ secrets.EC2_HOST }} << 'ENDSSH'
             # Clean up pnpm cache
             pnpm store prune
             
