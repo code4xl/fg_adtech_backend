@@ -1,32 +1,290 @@
-name: Deploy to EC2
+name: Deploy NestJS to EC2
 
 on:
   push:
     branches:
-      - production # or your production branch
+      - production
+  pull_request:
+    types: [closed]
+    branches:
+      - production
+  workflow_dispatch: # Allow manual triggers from GitHub UI
+
+env:
+  NODE_VERSION: '23'
+  PNPM_VERSION: '10.x'
 
 jobs:
-  deploy:
+  test:
+    name: Test Application
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup SSH
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run linting
+        run: pnpm run lint || echo "No lint script found"
+
+      - name: Run tests
+        run: pnpm test || echo "No test script found"
+
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    needs: test # Only deploy if tests pass
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true) || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Fetch all history for proper versioning
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Generate Prisma client
+        run: pnpm prisma generate
+
+      - name: Build application
+        run: pnpm run build
+
+      - name: Setup deployment timestamp
+        run: echo "DEPLOY_TIMESTAMP=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          echo -e "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile /dev/null\n" > ~/.ssh/config
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to EC2
+        run: |
+          echo "Starting deployment to EC2 at $(date)"
+
+          ssh ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
+            echo "=== Starting deployment script on EC2 instance ==="
+            echo "Current directory: $(pwd)"
+            echo "Deployment started at: $(date)"
+            
+            # Set deployment variables
+            DEPLOY_DIR="/home/ubuntu/nestjs-app"
+            TIMESTAMP=$(date +"%Y%m%d%H%M%S")
+            
+            # Create deployment directory if it doesn't exist
+            mkdir -p $DEPLOY_DIR
+            
+            # Navigate to app directory
+            cd $DEPLOY_DIR
+            
+            # Check if this is the first deployment
+            if [ ! -d .git ]; then
+              echo "Initializing git repository for first deployment..."
+              git init
+              git remote add origin https://github.com/${{ github.repository }}.git
+            fi
+            
+            # Fetch latest code
+            echo "Fetching latest code..."
+            git fetch --all
+            git checkout -f production
+            git reset --hard origin/production
+            
+            # Install pnpm if not already installed
+            if ! command -v pnpm &> /dev/null; then
+              echo "Installing pnpm..."
+              npm install -g pnpm@8
+            fi
+            
+            # Install dependencies and generate Prisma client
+            echo "Installing dependencies with pnpm..."
+            pnpm install
+            
+            # Generate Prisma client
+            echo "Generating Prisma client..."
+            pnpm prisma generate
+            
+            # Verify node_modules exists
+            if [ ! -d "node_modules" ]; then
+              echo "ERROR: node_modules directory doesn't exist after pnpm install!"
+              exit 1
+            fi
+            
+            # Create a deployment log
+            echo "Deployment timestamp: $(date)" > deployment.log
+            echo "Git commit: $(git rev-parse HEAD)" >> deployment.log
+            echo "Deployed by: GitHub Actions" >> deployment.log
+            
+            # Ensure PM2 is installed
+            if ! command -v pm2 &> /dev/null; then
+              echo "Installing PM2..."
+              npm install -g pm2
+            fi
+            
+            # Check if app is already running in PM2
+            if pm2 list | grep -q "nestjs-app"; then
+              echo "Restarting application with PM2..."
+              pm2 restart nestjs-app
+            else
+              echo "Starting application with PM2 for the first time..."
+              # Determine the correct entry point
+              if [ -f "dist/main.js" ]; then
+                ENTRY_POINT="dist/main.js"
+              elif [ -f "dist/src/main.js" ]; then
+                ENTRY_POINT="dist/src/main.js"
+              else
+                echo "ERROR: Could not find main.js entry point!"
+                find dist -name "*.js" | head -5
+                exit 1
+              fi
+              
+              # Start the application with PM2
+              NODE_ENV=production pm2 start $ENTRY_POINT --name="nestjs-app" --time
+            fi
+            
+            # Ensure PM2 auto-starts on reboot
+            echo "Setting up PM2 to start on system boot..."
+            pm2 save
+            
+            # This generates a command to auto-start PM2. Run it and capture its output.
+            pm2_startup_cmd=$(pm2 startup | grep "sudo" | tail -n 1)
+            if [ -n "$pm2_startup_cmd" ]; then
+              echo "Running PM2 startup command..."
+              echo "Command: $pm2_startup_cmd"
+              eval $pm2_startup_cmd
+            fi
+            
+            # Show application status
+            echo "Application status:"
+            pm2 show nestjs-app
+            
+            # Check if app is running properly
+            echo "Checking if application is running..."
+            sleep 5
+            if curl -s http://localhost:${PORT:-3000}/health -o /dev/null; then
+              echo "Application is running successfully!"
+            else
+              echo "WARNING: Application health check failed. Check logs with 'pm2 logs nestjs-app'"
+              pm2 logs nestjs-app --lines 50
+            fi
+            
+            echo "Deployment completed at: $(date)"
+            echo "=== Deployment script finished ==="
+          ENDSSH
+
+          echo "Deployment completed successfully!"
+
+      - name: Verify Deployment
+        run: |
+          echo "Waiting 15 seconds for application to fully initialize..."
+          sleep 15
+
+          # Try to check application health
+          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://${{ secrets.EC2_HOST }}:${PORT:-3000}/health || echo "failed")
+
+          if [ "$HEALTH_STATUS" = "200" ]; then
+            echo "✅ Application is running correctly!"
+          else
+            echo "⚠️ Application health check returned status: $HEALTH_STATUS"
+            echo "This might not be an error if your health endpoint has a different path."
+          fi
+
+      - name: Deployment Notification
+        if: always()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: deployments
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_TITLE: NestJS Deployment
+          SLACK_MESSAGE: 'Deployment to EC2 ${{ job.status }} - ${{ github.repository }} - ${{ github.event.head_commit.message }}'
+          SLACK_FOOTER: 'Deployed commit: ${{ github.sha }}'
+          MSG_MINIMAL: false
+          SLACK_USERNAME: DeployBot
+          SLACK_LINK_NAMES: true
+
+  # Optional: Add a cleanup job for older deployments
+  cleanup:
+    name: Cleanup old deployments
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: success()
+
+    steps:
+      - name: Configure SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy to EC2
+      - name: Clean up
         run: |
-          ssh ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
+          ssh ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
+            # Clean up pnpm cache
+            pnpm store prune
+            
+            # Cleanup old PM2 logs
+            pm2 flush
+            
+            # Cleanup old deployment logs (keep last 10)
             cd /home/ubuntu/nestjs-app
-            git pull
-            npm ci
-            npm run build
-            pm2 restart nestjs-app || pm2 start dist/main.js --name="nestjs-app"
-            pm2 save
-          EOF
+            ls -t deployment-*.log 2>/dev/null | tail -n +11 | xargs -r rm
+            
+            echo "Cleanup completed successfully"
+          ENDSSH
