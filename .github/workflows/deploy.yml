@@ -15,51 +15,9 @@ env:
   PNPM_VERSION: '10.x'
 
 jobs:
-  # test:
-  #   name: Test Application
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v3
-
-  #     - name: Setup Node.js
-  #       uses: actions/setup-node@v3
-  #       with:
-  #         node-version: ${{ env.NODE_VERSION }}
-
-  #     - name: Install pnpm
-  #       uses: pnpm/action-setup@v2
-  #       with:
-  #         version: ${{ env.PNPM_VERSION }}
-  #         run_install: false
-
-  #     - name: Get pnpm store directory
-  #       id: pnpm-cache
-  #       shell: bash
-  #       run: |
-  #         echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
-
-  #     - name: Setup pnpm cache
-  #       uses: actions/cache@v3
-  #       with:
-  #         path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
-  #         key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-  #         restore-keys: |
-  #           ${{ runner.os }}-pnpm-store-
-
-  #     - name: Install dependencies
-  #       run: pnpm install
-
-  #     - name: Run linting
-  #       run: pnpm run lint || echo "No lint script found"
-
-  #     - name: Run tests
-  #       run: pnpm test || echo "No test script found"
-
   deploy:
     name: Deploy to EC2
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true) || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout code
@@ -104,22 +62,39 @@ jobs:
       - name: Setup deployment timestamp
         run: echo "DEPLOY_TIMESTAMP=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
 
+      - name: Setup SSH key
+        run: |
+          # Debugging for troubleshooting
+          echo "Home directory: $HOME"
+          echo "Working directory: $(pwd)"
+
+          # Create .ssh directory
+          mkdir -p $HOME/.ssh
+
+          # Write the SSH key directly
+          echo "${{ secrets.EC2_SSH_KEY }}" > $HOME/.ssh/key.pem
+          chmod 600 $HOME/.ssh/key.pem
+
+          # Debug the key file
+          ls -la $HOME/.ssh
+
+          # Skip host key checking for simplicity
+          echo -e "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null\n" > $HOME/.ssh/config
+
+          # Debug the full setup
+          echo "SSH setup complete. Files in .ssh directory:"
+          ls -la $HOME/.ssh
+
       - name: Deploy to EC2
         run: |
           echo "Starting deployment to EC2 at $(date)"
 
-          # Print debug info
-          echo "Home directory: $HOME"
-          echo "SSH directory contents:"
-          ls -la $HOME/.ssh || echo "Cannot access .ssh directory"
-
-          # Test SSH connection
+          # Simple SSH test first
           echo "Testing SSH connection..."
-          if ssh -i $HOME/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} echo "SSH connection successful"; then
-            echo "SSH connection test passed, proceeding with deployment"
-            
-            # Proceed with deployment
-            ssh -i $HOME/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'ENDSSH'
+          ssh -i $HOME/.ssh/key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} "echo SSH connection successful"
+
+          # If that worked, proceed with full deployment
+          ssh -i $HOME/.ssh/key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'ENDSSH'
             echo "=== Starting deployment script on EC2 instance ==="
             echo "Current directory: $(pwd)"
             echo "Deployment started at: $(date)"
@@ -147,13 +122,32 @@ jobs:
             git checkout -f production
             git reset --hard origin/production
             
+            # Use NVM to install or use Node.js
+            echo "Setting up Node.js with NVM..."
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # Load NVM
+            
+            # Check if we have the required Node version, install if not
+            NODE_VERSION="23"
+            if ! nvm use $NODE_VERSION 2>/dev/null; then
+              echo "Installing Node.js v$NODE_VERSION with NVM..."
+              nvm install $NODE_VERSION
+              nvm use $NODE_VERSION
+            fi
+            
+            # Verify Node.js version
+            echo "Using Node.js $(node -v)"
+            
             # Install pnpm if not already installed
             if ! command -v pnpm &> /dev/null; then
               echo "Installing pnpm..."
-              npm install -g pnpm@8
+              npm install -g pnpm@10
             fi
             
-            # Install dependencies
+            # Verify pnpm version
+            echo "Using pnpm $(pnpm -v)"
+            
+            # Install dependencies using pnpm
             echo "Installing dependencies with pnpm..."
             pnpm install
             
@@ -254,46 +248,22 @@ jobs:
     if: success()
 
     steps:
-      - name: Configure SSH for Cleanup
+      - name: Setup SSH key
         run: |
-          # Debug current directory
-          echo "Current directory: $(pwd)"
-          echo "Home directory: $HOME"
-
-          # Create .ssh directory and verify
-          echo "Creating .ssh directory..."
+          # Create .ssh directory
           mkdir -p $HOME/.ssh
-          ls -la $HOME
 
-          # Write private key with debugging
-          echo "Writing SSH key..."
-          echo "${{ secrets.EC2_SSH_KEY }}" > $HOME/.ssh/id_rsa
-          chmod 600 $HOME/.ssh/id_rsa
+          # Write the SSH key
+          echo "${{ secrets.EC2_SSH_KEY }}" > $HOME/.ssh/key.pem
+          chmod 600 $HOME/.ssh/key.pem
 
-          # Verify SSH directory contents
-          echo "Verifying SSH directory contents:"
-          ls -la $HOME/.ssh || echo "Failed to list .ssh directory"
-
-          # Create known_hosts file
-          echo "Creating known_hosts file..."
-          touch $HOME/.ssh/known_hosts
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> $HOME/.ssh/known_hosts
-
-          # Set permissions on SSH directory
-          chmod 700 $HOME/.ssh
-
-          # Create minimal config
-          echo "Creating SSH config..."
-          echo -e "Host *\n\tStrictHostKeyChecking no\n" > $HOME/.ssh/config
+          # Skip host key checking
+          echo -e "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile=/dev/null\n" > $HOME/.ssh/config
 
       - name: Clean up
         run: |
           echo "Running cleanup tasks..."
-          if ssh -i $HOME/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} echo "SSH connection successful"; then
-            echo "SSH connection test passed, proceeding with cleanup"
-            
-            # Proceed with cleanup
-            ssh -i $HOME/.ssh/id_rsa -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'ENDSSH'
+          ssh -i $HOME/.ssh/key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'ENDSSH'
             # Clean up pnpm cache
             pnpm store prune
             
