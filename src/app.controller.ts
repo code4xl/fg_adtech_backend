@@ -8,8 +8,8 @@ export class AppController {
   @Get('/health')
   getHello(): any {
     return {
-      status: 'ok',
-      message: 'Service is running',
+      status: '200',
+      message: 'Server is running',
     };
   }
 }
