@@ -1,3 +1,12 @@
+enum CompanySize {
+  ONE_TO_TEN // 1-10
+  ELEVEN_TO_FIFTY // 11-50
+  FIFTY_ONE_TO_TWO_HUNDRED // 51-200
+  TWO_HUNDRED_ONE_TO_FIVE_HUNDRED // 201-500
+  FIVE_HUNDRED_ONE_TO_ONE_THOUSAND // 501-1000
+  ONE_THOUSAND_AND_ABOVE // 1001+
+}
+
 enum InventoryFormat {
   BANNER
   NATIVE
@@ -22,16 +31,61 @@ enum ApprovalStatus {
 }
 
 enum TargetingRuleType {
-  DEVICE
+  DEMOGRAPHIC
   GEOGRAPHIC
-  BROWSER
-  OS
+  DEVICE
+  CONTEXTUAL
+  BEHAVIORAL
   TIME
-  AUDIENCE
+  FREQUENCY
 }
 
 enum PublisherStatus {
   ACTIVE
   SUSPENDED
   PENDING
+}
+
+// Campaign enums
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELED
+  REJECTED
+  BUDGET_EXHAUSTED
+}
+
+enum CampaignObjective {
+  AWARENESS
+  CONSIDERATION
+  CONVERSION
+}
+
+enum CampaignPacing {
+  STANDARD
+  ACCELERATED
+}
+
+// Bids strategy enums
+enum BidStrategy {
+  LOWEST_COST
+  COST_CAP
+  BID_CAP
+  TARGET_COST
+}
+
+// Creative enums
+enum CreativeType {
+  IMAGE
+  HTML5
+  VIDEO
+}
+
+enum CreativeStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
 }

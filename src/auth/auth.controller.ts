@@ -154,6 +154,8 @@ export class AuthController {
   }
 
   @Post('reset-password/:role')
+  @ApiOperation({ summary: 'Reset password' })
+  @ApiResponse({ status: 200, description: 'Password reset successfully.' })
   async resetPassword(
     @Param('role') role: string,
     @Query('token') token: string,

@@ -1,3 +1,72 @@
-model Campaign{
-    id Int @id @default(autoincrement())
+// Campaign model
+model Campaign {
+    id           String            @id @default(uuid()) @db.Uuid
+    name         String
+    advertiserId String            @db.Uuid
+    clientId     String?           @db.Uuid
+    budget       Decimal           @db.Decimal(10, 2)
+    dailyBudget  Decimal?          @db.Decimal(10, 2)
+    startDate    DateTime
+    endDate      DateTime
+    status       CampaignStatus    @default(DRAFT)
+    objective    CampaignObjective
+    bidStrategy  BidStrategy       @default(LOWEST_COST)
+    bidAmount    Decimal?          @db.Decimal(10, 2)
+    pacing       CampaignPacing    @default(STANDARD)
+    createdAt    DateTime          @default(now())
+    updatedAt    DateTime          @updatedAt
+
+    // Relations
+    advertiser          Advertiser              @relation(fields: [advertiserId], references: [id])
+    client              Client?                 @relation(fields: [clientId], references: [id])
+    campaignInventories CampaignInventory[]
+    creatives           Creative[]
+    statistics          CampaignStatistics[]
+    targetingRules      CampaignTargetingRule[]
+}
+
+// Campaign inventory relationship
+model CampaignInventory {
+    campaignId  String   @db.Uuid
+    inventoryId String   @db.Uuid
+    maxBid      Decimal  @db.Decimal(10, 2)
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    // Relations
+    campaign  Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+    inventory AdInventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+
+    @@id([campaignId, inventoryId])
+}
+
+// Campaign statistics for reporting
+model CampaignStatistics {
+    id          String   @id @default(uuid()) @db.Uuid
+    campaignId  String   @db.Uuid
+    date        DateTime @db.Date
+    impressions Int      @default(0)
+    clicks      Int      @default(0)
+    conversions Int      @default(0)
+    spend       Decimal  @default(0) @db.Decimal(10, 2)
+    ctr         Float? // Click-through rate
+    cpc         Decimal? @db.Decimal(10, 4) // Cost per click
+
+    // Relations
+    campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+    @@unique([campaignId, date])
+}
+
+// Campaign targeting rules
+model CampaignTargetingRule {
+    id         String            @id @default(uuid()) @db.Uuid
+    campaignId String            @db.Uuid
+    ruleType   TargetingRuleType
+    ruleData   Json
+    createdAt  DateTime          @default(now())
+    updatedAt  DateTime          @updatedAt
+
+    // Relations
+    campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 }

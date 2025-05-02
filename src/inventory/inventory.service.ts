@@ -4,17 +4,17 @@ import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { UpdateInventoryDto } from './dto/update-inventory.dto';
 import { InventoryQueryDto } from './dto/inventory-query.dto';
 import { InventorySearchDto } from './dto/inventory-search.dto';
-import { 
-  ResourceNotFoundException, 
+import {
+  ResourceNotFoundException,
   BadRequestException,
-  DuplicateResourceException 
+  DuplicateResourceException
 } from '../common/exceptions/custom.exception';
 import { ApprovalStatus, Prisma } from '@prisma/client';
 import { PerformanceQueryDto } from './dto/performance-query.dto';
 
 @Injectable()
 export class InventoryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async create(publisherId: string, createInventoryDto: CreateInventoryDto) {
     // Verify publisher exists
@@ -37,16 +37,16 @@ export class InventoryService {
   }
 
   async findAll(publisherId: string, query: InventoryQueryDto) {
-    const { 
-      format, 
-      position, 
-      isActive, 
-      approvalStatus, 
-      search, 
-      page = 1, 
-      limit = 10, 
-      sortBy = 'createdAt', 
-      sortOrder = 'desc' 
+    const {
+      format,
+      position,
+      isActive,
+      approvalStatus,
+      search,
+      page = 1,
+      limit = 10,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
     } = query;
 
     const where: Prisma.AdInventoryWhereInput = {
@@ -107,9 +107,9 @@ export class InventoryService {
 
   async findOne(id: string, publisherId: string) {
     const inventory = await this.prisma.adInventory.findFirst({
-      where: { 
+      where: {
         id,
-        publisherId 
+        publisherId
       },
       include: {
         floorPrices: {
@@ -217,120 +217,24 @@ export class InventoryService {
     });
   }
 
-  
-async findPendingApprovals(query: InventoryQueryDto) {
-    const where: Prisma.AdInventoryWhereInput = {
-      approvalStatus: ApprovalStatus.PENDING
-    };
-  
-    const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = query;
-  
-    const [total, inventories] = await Promise.all([
-      this.prisma.adInventory.count({ where }),
-      this.prisma.adInventory.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: {
-          [sortBy]: sortOrder
-        },
-        include: {
-          publisher: {
-            select: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              email: true
-            }
-          }
-        }
-      })
-    ]);
-  
-    return {
-      items: inventories,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit)
-      }
-    };
-  }
-  
-  async updateApprovalStatus(id: string, status: ApprovalStatus, reason?: string) {
-    const inventory = await this.prisma.adInventory.findUnique({
-      where: { id }
-    });
-  
-    if (!inventory) {
-      throw new ResourceNotFoundException('Inventory', id);
-    }
-  
-    return this.prisma.adInventory.update({
-      where: { id },
-      data: { 
-        approvalStatus: status,
-        // You might want to add rejectionReason to your schema
-      }
-    });
-  }
-  
-  async getPerformanceMetrics(id: string, publisherId: string) {
-    await this.findOne(id, publisherId);
-
-    const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-    const [impressions, clicks] = await Promise.all([
-      this.prisma.impression.count({
-        where: {
-          inventoryId: id,
-          createdAt: {
-            gte: thirtyDaysAgo
-          }
-        }
-      }),
-      this.prisma.click.count({
-        where: {
-          impression: {
-            inventoryId: id
-          },
-          createdAt: {
-            gte: thirtyDaysAgo
-          }
-        }
-      })
-    ]);
-
-    const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
-
-    return {
-      inventoryId: id,
-      timeframe: '30_days',
-      metrics: {
-        impressions,
-        clicks,
-        ctr
-      }
-    };
-  }
-
-
-  // for advertiser here : 
   async findAvailableForAdvertiser(advertiserId: string, query: InventorySearchDto) {
     // Only return approved and active inventory
     const where: Prisma.AdInventoryWhereInput = {
       approvalStatus: ApprovalStatus.APPROVED,
       isActive: true
     };
-  
+
     // Apply filters from query parameters
     if (query.format) where.format = query.format;
     if (query.position) where.position = query.position;
     if (query.minWidth) where.width = { gte: query.minWidth };
     if (query.minHeight) where.height = { gte: query.minHeight };
-    
+
+    // Filter by specific inventory IDs if provided
+    if (query.inventoryIds && query.inventoryIds.length > 0) {
+      where.id = { in: query.inventoryIds };
+    }
+
     // Filter by categories if provided
     if (query.categoryIds && query.categoryIds.length > 0) {
       where.categories = {
@@ -339,20 +243,20 @@ async findPendingApprovals(query: InventoryQueryDto) {
         }
       };
     }
-  
+
     // Check for blocked advertisers
     where.blockedAdvertisers = {
       none: {
         advertiserId
       }
     };
-  
+
     // Use default values for pagination parameters
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     const sortBy = query.sortBy ?? 'createdAt';
     const sortOrder = query.sortOrder ?? 'desc';
-  
+
     const [total, inventories] = await Promise.all([
       this.prisma.adInventory.count({ where }),
       this.prisma.adInventory.findMany({
@@ -397,7 +301,7 @@ async findPendingApprovals(query: InventoryQueryDto) {
         }
       })
     ]);
-  
+
     // Format the response to hide sensitive publisher data
     const formattedInventories = inventories.map(inventory => ({
       id: inventory.id,
@@ -412,7 +316,7 @@ async findPendingApprovals(query: InventoryQueryDto) {
       viewabilityScore: inventory.viewabilityScore,
       estimatedImpressions: this.calculateEstimatedImpressions(inventory._count.impressions)
     }));
-  
+
     return {
       items: formattedInventories,
       meta: {
@@ -428,17 +332,17 @@ async findPendingApprovals(query: InventoryQueryDto) {
     const { format, categoryIds, days = 30 } = query;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
-    
+
     // Build the where condition for inventory
     const where: any = {
       approvalStatus: ApprovalStatus.APPROVED,
       isActive: true
     };
-    
+
     if (format) {
       where.format = format;
     }
-    
+
     if (categoryIds && categoryIds.length > 0) {
       where.categories = {
         some: {
@@ -446,13 +350,13 @@ async findPendingApprovals(query: InventoryQueryDto) {
         }
       };
     }
-    
+
     // Get all matching inventory IDs
     const inventoryIds = await this.prisma.adInventory.findMany({
       where,
       select: { id: true }
     }).then(results => results.map(item => item.id));
-    
+
     if (inventoryIds.length === 0) {
       return {
         timeframe: `${days} days`,
@@ -468,7 +372,7 @@ async findPendingApprovals(query: InventoryQueryDto) {
         }
       };
     }
-    
+
     // Get impression and click counts for these inventories
     const [impressions, clicks, inventoryStats] = await Promise.all([
       this.prisma.impression.count({
@@ -494,16 +398,16 @@ async findPendingApprovals(query: InventoryQueryDto) {
         _count: true
       })
     ]);
-    
+
     // Calculate metrics
     const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
-    
+
     // Format the output
     const formatStats = {};
     inventoryStats.forEach(stat => {
       formatStats[stat.format] = stat._count;
     });
-    
+
     return {
       timeframe: `${days} days`,
       metrics: {
@@ -526,6 +430,104 @@ async findPendingApprovals(query: InventoryQueryDto) {
     return Math.round(historicalCount * 0.85); // 85% of historical as estimate
   }
 
+  async findPendingApprovals(query: InventoryQueryDto) {
+    const where: Prisma.AdInventoryWhereInput = {
+      approvalStatus: ApprovalStatus.PENDING
+    };
+
+    const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = query;
+
+    const [total, inventories] = await Promise.all([
+      this.prisma.adInventory.count({ where }),
+      this.prisma.adInventory.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: {
+          [sortBy]: sortOrder
+        },
+        include: {
+          publisher: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
+          }
+        }
+      })
+    ]);
+
+    return {
+      items: inventories,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+  }
+
+  async updateApprovalStatus(id: string, status: ApprovalStatus, reason?: string) {
+    const inventory = await this.prisma.adInventory.findUnique({
+      where: { id }
+    });
+
+    if (!inventory) {
+      throw new ResourceNotFoundException('Inventory', id);
+    }
+
+    return this.prisma.adInventory.update({
+      where: { id },
+      data: {
+        approvalStatus: status,
+        // You might want to add rejectionReason to your schema
+      }
+    });
+  }
+
+  async getPerformanceMetrics(id: string, publisherId: string) {
+    await this.findOne(id, publisherId);
+
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const [impressions, clicks] = await Promise.all([
+      this.prisma.impression.count({
+        where: {
+          inventoryId: id,
+          createdAt: {
+            gte: thirtyDaysAgo
+          }
+        }
+      }),
+      this.prisma.click.count({
+        where: {
+          impression: {
+            inventoryId: id
+          },
+          createdAt: {
+            gte: thirtyDaysAgo
+          }
+        }
+      })
+    ]);
+
+    const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+
+    return {
+      inventoryId: id,
+      timeframe: '30_days',
+      metrics: {
+        impressions,
+        clicks,
+        ctr
+      }
+    };
+  }
+
   async getAllCategories() {
     return this.prisma.contentCategory.findMany({
       select: {
@@ -535,5 +537,4 @@ async findPendingApprovals(query: InventoryQueryDto) {
       }
     });
   }
- 
 }

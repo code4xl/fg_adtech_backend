@@ -42,11 +42,6 @@ export class CreateAdvertiserDto {
     @IsNotEmpty()
     @IsEnum(CompanySize)
     companySize: CompanySize;
-
-    @ApiProperty({ description: 'Remember token', required: false })
-    @IsOptional()
-    @IsString()
-    rememberToken?: string;
 }
 
 export class AdvertiserResponseDto {
