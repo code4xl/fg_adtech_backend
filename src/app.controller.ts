@@ -7,9 +7,6 @@ export class AppController {
 
   @Get('/health')
   getHello(): any {
-    return {
-      status: '200',
-      message: 'Server is running successfully',
-    };
+    return 'Health 100%';
   }
 }
