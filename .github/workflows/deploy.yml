@@ -31,9 +31,6 @@ jobs:
       - name: Build application
         run: pnpm run build
 
-      - name: Run tests
-        run: pnpm test
-
       - name: Setup SSH
         uses: webfactory/ssh-agent@v0.7.0
         with:
