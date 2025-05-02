@@ -13,4 +13,6 @@ model Publisher {
   
   // Relations
   inventories       AdInventory[]
+  categories        PublisherCategory[]
+  languages         PublisherLanguage[]
 }

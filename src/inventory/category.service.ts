@@ -4,7 +4,8 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { 
   ResourceNotFoundException, 
-  DuplicateResourceException 
+  DuplicateResourceException,
+  BadRequestException
 } from '../common/exceptions/custom.exception';
 
 @Injectable()
@@ -45,6 +46,7 @@ export class CategoryService {
       data: createCategoryDto
     });
   }
+
   async findAll(query?: { parentId?: string; search?: string }) {
     const where: any = {};
     
@@ -72,7 +74,8 @@ export class CategoryService {
         _count: {
           select: {
             childCategories: true,
-            inventories: true
+            inventories: true,
+            publishers: true
           }
         }
       }
@@ -134,7 +137,7 @@ export class CategoryService {
     if (updateCategoryDto.parentId) {
       // Cannot set parent to self
       if (updateCategoryDto.parentId === id) {
-        throw new Error('Category cannot be its own parent');
+        throw new BadRequestException('Category cannot be its own parent');
       }
 
       const parentExists = await this.prisma.contentCategory.findUnique({
@@ -148,7 +151,7 @@ export class CategoryService {
       // Check if new parent is one of the category's descendants (prevent circular reference)
       const isCircular = await this.isDescendant(id, updateCategoryDto.parentId);
       if (isCircular) {
-        throw new Error('Cannot set a descendant category as parent (circular reference)');
+        throw new BadRequestException('Cannot set a descendant category as parent (circular reference)');
       }
     }
 
@@ -162,13 +165,13 @@ export class CategoryService {
     // Check if category exists
     await this.findOne(id);
 
-    // Check if category has children - adjust this based on your schema
+    // Check if category has children
     const childrenCount = await this.prisma.contentCategory.count({
       where: { parentId: id }
     });
 
     if (childrenCount > 0) {
-      throw new Error('Cannot delete category with subcategories. Remove subcategories first.');
+      throw new BadRequestException('Cannot delete category with subcategories. Remove subcategories first.');
     }
 
     // Check if category is used by any inventory
@@ -177,7 +180,16 @@ export class CategoryService {
     });
 
     if (inventoryCount > 0) {
-      throw new Error('Cannot delete category that is used by inventory items. Remove category from inventory first.');
+      throw new BadRequestException('Cannot delete category that is used by inventory items. Remove category from inventory first.');
+    }
+
+    // Check if category is used by any publisher
+    const publisherCount = await this.prisma.publisherCategory.count({
+      where: { categoryId: id }
+    });
+
+    if (publisherCount > 0) {
+      throw new BadRequestException('Cannot delete category that is assigned to publishers. Remove category from publishers first.');
     }
 
     return this.prisma.contentCategory.delete({
@@ -223,11 +235,8 @@ export class CategoryService {
       throw new ResourceNotFoundException('Category assignment', `${inventoryId}:${categoryId}`);
     }
 
-    // Fix this based on your actual schema
-    // If your inventoryCategory has a composite primary key
     return this.prisma.inventoryCategory.delete({
       where: {
-        // Adjust this based on your schema's actual unique identifier
         inventoryId_categoryId: {
           inventoryId,
           categoryId
@@ -242,6 +251,109 @@ export class CategoryService {
       where: { inventoryId },
       include: {
         category: true
+      }
+    });
+  }
+
+  // Assign a category to a publisher
+  async assignToPublisher(publisherId: string, categoryId: string) {
+    // Verify category exists
+    await this.findOne(categoryId);
+
+    // Check if the assignment already exists
+    const existingAssignment = await this.prisma.publisherCategory.findFirst({
+      where: {
+        publisherId,
+        categoryId
+      }
+    });
+
+    if (existingAssignment) {
+      return existingAssignment;
+    }
+
+    return this.prisma.publisherCategory.create({
+      data: {
+        publisherId,
+        categoryId
+      }
+    });
+  }
+
+  // Remove a category from a publisher
+  async removeFromPublisher(publisherId: string, categoryId: string) {
+    const assignment = await this.prisma.publisherCategory.findFirst({
+      where: {
+        publisherId,
+        categoryId
+      }
+    });
+
+    if (!assignment) {
+      throw new ResourceNotFoundException('Category assignment', `${publisherId}:${categoryId}`);
+    }
+
+    return this.prisma.publisherCategory.delete({
+      where: {
+        publisherId_categoryId: {
+          publisherId,
+          categoryId
+        }
+      }
+    });
+  }
+
+  // Get all categories assigned to a publisher
+  async getPublisherCategories(publisherId: string) {
+    return this.prisma.publisherCategory.findMany({
+      where: { publisherId },
+      include: {
+        category: true
+      }
+    });
+  }
+
+  // Get all inventory items associated with a category
+  async getInventoryByCategory(categoryId: string) {
+    // Verify category exists
+    await this.findOne(categoryId);
+
+    return this.prisma.inventoryCategory.findMany({
+      where: { categoryId },
+      include: {
+        inventory: {
+          include: {
+            publisher: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Get all publishers associated with a category
+  async getPublishersByCategory(categoryId: string) {
+    // Verify category exists
+    await this.findOne(categoryId);
+
+    return this.prisma.publisherCategory.findMany({
+      where: { categoryId },
+      include: {
+        publisher: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            status: true
+          }
+        }
       }
     });
   }

@@ -105,6 +105,82 @@ export class InventoryService {
     };
   }
 
+  async findAllAcrossPublishers(query: InventoryQueryDto) {
+    const {
+      format,
+      position,
+      isActive,
+      approvalStatus,
+      search,
+      page = 1,
+      limit = 10,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = query;
+
+    const where: Prisma.AdInventoryWhereInput = {};
+
+    if (format) where.format = format;
+    if (position) where.position = position;
+    if (isActive !== undefined) where.isActive = isActive;
+    if (approvalStatus) where.approvalStatus = approvalStatus;
+    if (search) {
+      where.name = {
+        contains: search,
+        mode: 'insensitive'
+      };
+    }
+
+    const [total, inventories] = await Promise.all([
+      this.prisma.adInventory.count({ where }),
+      this.prisma.adInventory.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: {
+          [sortBy]: sortOrder
+        },
+        include: {
+          publisher: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
+          },
+          floorPrices: {
+            where: {
+              endDate: {
+                gt: new Date()
+              }
+            },
+            orderBy: {
+              startDate: 'desc'
+            },
+            take: 1
+          },
+          categories: {
+            include: {
+              category: true
+            }
+          }
+        }
+      })
+    ]);
+
+    return {
+      items: inventories,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+  }
+
+  // Original method (for backward compatibility)
   async findOne(id: string, publisherId: string) {
     const inventory = await this.prisma.adInventory.findFirst({
       where: {
@@ -144,6 +220,52 @@ export class InventoryService {
     return inventory;
   }
 
+  // Admin version - no publisher check
+  async findOneAsAdmin(id: string) {
+    const inventory = await this.prisma.adInventory.findUnique({
+      where: { id },
+      include: {
+        publisher: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true
+          }
+        },
+        floorPrices: {
+          orderBy: {
+            startDate: 'desc'
+          }
+        },
+        categories: {
+          include: {
+            category: true
+          }
+        },
+        blockedAdvertisers: {
+          include: {
+            advertiser: {
+              select: {
+                id: true,
+                name: true,
+                companyName: true
+              }
+            }
+          }
+        },
+        targetingRules: true
+      }
+    });
+
+    if (!inventory) {
+      throw new ResourceNotFoundException('Inventory', id);
+    }
+
+    return inventory;
+  }
+
+  // Original update method (for backward compatibility)
   async update(id: string, publisherId: string, updateInventoryDto: UpdateInventoryDto) {
     const inventory = await this.findOne(id, publisherId);
 
@@ -158,6 +280,17 @@ export class InventoryService {
     });
   }
 
+  // Admin version - no publisher check, can update approval status
+  async updateAsAdmin(id: string, updateInventoryDto: UpdateInventoryDto) {
+    await this.findOneAsAdmin(id);
+
+    return this.prisma.adInventory.update({
+      where: { id },
+      data: updateInventoryDto
+    });
+  }
+
+  // Original remove method (for backward compatibility)
   async remove(id: string, publisherId: string) {
     await this.findOne(id, publisherId);
 
@@ -195,6 +328,45 @@ export class InventoryService {
     });
   }
 
+  // Admin version - no publisher check
+  async removeAsAdmin(id: string) {
+    await this.findOneAsAdmin(id);
+
+    // Same checks as in remove method
+    const [activeImpressions, futureReservations] = await Promise.all([
+      this.prisma.impression.count({
+        where: {
+          inventoryId: id,
+          createdAt: {
+            gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
+          }
+        }
+      }),
+      this.prisma.inventoryAvailability.count({
+        where: {
+          inventoryId: id,
+          date: {
+            gt: new Date()
+          },
+          reservedImpressions: {
+            gt: 0
+          }
+        }
+      })
+    ]);
+
+    if (activeImpressions > 0 || futureReservations > 0) {
+      throw new BadRequestException(
+        'Cannot delete inventory with active campaigns or future reservations'
+      );
+    }
+
+    return this.prisma.adInventory.delete({
+      where: { id }
+    });
+  }
+
+  // Original activate method (for backward compatibility)
   async activate(id: string, publisherId: string) {
     const inventory = await this.findOne(id, publisherId);
 
@@ -208,6 +380,21 @@ export class InventoryService {
     });
   }
 
+  // Admin version - no publisher check
+  async activateAsAdmin(id: string) {
+    const inventory = await this.findOneAsAdmin(id);
+
+    if (inventory.approvalStatus !== ApprovalStatus.APPROVED) {
+      throw new BadRequestException('Inventory must be approved before activation');
+    }
+
+    return this.prisma.adInventory.update({
+      where: { id },
+      data: { isActive: true }
+    });
+  }
+
+  // Original deactivate method (for backward compatibility)
   async deactivate(id: string, publisherId: string) {
     await this.findOne(id, publisherId);
 
@@ -217,6 +404,164 @@ export class InventoryService {
     });
   }
 
+  // Admin version - no publisher check
+  async deactivateAsAdmin(id: string) {
+    await this.findOneAsAdmin(id);
+
+    return this.prisma.adInventory.update({
+      where: { id },
+      data: { isActive: false }
+    });
+  }
+
+  // Category assignment methods for admin
+  async assignCategoryAsAdmin(inventoryId: string, categoryId: string) {
+    await this.findOneAsAdmin(inventoryId);
+
+    return this.prisma.inventoryCategory.create({
+      data: {
+        inventoryId,
+        categoryId
+      },
+      include: {
+        category: true
+      }
+    });
+  }
+
+  async removeCategoryAsAdmin(inventoryId: string, categoryId: string) {
+    await this.findOneAsAdmin(inventoryId);
+
+    return this.prisma.inventoryCategory.delete({
+      where: {
+        inventoryId_categoryId: {
+          inventoryId,
+          categoryId
+        }
+      }
+    });
+  }
+
+  // Original performance metrics method (for backward compatibility)
+  async getPerformanceMetrics(id: string, publisherId: string) {
+    await this.findOne(id, publisherId);
+
+    return this.calculatePerformanceMetrics(id);
+  }
+
+  // Admin version - no publisher check
+  async getPerformanceMetricsAsAdmin(id: string) {
+    await this.findOneAsAdmin(id);
+
+    return this.calculatePerformanceMetrics(id);
+  }
+
+  // Helper method for calculating performance metrics
+  private async calculatePerformanceMetrics(id: string) {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const [impressions, clicks] = await Promise.all([
+      this.prisma.impression.count({
+        where: {
+          inventoryId: id,
+          createdAt: {
+            gte: thirtyDaysAgo
+          }
+        }
+      }),
+      this.prisma.click.count({
+        where: {
+          impression: {
+            inventoryId: id
+          },
+          createdAt: {
+            gte: thirtyDaysAgo
+          }
+        }
+      })
+    ]);
+
+    const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+
+    return {
+      inventoryId: id,
+      timeframe: '30_days',
+      metrics: {
+        impressions,
+        clicks,
+        ctr: ctr.toFixed(2) + '%',
+        averageDailyImpressions: Math.round(impressions / 30)
+      }
+    };
+  }
+
+  // Update approval status method (used by admin)
+  async updateApprovalStatus(id: string, status: string, reason?: string) {
+    const inventory = await this.findOneAsAdmin(id);
+
+    const updateData: any = {
+      approvalStatus: status as ApprovalStatus
+    };
+
+    if (reason && status === 'REJECTED') {
+      // You might want to add rejectionReason field to your schema
+      updateData.rejectionReason = reason;
+    }
+
+    return this.prisma.adInventory.update({
+      where: { id },
+      data: updateData
+    });
+  }
+
+  // Find pending approvals for admin
+  async findPendingApprovals(query: InventoryQueryDto) {
+    const where: Prisma.AdInventoryWhereInput = {
+      approvalStatus: ApprovalStatus.PENDING
+    };
+
+    const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = query;
+
+    const [total, inventories] = await Promise.all([
+      this.prisma.adInventory.count({ where }),
+      this.prisma.adInventory.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: {
+          [sortBy]: sortOrder
+        },
+        include: {
+          publisher: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
+          },
+          categories: {
+            include: {
+              category: true
+            }
+          }
+        }
+      })
+    ]);
+
+    return {
+      items: inventories,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+  }
+
+  // Advertiser methods (remain unchanged)
   async findAvailableForAdvertiser(advertiserId: string, query: InventorySearchDto) {
     // Only return approved and active inventory
     const where: Prisma.AdInventoryWhereInput = {
@@ -268,6 +613,13 @@ export class InventoryService {
         },
         include: {
           // Include only necessary data for advertisers
+          publisher: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true
+            }
+          },
           categories: {
             include: {
               category: {
@@ -310,6 +662,10 @@ export class InventoryService {
       height: inventory.height,
       format: inventory.format,
       position: inventory.position,
+      publisher: {
+        id: inventory.publisher.id,
+        name: `${inventory.publisher.firstName} ${inventory.publisher.lastName}`,
+      },
       categories: inventory.categories.map(cat => cat.category),
       floorPrice: inventory.floorPrices[0]?.basePrice || 0.01,
       currency: inventory.floorPrices[0]?.currency || 'USD',

@@ -10,4 +10,5 @@ model ContentCategory {
   parentCategory    ContentCategory?   @relation("CategoryHierarchy", fields: [parentId], references: [id])
   childCategories   ContentCategory[]  @relation("CategoryHierarchy")
   inventories       InventoryCategory[]
+  publishers        PublisherCategory[]
 }
