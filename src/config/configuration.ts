@@ -30,4 +30,7 @@ export default () => ({
   error: {
     prefix: process.env.ERROR_PREFIX || 'Error',
   },
+  template: {
+    url: process.env.APP_URL,
+  }
 });

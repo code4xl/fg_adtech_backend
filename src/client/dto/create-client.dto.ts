@@ -1,51 +1,47 @@
+import { ApiProperty } from '@nestjs/swagger';
+import { CompanySize } from '@prisma/client';
 import {
   IsString,
   IsEmail,
   IsEnum,
   IsNotEmpty,
-  IsOptional,
-  IsInt,
   Matches,
+  IsUUID,
+  IsOptional,
 } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Helper } from 'src/common/utils/helper';
 
-// Enum for company size - matching the Prisma enum
-export enum CompanySize {
-  ONE_TO_TEN = 'ONE_TO_TEN',
-  ELEVEN_TO_FIFTY = 'ELEVEN_TO_FIFTY',
-  FIFTY_ONE_TO_TWO_HUNDRED = 'FIFTY_ONE_TO_TWO_HUNDRED',
-  TWO_HUNDRED_ONE_TO_FIVE_HUNDRED = 'TWO_HUNDRED_ONE_TO_FIVE_HUNDRED',
-  FIVE_HUNDRED_ONE_TO_ONE_THOUSAND = 'FIVE_HUNDRED_ONE_TO_ONE_THOUSAND',
-  ONE_THOUSAND_AND_ABOVE = 'ONE_THOUSAND_AND_ABOVE',
-}
 
 export class CreateClientDto {
   @ApiProperty({ description: 'Client name' })
+  @IsNotEmpty({ message: 'Name is required' })
   @IsString()
-  @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ description: 'Client email' })
-  @IsEmail()
-  @IsNotEmpty()
+  @ApiProperty({ description: 'Email address', example: 'example@gmail.com' })
+  @IsNotEmpty({ message: 'Email is required' })
+  @IsEmail({}, { message: 'Please provide a valid email address' })
   email: string;
 
-  @ApiProperty({ description: 'Client mobile number' })
+  @ApiProperty({ description: 'Password' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  @Matches(/^[0-9]{10}$/, {
-    message: 'Mobile number must be a valid 10-digit number',
-  })
+  password?: string;
+
+  @ApiProperty({ description: 'Mobile number' })
+  @IsNotEmpty({ message: 'Mobile number is required' })
+  @IsString()
+  @Matches(Helper.MOBILE, { message: 'Mobile number must be a valid 10-digit number' })
   mobile: string;
 
   @ApiProperty({ description: 'Company name' })
+  @IsNotEmpty({ message: 'Company name is required' })
   @IsString()
-  @IsNotEmpty()
   companyName: string;
 
   @ApiProperty({ description: 'Company headquarters location' })
+  @IsNotEmpty({ message: 'HQ location is required' })
   @IsString()
-  @IsNotEmpty()
   hqLocation: string;
 
   @ApiProperty({
@@ -53,50 +49,41 @@ export class CreateClientDto {
     enum: CompanySize,
     example: CompanySize.ONE_TO_TEN,
   })
-  @IsEnum(CompanySize)
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Company size is required' })
+  @IsEnum(CompanySize, { message: 'Company size must be a valid value' })
   companySize: CompanySize;
 
-  @ApiProperty({ description: 'Company registered address' })
+  @ApiProperty({ description: 'Company Registered Address' })
+  @IsNotEmpty({ message: 'Registered address is required' })
   @IsString()
-  @IsNotEmpty()
   registeredAddress: string;
 
-  @ApiPropertyOptional({
-    description: 'Goods and Services Tax Identification Number',
-    example: '29AADCB2230M1ZT',
-  })
+  @ApiProperty({ description: 'Company GSTIN' })
+  @IsNotEmpty({ message: 'Company GSTIN is required' })
   @IsString()
-  @IsOptional()
-  @Matches(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, {
-    message: 'GSTIN must be in valid format',
+  @Matches(Helper.GSTIN, {
+    message: 'Please provide a valid GSTIN',
   })
-  gstin?: string;
+  companyGSTIN: string;
 
-  @ApiPropertyOptional({
-    description: 'Corporate Identity Number',
-    example: 'U72200KA2009PTC000000',
-  })
+  @ApiProperty({ description: 'Company PAN' })
+  @IsNotEmpty({ message: 'PAN is required' })
   @IsString()
-  @IsOptional()
-  @Matches(/^[LUF][0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}$/, {
-    message: 'CIN must be in valid format',
+  @Matches(Helper.PAN, {
+    message: 'Please provide a valid PAN number',
   })
-  cin?: string;
+  PAN: string;
 
-  @ApiPropertyOptional({
-    description: 'Permanent Account Number',
-    example: 'ABCDE1234F',
-  })
+  @ApiProperty({ description: 'Company CIN' })
+  @IsNotEmpty({ message: 'CIN is required' })
   @IsString()
-  @IsOptional()
-  @Matches(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/, {
-    message: 'PAN must be in valid format',
+  @Matches(Helper.CIN, {
+    message: 'Please provide a valid CIN',
   })
-  pan?: string;
+  CIN: string;
 
-  @ApiProperty({ description: 'Advertiser ID' })
+  @ApiProperty({ description: 'Company website' })
+  @IsNotEmpty({ message: 'Website is required' })
   @IsString()
-  @IsNotEmpty()
-  advertiserId: string;
+  website: string;
 }

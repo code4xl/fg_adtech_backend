@@ -15,9 +15,11 @@ import { SuccessInterceptor } from './common/interceptors/success.interceptor';
 import { AllExceptionsFilter } from './common/filters/global.exception';
 import { ErrorConfigService } from './common/exceptions/error-config.service';
 import { apiReference } from '@scalar/nestjs-api-reference';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: new ConsoleLogger({
       json: false,
       colors: true,
@@ -62,22 +64,16 @@ async function bootstrap() {
   // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
-      // whitelist: true,
-      // forbidNonWhitelisted: true,
       transform: true,
-      exceptionFactory: (errors) => {
-        const messages = errors.map((error: any) => ({
-          field: error.property,
-          message: Object.values(error.constraints).join(', '),
-        }));
-        return new BadRequestException({
-          statusCode: 400,
-          message: 'Validation failed',
-          errors: messages,
-        });
-      },
     }),
   );
+
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+    prefix: '/uploads/',
+  });
+
+
+
   // Swagger API documentation
   if (process.env.NODE_ENV !== 'production') {
     app.use(morgan('dev'));

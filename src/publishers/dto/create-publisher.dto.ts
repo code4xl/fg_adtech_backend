@@ -1,9 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { 
-  IsString, 
-  IsEmail, 
-  IsOptional, 
-  IsEnum, 
+import {
+  IsString,
+  IsEmail,
+  IsOptional,
+  IsEnum,
   IsArray,
   IsUUID,
   MinLength,

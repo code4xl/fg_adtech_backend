@@ -10,7 +10,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       configService.get('DATABASE_URL') ||
       process.env.DATABASE_URL;
 
-    console.log('Database URL:', dbUrl); // For debugging
+    // console.log('Database URL:', dbUrl); // For debugging
 
     if (!dbUrl) {
       throw new Error('Database URL is not defined. Please check your environment configuration.');

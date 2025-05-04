@@ -23,7 +23,7 @@ export class AuthService {
     private jwtService: JwtService,
     private mailService: MailService,
     private config: ConfigService,
-  ) {}
+  ) { }
 
   // This function is used to register a new advertiser.
   async signup(createAdvertiserDto: CreateAdvertiserDto) {
@@ -87,7 +87,7 @@ export class AuthService {
     return {
       message:
         'Registration successful. Please check your email to verify your account.',
-      user,
+      advertiser: user,
     };
   }
 
@@ -119,7 +119,7 @@ export class AuthService {
         },
       });
 
-      return { message: 'Email verified successfully' };
+      return 'Email verified successfully';
     } catch (error) {
       if (error.name === 'TokenExpiredError') {
         throw new BadRequestException(
@@ -255,4 +255,129 @@ export class AuthService {
 
     return 'Verification email resent successfully';
   }
+
+  async findUserByEmail(email: string, role: string) {
+    let user;
+
+    if (role === 'advertiser') {
+      user = await this.prisma.advertiser.findUnique({
+        where: { email },
+      });
+    } else if (role === 'client') {
+      user = await this.prisma.client.findUnique({
+        where: { email },
+      });
+    } else if (role === 'admin') {
+      user = await this.prisma.admin.findUnique({
+        where: { email },
+      });
+    }
+
+    if (!user) {
+      throw new ResourceNotFoundException('User', email);
+    }
+
+    return user;
+  }
+
+  // Password reset functionalit
+
+
+  async requestPasswordReset(email: string, role: string) {
+    // Generate JWT token
+    const token = this.jwtService.sign(
+      { email, role },
+      {
+        secret: this.config.get('jwt.secret'),
+        expiresIn: this.config.get('auth.verificationTokenExpiry'),
+      },
+    );
+
+    // Send reset email
+    const resetLink = `${this.config.get('template.url')}/auth/reset-password/${role}?token=${token}&email=${encodeURIComponent(email)}`;
+    let res = await this.mailService.sendPasswordResetEmail(email, role, resetLink);
+
+    return 'Password reset email sent successfully';
+  }
+
+  async verifyResetToken(email: string, token: string): Promise<boolean> {
+    const payload = this.jwtService.verify(token, {
+      secret: this.config.get('jwt.secret'),
+    });
+
+    if (payload.email !== email) {
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    return true;
+  }
+
+  async resetPassword(
+    role: string,
+    email: string,
+    token: string,
+    newPassword: string,
+  ) {
+    await this.verifyResetToken(email, token);
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password based on role
+    switch (role) {
+      case 'client':
+        const client = await this.prisma.client.findUnique({
+          where: { email },
+        });
+
+        if (!client) {
+          throw new ResourceNotFoundException('Client', email);
+        }
+
+        await this.prisma.client.update({
+          where: { email },
+          data: { password: hashedPassword },
+        });
+
+        return 'Password has been reset successfully';
+
+      case 'advertiser':
+        const advertiser = await this.prisma.advertiser.findUnique({
+          where: { email },
+        });
+
+        if (!advertiser) {
+          throw new ResourceNotFoundException('Advertiser', email);
+        }
+
+        await this.prisma.advertiser.update({
+          where: { email },
+          data: { password: hashedPassword },
+        });
+
+        return 'Password has been reset successfully';
+
+
+      case 'admin':
+        const admin = await this.prisma.admin.findUnique({
+          where: { email },
+        });
+
+        if (!admin) {
+          throw new ResourceNotFoundException('Admin', email);
+        }
+
+        await this.prisma.admin.update({
+          where: { email },
+          data: { password: hashedPassword },
+        });
+
+        return 'Password has been reset successfully';
+
+
+      default:
+        throw new BadRequestException(`Invalid url`);
+    }
+  }
+
 }
