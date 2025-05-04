@@ -24,7 +24,7 @@ import { InventoryModule } from './inventory/inventory.module';
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
-      envFilePath: `.env.${process.env.NODE_ENV}`,
+      envFilePath: `.env`,
     }),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
@@ -65,4 +65,4 @@ import { InventoryModule } from './inventory/inventory.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}
