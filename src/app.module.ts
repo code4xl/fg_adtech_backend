@@ -26,7 +26,7 @@ import { CreativeModule } from './creative/creative.module';
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
-      envFilePath: `.env.${process.env.NODE_ENV}`,
+      envFilePath: `.env`,
     }),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
@@ -70,4 +70,4 @@ import { CreativeModule } from './creative/creative.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

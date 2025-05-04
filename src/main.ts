@@ -41,7 +41,11 @@ async function bootstrap() {
           scriptSrc: [`'self'`, `'unsafe-inline'`, 'cdn.jsdelivr.net'],
           styleSrc: [`'self'`, `'unsafe-inline'`, 'cdn.jsdelivr.net'],
           imgSrc: [`'self'`, 'data:', 'cdn.jsdelivr.net'],
-          connectSrc: [`'self'`, `'https://5x2p27zf-3000.inc1.devtunnels.ms`],
+          connectSrc: [
+            `'self'`,
+            `'https://5x2p27zf-3000.inc1.devtunnels.ms`,
+            'https://programmatic.api.oceanadnetwork.com',
+          ],
         },
       },
     }),
@@ -80,8 +84,11 @@ async function bootstrap() {
       .setDescription('Documentation for OceanAdTech API')
       .setVersion('1.0')
       .setOpenAPIVersion('3.0.0')
-      .addServer('http://localhost:3000', 'Local Server')
-      .addServer('https://5x2p27zf-3000.inc1.devtunnels.ms', 'Dev Tunnel')
+      .addServer(
+        'https://programmatic.api.oceanadnetwork.com',
+        'Production Server',
+      )
+      .addServer('http://localhost:3000', 'Development Server')
       .addBearerAuth()
       .build();
 
