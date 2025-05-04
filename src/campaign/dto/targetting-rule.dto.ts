@@ -1,4 +1,4 @@
-// src/campaign/dto/targeting-rules.dto.ts
+// src/campaign/dto/targetting-rule.dto.ts
 
 import { ApiProperty } from '@nestjs/swagger';
 import {
@@ -18,6 +18,22 @@ import {
 import { Type } from 'class-transformer';
 
 // Demographic Targeting
+export class AgeRangeDto {
+    @ApiProperty({ description: 'Minimum age', example: 18 })
+    @IsInt()
+    @Min(13)
+    @Max(100)
+    @Type(() => Number)
+    min: number;
+
+    @ApiProperty({ description: 'Maximum age', example: 34 })
+    @IsInt()
+    @Min(13)
+    @Max(100)
+    @Type(() => Number)
+    max: number;
+}
+
 export class DemographicTargetingDto {
     @ApiProperty({
         description: 'Age ranges to target',
@@ -75,37 +91,26 @@ export class DemographicTargetingDto {
     parentalStatus?: string[];
 }
 
-export class AgeRangeDto {
-    @ApiProperty({ description: 'Minimum age', example: 18 })
-    @IsInt()
-    @Min(13)
-    @Max(100)
-    min: number;
-
-    @ApiProperty({ description: 'Maximum age', example: 34 })
-    @IsInt()
-    @Min(13)
-    @Max(100)
-    max: number;
-}
-
 export class RadiusTargetDto {
     @ApiProperty({ description: 'Latitude', example: 40.7128 })
     @IsNumber()
     @Min(-90)
     @Max(90)
+    @Type(() => Number)
     latitude: number;
 
     @ApiProperty({ description: 'Longitude', example: -74.0060 })
     @IsNumber()
     @Min(-180)
     @Max(180)
+    @Type(() => Number)
     longitude: number;
 
     @ApiProperty({ description: 'Radius in kilometers', example: 10 })
     @IsNumber()
     @Min(0)
     @Max(500)
+    @Type(() => Number)
     radius: number;
 
     @ApiProperty({ description: 'Location name (optional)', example: 'Manhattan', required: false })
@@ -193,7 +198,7 @@ export class DeviceTargetingDto {
 
     @ApiProperty({
         description: 'Operating systems to include',
-        example: ['iOS', 'ANDROID', 'WINDOWS'],
+        example: ['IOS', 'ANDROID', 'WINDOWS'],
         enum: ['IOS', 'ANDROID', 'WINDOWS', 'MACOS', 'LINUX', 'OTHER'],
         required: false
     })
@@ -313,6 +318,7 @@ export class TimeTargetingDto {
     @IsInt({ each: true })
     @Min(0, { each: true })
     @Max(6, { each: true })
+    @Type(() => Number)
     daysOfWeek?: number[];
 
     @ApiProperty({
@@ -325,6 +331,7 @@ export class TimeTargetingDto {
     @IsInt({ each: true })
     @Min(0, { each: true })
     @Max(23, { each: true })
+    @Type(() => Number)
     hoursOfDay?: number[];
 
     @ApiProperty({
@@ -347,6 +354,7 @@ export class FrequencyCapDto {
     @IsOptional()
     @IsInt()
     @Min(1)
+    @Type(() => Number)
     impressionsPerUser?: number;
 
     @ApiProperty({

@@ -1,36 +1,22 @@
-enum Language {
-  ENGLISH
-  HINDI
-  SPANISH
-  FRENCH
-  GERMAN
-  CHINESE
-  JAPANESE
-  ARABIC
-  LOVE
-  HATE
-  // Add more languages as needed
-}
-
 model PublisherCategory {
-  publisherId      String           @db.Uuid
-  categoryId       String           @db.Uuid
-  createdAt        DateTime         @default(now())
+  publisherId String   @db.Uuid
+  categoryId  String   @db.Uuid
+  createdAt   DateTime @default(now())
 
   // Relations
-  publisher        Publisher        @relation(fields: [publisherId], references: [id], onDelete: Cascade)
-  category         ContentCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  publisher Publisher       @relation(fields: [publisherId], references: [id], onDelete: Cascade)
+  category  ContentCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   @@id([publisherId, categoryId])
 }
 
 model PublisherLanguage {
-  publisherId      String           @db.Uuid
-  language         Language
-  createdAt        DateTime         @default(now())
+  publisherId String   @db.Uuid
+  language    Language
+  createdAt   DateTime @default(now())
 
   // Relations
-  publisher        Publisher        @relation(fields: [publisherId], references: [id], onDelete: Cascade)
+  publisher Publisher @relation(fields: [publisherId], references: [id], onDelete: Cascade)
 
   @@id([publisherId, language])
 }

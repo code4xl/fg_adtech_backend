@@ -4,14 +4,10 @@ import {
     IsNotEmpty,
     IsEnum,
     IsUrl,
-    IsInt,
-    Min,
-    Max,
     IsUUID,
     IsOptional
 } from 'class-validator';
-import { Type } from 'class-transformer';
-import { CreativeType } from '@prisma/client';
+import { CreativeType, CreativeStatus } from '@prisma/client';
 
 export class CreateCreativeDto {
     @ApiProperty({
@@ -31,31 +27,12 @@ export class CreateCreativeDto {
     type: CreativeType;
 
     @ApiProperty({
-        description: 'Width in pixels',
-        example: 300
+        description: 'Inventory ID this creative is targeting',
+        example: '550e8400-e29b-41d4-a716-446655440000'
     })
-    @IsInt()
-    @Min(1)
-    @Max(2000)
-    @Type(() => Number)
-    width: number;
-
-    @ApiProperty({
-        description: 'Height in pixels',
-        example: 250
-    })
-    @IsInt()
-    @Min(1)
-    @Max(2000)
-    @Type(() => Number)
-    height: number;
-
-    @ApiProperty({
-        description: 'URL to the creative file',
-        example: 'https://example.com/assets/banner.jpg'
-    })
-    @IsUrl()
-    fileUrl: string;
+    @IsUUID('4')
+    @IsNotEmpty()
+    inventoryId: string;
 
     @ApiProperty({
         description: 'Landing page URL',
@@ -63,38 +40,27 @@ export class CreateCreativeDto {
     })
     @IsUrl()
     landingUrl: string;
-
-    @ApiProperty({
-        description: 'Inventory ID this creative is targeting',
-        example: '550e8400-e29b-41d4-a716-446655440000'
-    })
-    @IsUUID('4')
-    @IsNotEmpty()
-    inventoryId: string;
 }
 
-export class GetAvailableInventoriesForCreativeDto {
+
+export class UpdateCreativeDto {
     @ApiProperty({
-        description: 'Filter by width in pixels',
-        example: 300,
+        description: 'Creative name',
+        example: 'Updated Banner Name',
         required: false
     })
     @IsOptional()
-    @IsInt()
-    @Min(1)
-    @Type(() => Number)
-    width?: number;
+    @IsString()
+    name?: string;
 
     @ApiProperty({
-        description: 'Filter by height in pixels',
-        example: 250,
+        description: 'Landing page URL',
+        example: 'https://example.com/updated-landing-page',
         required: false
     })
     @IsOptional()
-    @IsInt()
-    @Min(1)
-    @Type(() => Number)
-    height?: number;
+    @IsUrl()
+    landingUrl?: string;
 }
 
 export class CreativeResponseDto {
@@ -103,6 +69,9 @@ export class CreativeResponseDto {
 
     @ApiProperty()
     campaignId: string;
+
+    @ApiProperty()
+    inventoryId: string;
 
     @ApiProperty()
     name: string;
@@ -122,8 +91,8 @@ export class CreativeResponseDto {
     @ApiProperty()
     landingUrl: string;
 
-    @ApiProperty({ enum: ['PENDING_REVIEW', 'APPROVED', 'REJECTED'] })
-    status: string;
+    @ApiProperty({ enum: CreativeStatus })
+    status: CreativeStatus;
 
     @ApiProperty({ required: false })
     reviewNotes?: string;
@@ -133,7 +102,24 @@ export class CreativeResponseDto {
 
     @ApiProperty()
     updatedAt: Date;
+}
 
-    @ApiProperty()
-    inventoryId: string;
+export class ApproveCreativeDto {
+    @ApiProperty({
+        description: 'Review notes (optional)',
+        required: false
+    })
+    @IsOptional()
+    @IsString()
+    notes?: string;
+}
+
+export class RejectCreativeDto {
+    @ApiProperty({
+        description: 'Reason for rejection',
+        example: 'Creative violates platform policies regarding adult content'
+    })
+    @IsString()
+    @IsNotEmpty()
+    reason: string;
 }

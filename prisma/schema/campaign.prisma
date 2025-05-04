@@ -1,20 +1,24 @@
 // Campaign model
 model Campaign {
-    id           String            @id @default(uuid()) @db.Uuid
-    name         String
-    advertiserId String            @db.Uuid
-    clientId     String?           @db.Uuid
-    budget       Decimal           @db.Decimal(10, 2)
-    dailyBudget  Decimal?          @db.Decimal(10, 2)
-    startDate    DateTime
-    endDate      DateTime
-    status       CampaignStatus    @default(DRAFT)
-    objective    CampaignObjective
-    bidStrategy  BidStrategy       @default(LOWEST_COST)
-    bidAmount    Decimal?          @db.Decimal(10, 2)
-    pacing       CampaignPacing    @default(STANDARD)
-    createdAt    DateTime          @default(now())
-    updatedAt    DateTime          @updatedAt
+    id               String             @id @default(uuid()) @db.Uuid
+    name             String
+    advertiserId     String             @db.Uuid
+    clientId         String?            @db.Uuid
+    budget           Decimal            @db.Decimal(10, 2)
+    dailyBudget      Decimal?           @db.Decimal(10, 2)
+    startDate        DateTime
+    endDate          DateTime
+    status           CampaignStatus     @default(DRAFT)
+    objective        CampaignObjective
+    bidStrategy      BidStrategy        @default(LOWEST_COST)
+    bidAmount        Decimal?           @db.Decimal(10, 2)
+    pacing           CampaignPacing     @default(STANDARD)
+    businessCategory BusinessCategory
+    websiteUrl       String
+    interests        CampaignInterest[]
+    audienceCSV      String
+    createdAt        DateTime           @default(now())
+    updatedAt        DateTime           @updatedAt
 
     // Relations
     advertiser          Advertiser              @relation(fields: [advertiserId], references: [id])

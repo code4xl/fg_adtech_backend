@@ -10,10 +10,12 @@ import {
     Min,
     ValidateIf,
     ValidateNested,
-    IsObject
+    IsObject,
+    IsUrl,
+    IsArray
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CampaignObjective, BidStrategy, CampaignPacing } from '@prisma/client';
+import { CampaignObjective, BidStrategy, CampaignPacing, BusinessCategory, CampaignInterest } from '@prisma/client';
 import { CampaignTargetingDto } from './targetting-rule.dto';
 
 export class CreateCampaignDto {
@@ -62,11 +64,9 @@ export class CreateCampaignDto {
     startDate: string;
 
     @ApiProperty({
-        description: 'Campaign end date (ISO format, optional)',
-        example: '2025-05-31T23:59:59Z',
-        required: false
+        description: 'Campaign end date (ISO format)',
+        example: '2025-05-31T23:59:59Z'
     })
-    @IsOptional()
     @IsDateString()
     endDate: string;
 
@@ -108,6 +108,41 @@ export class CreateCampaignDto {
     @IsOptional()
     @IsEnum(CampaignPacing)
     pacing?: CampaignPacing;
+
+    @ApiProperty({
+        description: 'Business category',
+        enum: BusinessCategory,
+        example: BusinessCategory.RETAIL
+    })
+    @IsNotEmpty()
+    @IsEnum(BusinessCategory)
+    businessCategory: BusinessCategory;
+
+    @ApiProperty({
+        description: 'Campaign website URL',
+        example: 'https://example.com/summer-sale'
+    })
+    @IsNotEmpty()
+    @IsUrl()
+    websiteUrl: string;
+
+    @ApiProperty({
+        description: 'Campaign interest targeting',
+        enum: CampaignInterest,
+        isArray: true,
+        example: [CampaignInterest.TECHNOLOGY, CampaignInterest.FOOD_AND_DRINK]
+    })
+    @IsNotEmpty()
+    @IsArray()
+    @IsEnum(CampaignInterest, { each: true })
+    interests: CampaignInterest[];
+
+    @ApiProperty({
+        description: 'Path to the uploaded audience CSV file',
+        required: false,
+        example: '550e8400-e29b-41d4-a716-446655440000.csv'
+    })
+    file: string;
 
     @ApiProperty({
         description: 'Campaign targeting rules',
@@ -160,6 +195,18 @@ export class CampaignResponseDto {
 
     @ApiProperty({ enum: CampaignPacing })
     pacing: CampaignPacing;
+
+    @ApiProperty({ enum: BusinessCategory })
+    businessCategory: BusinessCategory;
+
+    @ApiProperty({ required: true })
+    websiteUrl: string;
+
+    @ApiProperty({ required: true })
+    interests: string[];
+
+    @ApiProperty({ required: true })
+    audienceCSV: string;
 
     @ApiProperty()
     createdAt: Date;

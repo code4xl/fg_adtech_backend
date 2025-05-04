@@ -18,6 +18,8 @@ import { AdminModule } from './admin/admin.module';
 import { ClientModule } from './client/client.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { CampaignModule } from './campaign/campaign.module';
+import { FileStorageModule } from './file-storage/file-storage.module';
+import { CreativeModule } from './creative/creative.module';
 
 @Module({
   imports: [
@@ -47,6 +49,8 @@ import { CampaignModule } from './campaign/campaign.module';
     ClientModule,
     InventoryModule,
     CampaignModule,
+    FileStorageModule,
+    CreativeModule,
   ],
   controllers: [AppController],
   providers: [
