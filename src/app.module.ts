@@ -19,6 +19,10 @@ import { CampaignModule } from './campaign/campaign.module';
 import { ClientModule } from './client/client.module';
 import { InventoryModule } from './inventory/inventory.module';
 
+import { RedisModule } from './redis/redis.module';
+import { FileStorageModule } from './file-storage/file-storage.module';
+import { CreativeModule } from './creative/creative.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -46,6 +50,10 @@ import { InventoryModule } from './inventory/inventory.module';
     AdminModule,
     ClientModule,
     InventoryModule,
+    CampaignModule,
+    FileStorageModule,
+    CreativeModule,
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [
@@ -65,4 +73,4 @@ import { InventoryModule } from './inventory/inventory.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}
