@@ -8,6 +8,7 @@ export class CustomException extends HttpException {
     message: string,
     status: HttpStatus,
     public readonly code: string,
+    public readonly errors?: Record<string, any>,
     @Inject(ErrorConfigService) private errorConfigService?: ErrorConfigService,
   ) {
     const formattedCode = errorConfigService
@@ -19,6 +20,7 @@ export class CustomException extends HttpException {
         message,
         status,
         code: formattedCode,
+        errors,
       },
       status,
     );
@@ -29,7 +31,7 @@ export class ResourceNotFoundException extends CustomException {
   constructor(resource: string, id?: string | number) {
     const message = id
       ? `${resource} with id ${id} not found`
-      : `${resource} not found`;
+      : `${resource}`;
     super(message, HttpStatus.NOT_FOUND, 'RESOURCE_NOT_FOUND');
   }
 }
@@ -45,7 +47,7 @@ export class DuplicateResourceException extends CustomException {
 }
 
 export class ValidationFailedException extends CustomException {
-  constructor(errors: Record<string, any>) {
+  constructor(public readonly errors: Record<string, any>) {
     super('Validation failed', HttpStatus.BAD_REQUEST, 'VALIDATION_FAILED');
   }
 }

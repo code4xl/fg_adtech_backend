@@ -15,9 +15,11 @@ import { SuccessInterceptor } from './common/interceptors/success.interceptor';
 import { AllExceptionsFilter } from './common/filters/global.exception';
 import { ErrorConfigService } from './common/exceptions/error-config.service';
 import { apiReference } from '@scalar/nestjs-api-reference';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: new ConsoleLogger({
       json: false,
       colors: true,
@@ -39,7 +41,11 @@ async function bootstrap() {
           scriptSrc: [`'self'`, `'unsafe-inline'`, 'cdn.jsdelivr.net'],
           styleSrc: [`'self'`, `'unsafe-inline'`, 'cdn.jsdelivr.net'],
           imgSrc: [`'self'`, 'data:', 'cdn.jsdelivr.net'],
-          connectSrc: [`'self'`, `'https://5x2p27zf-3000.inc1.devtunnels.ms`],
+          connectSrc: [
+            `'self'`,
+            `'https://5x2p27zf-3000.inc1.devtunnels.ms`,
+            'https://programmatic.api.oceanadnetwork.com',
+          ],
         },
       },
     }),
@@ -58,22 +64,16 @@ async function bootstrap() {
   // Global validation pipe
   app.useGlobalPipes(
     new ValidationPipe({
-      // whitelist: true,
-      // forbidNonWhitelisted: true,
       transform: true,
-      exceptionFactory: (errors) => {
-        const messages = errors.map((error: any) => ({
-          field: error.property,
-          message: Object.values(error.constraints).join(', '),
-        }));
-        return new BadRequestException({
-          statusCode: 400,
-          message: 'Validation failed',
-          errors: messages,
-        });
-      },
     }),
   );
+
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+    prefix: '/uploads/',
+  });
+
+
+
   // Swagger API documentation
   if (process.env.NODE_ENV !== 'production') {
     app.use(morgan('dev'));
@@ -84,8 +84,11 @@ async function bootstrap() {
       .setDescription('Documentation for OceanAdTech API')
       .setVersion('1.0')
       .setOpenAPIVersion('3.0.0')
-      .addServer('http://localhost:3000', 'Local Server')
-      .addServer('https://5x2p27zf-3000.inc1.devtunnels.ms', 'Dev Tunnel')
+      .addServer(
+        'https://programmatic.api.oceanadnetwork.com',
+        'Production Server',
+      )
+      .addServer('http://localhost:3000', 'Development Server')
       .addBearerAuth()
       .build();
 

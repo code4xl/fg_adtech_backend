@@ -15,9 +15,9 @@ import { SuccessInterceptor } from './common/interceptors/success.interceptor';
 import { AllExceptionsFilter } from './common/filters/global.exception';
 import { ExceptionsModule } from './common/exceptions/exceptions.module';
 import { AdminModule } from './admin/admin.module';
-import { CampaignModule } from './campaign/campaign.module';
 import { ClientModule } from './client/client.module';
 import { InventoryModule } from './inventory/inventory.module';
+import { CampaignModule } from './campaign/campaign.module';
 
 import { RedisModule } from './redis/redis.module';
 import { FileStorageModule } from './file-storage/file-storage.module';
@@ -28,7 +28,7 @@ import { CreativeModule } from './creative/creative.module';
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
-      envFilePath: `.env.${process.env.NODE_ENV}`,
+      envFilePath: `.env`,
     }),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],

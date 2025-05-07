@@ -1,0 +1,75 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [production] # Your production branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '23.5.0'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.9.0
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Generate Prisma client
+        run: pnpm run prisma:generate
+
+      - name: Build application
+        run: pnpm run build
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy to EC2
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          # Add host key to known hosts
+          mkdir -p ~/.ssh
+          ssh-keyscan -t rsa $SSH_HOST >> ~/.ssh/known_hosts
+
+          # Pull latest changes on the EC2 instance
+          ssh $SSH_USER@$SSH_HOST "cd /home/ubuntu/nestjs-app/programmatic_adtech_backend && \
+            git pull origin production && \
+            export NVM_DIR=\$HOME/.nvm && \
+            [ -s \$NVM_DIR/nvm.sh ] && \. \$NVM_DIR/nvm.sh && \
+            pnpm install && \
+            pnpm run prisma:generate && \
+            pnpm run build && \
+            pm2 stop nest-app || true && \
+            pm2 start dist/main.js --name nest-app || pm2 restart nest-app"
+
+      - name: Verify deployment
+        env:
+          SSH_HOST: ${{ secrets.SSH_IP }}
+        run: |
+          # Wait for the application to start
+          sleep 10
+
+          # Check health endpoint
+          response=$(curl -s -o /dev/null -w "%{http_code}" http://$SSH_HOST/health || echo "Failed to connect")
+
+          if [ "$response" = "200" ]; then
+            echo "✅ Deployment successful! Health check passed."
+          else
+            echo "❌ Health check failed with status: $response"
+            echo "Checking application logs..."
+            ssh ${{ secrets.SSH_USER }}@$SSH_HOST "pm2 logs nest-app --lines 20"
+          fi

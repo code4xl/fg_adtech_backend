@@ -6,6 +6,9 @@ import {
   UseGuards,
   Request,
   Param,
+  Query,
+  Res,
+  BadRequestException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
@@ -24,6 +27,8 @@ import {
 import { AdminGuard, AdvertiserGuard, ClientGuard, PublisherGuard } from 'src/common/guards/authorization.guard';
 import { CreateAdvertiserDto } from 'src/advertiser/dto/create-advertiser.dto';
 import { LoginDto } from './dto/login.dto';
+import { RequestPasswordResetDto, ResetPasswordDto } from './dto/reset-password.dto';
+import { ValidationFailedException } from 'src/common/exceptions/custom.exception';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -100,6 +105,100 @@ export class AuthController {
   async adminLogin(@Body() LoginDto: LoginDto, @Request() req) {
     return this.authService.login(req.user);
   }
+
+
+  // Reset Password functionality for all roles
+  async validateRole(role: string) {
+    const validRoles = ['client', 'advertiser', 'admin'];
+    if (!validRoles.includes(role)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  @Post(':role/forgot-password')
+  async requestPasswordReset(@Param('role') role: string, @Body() dto: RequestPasswordResetDto) {
+    let isValidRole = await this.validateRole(role);
+
+    if (!isValidRole) {
+      throw new BadRequestException(`Invalid url.`);
+    }
+
+    // Check email also
+    const user = await this.authService.findUserByEmail(dto.email, role);
+    if (!user) {
+      throw new ValidationFailedException(['Email not found']);
+    }
+
+    return this.authService.requestPasswordReset(dto.email, role);
+  }
+
+  @Get('reset-password/:role')
+  async validateResetToken(
+    @Param('role') role: string,
+    @Query('token') token: string,
+    @Query('email') email: string,
+    @Res() res,
+  ) {
+    try {
+      // Verify token
+      await this.authService.verifyResetToken(email, token);
+
+      // Redirect to frontend reset password page with params
+      return res.json({ message: "Done" });
+    } catch (error) {
+      // Redirect to error page if token is invalid
+      return res.redirect(`${process.env.FRONTEND_URL}/reset-password-error`);
+    }
+  }
+
+  @Post('reset-password/:role')
+  @ApiOperation({ summary: 'Reset password' })
+  @ApiResponse({ status: 200, description: 'Password reset successfully.' })
+  async resetPassword(
+    @Param('role') role: string,
+    @Query('token') token: string,
+    @Query('email') email: string,
+    @Body() dto: ResetPasswordDto,
+  ) {
+    // Make sure passwords match
+    if (dto.password !== dto.confirmPassword) {
+      throw new ValidationFailedException(['Passwords do not match']);
+    }
+
+    return this.authService.resetPassword(role, email, token, dto.password);
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   // Test Routes for advertiser
   @Get('advertiser/profile')

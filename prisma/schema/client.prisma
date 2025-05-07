@@ -16,4 +16,6 @@ model Client {
     updatedAt         DateTime    @updatedAt
     Advertiser        Advertiser? @relation(fields: [advertiserId], references: [id])
     advertiserId      String?     @db.Uuid
+
+    Campaign Campaign[]
 }

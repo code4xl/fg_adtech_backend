@@ -1,0 +1,20 @@
+// Creative model for ads
+model Creative {
+    id          String         @id @default(uuid()) @db.Uuid
+    campaignId  String         @db.Uuid
+    inventoryId String         @db.Uuid
+    name        String
+    type        CreativeType
+    width       Int
+    height      Int
+    fileUrl     String
+    landingUrl  String
+    status      CreativeStatus @default(PENDING_REVIEW)
+    reviewNotes String?
+    createdAt   DateTime       @default(now())
+    updatedAt   DateTime       @updatedAt
+
+    // Relations
+    campaign  Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+    inventory AdInventory @relation(fields: [inventoryId], references: [id])
+}

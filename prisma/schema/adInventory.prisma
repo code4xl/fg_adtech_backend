@@ -1,24 +1,55 @@
+// model AdInventory {
+//   id               String            @id @default(uuid()) @db.Uuid
+//   publisherId      String            @db.Uuid
+//   name             String
+//   width            Int
+//   height           Int
+//   format           InventoryFormat
+//   position         InventoryPosition
+//   isActive         Boolean           @default(true)
+//   viewabilityScore Float?
+//   approvalStatus   ApprovalStatus    @default(PENDING)
+//   createdAt        DateTime          @default(now())
+//   updatedAt        DateTime          @updatedAt
+
+//   // Relations
+//   publisher          Publisher                    @relation(fields: [publisherId], references: [id])
+//   floorPrices        FloorPrice[]
+//   categories         InventoryCategory[]
+//   blockedAdvertisers InventoryBlockedAdvertiser[]
+//   availability       InventoryAvailability[]
+//   bidRequests        BidRequest[]
+//   impressions        Impression[]
+//   targetingRules     InventoryTargetingRule[]
+
+//   CampaignInventory CampaignInventory[]
+
+//   Creative Creative[]
+// }
+
 model AdInventory {
-  id                String               @id @default(uuid()) @db.Uuid
-  publisherId       String               @db.Uuid
-  name              String
-  width             Int
-  height            Int
-  format            InventoryFormat
-  position          InventoryPosition
-  isActive          Boolean            @default(true)
-  viewabilityScore  Float?
-  approvalStatus    ApprovalStatus     @default(PENDING)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  id               String            @id @default(uuid()) @db.Uuid
+  publisherId      String            @db.Uuid
+  name             String
+  width            Int
+  height           Int
+  format           InventoryFormat
+  position         InventoryPosition
+  isActive         Boolean           @default(true)
+  viewabilityScore Float?
+  approvalStatus   ApprovalStatus    @default(PENDING)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
   // Relations
-  publisher         Publisher          @relation(fields: [publisherId], references: [id])
-  floorPrices       FloorPrice[]
-  categories        InventoryCategory[]
+  publisher          Publisher                    @relation(fields: [publisherId], references: [id])
+  floorPrices        FloorPrice[]
+  categories         InventoryCategory[]
   blockedAdvertisers InventoryBlockedAdvertiser[]
-  availability      InventoryAvailability[]
-  bidRequests       BidRequest[]
-  impressions       Impression[]
-  targetingRules    InventoryTargetingRule[]
+  availability       InventoryAvailability[]
+  bidRequests        BidRequest[]
+  impressions        Impression[]
+  targetingRules     InventoryTargetingRule[]
+  creatives          Creative[]
+  CampaignInventory  CampaignInventory[]
 }
