@@ -1,0 +1,6 @@
+# schema/schema.generated.prisma
+
+# Ignore all individual model files
+schema/*/*.prisma
+schema/*/*/*.prisma
+schema/*/*/*/*.prisma

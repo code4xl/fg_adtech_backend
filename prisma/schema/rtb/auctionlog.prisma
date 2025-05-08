@@ -1,0 +1,20 @@
+model AuctionLog {
+    id               String           @id @default(uuid()) @db.Uuid
+    bidRequestId     String           @db.Uuid
+    winningBidId     String?          @unique @db.Uuid // Unique to ensure only one winner
+    floorPrice       Decimal?         @db.Decimal(10, 4)
+    finalPrice       Decimal?         @db.Decimal(10, 4) // The final price (might be different from bid in second-price auctions)
+    totalBids        Int              @default(0)
+    auctionStartTime DateTime         @default(now())
+    auctionEndTime   DateTime?
+    auctionDuration  Int? // Duration in milliseconds
+    status           AuctionLogStatus @default(STARTED) // PENDING, COMPLETED, ERROR
+    errorMessage     String?
+    debugData        Json? // Additional debugging information
+    createdAt        DateTime         @default(now())
+    updatedAt        DateTime         @updatedAt
+
+    // Relations
+    bidRequest BidRequest   @relation(fields: [bidRequestId], references: [id], onDelete: Cascade)
+    winningBid BidResponse? @relation(fields: [winningBidId], references: [id])
+}

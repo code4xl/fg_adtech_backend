@@ -138,3 +138,15 @@ enum Language {
   ARABIC
   MARATHI
 }
+
+enum AuctionLogStatus {
+  STARTED
+  COMPLETED
+  FAILED
+  NO_BIDS
+}
+
+enum AuctionType {
+  FIRST_PRICE
+  SECOND_PRICE
+}

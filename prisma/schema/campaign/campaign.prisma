@@ -27,6 +27,7 @@ model Campaign {
     creatives           Creative[]
     statistics          CampaignStatistics[]
     targetingRules      CampaignTargetingRule[]
+    bidResponses        BidResponse[]
 }
 
 // Campaign inventory relationship

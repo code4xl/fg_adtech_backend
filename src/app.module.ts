@@ -22,6 +22,8 @@ import { CampaignModule } from './campaign/campaign.module';
 import { RedisModule } from './redis/redis.module';
 import { FileStorageModule } from './file-storage/file-storage.module';
 import { CreativeModule } from './creative/creative.module';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+import { KafkaModule } from './kafka/kafka.module';
 
 @Module({
   imports: [
@@ -42,6 +44,28 @@ import { CreativeModule } from './creative/creative.module';
         ],
       }),
     }),
+    ClientsModule.registerAsync([
+      {
+        name: 'KAFKA_SERVICE',
+        imports: [ConfigModule],
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.KAFKA,
+          options: {
+            client: {
+              clientId: 'nestjs-app',
+              brokers: (configService.get<string>('KAFKA_BROKERS') ?? '').split(
+                ',',
+              ),
+            },
+            consumer: {
+              groupId: 'nestjs-consumer',
+              allowAutoTopicCreation: true,
+            },
+          },
+        }),
+        inject: [ConfigService],
+      },
+    ]),
     PrismaModule,
     AuthModule,
     PublishersModule,
@@ -54,6 +78,7 @@ import { CreativeModule } from './creative/creative.module';
     FileStorageModule,
     CreativeModule,
     RedisModule,
+    KafkaModule,
   ],
   controllers: [AppController],
   providers: [

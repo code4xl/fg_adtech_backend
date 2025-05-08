@@ -15,6 +15,7 @@ model Creative {
     updatedAt   DateTime       @updatedAt
 
     // Relations
-    campaign  Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-    inventory AdInventory @relation(fields: [inventoryId], references: [id])
+    campaign     Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+    inventory    AdInventory   @relation(fields: [inventoryId], references: [id])
+    bidResponses BidResponse[]
 }

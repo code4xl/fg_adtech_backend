@@ -72,8 +72,6 @@ async function bootstrap() {
     prefix: '/uploads/',
   });
 
-
-
   // Swagger API documentation
   if (process.env.NODE_ENV !== 'production') {
     app.use(morgan('dev'));

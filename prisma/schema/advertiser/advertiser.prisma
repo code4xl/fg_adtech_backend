@@ -23,4 +23,6 @@ model Advertiser {
     // Relations
     blockedInventories InventoryBlockedAdvertiser[]
     Campaign           Campaign[]
+
+    bidResponses BidResponse[]
 }

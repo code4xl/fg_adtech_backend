@@ -32,5 +32,14 @@ export default () => ({
   },
   template: {
     url: process.env.APP_URL,
-  }
+  },
+  redis: {
+    host: process.env.REDIS_HOST,
+    port: process.env.REDIS_PORT,
+    password: process.env.REDIS_PASSWORD,
+  },
+  kafka: {
+    brokers: process.env.KAFKA_BROKERS,
+    topic: process.env.KAFKA_TOPIC,
+  },
 });
