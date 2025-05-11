@@ -18,3 +18,18 @@ model AuctionLog {
     bidRequest BidRequest   @relation(fields: [bidRequestId], references: [id], onDelete: Cascade)
     winningBid BidResponse? @relation(fields: [winningBidId], references: [id])
 }
+
+// Key fields:
+
+// bidRequestId: Links to the request that initiated this auction
+// winningBidId: References the bid that won the auction (if any)
+// floorPrice: The minimum price set for this auction
+// finalPrice: The actual price paid (might be different from bid price in second-price auctions)
+// totalBids: How many bids were received for this auction
+// auctionStartTime and auctionEndTime: When the auction started and ended
+// auctionDuration: How long the auction took (important for performance monitoring)
+// status: Records whether the auction was completed successfully or encountered issues
+// debugData: Additional JSON data for troubleshooting
+
+// How it's used:
+// After all bids are collected (or the timeout is reached), the auction service determines the winner and creates an auction log record. This log helps with monitoring system performance, tracking revenue, and debugging any issues.
