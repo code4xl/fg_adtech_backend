@@ -21,3 +21,16 @@ model BidResponse {
     advertiser Advertiser  @relation(fields: [advertiserId], references: [id])
     auctionLog AuctionLog? // Optional relation to auction log
 }
+
+// Key fields:
+
+// bidRequestId: Links to the original request this is responding to
+// campaignId, creativeId, advertiserId: Identify which campaign is bidding and with what creative
+// bidPrice: The amount the advertiser is willing to pay for this impression
+// status: Tracks whether this bid is pending, won, lost, etc.
+// responseTime: How long it took to generate this bid (for performance monitoring)
+// winNoticed: Whether the "win notice" has been sent to the bidder if they won
+// adMarkup: The actual HTML/code that will be displayed if this bid wins
+
+// How it's used:
+// When the RTB system receives a bid request, it evaluates which campaigns should bid on it based on targeting parameters. For each eligible campaign, it creates a bid response with the campaign's bid price and the creative to display.

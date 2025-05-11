@@ -24,3 +24,16 @@ model BidRequest {
   bidResponses BidResponse[] // Relation to bid responses
   auctionLogs  AuctionLog[] // Relation to auction logs
 }
+
+// Key fields:
+
+// requestId: A unique identifier for external reference, useful when communicating with other systems
+// inventoryId and publisherId: Link to the specific ad slot and the publisher who owns it
+// userAgent, ipAddress, etc.: Capture the user context for targeting purposes
+// floor: The minimum price the publisher will accept for this impression
+// auctionType: Defines whether it's a first-price or second-price auction
+// timeout: How long (in milliseconds) to wait for bids before closing the auction
+// targeting: A JSON field for additional targeting parameters that might affect bidding
+
+// How it's used:
+// When a user visits a publisher's page with an Ocean ad slot, the JavaScript SDK creates a bid request with these details. This is the starting point of the RTB process.
