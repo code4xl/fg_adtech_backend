@@ -1,6 +1,6 @@
 ## For Development
 
-# docker compose -f docker-compose.dev.yml up
+docker compose -f docker-compose.dev.yml up -d
 
 # View logs from all services
 docker compose -f docker-compose.dev.yml logs -f

@@ -82,11 +82,11 @@ async function bootstrap() {
       .setDescription('Documentation for OceanAdTech API')
       .setVersion('1.0')
       .setOpenAPIVersion('3.0.0')
+      .addServer('http://localhost:3000', 'Development Server')
       .addServer(
         'https://programmatic.api.oceanadnetwork.com',
         'Production Server',
       )
-      .addServer('http://localhost:3000', 'Development Server')
       .addBearerAuth()
       .build();
 

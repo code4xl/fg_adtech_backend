@@ -25,14 +25,13 @@ import { CreativeModule } from './creative/creative.module';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { KafkaModule } from './kafka/kafka.module';
 import { RtbModule } from './rtb/rtb.module';
-import { RtbModule } from './rtb/rtb.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
-      envFilePath: `.env`,
+      envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
     }),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
