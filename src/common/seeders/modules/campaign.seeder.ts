@@ -6,6 +6,7 @@ import {
   BidStrategy,
   CampaignPacing,
   BusinessCategory,
+  CampaignInterest,
 } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ISeeder } from '../interfaces/seeder.interface';
@@ -47,6 +48,7 @@ export class CampaignSeeder implements ISeeder {
       const bidStrategies = Object.values(BidStrategy);
       const pacingOptions = Object.values(CampaignPacing);
       const businessCategories = Object.values(BusinessCategory);
+      const interests = Object.values(CampaignInterest);
 
       // Generate fake campaigns
       for (let i = 0; i < count; i++) {
@@ -105,23 +107,7 @@ export class CampaignSeeder implements ISeeder {
           businessCategory: faker.helpers.arrayElement(businessCategories),
           websiteUrl: faker.internet.url(),
           // Generate random interests as a comma-separated string
-          interests: faker.helpers
-            .arrayElements(
-              [
-                'technology',
-                'fashion',
-                'sports',
-                'travel',
-                'food',
-                'music',
-                'gaming',
-                'health',
-                'finance',
-                'education',
-              ],
-              { min: 1, max: 5 },
-            )
-            .join(','),
+          interests: faker.helpers.arrayElements(interests, { max: 5, min: 1 }),
           // Generate a CSV string for audiences
           audienceCSV: this.generateAudienceCSV(),
           createdAt: faker.date.past(),
@@ -150,7 +136,11 @@ export class CampaignSeeder implements ISeeder {
           pacing: CampaignPacing.STANDARD,
           businessCategory: BusinessCategory.TECHNOLOGY,
           websiteUrl: 'https://example.com',
-          interests: 'technology,business',
+          interests: [
+            CampaignInterest.TECHNOLOGY,
+            CampaignInterest.FOOD_AND_DRINK,
+            CampaignInterest.BUSINESS_AND_FINANCE,
+          ],
           audienceCSV: 'age:25-45,gender:all,location:US',
           createdAt: new Date(),
           updatedAt: new Date(),

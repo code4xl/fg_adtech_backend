@@ -229,6 +229,10 @@ export class AdInventorySeeder implements ISeeder {
     this.logger.log('Cleaning ad inventory tables...');
 
     try {
+      await this.prisma.auctionLog.deleteMany({}); // Delete auction logs first
+      await this.prisma.bidResponse.deleteMany({}); // Delete bid responses
+      await this.prisma.bidRequest.deleteMany({}); // Delete bid requests
+
       // Clean related tables first (respecting foreign key constraints)
       await this.prisma.inventoryCategory.deleteMany({});
       await this.prisma.floorPrice.deleteMany({});

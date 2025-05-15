@@ -26,11 +26,11 @@
     "prisma:prod:generate": "dotenv -e .env.production -- prisma generate",
     "prisma:reset": "pnpm prisma migrate reset",
     "prisma:studio": "pnpm prisma studio",
-    "seed": "ts-node -r tsconfig-paths/register src/cli.ts db:seed",
-    "seed:clean": "ts-node -r tsconfig-paths/register src/cli.ts db:seed -- --clean",
-    "seed:module": "ts-node -r tsconfig-paths/register src/cli.ts db:seed:module",
-    "seed:info": "ts-node -r tsconfig-paths/register src/cli.ts db:seed:info",
-    "db:clean": "ts-node -r tsconfig-paths/register src/cli.ts db:clean"
+    "seed": "dotenv -e .env.development -- ts-node -r tsconfig-paths/register src/cli.ts db:seed",
+    "seed:clean": "dotenv -e .env.development -- ts-node -r tsconfig-paths/register src/cli.ts db:seed --clean",
+    "seed:module": "dotenv -e .env.development -- ts-node -r tsconfig-paths/register src/cli.ts db:seed:module",
+    "seed:info": "dotenv -e .env.development -- ts-node -r tsconfig-paths/register src/cli.ts db:seed:info",
+    "db:clean": "dotenv -e .env.development -- ts-node -r tsconfig-paths/register src/cli.ts db:clean"
   },
   "dependencies": {
     "@faker-js/faker": "^9.7.0",

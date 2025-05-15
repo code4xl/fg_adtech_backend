@@ -1,19 +1,35 @@
 import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
 import { KafkaService } from './kafka/kafka.service';
+import { PrismaService } from './prisma/prisma.service';
 
 @Controller()
 export class AppController {
   constructor(
     private readonly appService: AppService,
-    private readonly kafkaService: KafkaService, // Inject
+    private readonly prisma: PrismaService, // Inject
   ) {}
 
   @Get('/health')
   getHello(): any {
     return 'Health 100%';
   }
+  @Get('/test-advertiser')
+  async testDBData() {
+    const advertiser = await this.prisma.advertiser.findMany({});
+    const client = await this.prisma.client.findMany({});
+    const publisher = await this.prisma.publisher.findMany({});
+    const admin = await this.prisma.admin.findMany({});
+    const campaign = await this.prisma.campaign.findMany({});
+    return {
+      advertiser: advertiser.length,
+      client: client.length,
+      publisher: publisher.length,
 
+      admin: admin.length,
+      campaign: campaign.length,
+    };
+  }
   // In your controller
   // @Get('kafka-test')
   // async testKafka() {

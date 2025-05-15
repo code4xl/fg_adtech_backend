@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SeederRegistry } from './tools/seeders.registry';
 import { DependencyResolver } from './tools/dependency.resolver';
-import { ISeeder } from './interfaces/seeder.interface';
 
 @Injectable()
 export class MainSeederService {
