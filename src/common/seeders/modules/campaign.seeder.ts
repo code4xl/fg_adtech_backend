@@ -53,16 +53,21 @@ export class CampaignSeeder implements ISeeder {
         // Randomly assign to an advertiser
         const advertiser = faker.helpers.arrayElement(advertisers);
 
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(now.getDate() - 30);
+        const oneYearFromNow = new Date(now);
+        oneYearFromNow.setFullYear(now.getFullYear() + 1);
+
         // Generate random dates ensuring endDate is after startDate
         const startDate = faker.date.between({
-          from: faker.date.recent({ days: 30 }),
-          to: faker.date.future({ years: 1 }),
+          from: thirtyDaysAgo,
+          to: now,
         });
         const endDate = faker.date.between({
-          from: startDate,
-          to: faker.date.future({ years: 1 }),
+          from: now,
+          to: oneYearFromNow,
         });
-
         // Generate budget values
         const budget = faker.number.float({
           min: 1000,
