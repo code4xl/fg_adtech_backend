@@ -113,7 +113,7 @@ export class RtbEnrichmentService {
 
     // TODO: Integrate with a GeoIP service (e.g., MaxMind, IP2Location)
     // For now, return mock data or null values
-    return { country: null, region: null, city: null };
+    return { country: 'India', region: 'Maharashtra', city: 'Mumbai' };
   }
 
   private async getFloorPrice(inventoryId: string): Promise<number | null> {
