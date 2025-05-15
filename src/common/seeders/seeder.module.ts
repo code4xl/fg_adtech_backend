@@ -8,7 +8,6 @@ import { DependencyResolver } from './tools/dependency.resolver';
 import { SeederRegistry } from './tools/seeders.registry';
 import { ISeeder } from './interfaces/seeder.interface';
 import { CampaignSeeder } from './modules/campaign.seeder';
-import { SeedRtbCommand } from './modules/rtb.seeder';
 
 // Add new seeders to this array
 const SEEDERS: Type<ISeeder>[] = [
@@ -24,7 +23,6 @@ const SEEDERS: Type<ISeeder>[] = [
     MainSeederService,
     DependencyResolver,
     SeederRegistry,
-    SeedRtbCommand,
     ...SEEDERS,
     {
       provide: 'SEEDERS',
