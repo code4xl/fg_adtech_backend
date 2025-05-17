@@ -42,4 +42,7 @@ export default () => ({
     brokers: process.env.KAFKA_BROKERS,
     topic: process.env.KAFKA_TOPIC,
   },
+  timescale: {
+    databaseUrl: process.env.TIMESCALE_DATABASE_URL,
+  },
 });

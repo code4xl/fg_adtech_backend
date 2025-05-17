@@ -7,6 +7,7 @@ import { RedisService } from 'src/redis/redis.service';
 export class CampaignEligibilityService {
   private readonly logger = new Logger(CampaignEligibilityService.name);
   private readonly CACHE_TTL = 60;
+  private readonly CAMPAIGN_CACHE_TTL = 60;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -24,13 +25,35 @@ export class CampaignEligibilityService {
         return JSON.parse(cachedData);
       }
       this.logger.log('Cache miss for eligible campaigns');
-
+      const targetingCriteriaKey = `campaignCriteria`;
+      let campaignCriteria = await this.redis.get<string>(targetingCriteriaKey);
       const startTime = Date.now();
 
       // Step 1: Get today's date (start of day)
+      let campaigns;
+      if (campaignCriteria) {
+        // Use cached criteria for initial filtering
+        campaigns = await this.getActiveCampaignsWithInventory(
+          bidRequest.inventoryId,
+        );
+      } else {
+        // Fetch all campaign criteria and cache it
+        campaigns = await this.fetchCampaignsWithCriteria(
+          bidRequest.inventoryId,
+        );
+        await this.redis.set(
+          targetingCriteriaKey,
+          JSON.stringify(
+            campaigns.map((c) => ({
+              id: c.id,
+              targetingRules: c.targetingRules,
+            })),
+          ),
+          this.CAMPAIGN_CACHE_TTL,
+        );
+      }
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-
       // Step 2: Get spend per campaign for today - keeping this as a separate query
       // since it's aggregating data which is difficult to combine with the main query
       const spendMap = await this.prisma.campaignStatistics.groupBy({
@@ -278,5 +301,92 @@ export class CampaignEligibilityService {
     // Frequency capping would need user ID and impression history
     // For now, we'll simplify and assume it matches
     return true;
+  }
+  private async getActiveCampaignsWithInventory(inventoryId: string) {
+    // Using a more optimized query that focuses just on what we need
+    return this.prisma.campaign.findMany({
+      where: {
+        status: CampaignStatus.ACTIVE,
+        startDate: { lte: new Date() },
+        endDate: { gte: new Date() },
+        campaignInventories: {
+          some: {
+            inventoryId,
+          },
+        },
+        creatives: {
+          some: {
+            status: CreativeStatus.APPROVED,
+            inventoryId,
+          },
+        },
+      },
+      select: {
+        id: true,
+        advertiserId: true,
+        budget: true,
+        dailyBudget: true,
+        bidStrategy: true,
+        campaignInventories: {
+          where: {
+            inventoryId,
+          },
+          select: {
+            maxBid: true,
+          },
+        },
+        targetingRules: true,
+      },
+    });
+  }
+
+  // Optimize fetchCampaignsWithCriteria method
+  private async fetchCampaignsWithCriteria(inventoryId: string) {
+    // Same as getActiveCampaignsWithInventory but with additional fields
+    return this.prisma.campaign.findMany({
+      where: {
+        status: CampaignStatus.ACTIVE,
+        startDate: { lte: new Date() },
+        endDate: { gte: new Date() },
+        campaignInventories: {
+          some: {
+            inventoryId,
+          },
+        },
+        creatives: {
+          some: {
+            status: CreativeStatus.APPROVED,
+            inventoryId,
+          },
+        },
+      },
+      select: {
+        id: true,
+        advertiserId: true,
+        budget: true,
+        dailyBudget: true,
+        bidStrategy: true,
+        campaignInventories: {
+          where: {
+            inventoryId,
+          },
+          select: {
+            maxBid: true,
+            inventoryId: true,
+          },
+        },
+        targetingRules: true,
+        creatives: {
+          where: {
+            status: CreativeStatus.APPROVED,
+            inventoryId,
+          },
+          select: {
+            id: true,
+          },
+          take: 1,
+        },
+      },
+    });
   }
 }

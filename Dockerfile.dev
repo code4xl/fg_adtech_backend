@@ -15,7 +15,7 @@ RUN pnpm install
 COPY prisma ./prisma/
 
 # Generate Prisma client for the Alpine Linux environment
-RUN npx prisma generate
+RUN pnpm prisma:dev:generate
 
 # Copy the rest of the application
 COPY . .

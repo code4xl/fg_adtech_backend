@@ -13,6 +13,7 @@ import { TrackingController } from './tracking.controller';
 import { RedisModule } from 'src/redis/redis.module';
 import { AuctionModule } from './auction.module';
 import { TrackingConsumerService } from './tracking-consumer.service';
+import { DailyAggregationService } from './daily-aggregation.service';
 
 @Module({
   imports: [PrismaModule, KafkaModule, AuctionModule, RedisModule],
@@ -28,6 +29,7 @@ import { TrackingConsumerService } from './tracking-consumer.service';
     BidResponseService,
     BidResponseConsumerService,
     TrackingConsumerService,
+    DailyAggregationService,
   ],
 })
 export class RtbModule {}

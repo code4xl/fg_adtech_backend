@@ -32,6 +32,7 @@ const SEEDERS: Type<ISeeder>[] = [
   CampaignTargetingRuleSeeder,
   ClientSeeder,
   FloorPriceSeeder,
+  RtbSeeder,
 ];
 
 @Module({

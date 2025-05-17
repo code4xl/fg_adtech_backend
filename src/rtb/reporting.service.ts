@@ -14,7 +14,7 @@ export class ReportingService {
     dateRange: { start: Date; end: Date },
   ) {
     try {
-      // Get hourly stats aggregated by campaign
+      // Use the denormalized hourly stats for better performance
       const hourlyStats = await this.prisma.hourlyStats.findMany({
         where: {
           campaignId,
@@ -28,8 +28,8 @@ export class ReportingService {
         },
       });
 
-      // Get daily stats from campaign statistics
-      const dailyStats = await this.prisma.campaignStatistics.findMany({
+      // Use the denormalized daily stats
+      const dailyStats = await this.prisma.dailyStats.findMany({
         where: {
           campaignId,
           date: {
@@ -56,7 +56,7 @@ export class ReportingService {
         },
       });
 
-      // Calculate summary metrics
+      // Calculate summary metrics from the denormalized data
       const totalImpressions = dailyStats.reduce(
         (sum, stat) => sum + stat.impressions,
         0,
@@ -69,9 +69,19 @@ export class ReportingService {
         (sum, stat) => sum + Number(stat.spend),
         0,
       );
-      const ctr =
-        totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
-      const cpc = totalClicks > 0 ? totalSpend / totalClicks : 0;
+
+      // Use the precomputed metrics where available
+      const avgCtr =
+        dailyStats.length > 0
+          ? dailyStats.reduce((sum, stat) => sum + stat.ctr, 0) /
+            dailyStats.length
+          : 0;
+
+      const avgCpc =
+        dailyStats.length > 0
+          ? dailyStats.reduce((sum, stat) => sum + Number(stat.cpc), 0) /
+            dailyStats.length
+          : 0;
 
       return {
         campaign,
@@ -79,8 +89,8 @@ export class ReportingService {
           totalImpressions,
           totalClicks,
           totalSpend,
-          ctr: parseFloat(ctr.toFixed(2)),
-          cpc: parseFloat(cpc.toFixed(2)),
+          ctr: parseFloat(avgCtr.toFixed(2)),
+          cpc: parseFloat(avgCpc.toFixed(2)),
           budgetUtilization: campaign?.budget
             ? (totalSpend / Number(campaign.budget)) * 100
             : null,

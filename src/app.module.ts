@@ -26,6 +26,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { KafkaModule } from './kafka/kafka.module';
 import { RtbModule } from './rtb/rtb.module';
 import { SeedDbModule } from './seed-db/seed-db.module';
+import { ResilienceModule } from './common/resilience/resilience.module';
 
 @Module({
   imports: [
@@ -83,6 +84,7 @@ import { SeedDbModule } from './seed-db/seed-db.module';
     KafkaModule,
     RtbModule,
     SeedDbModule,
+    ResilienceModule,
   ],
   controllers: [AppController],
   providers: [

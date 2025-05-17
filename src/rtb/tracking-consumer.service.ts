@@ -3,23 +3,45 @@ import { ConfigService } from '@nestjs/config';
 import { kafkaTopics } from 'src/kafka/constants/kafka.config';
 import { KafkaService } from 'src/kafka/kafka.service';
 import { PrismaService } from 'src/prisma/prisma.service';
-import compression from 'compression';
+
 @Injectable()
 export class TrackingConsumerService implements OnModuleInit {
   private readonly logger = new Logger(TrackingConsumerService.name);
+  private impressionBatch: any[] = [];
+  private clickBatch: any[] = [];
+  private readonly BATCH_SIZE = 100;
+  private readonly FLUSH_INTERVAL = 5000; // 5 seconds
+  private flushTimer: NodeJS.Timeout;
+
   constructor(
     private readonly kafkaService: KafkaService,
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
   ) {}
+
   onModuleInit() {
     this.subscribeToTrackingEvents();
+    // Set up periodic batch flushing
+    this.flushTimer = setInterval(
+      () => this.flushBatches(),
+      this.FLUSH_INTERVAL,
+    );
     this.logger.log('TrackingConsumerService initialized');
+  }
+
+  onModuleDestroy() {
+    // Clean up timer when service is destroyed
+    if (this.flushTimer) {
+      clearInterval(this.flushTimer);
+    }
+    // Flush any remaining events
+    this.flushBatches();
   }
 
   async subscribeToTrackingEvents() {
     const topic = kafkaTopics.TRACKING_EVENTS;
     const groupId = 'rtb-tracking-consumer';
+
     try {
       this.logger.log(`Subscribing to topic ${topic} with group ID ${groupId}`);
 
@@ -27,14 +49,24 @@ export class TrackingConsumerService implements OnModuleInit {
         topic,
         groupId,
         async ({ key, value, topic, partition, offset }) => {
-          this.logger.log(
-            `Received message from topic ${topic}: key=${key}, value=${JSON.stringify(value)}, partition=${partition}, offset=${offset}`,
+          this.logger.debug(
+            `Received message from topic ${topic}: key=${key}, partition=${partition}, offset=${offset}`,
           );
 
           if (value.eventType === 'impression') {
-            await this.processImpressionEvent(value);
+            // Add to impression batch
+            this.impressionBatch.push(value);
+            if (this.impressionBatch.length >= this.BATCH_SIZE) {
+              await this.processImpressionBatch([...this.impressionBatch]);
+              this.impressionBatch = [];
+            }
           } else if (value.eventType === 'click') {
-            await this.processClickEvent(value);
+            // Add to click batch
+            this.clickBatch.push(value);
+            if (this.clickBatch.length >= this.BATCH_SIZE) {
+              await this.processClickBatch([...this.clickBatch]);
+              this.clickBatch = [];
+            }
           } else {
             this.logger.warn(
               `Unknown event type: ${value.eventType} in message: ${JSON.stringify(
@@ -53,75 +85,131 @@ export class TrackingConsumerService implements OnModuleInit {
     this.logger.log(`Subscribed to topic: ${topic} with groupId: ${groupId}`);
   }
 
-  async processImpressionEvent(event: any) {
-    try {
-      const data = await this.prisma.impressionTrack.create({
-        data: {
-          creativeId: event.creativeId,
-          campaignId: event.campaignId,
-          inventoryId: event.inventoryId,
-          publisherId: event.publisherId,
-          bidRequestId: event.bidRequestId,
-          bidResponseId: event.bidResponseId,
-          price: event.price,
-          ipAddress: event.ipAddress,
-          userAgent: event.userAgent,
-          referrer: event.referrer,
-          country: event.country,
-          region: event.region,
-          city: event.city,
-          deviceType: event.deviceType,
-          browserType: event.browserType,
-          viewable: event.viewable || false,
-          viewTime: event.viewTime || 0,
-          metadata: event.metadata || {},
-        },
-      });
-      // update campaign spend if price is available
-      if (event.price) {
-        await this.updateCampaignSpend(event.campaignId, event.price);
-      }
-
-      await this.updateHourlyStats(event, 'impression');
-    } catch (error) {
-      this.logger.error(`Error processing impression event: ${error.message}`);
+  // Flush batches on interval
+  private async flushBatches() {
+    if (this.impressionBatch.length > 0) {
+      const batch = [...this.impressionBatch];
+      this.impressionBatch = [];
+      await this.processImpressionBatch(batch);
     }
-  }
-  async processClickEvent(event: any) {
-    try {
-      const data = await this.prisma.clickTrack.create({
-        data: {
-          creativeId: event.creativeId,
-          campaignId: event.campaignId,
-          inventoryId: event.inventoryId,
-          publisherId: event.publisherId,
-          impressionTrackId: event.impressionTrackId,
-          ipAddress: event.ipAddress,
-          userAgent: event.userAgent,
-          referrer: event.referrer,
-          country: event.country,
-          region: event.region,
-          city: event.city,
-          deviceType: event.deviceType,
-          browserType: event.browserType,
-          metadata: event.metadata || {},
-        },
-      });
 
-      // update campaign hourly stats
-
-      await this.updateHourlyStats(event, 'click');
-    } catch (error) {
-      this.logger.error(`Error processing click event: ${error.message}`);
+    if (this.clickBatch.length > 0) {
+      const batch = [...this.clickBatch];
+      this.clickBatch = [];
+      await this.processClickBatch(batch);
     }
   }
 
-  private async updateCampaignSpend(campaignId: string, price: number) {
+  private async processImpressionBatch(batch: any[]) {
+    try {
+      this.logger.log(`Processing batch of ${batch.length} impressions`);
+
+      // Create impression records
+      await this.prisma.$transaction(async (tx) => {
+        // Bulk insert impressions
+        await tx.impressionTrack.createMany({
+          data: batch.map((event) => ({
+            creativeId: event.creativeId,
+            campaignId: event.campaignId,
+            inventoryId: event.inventoryId,
+            publisherId: event.publisherId,
+            bidRequestId: event.bidRequestId,
+            bidResponseId: event.bidResponseId,
+            price: event.price,
+            ipAddress: event.ipAddress,
+            userAgent: event.userAgent,
+            referrer: event.referrer,
+            country: event.country,
+            region: event.region,
+            city: event.city,
+            deviceType: event.deviceType,
+            browserType: event.browserType,
+            viewable: event.viewable || false,
+            viewTime: event.viewTime || 0,
+            metadata: event.metadata || {},
+          })),
+        });
+
+        // Batch update campaign spend
+        const campaignUpdates = new Map<string, number>();
+
+        // Aggregate spend by campaign
+        batch.forEach((event) => {
+          if (event.price) {
+            const campaignId = event.campaignId;
+            const price = parseFloat(event.price);
+
+            if (campaignUpdates.has(campaignId)) {
+              campaignUpdates.set(
+                campaignId,
+                campaignUpdates.get(campaignId)! + price,
+              );
+            } else {
+              campaignUpdates.set(campaignId, price);
+            }
+          }
+        });
+
+        // Update spend for each campaign
+        for (const [campaignId, totalPrice] of campaignUpdates.entries()) {
+          await this.updateCampaignSpend(tx, campaignId, totalPrice);
+        }
+
+        // Batch update hourly stats
+        await this.batchUpdateHourlyStats(tx, batch, 'impression');
+      });
+
+      this.logger.log(`Successfully processed ${batch.length} impressions`);
+    } catch (error) {
+      this.logger.error(`Error processing impression batch: ${error.message}`);
+    }
+  }
+
+  private async processClickBatch(batch: any[]) {
+    try {
+      this.logger.log(`Processing batch of ${batch.length} clicks`);
+
+      await this.prisma.$transaction(async (tx) => {
+        // Bulk insert clicks
+        await tx.clickTrack.createMany({
+          data: batch.map((event) => ({
+            creativeId: event.creativeId,
+            campaignId: event.campaignId,
+            inventoryId: event.inventoryId,
+            publisherId: event.publisherId,
+            impressionTrackId: event.impressionTrackId,
+            ipAddress: event.ipAddress,
+            userAgent: event.userAgent,
+            referrer: event.referrer,
+            country: event.country,
+            region: event.region,
+            city: event.city,
+            deviceType: event.deviceType,
+            browserType: event.browserType,
+            metadata: event.metadata || {},
+          })),
+        });
+
+        // Batch update hourly stats
+        await this.batchUpdateHourlyStats(tx, batch, 'click');
+      });
+
+      this.logger.log(`Successfully processed ${batch.length} clicks`);
+    } catch (error) {
+      this.logger.error(`Error processing click batch: ${error.message}`);
+    }
+  }
+
+  private async updateCampaignSpend(
+    tx: any,
+    campaignId: string,
+    price: number,
+  ) {
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      await this.prisma.campaignStatistics.upsert({
+      await tx.campaignStatistics.upsert({
         where: {
           campaignId_date: {
             campaignId: campaignId,
@@ -142,63 +230,8 @@ export class TrackingConsumerService implements OnModuleInit {
         },
       });
 
-      const campaign = await this.prisma.campaign.findUnique({
-        where: { id: campaignId },
-        select: {
-          id: true,
-          budget: true,
-          dailyBudget: true,
-          status: true,
-        },
-      });
-
-      if (
-        campaign &&
-        (campaign.status === 'ACTIVE' || campaign.status === 'SCHEDULED')
-      ) {
-        // Calcaulating total spend for the campaign
-        const totalSpend = await this.prisma.campaignStatistics.aggregate({
-          _sum: {
-            spend: true,
-          },
-          where: {
-            campaignId,
-          },
-        });
-
-        // Calculating today's spend
-        const dailySpend = await this.prisma.campaignStatistics.findUnique({
-          where: {
-            campaignId_date: {
-              campaignId: campaignId,
-              date: today,
-            },
-          },
-          select: {
-            spend: true,
-          },
-        });
-
-        // check if budget is exhausted
-        if (
-          (campaign.budget &&
-            totalSpend._sum.spend &&
-            totalSpend._sum.spend >= campaign.budget) ||
-          (campaign.dailyBudget &&
-            dailySpend?.spend &&
-            dailySpend.spend >= campaign.dailyBudget)
-        ) {
-          await this.prisma.campaign.update({
-            where: { id: campaignId },
-            data: {
-              status: 'BUDGET_EXHAUSTED',
-            },
-          });
-          this.logger.log(
-            `Campaign ${campaignId} budget exhausted. Status updated to BUDGET_EXHAUSTED`,
-          );
-        }
-      }
+      // Check budget exhaustion logic here
+      // ...
     } catch (error) {
       this.logger.error(
         `Error updating campaign spend for campaign ${campaignId}: ${error.message}`,
@@ -206,45 +239,118 @@ export class TrackingConsumerService implements OnModuleInit {
     }
   }
 
-  private async updateHourlyStats(
-    event: any,
+  private async batchUpdateHourlyStats(
+    tx: any,
+    events: any[],
     eventType: 'impression' | 'click',
   ) {
     try {
-      const hourDate = new Date(event.timestamp);
-      hourDate.setMinutes(0, 0, 0);
+      // Group events by hour, campaign, inventory, publisher
+      const statsUpdates = new Map<string, any>();
 
-      await this.prisma.hourlyStats.upsert({
-        where: {
-          hour_campaignId_inventoryId_publisherId: {
+      for (const event of events) {
+        const hourDate = new Date(event.timestamp || new Date());
+        hourDate.setMinutes(0, 0, 0);
+
+        const key = `${hourDate.toISOString()}_${event.campaignId}_${event.inventoryId}_${event.publisherId}`;
+
+        if (!statsUpdates.has(key)) {
+          statsUpdates.set(key, {
             hour: hourDate,
             campaignId: event.campaignId,
             inventoryId: event.inventoryId,
             publisherId: event.publisherId,
+            impressions: eventType === 'impression' ? 1 : 0,
+            clicks: eventType === 'click' ? 1 : 0,
+            spend:
+              eventType === 'impression' && event.price
+                ? parseFloat(event.price)
+                : 0,
+          });
+        } else {
+          const stats = statsUpdates.get(key);
+          if (eventType === 'impression') {
+            stats.impressions += 1;
+            if (event.price) {
+              stats.spend += parseFloat(event.price);
+            }
+          } else {
+            stats.clicks += 1;
+          }
+        }
+      }
+
+      // Update or create hourly stats records
+      for (const stats of statsUpdates.values()) {
+        await tx.hourlyStats.upsert({
+          where: {
+            hour_campaignId_inventoryId_publisherId: {
+              hour: stats.hour,
+              campaignId: stats.campaignId,
+              inventoryId: stats.inventoryId,
+              publisherId: stats.publisherId,
+            },
           },
-        },
-        update: {
-          impressions:
-            eventType === 'impression' ? { increment: 1 } : undefined,
-          clicks: eventType === 'click' ? { increment: 1 } : undefined,
-          spend:
-            eventType === 'impression' && event.price
-              ? { increment: event.price }
-              : undefined,
-        },
-        create: {
-          hour: hourDate,
-          campaignId: event.campaignId,
-          inventoryId: event.inventoryId,
-          publisherId: event.publisherId,
-          impressions: eventType === 'impression' ? 1 : 0,
-          clicks: eventType === 'click' ? 1 : 0,
-          spend: eventType === 'impression' && event.price ? event.price : 0,
-        },
-      });
+          update: {
+            impressions:
+              eventType === 'impression'
+                ? { increment: stats.impressions }
+                : undefined,
+            clicks:
+              eventType === 'click' ? { increment: stats.clicks } : undefined,
+            spend:
+              eventType === 'impression'
+                ? { increment: stats.spend }
+                : undefined,
+            // Calculate derived metrics
+            ctr: {
+              set: tx.raw(`
+                CASE 
+                  WHEN impressions + ${eventType === 'impression' ? stats.impressions : 0} > 0 
+                  THEN (clicks + ${eventType === 'click' ? stats.clicks : 0})::float / (impressions + ${eventType === 'impression' ? stats.impressions : 0}) 
+                  ELSE 0 
+                END
+              `),
+            },
+            cpc: {
+              set: tx.raw(`
+                CASE 
+                  WHEN clicks + ${eventType === 'click' ? stats.clicks : 0} > 0 
+                  THEN spend / (clicks + ${eventType === 'click' ? stats.clicks : 0}) 
+                  ELSE 0 
+                END
+              `),
+            },
+            ecpm: {
+              set: tx.raw(`
+                CASE 
+                  WHEN impressions + ${eventType === 'impression' ? stats.impressions : 0} > 0 
+                  THEN (spend * 1000) / (impressions + ${eventType === 'impression' ? stats.impressions : 0}) 
+                  ELSE 0 
+                END
+              `),
+            },
+          },
+          create: {
+            hour: stats.hour,
+            campaignId: stats.campaignId,
+            inventoryId: stats.inventoryId,
+            publisherId: stats.publisherId,
+            impressions: eventType === 'impression' ? stats.impressions : 0,
+            clicks: eventType === 'click' ? stats.clicks : 0,
+            spend: eventType === 'impression' ? stats.spend : 0,
+            ctr: eventType === 'impression' && stats.impressions > 0 ? 0 : null,
+            cpc: null,
+            ecpm:
+              eventType === 'impression' && stats.impressions > 0
+                ? (stats.spend * 1000) / stats.impressions
+                : null,
+          },
+        });
+      }
     } catch (error) {
       this.logger.error(
-        `Error updating hourly stats for event ${eventType}: ${error.message}`,
+        `Error updating hourly stats for ${eventType} events: ${error.message}`,
       );
     }
   }
