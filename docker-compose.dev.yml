@@ -89,18 +89,7 @@ services:
       - redis
     networks:
       - app-network
-  timescaledb:
-    image: timescale/timescaledb:latest-pg14
-    ports:
-      - '5433:5432' # Use a different port to avoid conflict with your main Postgres
-    environment:
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=ocean_adtech_tracking
-    volumes:
-      - timescale-data:/var/lib/postgresql/data
-    networks:
-      - app-network
+
 networks:
   app-network:
     driver: bridge
@@ -108,4 +97,3 @@ networks:
 volumes:
   redis-data:
   kafka-data:
-  timescale-data:
