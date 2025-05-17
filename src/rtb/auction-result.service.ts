@@ -3,7 +3,7 @@ import { AuctionLogStatus } from '@prisma/client';
 import { kafkaTopics } from 'src/kafka/constants/kafka.config';
 import { KafkaService } from 'src/kafka/kafka.service';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { AdMarkupService } from '../ad-markup.service';
+import { AdMarkupService } from './ad-markup.service';
 
 @Injectable()
 export class AuctionResultService {
