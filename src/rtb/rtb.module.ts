@@ -6,10 +6,26 @@ import { PrismaModule } from 'src/prisma/prisma.module';
 
 import { KafkaModule } from 'src/kafka/kafka.module';
 import { AuctionModule } from './auction/auction.module';
+import { AdMarkupService } from './ad-markup.service';
+import { BidResponseConsumerService } from './bid-response-consumer.service';
+import { BidResponseController } from './bid-response.controller';
+import { BidResponseService } from './bid-response.service';
+import { TrackingController } from './tracking.controller';
+import { RedisModule } from 'src/redis/redis.module';
 
 @Module({
-  imports: [PrismaModule, KafkaModule, AuctionModule],
-  controllers: [BidRequestController],
-  providers: [BidRequestService, RtbEnrichmentService],
+  imports: [PrismaModule, KafkaModule, AuctionModule, RedisModule],
+  controllers: [
+    BidRequestController,
+    BidResponseController,
+    TrackingController,
+  ],
+  providers: [
+    BidRequestService,
+    RtbEnrichmentService,
+    AdMarkupService,
+    BidResponseService,
+    BidResponseConsumerService,
+  ],
 })
 export class RtbModule {}

@@ -3,6 +3,7 @@ import { AuctionLogStatus } from '@prisma/client';
 import { kafkaTopics } from 'src/kafka/constants/kafka.config';
 import { KafkaService } from 'src/kafka/kafka.service';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { AdMarkupService } from '../ad-markup.service';
 
 @Injectable()
 export class AuctionResultService {
@@ -10,6 +11,7 @@ export class AuctionResultService {
   constructor(
     private readonly kafka: KafkaService,
     private readonly prisma: PrismaService,
+    private readonly adMarkupService: AdMarkupService,
   ) {}
 
   async processAuctionResult(
@@ -125,7 +127,9 @@ export class AuctionResultService {
             bidPrice: bid.bidPrice,
             status: isWinner ? 'WON' : 'LOST',
             responseTime: 0,
-            adMarkup: isWinner ? this.generateAdMarkup(bid.creative) : null,
+            adMarkup: isWinner
+              ? this.adMarkupService.generateAdMarkup(bid.creative)
+              : null,
           },
         });
       }),

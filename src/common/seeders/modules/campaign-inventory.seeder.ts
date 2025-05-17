@@ -56,6 +56,14 @@ export class CampaignInventorySeeder implements ISeeder {
 
         // Create campaign-inventory relationships
         for (const inventory of selectedInventories) {
+          const exist = await this.prisma.campaignInventory.findFirst({
+            where: {
+              campaignId: campaign.id,
+              inventoryId: inventory.id,
+            },
+            select: { campaignId: true, inventoryId: true },
+          });
+          if (exist) continue;
           await this.prisma.campaignInventory.create({
             data: {
               campaignId: campaign.id,

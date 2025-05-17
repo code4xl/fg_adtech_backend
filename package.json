@@ -25,7 +25,7 @@
     "prisma:prod:migrate": "dotenv -e .env.production -- prisma migrate dev",
     "prisma:prod:generate": "dotenv -e .env.production -- prisma generate",
     "prisma:reset": "pnpm prisma migrate reset",
-    "prisma:studio": "pnpm prisma studio",
+    "prisma:studio": "dotenv -e .env.production -- prisma studio",
     "seed": "dotenv -e .env.development -- ts-node -r tsconfig-paths/register src/cli.ts db:seed",
     "seed:clean": "dotenv -e .env.development -- ts-node -r tsconfig-paths/register src/cli.ts db:seed --clean",
     "seed:module": "dotenv -e .env.development -- ts-node -r tsconfig-paths/register src/cli.ts db:seed:module",
