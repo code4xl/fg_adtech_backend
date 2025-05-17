@@ -16,4 +16,6 @@ model Publisher {
   categories  PublisherCategory[]
   languages   PublisherLanguage[]
   bidRequests BidRequest[]
+
+  Impression Impression[]
 }

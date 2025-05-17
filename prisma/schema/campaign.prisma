@@ -28,6 +28,10 @@ model Campaign {
     statistics          CampaignStatistics[]
     targetingRules      CampaignTargetingRule[]
     bidResponses        BidResponse[]
+
+    Impression Impression[]
+
+    HourlyMetrics HourlyMetrics[]
 }
 
 // Campaign inventory relationship
