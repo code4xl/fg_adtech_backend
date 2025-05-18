@@ -24,9 +24,9 @@ import { FileStorageModule } from './file-storage/file-storage.module';
 import { CreativeModule } from './creative/creative.module';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { KafkaModule } from './kafka/kafka.module';
-import { RtbModule } from './rtb/rtb.module';
 import { SeedDbModule } from './seed-db/seed-db.module';
 import { ResilienceModule } from './common/resilience/resilience.module';
+import { RtbModule } from './rtb/rtb.module';
 
 @Module({
   imports: [

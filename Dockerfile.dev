@@ -5,21 +5,19 @@ WORKDIR /usr/src/app
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Copy pnpm specific files
+# Copy pnpm specific files first
 COPY pnpm-lock.yaml package.json ./
 
 # Install dependencies
 RUN pnpm install
 
-# Copy prisma schema first
-COPY prisma ./prisma/
-
-# Generate Prisma client for the Alpine Linux environment
-RUN pnpm prisma:dev:generate
-
-# Copy the rest of the application
+# Copy ALL project files (including prisma schema folder structure)
 COPY . .
 
+# Generate Prisma client (without dotenv since we're in Docker)
+RUN npx prisma generate
+
+# Build the application
 RUN pnpm run build
 
 CMD ["pnpm", "run", "start:dev"]

@@ -29,7 +29,7 @@ import { DailyAggregationService } from './daily-aggregation.service';
     BidResponseService,
     BidResponseConsumerService,
     TrackingConsumerService,
-    DailyAggregationService,
+    // DailyAggregationService,
   ],
 })
 export class RtbModule {}
