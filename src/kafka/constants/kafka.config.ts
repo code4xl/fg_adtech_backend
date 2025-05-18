@@ -4,7 +4,7 @@ import { KafkaConfig } from 'kafkajs';
 
 export const getKafkaConfig = (configService: ConfigService): KafkaConfig => ({
   clientId: 'ocean-ad-network',
-  brokers: [configService.get<string>('KAFKA_BROKER') || 'kafka:9092'],
+  brokers: [configService.get<string>('kafka.brokers') || 'kafka:9092'],
   connectionTimeout: 3000,
   retry: {
     initialRetryTime: 100,

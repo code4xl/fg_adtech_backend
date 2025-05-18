@@ -56,7 +56,7 @@ import { RtbModule } from './rtb/rtb.module';
           options: {
             client: {
               clientId: 'nestjs-app',
-              brokers: (configService.get<string>('KAFKA_BROKERS') ?? '').split(
+              brokers: (configService.get<string>('kafka.brokers') ?? '').split(
                 ',',
               ),
             },

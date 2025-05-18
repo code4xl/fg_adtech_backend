@@ -1,15 +1,20 @@
 // src/kafka/kafka.init.ts
-import { Injectable, OnApplicationBootstrap, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnApplicationBootstrap,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import { KafkaService } from './kafka.service';
 import { kafkaTopics } from './constants/kafka.config';
 
 @Injectable()
-export class KafkaInitService implements OnApplicationBootstrap {
+export class KafkaInitService implements OnModuleInit {
   private readonly logger = new Logger(KafkaInitService.name);
 
   constructor(private readonly kafkaService: KafkaService) {}
 
-  async onApplicationBootstrap() {
+  async onModuleInit() {
     try {
       this.logger.log('Creating Kafka topics...');
 

@@ -1,23 +1,4 @@
 services:
-  api:
-    container_name: nestjs_api_dev
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    volumes:
-      - .:/usr/src/app
-      - /usr/src/app/node_modules
-    ports:
-      - '${PORT:-3000}:${PORT:-3000}'
-    env_file:
-      - .env.development
-    depends_on:
-      kafka:
-        condition: service_healthy
-    networks:
-      - app-network
-    command: npm run start:dev
-
   kafka:
     image: bitnami/kafka:latest
     container_name: kafka
@@ -49,16 +30,6 @@ services:
       - kafka-data:/bitnami/kafka
     networks:
       - app-network
-    healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'kafka-topics.sh --bootstrap-server localhost:9092 --list',
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
 
   # Keep the management tools for development
   kafdrop:
@@ -70,8 +41,7 @@ services:
       - KAFKA_BROKERCONNECT=kafka:9092
       - JVM_OPTS=-Xms32M -Xmx64M
     depends_on:
-      kafka:
-        condition: service_healthy
+      - kafka
     networks:
       - app-network
 
@@ -97,6 +67,24 @@ services:
       - redis
     networks:
       - app-network
+  api:
+    container_name: nestjs_api_dev
+    depends_on:
+      - kafka
+      - redis
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - '${PORT:-3000}:${PORT:-3000}'
+    env_file:
+      - .env.development
+    networks:
+      - app-network
+    command: npm run start:dev
 
 networks:
   app-network:

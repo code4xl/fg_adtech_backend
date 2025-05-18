@@ -44,7 +44,12 @@ export class TrackingConsumerService implements OnModuleInit {
 
     try {
       this.logger.log(`Subscribing to topic ${topic} with group ID ${groupId}`);
-
+      // check if the topic exists
+      const topicExists = await this.kafkaService.checkTopicExists(topic);
+      if (!topicExists) {
+        this.logger.error(`Topic ${topic} does not exist`);
+        return;
+      }
       await this.kafkaService.subscribe(
         topic,
         groupId,

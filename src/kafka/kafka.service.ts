@@ -15,6 +15,7 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
     let kafkaConfig = getKafkaConfig(this.configService);
     this.kafka = new Kafka(kafkaConfig);
     this.producer = this.kafka.producer({
+      allowAutoTopicCreation: true,
       retry: {
         initialRetryTime: 300,
         retries: 5,
@@ -182,6 +183,21 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
       await admin.disconnect();
     } catch (error) {
       console.error('Error creating topics:', error);
+      throw error;
+    }
+  }
+
+  async checkTopicExists(topic: string): Promise<boolean> {
+    try {
+      const admin = this.kafka.admin();
+      await admin.connect();
+
+      const topics = await admin.listTopics();
+      const exists = topics.includes(topic);
+      await admin.disconnect();
+      return exists;
+    } catch (error) {
+      console.error('Error checking topic existence:', error);
       throw error;
     }
   }
