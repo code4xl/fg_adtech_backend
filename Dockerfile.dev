@@ -20,4 +20,5 @@ RUN npx prisma generate
 # Build the application
 RUN pnpm run build
 
+
 CMD ["pnpm", "run", "start:dev"]
