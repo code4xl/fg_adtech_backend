@@ -1,10 +1,5 @@
 // src/kafka/kafka.service.ts
-import {
-  Injectable,
-  OnModuleInit,
-  OnModuleDestroy,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Kafka, Producer, Consumer, EachMessagePayload } from 'kafkajs';
 import { getKafkaConfig, kafkaTopics } from './constants/kafka.config';
 import { ConfigService } from '@nestjs/config';
@@ -12,11 +7,9 @@ import { WithRetry } from 'src/common/resilience/retry.decorator';
 
 @Injectable()
 export class KafkaService implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(KafkaService.name);
   private kafka: Kafka;
   private producer: Producer;
   private consumers: Map<string, Consumer> = new Map();
-  private isConnected = false;
 
   constructor(private readonly configService: ConfigService) {
     let kafkaConfig = getKafkaConfig(this.configService);
@@ -32,7 +25,13 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() {
-    await this.connectWithRetry();
+    try {
+      await this.producer.connect();
+      console.log('Kafka producer connected');
+    } catch (error) {
+      console.error('Failed to connect Kafka producer:', error);
+      throw error;
+    }
   }
 
   async onModuleDestroy() {
@@ -44,52 +43,16 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
         await consumer.disconnect();
       }
 
-      this.isConnected = false;
-      this.logger.log('Kafka connections closed');
+      console.log('Kafka connections closed');
     } catch (error) {
-      this.logger.error('Error disconnecting Kafka:', error);
+      console.error('Error disconnecting Kafka:', error);
     }
   }
-
-  private async connectWithRetry(maxRetries = 10) {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        await this.producer.connect();
-        this.isConnected = true;
-        this.logger.log('Kafka producer connected successfully');
-        return;
-      } catch (error) {
-        this.logger.warn(
-          `Kafka connection attempt ${attempt}/${maxRetries} failed: ${error.message}`,
-        );
-
-        if (attempt === maxRetries) {
-          this.logger.error(
-            'Failed to connect to Kafka after all retries. Application will continue without Kafka.',
-          );
-          // Don't throw error - let the application start without Kafka
-          return;
-        }
-
-        // Wait before retrying (exponential backoff)
-        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
-    }
-  }
-
   @WithRetry(3, 200, 2, [Error])
   async publish(
     topic: string,
     message: { key: string; value: any },
   ): Promise<void> {
-    if (!this.isConnected) {
-      this.logger.warn(
-        'Kafka producer not connected. Skipping message publish.',
-      );
-      return;
-    }
-
     try {
       await this.producer.send({
         topic,
@@ -102,26 +65,15 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
         ],
       });
     } catch (error) {
-      this.logger.error('Error publishing message to Kafka:', error);
-      // Try to reconnect if connection is lost
-      if (error.name?.includes('Connection') || error.code === 'ECONNREFUSED') {
-        this.isConnected = false;
-        this.connectWithRetry();
-      }
+      console.error('Error publishing message to Kafka:', error);
       throw error;
     }
   }
-
   @WithRetry(3, 200, 2, [Error])
   async publishBatch(
     topic: string,
     messages: Array<{ key: string; value: any }>,
   ): Promise<void> {
-    if (!this.isConnected) {
-      this.logger.warn('Kafka producer not connected. Skipping batch publish.');
-      return;
-    }
-
     try {
       const kafkaMessages = messages.map((msg) => ({
         key: msg.key,
@@ -134,11 +86,7 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
         messages: kafkaMessages,
       });
     } catch (error) {
-      this.logger.error('Error publishing batch to Kafka:', error);
-      if (error.name?.includes('Connection') || error.code === 'ECONNREFUSED') {
-        this.isConnected = false;
-        this.connectWithRetry();
-      }
+      console.error('Error publishing batch to Kafka:', error);
       throw error;
     }
   }
@@ -154,15 +102,10 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
       offset: string;
     }) => Promise<void>,
   ): Promise<void> {
-    if (!this.isConnected) {
-      this.logger.warn(`Cannot subscribe to ${topic}. Kafka not connected.`);
-      return;
-    }
-
     try {
       // Check if consumer already exists for this group
       if (this.consumers.has(groupId)) {
-        this.logger.warn(`Consumer with groupId ${groupId} already exists`);
+        console.warn(`Consumer with groupId ${groupId} already exists`);
         return;
       }
 
@@ -190,17 +133,17 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
               offset: message.offset,
             });
           } catch (error) {
-            this.logger.error('Error processing message:', error);
+            console.error('Error processing message:', error);
             // You might want to implement dead letter queue here
           }
         },
       });
 
-      this.logger.log(
+      console.log(
         `Kafka consumer subscribed to ${topic} with groupId ${groupId}`,
       );
     } catch (error) {
-      this.logger.error('Error subscribing to Kafka topic:', error);
+      console.error('Error subscribing to Kafka topic:', error);
       throw error;
     }
   }
@@ -213,11 +156,6 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
       replicationFactor?: number;
     }>,
   ): Promise<void> {
-    if (!this.isConnected) {
-      this.logger.warn('Cannot create topics. Kafka not connected.');
-      return;
-    }
-
     try {
       const admin = this.kafka.admin();
       await admin.connect();
@@ -235,7 +173,7 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
             replicationFactor: t.replicationFactor || 1,
           })),
         });
-        this.logger.log(
+        console.log(
           'Created topics:',
           topicsToCreate.map((t) => t.topic),
         );
@@ -243,13 +181,8 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
 
       await admin.disconnect();
     } catch (error) {
-      this.logger.error('Error creating topics:', error);
+      console.error('Error creating topics:', error);
       throw error;
     }
-  }
-
-  // Health check method
-  isConnectedToKafka(): boolean {
-    return this.isConnected;
   }
 }
