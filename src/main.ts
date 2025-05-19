@@ -23,7 +23,7 @@ async function bootstrap() {
     logger: new ConsoleLogger({
       json: false,
       colors: true,
-      // logLevels: ['error', 'warn', 'debug'],
+      logLevels: ['error', 'warn', 'debug', 'verbose', 'log'],
       prefix: 'OceanAdTech',
     }),
   });

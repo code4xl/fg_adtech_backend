@@ -1,23 +1,4 @@
 services:
-  api:
-    container_name: nestjs_api_dev
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    volumes:
-      - .:/usr/src/app
-      - /usr/src/app/node_modules
-    ports:
-      - '${PORT:-3000}:${PORT:-3000}'
-    env_file:
-      - .env.development
-    depends_on:
-      - redis
-      - kafka
-    networks:
-      - app-network
-    command: npm run start:dev
-
   kafka:
     image: bitnami/kafka:latest
     container_name: kafka
@@ -29,30 +10,27 @@ services:
       - KAFKA_CFG_NODE_ID=1
       - KAFKA_CFG_PROCESS_ROLES=broker,controller
       - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
-      # Listeners configuration
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+
+      # Fixed listeners configuration
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
       - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
       - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+
+      # Inter-broker communication
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+
       # Other settings
       - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
       - ALLOW_PLAINTEXT_LISTENER=yes
+
       # For development only
       - KAFKA_KRAFT_CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk
     volumes:
       - kafka-data:/bitnami/kafka
     networks:
       - app-network
-    healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'kafka-topics.sh --bootstrap-server localhost:9092 --list',
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
+
   # Keep the management tools for development
   kafdrop:
     image: obsidiandynamics/kafdrop
@@ -89,6 +67,24 @@ services:
       - redis
     networks:
       - app-network
+  api:
+    container_name: nestjs_api_dev
+    depends_on:
+      - kafka
+      - redis
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - '${PORT:-3000}:${PORT:-3000}'
+    env_file:
+      - .env.development
+    networks:
+      - app-network
+    command: npm run start:dev
 
 networks:
   app-network:

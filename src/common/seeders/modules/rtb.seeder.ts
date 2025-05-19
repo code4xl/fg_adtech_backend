@@ -48,10 +48,34 @@ export class RtbSeeder implements ISeeder {
           'Required entities not found. Please seed required entities first.',
         );
       }
-
+      const bidPriceRanges = [
+        { min: 0.1, max: 0.5 }, // Low bids
+        { min: 0.5, max: 2.0 }, // Medium bids
+        { min: 2.0, max: 10.0 }, // High bids
+        { min: 10.0, max: 50.0 }, // Premium bids
+      ];
       // Create bid requests
       for (let i = 0; i < count; i++) {
         const inventory = faker.helpers.arrayElement(inventories);
+        const priceRange = faker.helpers.arrayElement(bidPriceRanges);
+
+        // Add more device types for testing
+        const deviceTypes = [
+          'mobile',
+          'desktop',
+          'tablet',
+          'connected_tv',
+          'game_console',
+        ];
+        const browserTypes = [
+          'chrome',
+          'firefox',
+          'safari',
+          'edge',
+          'opera',
+          'brave',
+          'samsung_browser',
+        ];
 
         // Create a bid request
         const bidRequest = await this.prisma.bidRequest.create({
@@ -61,37 +85,21 @@ export class RtbSeeder implements ISeeder {
             publisherId: inventory.publisherId,
             userAgent: faker.internet.userAgent(),
             ipAddress: faker.internet.ip(),
-            deviceType: faker.helpers.arrayElement([
-              'mobile',
-              'desktop',
-              'tablet',
-            ]),
-            browserType: faker.helpers.arrayElement([
-              'chrome',
-              'firefox',
-              'safari',
-              'edge',
-            ]),
-            country: faker.location.country(),
+            deviceType: faker.helpers.arrayElement(deviceTypes),
+            browserType: faker.helpers.arrayElement(browserTypes),
+            country: faker.location.countryCode(),
             region: faker.location.state(),
             city: faker.location.city(),
-            floor: faker.number.float({ min: 0.5, max: 3.0 }),
+            floor: faker.number.float({
+              min: priceRange.min / 2,
+              max: priceRange.min,
+            }),
             auctionType: faker.helpers.arrayElement([
               AuctionType.FIRST_PRICE,
               AuctionType.SECOND_PRICE,
             ]),
-            timeout: 200,
-            targeting: {
-              interests: faker.helpers.arrayElements(
-                ['tech', 'business', 'sports'],
-                { min: 1, max: 3 },
-              ),
-              context: faker.helpers.arrayElement([
-                'news',
-                'entertainment',
-                'finance',
-              ]),
-            },
+            timeout: faker.helpers.arrayElement([100, 150, 200, 250, 300]),
+            targeting: this.generateTargetingData(), // We'll implement this below
           },
         });
 
@@ -292,5 +300,56 @@ export class RtbSeeder implements ISeeder {
   async isSeeded(): Promise<boolean> {
     const bidRequestCount = await this.prisma.bidRequest.count();
     return bidRequestCount > 0;
+  }
+  private generateTargetingData() {
+    return {
+      interests: faker.helpers.arrayElements(
+        [
+          'sports',
+          'tech',
+          'finance',
+          'travel',
+          'food',
+          'fashion',
+          'auto',
+          'health',
+          'education',
+        ],
+        { min: 0, max: 4 },
+      ),
+      demographics: faker.datatype.boolean()
+        ? {
+            age: faker.helpers.arrayElement([
+              '18-24',
+              '25-34',
+              '35-44',
+              '45-54',
+              '55-64',
+              '65+',
+            ]),
+            gender: faker.helpers.arrayElement(['male', 'female', 'unknown']),
+            income: faker.helpers.arrayElement([
+              'low',
+              'medium',
+              'high',
+              'unknown',
+            ]),
+          }
+        : undefined,
+      context: faker.helpers.arrayElement([
+        'news',
+        'entertainment',
+        'finance',
+        'sports',
+        'tech',
+        'lifestyle',
+      ]),
+      position: faker.helpers.arrayElement([
+        'above_fold',
+        'below_fold',
+        'sidebar',
+        'footer',
+      ]),
+    };
   }
 }

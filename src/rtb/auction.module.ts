@@ -17,6 +17,7 @@ import { AdMarkupService } from './ad-markup.service';
     BidCalculationService,
     AuctionResultService,
     BidRequestConsumerService,
+    AdMarkupService,
   ],
   exports: [AuctionService],
 })

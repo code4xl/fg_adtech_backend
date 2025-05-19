@@ -3,6 +3,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Kafka, Producer, Consumer, EachMessagePayload } from 'kafkajs';
 import { getKafkaConfig, kafkaTopics } from './constants/kafka.config';
 import { ConfigService } from '@nestjs/config';
+import { WithRetry } from 'src/common/resilience/retry.decorator';
 
 @Injectable()
 export class KafkaService implements OnModuleInit, OnModuleDestroy {
@@ -13,7 +14,15 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly configService: ConfigService) {
     let kafkaConfig = getKafkaConfig(this.configService);
     this.kafka = new Kafka(kafkaConfig);
-    this.producer = this.kafka.producer();
+    this.producer = this.kafka.producer({
+      allowAutoTopicCreation: true,
+      retry: {
+        initialRetryTime: 300,
+        retries: 5,
+        maxRetryTime: 30000,
+        factor: 2,
+      },
+    });
   }
 
   async onModuleInit() {
@@ -40,7 +49,7 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
       console.error('Error disconnecting Kafka:', error);
     }
   }
-
+  @WithRetry(3, 200, 2, [Error])
   async publish(
     topic: string,
     message: { key: string; value: any },
@@ -61,7 +70,7 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
       throw error;
     }
   }
-
+  @WithRetry(3, 200, 2, [Error])
   async publishBatch(
     topic: string,
     messages: Array<{ key: string; value: any }>,
@@ -174,6 +183,21 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
       await admin.disconnect();
     } catch (error) {
       console.error('Error creating topics:', error);
+      throw error;
+    }
+  }
+
+  async checkTopicExists(topic: string): Promise<boolean> {
+    try {
+      const admin = this.kafka.admin();
+      await admin.connect();
+
+      const topics = await admin.listTopics();
+      const exists = topics.includes(topic);
+      await admin.disconnect();
+      return exists;
+    } catch (error) {
+      console.error('Error checking topic existence:', error);
       throw error;
     }
   }

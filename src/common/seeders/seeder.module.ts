@@ -11,6 +11,7 @@ import { CampaignInventorySeeder } from './modules/campaign-inventory.seeder';
 import { InventoryTargetingRuleSeeder } from './modules/inventory-targeting-rule.seeder';
 import { CampaignTargetingRuleSeeder } from './modules/campaign-targeting-rule.seeder';
 import { ClientSeeder } from './modules/client.seeder';
+
 import { FloorPriceSeeder } from './modules/floor-price.seeder';
 import { RtbSeeder } from './modules/rtb.seeder';
 import { MainSeederService } from './main.seeder';
@@ -32,6 +33,7 @@ const SEEDERS: Type<ISeeder>[] = [
   CampaignTargetingRuleSeeder,
   ClientSeeder,
   FloorPriceSeeder,
+  // RtbSeeder,
 ];
 
 @Module({

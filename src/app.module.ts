@@ -24,8 +24,9 @@ import { FileStorageModule } from './file-storage/file-storage.module';
 import { CreativeModule } from './creative/creative.module';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { KafkaModule } from './kafka/kafka.module';
-import { RtbModule } from './rtb/rtb.module';
 import { SeedDbModule } from './seed-db/seed-db.module';
+import { ResilienceModule } from './common/resilience/resilience.module';
+import { RtbModule } from './rtb/rtb.module';
 
 @Module({
   imports: [
@@ -55,7 +56,7 @@ import { SeedDbModule } from './seed-db/seed-db.module';
           options: {
             client: {
               clientId: 'nestjs-app',
-              brokers: (configService.get<string>('KAFKA_BROKERS') ?? '').split(
+              brokers: (configService.get<string>('kafka.brokers') ?? '').split(
                 ',',
               ),
             },
@@ -83,6 +84,7 @@ import { SeedDbModule } from './seed-db/seed-db.module';
     KafkaModule,
     RtbModule,
     SeedDbModule,
+    ResilienceModule,
   ],
   controllers: [AppController],
   providers: [

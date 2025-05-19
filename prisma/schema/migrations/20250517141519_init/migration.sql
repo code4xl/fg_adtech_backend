@@ -489,8 +489,29 @@ CREATE TABLE "HourlyStats" (
     "impressions" INTEGER NOT NULL DEFAULT 0,
     "clicks" INTEGER NOT NULL DEFAULT 0,
     "spend" DECIMAL(10,4) NOT NULL DEFAULT 0,
+    "ctr" DOUBLE PRECISION,
+    "cpc" DECIMAL(10,4),
+    "ecpm" DECIMAL(10,4),
 
     CONSTRAINT "HourlyStats_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "DailyStats" (
+    "id" UUID NOT NULL,
+    "date" DATE NOT NULL,
+    "campaignId" UUID,
+    "inventoryId" UUID,
+    "publisherId" UUID,
+    "impressions" INTEGER NOT NULL DEFAULT 0,
+    "clicks" INTEGER NOT NULL DEFAULT 0,
+    "spend" DECIMAL(10,4) NOT NULL DEFAULT 0,
+    "revenue" DECIMAL(10,4) NOT NULL DEFAULT 0,
+    "ctr" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "cpc" DECIMAL(10,4) NOT NULL DEFAULT 0,
+    "ecpm" DECIMAL(10,4) NOT NULL DEFAULT 0,
+
+    CONSTRAINT "DailyStats_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -542,6 +563,18 @@ CREATE INDEX "ImpressionTrack_inventoryId_timestamp_idx" ON "ImpressionTrack"("i
 CREATE INDEX "ImpressionTrack_publisherId_timestamp_idx" ON "ImpressionTrack"("publisherId", "timestamp");
 
 -- CreateIndex
+CREATE INDEX "ImpressionTrack_creativeId_campaignId_timestamp_idx" ON "ImpressionTrack"("creativeId", "campaignId", "timestamp");
+
+-- CreateIndex
+CREATE INDEX "ImpressionTrack_inventoryId_publisherId_timestamp_idx" ON "ImpressionTrack"("inventoryId", "publisherId", "timestamp");
+
+-- CreateIndex
+CREATE INDEX "ImpressionTrack_country_region_timestamp_idx" ON "ImpressionTrack"("country", "region", "timestamp");
+
+-- CreateIndex
+CREATE INDEX "ImpressionTrack_deviceType_timestamp_idx" ON "ImpressionTrack"("deviceType", "timestamp");
+
+-- CreateIndex
 CREATE INDEX "ClickTrack_timestamp_idx" ON "ClickTrack"("timestamp");
 
 -- CreateIndex
@@ -552,6 +585,12 @@ CREATE INDEX "ClickTrack_inventoryId_timestamp_idx" ON "ClickTrack"("inventoryId
 
 -- CreateIndex
 CREATE INDEX "ClickTrack_publisherId_timestamp_idx" ON "ClickTrack"("publisherId", "timestamp");
+
+-- CreateIndex
+CREATE INDEX "ClickTrack_creativeId_campaignId_timestamp_idx" ON "ClickTrack"("creativeId", "campaignId", "timestamp");
+
+-- CreateIndex
+CREATE INDEX "ClickTrack_country_timestamp_idx" ON "ClickTrack"("country", "timestamp");
 
 -- CreateIndex
 CREATE INDEX "HourlyStats_hour_idx" ON "HourlyStats"("hour");
@@ -566,7 +605,25 @@ CREATE INDEX "HourlyStats_inventoryId_hour_idx" ON "HourlyStats"("inventoryId", 
 CREATE INDEX "HourlyStats_publisherId_hour_idx" ON "HourlyStats"("publisherId", "hour");
 
 -- CreateIndex
+CREATE INDEX "HourlyStats_hour_campaignId_inventoryId_idx" ON "HourlyStats"("hour", "campaignId", "inventoryId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "HourlyStats_hour_campaignId_inventoryId_publisherId_key" ON "HourlyStats"("hour", "campaignId", "inventoryId", "publisherId");
+
+-- CreateIndex
+CREATE INDEX "DailyStats_date_idx" ON "DailyStats"("date");
+
+-- CreateIndex
+CREATE INDEX "DailyStats_campaignId_date_idx" ON "DailyStats"("campaignId", "date");
+
+-- CreateIndex
+CREATE INDEX "DailyStats_inventoryId_date_idx" ON "DailyStats"("inventoryId", "date");
+
+-- CreateIndex
+CREATE INDEX "DailyStats_publisherId_date_idx" ON "DailyStats"("publisherId", "date");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "DailyStats_date_campaignId_inventoryId_publisherId_key" ON "DailyStats"("date", "campaignId", "inventoryId", "publisherId");
 
 -- AddForeignKey
 ALTER TABLE "AdInventory" ADD CONSTRAINT "AdInventory_publisherId_fkey" FOREIGN KEY ("publisherId") REFERENCES "Publisher"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

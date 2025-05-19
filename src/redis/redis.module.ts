@@ -16,6 +16,14 @@ import { redisStore } from 'cache-manager-redis-store';
         password: configService.get<string>('REDIS_PASSWORD') || undefined,
         ttl: 60 * 60 * 24, // 24 hours
         isGlobal: true,
+        // Connection pool configuration
+        max: configService.get<number>('REDIS_POOL_MAX', 50), // Maximum connections
+        min: configService.get<number>('REDIS_POOL_MIN', 5), // Minimum connections
+        acquireTimeoutMillis: 5000, // Timeout for acquiring a connection
+        createTimeoutMillis: 5000, // Timeout for creating a new connection
+        idleTimeoutMillis: 30000, // How long a connection can be idle before being removed
+        reapIntervalMillis: 1000, // How often to check for idle connections
+        maxUses: 50000, // Max uses before a connection is replaced
       }),
     }),
   ],
