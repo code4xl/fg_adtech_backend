@@ -1,6 +1,6 @@
 // src/rtb/auction/auction.service.ts
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { BidCalculationService } from './bid-calculation.service';
 import { AuctionResultService } from './auction-result.service';
 import { v4 as uuidv4 } from 'uuid';

@@ -1,6 +1,6 @@
-// src/rtb/auction/bid-calculation.service.ts
+// src/rtb/bid-calculation.service.ts
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { BidStrategy } from '@prisma/client';
 
 @Injectable()

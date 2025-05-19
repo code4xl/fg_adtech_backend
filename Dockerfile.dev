@@ -1,25 +1,24 @@
-FROM node:23 AS development
+FROM node:18 AS development
 
 WORKDIR /usr/src/app
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Copy pnpm specific files
+# Copy package files
 COPY pnpm-lock.yaml package.json ./
 
-# Install dependencies
+# Install dependencies with frozen lockfile
 RUN pnpm install
 
 # Copy prisma schema first
 COPY prisma ./prisma/
 
-# Generate Prisma client for the Alpine Linux environment
+# Generate Prisma client
 RUN npx prisma generate
 
-# Copy the rest of the application
+# Then copy the rest of the files
 COPY . .
 
-RUN pnpm run build
-
+# Start development server
 CMD ["pnpm", "run", "start:dev"]
