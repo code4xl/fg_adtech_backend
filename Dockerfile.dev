@@ -17,8 +17,8 @@ COPY package.json pnpm-lock.yaml* ./
 # Install dependencies
 RUN pnpm install
 
-# Copy tsconfig.json first - this is what's missing
-COPY tsconfig.json ./
+# Copy tsconfig.json and nest-cli.json first
+COPY tsconfig.json nest-cli.json ./
 
 # Copy other necessary files
 COPY prisma ./prisma/
@@ -32,6 +32,10 @@ COPY src ./src/
 
 # Build the application
 RUN pnpm run build
+
+# Ensure the templates directory exists and copy mail templates directly
+RUN mkdir -p dist/src/mail/templates
+COPY src/mail/templates/*.hbs dist/src/mail/templates/
 
 # Command to run the application
 CMD ["pnpm", "run", "start:dev"]

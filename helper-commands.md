@@ -76,3 +76,21 @@ pnpm seed:module --module=ModuleName [--clean=true|false]
 - `--module` value is **case-sensitive**.
 - Dependency system ensures modules are seeded in the correct order.
 - `seed:module` will **clean by default** unless `--clean=false` is specified.
+
+---
+
+## 📝 Additional Configuration
+
+To ensure your email template files are copied to the build directory, add the following command to your package.json scripts:
+
+```json
+"copy-templates": "cp -r src/mail/templates dist/src/mail/"
+```
+
+Then, run the build command with the following options:
+
+```bash
+npx nest build --webpack --webpackPath webpack-hmr.config.js --watch
+```
+
+This will ensure that your email templates are included in the build process.
