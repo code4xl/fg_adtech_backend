@@ -18,6 +18,10 @@ model Advertiser {
     verificationToken    String?     @unique // For email verification
     resetPasswordToken   String?     @unique // For password reset
     resetPasswordExpires DateTime? // Password reset token expiration
+    // MFA fields
+    mfaEnabled           Boolean     @default(false)
+    mfaVerificationCode  String?
+    mfaCodeExpiry        DateTime?
     clients              Client[] // Relationship with Client
 
     // Relations

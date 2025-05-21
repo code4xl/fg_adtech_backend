@@ -9,6 +9,8 @@ import {
   Query,
   Res,
   BadRequestException,
+  UnauthorizedException,
+  HttpCode,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
@@ -29,6 +31,8 @@ import { CreateAdvertiserDto } from 'src/advertiser/dto/create-advertiser.dto';
 import { LoginDto } from './dto/login.dto';
 import { RequestPasswordResetDto, ResetPasswordDto } from './dto/reset-password.dto';
 import { ValidationFailedException } from 'src/common/exceptions/custom.exception';
+import { CreatePublisherSignupDto } from 'src/publishers/dto/create-publisher-signup.dto';
+import { ToggleMfaDto, VerifyMfaDto } from './dto/mfa.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -44,6 +48,17 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Bad request.' })
   async advertiserSignup(@Body() createAdvertiserDto: CreateAdvertiserDto) {
     return this.authService.signup(createAdvertiserDto);
+  }
+
+  @Post('publisher/signup')
+  @ApiOperation({ summary: 'Register a new publisher' })
+  @ApiResponse({
+    status: 201,
+    description: 'Publisher has been successfully registered.',
+  })
+  @ApiResponse({ status: 400, description: 'Bad request.' })
+  async publisherSignup(@Body() createPublisherSignupDto: CreatePublisherSignupDto) {
+    return this.authService.publisherSignup(createPublisherSignupDto);
   }
 
   @Post('advertiser/login')
@@ -64,6 +79,15 @@ export class AuthController {
     return this.authService.verifyEmail(token);
   }
 
+  @Get('publisher/verify/:token')
+  @ApiOperation({ summary: 'Verify publisher email address' })
+  @ApiResponse({ status: 200, description: 'Email verified successfully.' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired token.' })
+  @ApiBody({ required: false })
+  async verifyPublisherEmail(@Param('token') token: string) {
+    return this.authService.verifyPublisherEmail(token);
+  }
+
   @Post('advertiser/resendVerification')
   @ApiOperation({ summary: 'Resend verification email' })
   @ApiResponse({ status: 200, description: 'Verification email sent.' })
@@ -73,6 +97,17 @@ export class AuthController {
   })
   async resendVerification(@Body() { email }: { email: string }) {
     return this.authService.resendVerificationEmail(email);
+  }
+
+  @Post('publisher/resendVerification')
+  @ApiOperation({ summary: 'Resend verification email to publisher' })
+  @ApiResponse({ status: 200, description: 'Verification email sent.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Email not found or already verified.',
+  })
+  async resendPublisherVerification(@Body() { email }: { email: string }) {
+    return this.authService.resendPublisherVerificationEmail(email);
   }
 
   @Post('publisher/login')
@@ -106,10 +141,44 @@ export class AuthController {
     return this.authService.login(req.user);
   }
 
+  // MFA Endpoints
+  @Post(':role/verify-mfa')
+  @ApiOperation({ summary: 'Verify MFA code and complete login' })
+  @ApiResponse({ status: 200, description: 'MFA verification successful' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired verification code' })
+  @HttpCode(200)
+  async verifyMfa(@Param('role') role: string, @Body() verifyMfaDto: VerifyMfaDto) {
+    const validRoles = ['admin', 'advertiser', 'publisher'];
+    if (!validRoles.includes(role)) {
+      throw new BadRequestException('Invalid role specified');
+    }
+    
+    return this.authService.verifyMfaCode(verifyMfaDto.code, verifyMfaDto.tempToken, role);
+  }
+
+  @Post(':role/toggle-mfa')
+  @ApiOperation({ summary: 'Enable or disable MFA for user' })
+  @ApiResponse({ status: 200, description: 'MFA setting updated successfully' })
+  @UseGuards(AdminGuard, AdvertiserGuard, PublisherGuard)
+  @ApiBearerAuth()
+  @HttpCode(200)
+  async toggleMfa(@Request() req, @Param('role') role: string, @Body() toggleMfaDto: ToggleMfaDto) {
+    const validRoles = ['admin', 'advertiser', 'publisher'];
+    if (!validRoles.includes(role)) {
+      throw new BadRequestException('Invalid role specified');
+    }
+    
+    // Ensure the role matches the authenticated user's role
+    if (req.user.role !== role) {
+      throw new UnauthorizedException('Unauthorized to perform this action');
+    }
+    
+    return this.authService.toggleMfa(req.user.id, role, toggleMfaDto.enable);
+  }
 
   // Reset Password functionality for all roles
   async validateRole(role: string) {
-    const validRoles = ['client', 'advertiser', 'admin'];
+    const validRoles = ['client', 'advertiser', 'admin', 'publisher'];
     if (!validRoles.includes(role)) {
       return false;
     }
@@ -169,36 +238,6 @@ export class AuthController {
 
     return this.authService.resetPassword(role, email, token, dto.password);
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   // Test Routes for advertiser
   @Get('advertiser/profile')

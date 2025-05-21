@@ -15,6 +15,7 @@ import {
   ResourceNotFoundException,
 } from 'src/common/exceptions/custom.exception';
 import { ConfigService } from '@nestjs/config';
+import { CreatePublisherSignupDto } from 'src/publishers/dto/create-publisher-signup.dto';
 
 @Injectable()
 export class AuthService {
@@ -91,6 +92,62 @@ export class AuthService {
     };
   }
 
+  // This function is used to register a new publisher
+  async publisherSignup(createPublisherSignupDto: CreatePublisherSignupDto) {
+    const existingUser = await this.prisma.publisher.findUnique({
+      where: { email: createPublisherSignupDto.email },
+    });
+
+    if (existingUser) {
+      throw new DuplicateResourceException(
+        'Publisher',
+        'email',
+        createPublisherSignupDto.email,
+      );
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(createPublisherSignupDto.password, 10);
+
+    // Generate verification token using jwt
+    const verificationToken = this.jwtService.sign(
+      {
+        email: createPublisherSignupDto.email,
+        purpose: 'email_verification',
+      },
+      {
+        expiresIn: this.config.get('auth.verificationTokenExpiry'),
+      },
+    );
+
+    // Create user without verifying email yet
+    const user = await this.prisma.publisher.create({
+      data: {
+        firstName: createPublisherSignupDto.firstName,
+        lastName: createPublisherSignupDto.lastName,
+        email: createPublisherSignupDto.email,
+        password: hashedPassword,
+        domain: createPublisherSignupDto.domain,
+        emailVerifiedAt: null,
+        verificationToken,
+      },
+    });
+
+    // Send verification email
+    await this.mailService.sendVerificationEmail(
+      user.email,
+      `${user.firstName} ${user.lastName}`,
+      'publisher',
+      verificationToken,
+    );
+
+    return {
+      message:
+        'Registration successful. Please check your email to verify your account.',
+      publisher: user,
+    };
+  }
+
   async verifyEmail(token: string) {
     try {
       const payload = this.jwtService.verify(token);
@@ -112,6 +169,45 @@ export class AuthService {
       }
 
       await this.prisma.advertiser.update({
+        where: { id: user.id },
+        data: {
+          emailVerifiedAt: new Date(),
+          verificationToken: null,
+        },
+      });
+
+      return 'Email verified successfully';
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        throw new BadRequestException(
+          'Verification token has expired. Please request a new one.',
+        );
+      }
+      throw new BadRequestException('Invalid verification token');
+    }
+  }
+
+  async verifyPublisherEmail(token: string) {
+    try {
+      const payload = this.jwtService.verify(token);
+
+      const user = await this.prisma.publisher.findUnique({
+        where: { email: payload.email },
+      });
+
+      if (!user) {
+        throw new ResourceNotFoundException('User');
+      }
+
+      if (user.emailVerifiedAt) {
+        return 'Email already verified';
+      }
+
+      if (user.verificationToken !== token) {
+        throw new BadRequestException('Invalid verification token');
+      }
+
+      await this.prisma.publisher.update({
         where: { id: user.id },
         data: {
           emailVerifiedAt: new Date(),
@@ -153,7 +249,10 @@ export class AuthService {
         where: { email },
       });
 
-      // Note: No email verification check for publishers as per your requirements
+      // Check if email is verified for publishers
+      if (user && !user.emailVerifiedAt) {
+        throw new UnauthorizedException('Please verify your email first');
+      }
     } else if (role === 'admin') {
       user = await this.prisma.admin.findUnique({
         where: { email },
@@ -177,37 +276,89 @@ export class AuthService {
     // Remove password from returned object
     const { password: _, ...result } = user;
 
+    // Check if MFA is enabled for this user
+    if (result.mfaEnabled) {
+      // Generate a 6-digit verification code
+      const verificationCode = this.generateVerificationCode();
+      
+      // Set expiry time (10 minutes from now)
+      const codeExpiry = new Date();
+      codeExpiry.setMinutes(codeExpiry.getMinutes() + 10);
+      
+      // Store the code in the user's record
+      if (role === 'advertiser') {
+        await this.prisma.advertiser.update({
+          where: { id: user.id },
+          data: {
+            mfaVerificationCode: verificationCode,
+            mfaCodeExpiry: codeExpiry,
+          }
+        });
+      } else if (role === 'publisher') {
+        await this.prisma.publisher.update({
+          where: { id: user.id },
+          data: {
+            mfaVerificationCode: verificationCode,
+            mfaCodeExpiry: codeExpiry,
+          }
+        });
+      } else if (role === 'admin') {
+        await this.prisma.admin.update({
+          where: { id: user.id },
+          data: {
+            mfaVerificationCode: verificationCode,
+            mfaCodeExpiry: codeExpiry,
+          }
+        });
+      }
+      
+      // Send verification code via email
+      const maskedEmail = this.maskEmail(result.email);
+      await this.mailService.sendMfaCodeEmail(result.email, verificationCode, 10);
+      
+      // Generate temporary token for MFA verification
+      const tempToken = this.jwtService.sign(
+        {
+          sub: result.id,
+          email: result.email,
+          role: role,
+          purpose: 'mfa_verification',
+        },
+        {
+          expiresIn: '15m', // Temporary token expires in 15 minutes
+        }
+      );
+      
+      // Return MFA required response
+      return {
+        requiresMfa: true,
+        tempToken,
+        maskedEmail,
+        role, // Include role for later use
+      };
+    }
+
     // Add role to the user object for use in token generation and authorization
     return { ...result, role };
   }
 
   // The localstrategy will return the user object to this function and it will generate a JWT token for the user.
   async login(user: any) {
+    // If MFA is required, just pass through the MFA response
+    if (user.requiresMfa) {
+      return {
+        requiresMfa: true,
+        tempToken: user.tempToken,
+        maskedEmail: user.maskedEmail,
+      };
+    }
+
     // Create JWT payload with user ID, email and role
     const payload = {
       sub: user.id,
       email: user.email,
       role: user.role,
     };
-
-    // Generate response data based on role
-    // const userData = user;
-
-    // Add specific fields based on user type
-    // if (user.role === 'advertiser') {
-    //   Object.assign(userData, {
-    //     name: user.name,
-    //     companyName: user.companyName,
-    //   });
-    // } else if (user.role === 'publisher') {
-    //   Object.assign(userData, {
-    //     name: `${user.firstName} ${user.lastName}`,
-    //   });
-    // } else if (user.role === 'admin') {
-    //   Object.assign(userData, {
-    //     name: user.name,
-    //   });
-    // }
 
     return {
       accessToken: this.jwtService.sign(payload),
@@ -253,63 +404,245 @@ export class AuthService {
       verificationToken,
     );
 
-    return 'Verification email resent successfully';
+    return { message: 'Verification email has been sent.' };
   }
 
-  async findUserByEmail(email: string, role: string) {
-    let user;
-
-    if (role === 'advertiser') {
-      user = await this.prisma.advertiser.findUnique({
-        where: { email },
-      });
-    } else if (role === 'client') {
-      user = await this.prisma.client.findUnique({
-        where: { email },
-      });
-    } else if (role === 'admin') {
-      user = await this.prisma.admin.findUnique({
-        where: { email },
-      });
-    }
+  async resendPublisherVerificationEmail(email: string) {
+    const user = await this.prisma.publisher.findUnique({
+      where: { email },
+    });
 
     if (!user) {
-      throw new ResourceNotFoundException('User', email);
+      throw new ResourceNotFoundException('User');
     }
 
-    return user;
-  }
+    if (user.emailVerifiedAt) {
+      throw new EmailAlreadyVerifiedException();
+    }
 
-  // Password reset functionalit
-
-
-  async requestPasswordReset(email: string, role: string) {
-    // Generate JWT token
-    const token = this.jwtService.sign(
-      { email, role },
+    // Generate verification token using jwt
+    const verificationToken = this.jwtService.sign(
       {
-        secret: this.config.get('jwt.secret'),
+        email,
+        purpose: 'email_verification',
+      },
+      {
         expiresIn: this.config.get('auth.verificationTokenExpiry'),
       },
     );
 
-    // Send reset email
-    const resetLink = `${this.config.get('template.url')}/auth/reset-password/${role}?token=${token}&email=${encodeURIComponent(email)}`;
-    let res = await this.mailService.sendPasswordResetEmail(email, role, resetLink);
+    // Update user with new verification token
+    await this.prisma.publisher.update({
+      where: { id: user.id },
+      data: { verificationToken },
+    });
 
-    return 'Password reset email sent successfully';
+    // Send verification email
+    await this.mailService.sendVerificationEmail(
+      user.email,
+      `${user.firstName} ${user.lastName}`,
+      'publisher',
+      verificationToken,
+    );
+
+    return { message: 'Verification email has been sent.' };
+  }
+
+  // MFA Implementation
+  private generateVerificationCode(): string {
+    // Generate a random 6-digit code
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  private maskEmail(email: string): string {
+    const [localPart, domain] = email.split('@');
+    let maskedLocal = localPart;
+    
+    if (localPart.length > 2) {
+      maskedLocal = localPart[0] + '*'.repeat(localPart.length - 2) + localPart[localPart.length - 1];
+    } else {
+      maskedLocal = '*'.repeat(localPart.length);
+    }
+    
+    return `${maskedLocal}@${domain}`;
+  }
+
+  async verifyMfaCode(code: string, tempToken: string, role: string): Promise<any> {
+    try {
+      // Verify and decode the temporary token
+      const payload = this.jwtService.verify(tempToken);
+      
+      if (payload.purpose !== 'mfa_verification') {
+        throw new UnauthorizedException('Invalid token purpose');
+      }
+      
+      // Get the user based on role
+      let user;
+      if (role === 'advertiser') {
+        user = await this.prisma.advertiser.findUnique({ where: { id: payload.sub } });
+      } else if (role === 'publisher') {
+        user = await this.prisma.publisher.findUnique({ where: { id: payload.sub } });
+      } else if (role === 'admin') {
+        user = await this.prisma.admin.findUnique({ where: { id: payload.sub } });
+      } else {
+        throw new BadRequestException('Invalid role');
+      }
+      
+      if (!user) {
+        throw new ResourceNotFoundException('User');
+      }
+      
+      // Check if code has expired
+      if (!user.mfaCodeExpiry || new Date() > user.mfaCodeExpiry) {
+        throw new UnauthorizedException('Verification code has expired');
+      }
+      
+      // Check if code matches
+      if (user.mfaVerificationCode !== code) {
+        throw new UnauthorizedException('Invalid verification code');
+      }
+      
+      // Clear the verification code
+      if (role === 'advertiser') {
+        await this.prisma.advertiser.update({
+          where: { id: user.id },
+          data: { mfaVerificationCode: null, mfaCodeExpiry: null }
+        });
+      } else if (role === 'publisher') {
+        await this.prisma.publisher.update({
+          where: { id: user.id },
+          data: { mfaVerificationCode: null, mfaCodeExpiry: null }
+        });
+      } else if (role === 'admin') {
+        await this.prisma.admin.update({
+          where: { id: user.id },
+          data: { mfaVerificationCode: null, mfaCodeExpiry: null }
+        });
+      }
+      
+      // Remove sensitive data
+      const { password, mfaVerificationCode, mfaCodeExpiry, ...userData } = user;
+      
+      // Generate the real JWT token
+      const jwtPayload = {
+        sub: user.id,
+        email: user.email,
+        role: role,
+      };
+      
+      return {
+        accessToken: this.jwtService.sign(jwtPayload),
+        user: { ...userData, role },
+      };
+      
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('Session has expired, please login again');
+      }
+      throw error;
+    }
+  }
+
+  async toggleMfa(userId: string, role: string, enable: boolean): Promise<any> {
+    if (role === 'advertiser') {
+      await this.prisma.advertiser.update({
+        where: { id: userId },
+        data: { mfaEnabled: enable }
+      });
+    } else if (role === 'publisher') {
+      await this.prisma.publisher.update({
+        where: { id: userId },
+        data: { mfaEnabled: enable }
+      });
+    } else if (role === 'admin') {
+      await this.prisma.admin.update({
+        where: { id: userId },
+        data: { mfaEnabled: enable }
+      });
+    } else {
+      throw new BadRequestException('Invalid role');
+    }
+    
+    return {
+      message: enable ? 'MFA has been enabled' : 'MFA has been disabled',
+    };
+  }
+
+  async findUserByEmail(email: string, role: string) {
+    if (role === 'advertiser') {
+      return this.prisma.advertiser.findUnique({
+        where: { email },
+      });
+    } else if (role === 'publisher') {
+      return this.prisma.publisher.findUnique({
+        where: { email },
+      });
+    } else if (role === 'admin') {
+      return this.prisma.admin.findUnique({
+        where: { email },
+      });
+    } else if (role === 'client') {
+      return this.prisma.client.findUnique({
+        where: { email },
+      });
+    }
+  }
+
+  async requestPasswordReset(email: string, role: string) {
+    // Find user
+    const user = await this.findUserByEmail(email, role);
+    if (!user) {
+      throw new ResourceNotFoundException('User');
+    }
+
+    // Generate reset token
+    const resetToken = this.jwtService.sign(
+      { email, purpose: 'password_reset' },
+      { expiresIn: '1h' }
+    );
+
+    // Build reset URL
+    const resetLink = `${this.config.get('APP_URL')}/auth/reset-password/${role}?token=${resetToken}&email=${email}`;
+
+    // Update user with reset token and expiry
+    const resetTokenExpiry = new Date();
+    resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1);
+
+    if (role === 'advertiser') {
+      await this.prisma.advertiser.update({
+        where: { email },
+        data: {
+          resetPasswordToken: resetToken,
+          resetPasswordExpires: resetTokenExpiry,
+        },
+      });
+    } else if (role === 'publisher') {
+      await this.prisma.publisher.update({
+        where: { email },
+        data: {
+          resetPasswordToken: resetToken,
+          resetPasswordExpires: resetTokenExpiry,
+        },
+      });
+    }
+
+    // Send email
+    await this.mailService.sendPasswordResetEmail(email, role, resetLink);
+
+    return { message: 'Password reset email sent' };
   }
 
   async verifyResetToken(email: string, token: string): Promise<boolean> {
-    const payload = this.jwtService.verify(token, {
-      secret: this.config.get('jwt.secret'),
-    });
-
-    if (payload.email !== email) {
-      throw new UnauthorizedException('Invalid token');
+    // Verify JWT token first
+    try {
+      const payload = this.jwtService.verify(token);
+      if (payload.email !== email || payload.purpose !== 'password_reset') {
+        return false;
+      }
+      return true;
+    } catch (error) {
+      return false;
     }
-
-    return true;
   }
 
   async resetPassword(
@@ -318,66 +651,43 @@ export class AuthService {
     token: string,
     newPassword: string,
   ) {
-    await this.verifyResetToken(email, token);
+    // Verify token
+    const isValid = await this.verifyResetToken(email, token);
+    if (!isValid) {
+      throw new BadRequestException('Invalid or expired token');
+    }
 
-    // Hash the new password
+    // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // Update password based on role
-    switch (role) {
-      case 'client':
-        const client = await this.prisma.client.findUnique({
-          where: { email },
-        });
-
-        if (!client) {
-          throw new ResourceNotFoundException('Client', email);
-        }
-
-        await this.prisma.client.update({
-          where: { email },
-          data: { password: hashedPassword },
-        });
-
-        return 'Password has been reset successfully';
-
-      case 'advertiser':
-        const advertiser = await this.prisma.advertiser.findUnique({
-          where: { email },
-        });
-
-        if (!advertiser) {
-          throw new ResourceNotFoundException('Advertiser', email);
-        }
-
-        await this.prisma.advertiser.update({
-          where: { email },
-          data: { password: hashedPassword },
-        });
-
-        return 'Password has been reset successfully';
-
-
-      case 'admin':
-        const admin = await this.prisma.admin.findUnique({
-          where: { email },
-        });
-
-        if (!admin) {
-          throw new ResourceNotFoundException('Admin', email);
-        }
-
-        await this.prisma.admin.update({
-          where: { email },
-          data: { password: hashedPassword },
-        });
-
-        return 'Password has been reset successfully';
-
-
-      default:
-        throw new BadRequestException(`Invalid url`);
+    // Update user password and clear reset token
+    if (role === 'advertiser') {
+      await this.prisma.advertiser.update({
+        where: { email },
+        data: {
+          password: hashedPassword,
+          resetPasswordToken: null,
+          resetPasswordExpires: null,
+        },
+      });
+    } else if (role === 'publisher') {
+      await this.prisma.publisher.update({
+        where: { email },
+        data: {
+          password: hashedPassword,
+          resetPasswordToken: null,
+          resetPasswordExpires: null,
+        },
+      });
+    } else if (role === 'admin') {
+      await this.prisma.admin.update({
+        where: { email },
+        data: {
+          password: hashedPassword,
+        },
+      });
     }
-  }
 
+    return { message: 'Password has been reset successfully' };
+  }
 }
