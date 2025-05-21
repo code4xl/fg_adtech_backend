@@ -1,24 +1,37 @@
-FROM node:18 AS development
+FROM node:23
+
+# Enable and prepare pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /usr/src/app
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install NestJS CLI globally
+RUN npm install -g @nestjs/cli
+
+# Create upload directories
+RUN mkdir -p uploads/audience-csv
 
 # Copy package files
-COPY pnpm-lock.yaml package.json ./
+COPY package.json pnpm-lock.yaml* ./
 
-# Install dependencies with frozen lockfile
+# Install dependencies
 RUN pnpm install
 
-# Copy prisma schema first
+# Copy tsconfig.json first - this is what's missing
+COPY tsconfig.json ./
+
+# Copy other necessary files
 COPY prisma ./prisma/
+COPY scripts ./scripts/
 
 # Generate Prisma client
 RUN npx prisma generate
 
-# Then copy the rest of the files
-COPY . .
+# Copy source code
+COPY src ./src/
 
-# Start development server
+# Build the application
+RUN pnpm run build
+
+# Command to run the application
 CMD ["pnpm", "run", "start:dev"]

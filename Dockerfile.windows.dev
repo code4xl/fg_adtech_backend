@@ -1,0 +1,35 @@
+# Use Node.js as the base image
+FROM node:23 as development
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Set working directory
+WORKDIR /usr/src/app
+
+# Install system dependencies including git for some npm packages
+# RUN apk add --no-cache python3 make g++ curl bash git openssh
+
+# Install global dependencies for development
+RUN npm install -g @nestjs/cli
+
+# Create uploads directory
+RUN mkdir -p uploads/audience-csv
+
+# Copy package files
+COPY package.json pnpm-lock.yaml* ./
+
+# Install all dependencies (including devDependencies)
+RUN pnpm install
+
+# Copy prisma schema files for generation
+COPY prisma ./prisma/
+COPY scripts ./scripts/
+
+# Generate Prisma client (using generic command)
+RUN npx prisma generate
+
+# Expose development server port
+
+# Use nodemon for hot reloading in development
+CMD ["pnpm", "start:dev"]

@@ -37,13 +37,13 @@ async function bootstrap() {
     helmet({
       contentSecurityPolicy: {
         directives: {
-          defaultSrc: [`'self'`],
-          scriptSrc: [`'self'`, `'unsafe-inline'`, 'cdn.jsdelivr.net'],
-          styleSrc: [`'self'`, `'unsafe-inline'`, 'cdn.jsdelivr.net'],
-          imgSrc: [`'self'`, 'data:', 'cdn.jsdelivr.net'],
+          defaultSrc: ['self'],
+          scriptSrc: ['self', 'unsafe-inline', 'cdn.jsdelivr.net'],
+          styleSrc: ['self', 'unsafe-inline', 'cdn.jsdelivr.net'],
+          imgSrc: ['self', 'data:', 'cdn.jsdelivr.net'],
           connectSrc: [
-            `'self'`,
-            `'https://5x2p27zf-3000.inc1.devtunnels.ms`,
+            'self',
+            'https://5x2p27zf-3000.inc1.devtunnels.ms',
             'https://programmatic.api.oceanadnetwork.com',
           ],
         },
@@ -92,7 +92,7 @@ async function bootstrap() {
 
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api', app, document, {
-      swaggerUiEnabled: false,
+      swaggerUiEnabled: true,
       customSiteTitle: 'OceanAdTech API Docs',
       explorer: true,
       jsonDocumentUrl: '/api-json',

@@ -57,11 +57,10 @@ $ pnpm run test:e2e
 $ pnpm run test:cov
 ```
 
-
 docker compose -f docker-compose.dev.yml down
-docker build -f Dockerfile.dev -t nestjs_api_dev .
-docker compose -f docker-compose.dev.yml up -d
-
+docker rmi nestjs_api_dev programmatic_adtech_backend-api
+docker build -f Dockerfile.dev -t nestjs_api_dev --no-cache .
+docker compose -f docker-compose.dev.yml up
 
 ## Deployment
 
