@@ -33,6 +33,9 @@ import { RequestPasswordResetDto, ResetPasswordDto } from './dto/reset-password.
 import { ValidationFailedException } from 'src/common/exceptions/custom.exception';
 import { CreatePublisherSignupDto } from 'src/publishers/dto/create-publisher-signup.dto';
 import { ToggleMfaDto, VerifyMfaDto } from './dto/mfa.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { RoleGuard } from 'src/common/guards/role.guard';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -159,7 +162,8 @@ export class AuthController {
   @Post(':role/toggle-mfa')
   @ApiOperation({ summary: 'Enable or disable MFA for user' })
   @ApiResponse({ status: 200, description: 'MFA setting updated successfully' })
-  @UseGuards(AdminGuard, AdvertiserGuard, PublisherGuard)
+  @Roles('admin', 'advertiser', 'publisher')
+  @UseGuards(AuthGuard('jwt'), RoleGuard)
   @ApiBearerAuth()
   @HttpCode(200)
   async toggleMfa(@Request() req, @Param('role') role: string, @Body() toggleMfaDto: ToggleMfaDto) {

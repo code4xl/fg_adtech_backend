@@ -67,6 +67,7 @@ services:
       - redis
     networks:
       - app-network
+
   api:
     container_name: nestjs_api_dev
     depends_on:
@@ -84,7 +85,6 @@ services:
       - .env.development
     networks:
       - app-network
-    command: npm run start:dev
 
 networks:
   app-network:

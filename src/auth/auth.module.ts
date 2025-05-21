@@ -9,7 +9,7 @@ import { LocalAdminStrategy, LocalAdvertiserStrategy, LocalClientStrategy, Local
 import { JwtStrategy } from './strategies/authorization.strategy';
 import { MailModule } from 'src/mail/mail.module';
 import { LoginValidationMiddleware } from './middlewares/login.middleware';
-
+import { RoleGuard } from 'src/common/guards/role.guard';
 @Module({
   imports: [
     PrismaModule,
@@ -33,6 +33,7 @@ import { LoginValidationMiddleware } from './middlewares/login.middleware';
     LocalPublisherStrategy,
     LocalClientStrategy,
     LocalAdminStrategy,
+    RoleGuard,
     JwtStrategy
   ],
   exports: [AuthService],
