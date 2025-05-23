@@ -23,11 +23,6 @@ export class CreateClientDto {
   @IsEmail({}, { message: 'Please provide a valid email address' })
   email: string;
 
-  @ApiProperty({ description: 'Password' })
-  @IsOptional()
-  @IsString()
-  password?: string;
-
   @ApiProperty({ description: 'Mobile number' })
   @IsNotEmpty({ message: 'Mobile number is required' })
   @IsString()

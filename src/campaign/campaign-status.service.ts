@@ -2,12 +2,15 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CampaignStatus } from '@prisma/client';
+import { CampaignNotificationService } from 'src/notification/services/campaign.notification.service';
 
 @Injectable()
 export class CampaignStatusService {
     private readonly logger = new Logger(CampaignStatusService.name);
 
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(private readonly prisma: PrismaService,
+        private readonly campaignNotificationService: CampaignNotificationService,
+    ) { }
 
     /**
      * Updates campaign statuses automatically
@@ -49,6 +52,10 @@ export class CampaignStatusService {
             select: {
                 id: true,
                 name: true,
+                advertiserId: true,
+                clientId: true,
+                status: true,
+                startDate: true,
                 _count: {
                     select: {
                         campaignInventories: true,
@@ -78,8 +85,10 @@ export class CampaignStatusService {
                     }
                 });
 
+                // Send notifications for each activated campaign
                 for (const campaign of readyCampaigns) {
                     this.logger.log(`Activated campaign: ${campaign.id} - ${campaign.name}`);
+                    await this.campaignNotificationService.notifyCampaignActivated(campaign);
                 }
             }
 
@@ -94,6 +103,9 @@ export class CampaignStatusService {
                         `Campaign ${campaign.id} - ${campaign.name} couldn't be activated: ` +
                         `${campaign._count.campaignInventories === 0 ? 'Missing inventory' : 'Missing creatives'}`
                     );
+
+                    // Send notification about activation failure
+                    await this.campaignNotificationService.notifyCampaignActivationFailed(campaign);
                 }
             }
         }
@@ -112,7 +124,12 @@ export class CampaignStatusService {
             },
             select: {
                 id: true,
-                name: true
+                name: true,
+                advertiserId: true,
+                clientId: true,
+                status: true,
+                startDate: true,
+                endDate: true
             }
         });
 
@@ -130,8 +147,10 @@ export class CampaignStatusService {
                 }
             });
 
+            // Send notifications for each completed campaign
             for (const campaign of campaigns) {
                 this.logger.log(`Completed campaign: ${campaign.id} - ${campaign.name}`);
+                await this.campaignNotificationService.notifyCampaignCompleted(campaign);
             }
         }
     }
@@ -149,6 +168,10 @@ export class CampaignStatusService {
                 id: true,
                 name: true,
                 budget: true,
+                advertiserId: true,
+                clientId: true,
+                startDate: true,
+                endDate: true,
                 statistics: {
                     select: {
                         spend: true
@@ -168,7 +191,10 @@ export class CampaignStatusService {
 
             // Check if budget is exhausted (>= 99% spent)
             if (totalSpend >= Number(campaign.budget) * 0.99) {
-                exhaustedCampaigns.push(campaign.id);
+                exhaustedCampaigns.push({
+                    ...campaign,
+                    totalSpend
+                });
                 this.logger.log(`Budget exhausted for campaign: ${campaign.id} - ${campaign.name}`);
             }
         }
@@ -176,16 +202,22 @@ export class CampaignStatusService {
         if (exhaustedCampaigns.length > 0) {
             this.logger.log(`Updating ${exhaustedCampaigns.length} campaigns to BUDGET_EXHAUSTED status`);
 
+            // Update status in database
             await this.prisma.campaign.updateMany({
                 where: {
                     id: {
-                        in: exhaustedCampaigns
+                        in: exhaustedCampaigns.map(c => c.id)
                     }
                 },
                 data: {
                     status: CampaignStatus.BUDGET_EXHAUSTED
                 }
             });
+
+            // Send notifications for each exhausted campaign
+            for (const campaign of exhaustedCampaigns) {
+                await this.campaignNotificationService.notifyCampaignBudgetExhausted(campaign);
+            }
         }
     }
 

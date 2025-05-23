@@ -11,18 +11,20 @@ import {
 } from '../common/exceptions/custom.exception';
 import { CampaignHelperService } from './campaign.helper';
 import { CampaignTargetingDto } from './dto/targetting-rule.dto';
-import { FileStorageService } from 'src/file-storage/file-storage.service';
+import { S3StorageService } from '../common/services/s3-storage.service';
+import { CampaignNotificationService } from 'src/notification/services/campaign.notification.service';
 
 @Injectable()
 export class CampaignService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly fileStorageService: FileStorageService,
-    private readonly campaignHelper: CampaignHelperService
+    private readonly campaignHelper: CampaignHelperService,
+    private readonly s3StorageService: S3StorageService,
+    private readonly campaignNotificationService: CampaignNotificationService,
   ) { }
 
   // Create a new campaign
-  async create(advertiserId: string, createCampaignDto: CreateCampaignDto, file?: any) {
+  async create(advertiserId: string, createCampaignDto: CreateCampaignDto, file: Express.Multer.File) {
     // Validate campaign dates
     await this.campaignHelper.validateCampaignDates(createCampaignDto.startDate, createCampaignDto.endDate);
 
@@ -40,30 +42,9 @@ export class CampaignService {
     const now = new Date();
     const initialStatus = startDate <= now ? CampaignStatus.ACTIVE : CampaignStatus.SCHEDULED;
 
-    // Process audience CSV file if provided
-    let audienceCSVPath = null;
-    if (file) {
-      console.log("File");
-      console.log(file);
-
-      // Now file should have path and filename properties
-      const isValid = await this.fileStorageService.validateCsvFile(file.path);
-      if (!isValid) {
-        throw new BadRequestException('Invalid CSV file format');
-      }
-
-      // Store just the filename in the database
-      audienceCSVPath = file.filename;
-    }
-
-
-    console.log("PAth");
-    console.log(audienceCSVPath);
-
-
-
-    // Create campaign
-    return this.prisma.$transaction(async (tx) => {
+    // We'll use a transaction to ensure that everything succeeds or fails together
+    const campaign = await this.prisma.$transaction(async (tx) => {
+      // First create the campaign record to get an ID
       const campaign = await tx.campaign.create({
         data: {
           name: createCampaignDto.name,
@@ -79,7 +60,7 @@ export class CampaignService {
           businessCategory: createCampaignDto.businessCategory,
           websiteUrl: createCampaignDto.websiteUrl,
           interests: createCampaignDto.interests,
-          audienceCSV: audienceCSVPath!,
+          audienceCSV: '', // We'll update this after uploading to S3
           advertiser: {
             connect: { id: advertiserId }
           },
@@ -87,16 +68,54 @@ export class CampaignService {
             connect: { id: createCampaignDto.clientId }
           } : undefined
         }
-
-
       });
 
+      // Now upload the file to S3
+      console.log("File" + file.size);
+      console.log("File" + file.buffer);
+      console.log("File" + file.mimetype);
+      if (file) {
+        try {
+          // Generate the S3 key for this campaign's audience file
+          const s3Key = this.s3StorageService.generateCampaignAudienceKey(campaign.name, campaign.id);
+
+          // Upload the file to S3
+          await this.s3StorageService.uploadFile(
+            file.buffer,
+            s3Key,
+            'text/csv'
+          );
+
+          // Update the campaign record with the S3 key
+          await tx.campaign.update({
+            where: { id: campaign.id },
+            data: { audienceCSV: s3Key }
+          });
+
+          // Update the local campaign object to return
+          campaign.audienceCSV = s3Key;
+        } catch (error) {
+          // If S3 upload fails, we need to throw an error to roll back the transaction
+          throw new BadRequestException(`Failed to upload audience file: ${error.message}`);
+        }
+      }
+
+      // Create targeting rules if provided
       if (createCampaignDto.targeting) {
         await this.createTargetingRules(tx, campaign.id, createCampaignDto.targeting);
       }
 
       return campaign;
     });
+
+    // Send campaign creation notification
+    await this.campaignNotificationService.notifyCampaignCreated(
+      campaign,
+      advertiserId,
+      createCampaignDto.clientId
+    );
+
+    return campaign;
   }
 
   // Used in the campaign creation process to create targeting rules
@@ -187,7 +206,12 @@ export class CampaignService {
     // Verify campaign exists and belongs to advertiser
     const campaign = await this.prisma.campaign.findUnique({
       where: { id: campaignId },
-      select: { id: true, advertiserId: true }
+      select: {
+        id: true,
+        name: true,
+        advertiserId: true,
+        clientId: true
+      }
     });
 
     if (!campaign) {
@@ -199,7 +223,7 @@ export class CampaignService {
     }
 
     // Use transaction to update targeting rules
-    return this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx) => {
       // Delete existing targeting rules
       await tx.campaignTargetingRule.deleteMany({
         where: { campaignId }
@@ -207,9 +231,16 @@ export class CampaignService {
 
       // Create new targeting rules
       await this.createTargetingRules(tx, campaignId, targeting);
-
-      return { message: 'Campaign targeting updated successfully' };
     });
+
+    // Send notification about targeting update
+    await this.campaignNotificationService.notifyCampaignTargetingUpdated(
+      campaign,
+      advertiserId,
+      campaign.clientId!
+    );
+
+    return { message: 'Campaign targeting updated successfully' };
   }
 
   // Method to get campaign targeting
@@ -383,14 +414,16 @@ export class CampaignService {
     id: string,
     advertiserId: string,
     updateCampaignDto: UpdateCampaignDto,
-    file?: any,
+    file?: Express.Multer.File,
   ) {
     // Check if campaign exists and belongs to the advertiser
     const campaign = await this.prisma.campaign.findUnique({
       where: { id },
       select: {
         id: true,
+        name: true,
         advertiserId: true,
+        clientId: true,
         status: true,
         startDate: true,
         endDate: true,
@@ -438,23 +471,6 @@ export class CampaignService {
       );
     }
 
-    // Process audience CSV file if provided
-    let audienceCSVPath = campaign.audienceCSV;
-    if (file) {
-      // Validate CSV
-      const isValid = await this.fileStorageService.validateCsvFile(file.filename);
-      if (!isValid) {
-        throw new BadRequestException('Invalid CSV file format');
-      }
-
-      // Delete the old file if it exists
-      if (campaign.audienceCSV) {
-        await this.fileStorageService.deleteFile(campaign.audienceCSV);
-      }
-
-      audienceCSVPath = file.filename;
-    }
-
     // If updating status, handle status transitions
     const now = new Date();
     let status = campaign.status;
@@ -468,27 +484,87 @@ export class CampaignService {
       }
     }
 
-    // Update campaign with all provided fields
-    return this.prisma.campaign.update({
-      where: { id },
-      data: {
-        name: updateCampaignDto.name,
-        budget: updateCampaignDto.budget,
-        dailyBudget: updateCampaignDto.dailyBudget,
-        startDate: updateCampaignDto.startDate ? new Date(updateCampaignDto.startDate) : undefined,
-        endDate: updateCampaignDto.endDate ? new Date(updateCampaignDto.endDate) : undefined,
-        objective: updateCampaignDto.objective,
-        bidStrategy: updateCampaignDto.bidStrategy,
-        bidAmount: updateCampaignDto.bidAmount,
-        pacing: updateCampaignDto.pacing,
-        status,
-        businessCategory: updateCampaignDto.businessCategory,
-        websiteUrl: updateCampaignDto.websiteUrl,
-        interests: updateCampaignDto.interests,
-        audienceCSV: audienceCSVPath,
-        clientId: updateCampaignDto.clientId
+    // Use transaction to ensure all operations succeed or fail together
+    const updatedCampaign = await this.prisma.$transaction(async (tx) => {
+      // Handle file upload if provided
+      let audienceCSVKey = campaign.audienceCSV;
+
+      if (file) {
+        // Generate the S3 key for this campaign's audience file
+        // If name is being updated, use the new name
+        const campaignName = updateCampaignDto.name || campaign.name;
+        const s3Key = this.s3StorageService.generateCampaignAudienceKey(campaignName, campaign.id);
+
+        // Upload the new file to S3
+        await this.s3StorageService.uploadFile(
+          file.buffer,
+          s3Key,
+          'text/csv'
+        );
+
+        // Delete the old file if it exists and is different from the new one
+        if (campaign.audienceCSV && campaign.audienceCSV !== s3Key) {
+          await this.s3StorageService.deleteFile(campaign.audienceCSV);
+        }
+
+        audienceCSVKey = s3Key;
+      } else if (updateCampaignDto.name && campaign.audienceCSV) {
+        // If just the name is updated and there's an existing file, we need to move it
+        const oldKey = campaign.audienceCSV;
+        const newKey = this.s3StorageService.generateCampaignAudienceKey(
+          updateCampaignDto.name,
+          campaign.id
+        );
+
+        if (oldKey !== newKey) {
+          // Check if the old file exists
+          const exists = await this.s3StorageService.fileExists(oldKey);
+
+          if (exists) {
+            // Copy the object to the new location
+            await this.s3StorageService.copyObject(oldKey, newKey);
+
+            // Delete the old file after successful copy
+            await this.s3StorageService.deleteFile(oldKey);
+
+            audienceCSVKey = newKey;
+          }
+        }
       }
+
+      // Update campaign with all provided fields
+      const updatedCampaign = await tx.campaign.update({
+        where: { id },
+        data: {
+          name: updateCampaignDto.name,
+          budget: updateCampaignDto.budget,
+          dailyBudget: updateCampaignDto.dailyBudget,
+          startDate: updateCampaignDto.startDate ? new Date(updateCampaignDto.startDate) : undefined,
+          endDate: updateCampaignDto.endDate ? new Date(updateCampaignDto.endDate) : undefined,
+          objective: updateCampaignDto.objective,
+          bidStrategy: updateCampaignDto.bidStrategy,
+          bidAmount: updateCampaignDto.bidAmount,
+          pacing: updateCampaignDto.pacing,
+          status,
+          businessCategory: updateCampaignDto.businessCategory,
+          websiteUrl: updateCampaignDto.websiteUrl,
+          interests: updateCampaignDto.interests,
+          audienceCSV: audienceCSVKey,
+          clientId: updateCampaignDto.clientId
+        }
+      });
+
+      return updatedCampaign;
     });
+
+    // Send notification about campaign update
+    await this.campaignNotificationService.notifyCampaignUpdated(
+      updatedCampaign,
+      advertiserId,
+      updatedCampaign.clientId!
+    );
+
+    return updatedCampaign;
   }
 
   async remove(id: string, advertiserId: string) {
@@ -497,8 +573,11 @@ export class CampaignService {
       where: { id },
       select: {
         id: true,
+        name: true,
         advertiserId: true,
-        status: true
+        clientId: true,
+        status: true,
+        audienceCSV: true
       }
     });
 
@@ -515,9 +594,59 @@ export class CampaignService {
       throw new BadRequestException('Cannot delete an active campaign. Please cancel it first.');
     }
 
+    // Send notification before deleting
+    await this.campaignNotificationService.notifyCampaignDeleted(
+      campaign.name,
+      advertiserId,
+      campaign.clientId!
+    );
+
+    // Delete the audience file from S3 if it exists
+    if (campaign.audienceCSV) {
+      await this.s3StorageService.deleteFile(campaign.audienceCSV);
+    }
+
     // Delete campaign
     return this.prisma.campaign.delete({
       where: { id }
     });
+  }
+
+  /**
+   * Get a pre-signed URL to download a campaign's audience file
+   * @param campaignId Campaign ID
+   * @param advertiserId Advertiser ID for permission check
+   * @returns Pre-signed URL
+   */
+  async getAudienceFileUrl(campaignId: string, advertiserId: string): Promise<string> {
+    // Check if campaign exists and belongs to the advertiser
+    const campaign = await this.prisma.campaign.findUnique({
+      where: { id: campaignId },
+      select: {
+        id: true,
+        advertiserId: true,
+        audienceCSV: true
+      }
+    });
+
+    if (!campaign) {
+      throw new ResourceNotFoundException('Campaign', campaignId);
+    }
+
+    if (campaign.advertiserId !== advertiserId) {
+      throw new ForbiddenException('You do not have access to this campaign');
+    }
+
+    if (!campaign.audienceCSV) {
+      throw new BadRequestException('This campaign does not have an audience file');
+    }
+
+    // Generate a pre-signed URL for the audience file
+    const presignedUrl = await this.s3StorageService.getPresignedUrl(
+      campaign.audienceCSV,
+      3600 // 1 hour expiration
+    );
+
+    return presignedUrl;
   }
 }

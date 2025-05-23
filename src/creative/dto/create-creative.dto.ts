@@ -43,25 +43,6 @@ export class CreateCreativeDto {
 }
 
 
-export class UpdateCreativeDto {
-    @ApiProperty({
-        description: 'Creative name',
-        example: 'Updated Banner Name',
-        required: false
-    })
-    @IsOptional()
-    @IsString()
-    name?: string;
-
-    @ApiProperty({
-        description: 'Landing page URL',
-        example: 'https://example.com/updated-landing-page',
-        required: false
-    })
-    @IsOptional()
-    @IsUrl()
-    landingUrl?: string;
-}
 
 export class CreativeResponseDto {
     @ApiProperty()

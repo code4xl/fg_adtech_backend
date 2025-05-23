@@ -7,12 +7,14 @@ import { MainSeederService } from './main.seeder';
 import { DependencyResolver } from './tools/dependency.resolver';
 import { SeederRegistry } from './tools/seeders.registry';
 import { ISeeder } from './interfaces/seeder.interface';
+import { CampaignSeeder } from './modules/campaign.seeder';
 
 // Add new seeders to this array
 const SEEDERS: Type<ISeeder>[] = [
     AdminSeeder,
     AdvertiserSeeder,
     PublisherSeeder,
+    CampaignSeeder,
 ];
 
 @Module({

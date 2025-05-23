@@ -8,6 +8,7 @@ model Creative {
     width       Int
     height      Int
     fileUrl     String
+    s3Key       String?
     landingUrl  String
     status      CreativeStatus @default(PENDING_REVIEW)
     reviewNotes String?

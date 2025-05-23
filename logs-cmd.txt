@@ -7,3 +7,7 @@ docker compose -f docker-compose.dev.yml logs -f
 
 # View logs from a specific service
 docker compose -f docker-compose.dev.yml logs -f api
+
+
+# To build in detached mode
+docker-compose -f docker-compose.dev.yml up --build -d

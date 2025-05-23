@@ -51,12 +51,14 @@ import { CategoryService } from './category.service';
 import { AdminCategoryController } from './admin-category.controller';
 import { PublisherService } from '../publishers/publisher.service';
 import { AdminPublisherController } from '../publishers/admin.publisher.controller';
-import { FileStorageModule } from '../file-storage/file-storage.module';
 import { InventoryCampaignController } from 'src/campaign/campaign.inventory.controller';
 import { InventoryCampaignService } from 'src/campaign/campaign.inventory.service';
+import { NotificationModule } from 'src/notification/notification.module';
+import { CreativeService } from 'src/creative/creative.service';
+import { CreativeModule } from 'src/creative/creative.module';
 
 @Module({
-  imports: [FileStorageModule],
+  imports: [NotificationModule],
   controllers: [
     // Original controllers (may need to be updated/deprecated)
     // InventoryController,
@@ -69,7 +71,7 @@ import { InventoryCampaignService } from 'src/campaign/campaign.inventory.servic
     AdminPublisherController,
 
     // New campaign inventory controller
-    InventoryCampaignController
+    InventoryCampaignController,
   ],
   providers: [
     InventoryService,
@@ -84,7 +86,6 @@ import { InventoryCampaignService } from 'src/campaign/campaign.inventory.servic
     FloorPriceService,
     CategoryService,
     PublisherService,
-    InventoryCampaignService
   ]
 })
 export class InventoryModule { }

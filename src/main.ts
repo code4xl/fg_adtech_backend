@@ -17,6 +17,7 @@ import { ErrorConfigService } from './common/exceptions/error-config.service';
 import { apiReference } from '@scalar/nestjs-api-reference';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import { RedisIoAdapter } from './redis/adapters/redis-io.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -71,6 +72,13 @@ async function bootstrap() {
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads/',
   });
+
+  // Create and configure the Redis IO adapter
+  const redisIoAdapter = new RedisIoAdapter(app, configService);
+  await redisIoAdapter.connectToRedis();
+
+  // Apply the adapter to the application
+  app.useWebSocketAdapter(redisIoAdapter);
 
   // Swagger API documentation
   if (process.env.NODE_ENV !== 'production') {

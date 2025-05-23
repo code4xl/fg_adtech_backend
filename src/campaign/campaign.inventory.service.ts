@@ -4,10 +4,17 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Language, InventoryFormat, InventoryPosition, ApprovalStatus, CampaignStatus } from '@prisma/client';
 import { ResourceNotFoundException, ForbiddenException, BadRequestException } from '../common/exceptions/custom.exception';
 import { AssignInventoryToCampaignDto } from './dto/campaign-inventory.dto';
+import { NotificationService } from 'src/notification/notification.service';
+import { UserType } from 'src/notification/dto/create-notification.dto';
+import { title } from 'process';
+import { InventoryNotificationService } from 'src/notification/services/inventory.notification.service';
 
 @Injectable()
 export class InventoryCampaignService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(private readonly prisma: PrismaService,
+        private readonly notificationService: NotificationService,
+        private readonly inventoryNotificationService: InventoryNotificationService,
+    ) { }
 
     // Get all parent categories (categories that are not children of other categories)
     async getAllParentCategories() {
@@ -340,7 +347,20 @@ export class InventoryCampaignService {
             },
             select: {
                 id: true,
-                status: true
+                name: true,
+                status: true,
+                advertiser: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                },
+                client: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                }
             }
         });
 
@@ -368,6 +388,15 @@ export class InventoryCampaignService {
                                     advertiserId
                                 }
                             }
+                        },
+                        include: {
+                            publisher: {
+                                select: {
+                                    id: true,
+                                    firstName: true,
+                                    lastName: true
+                                }
+                            }
                         }
                     });
 
@@ -389,6 +418,7 @@ export class InventoryCampaignService {
                         }
                     });
 
+                    let result;
                     if (existingAssignment) {
                         // Update the existing assignment
                         await this.prisma.campaignInventory.update({
@@ -403,7 +433,7 @@ export class InventoryCampaignService {
                             }
                         });
 
-                        return {
+                        result = {
                             inventoryId: item.inventoryId,
                             success: true,
                             message: 'Inventory settings updated'
@@ -418,12 +448,34 @@ export class InventoryCampaignService {
                             }
                         });
 
-                        return {
+                        result = {
                             inventoryId: item.inventoryId,
                             success: true,
                             message: 'Inventory assigned successfully'
                         };
                     }
+
+                    // Create and send notifications
+                    if (result.success) {
+                        // Notify the client, admin and advertiser
+                        await this.inventoryNotificationService.notifyInventoryAssigned(
+                            campaign,
+                            inventory,
+                            advertiserId,
+                            item.maxBid,
+                            existingAssignment ? true : false
+                        )
+
+                        // Notify the publisher
+                        await this.inventoryNotificationService.notifyPublisherInventoryUsed(
+                            campaign,
+                            inventory,
+                            item.maxBid,
+                            existingAssignment ? true : false
+                        )
+                    }
+
+                    return result;
                 } catch (error) {
                     return {
                         inventoryId: item.inventoryId,
@@ -471,6 +523,23 @@ export class InventoryCampaignService {
             where: {
                 id: campaignId,
                 advertiserId
+            },
+            select: {
+                id: true,
+                name: true,
+                status: true,
+                advertiser: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                },
+                client: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                }
             }
         });
 
@@ -485,12 +554,30 @@ export class InventoryCampaignService {
                     campaignId,
                     inventoryId
                 }
+            },
+            include: {
+                inventory: {
+                    include: {
+                        publisher: {
+                            select: {
+                                id: true,
+                                firstName: true,
+                                lastName: true
+                            }
+                        }
+                    }
+                }
             }
         });
 
         if (!assignment) {
             throw new ResourceNotFoundException('Campaign inventory assignment', `${campaignId}:${inventoryId}`);
         }
+
+        // Get inventory details before removal
+        const inventoryName = assignment.inventory.name;
+        const publisherName = `${assignment.inventory.publisher.firstName} ${assignment.inventory.publisher.lastName}`;
+        const publisherId = assignment.inventory.publisher.id;
 
         // Remove the assignment
         await this.prisma.campaignInventory.delete({
@@ -516,6 +603,41 @@ export class InventoryCampaignService {
             });
         }
 
+        const advertiser = await this.prisma.advertiser.findUnique({
+            where: { id: advertiserId },
+            select: { id: true, name: true }
+        });
+
+        if (!advertiser) {
+            throw new ResourceNotFoundException('Advertiser', advertiserId);
+        }
+
+        // Create and send notifications
+        try {
+            // Notify the client, admin and advertiser
+            await this.inventoryNotificationService.notifyInventoryRemoved(
+                campaign,
+                inventoryId,
+                inventoryName,
+                publisherId,
+                publisherName,
+                advertiserId,
+            )
+
+            // Notify the publisher
+            await this.inventoryNotificationService.notifyPublisherInventoryRemoved(
+                campaign.name,
+                campaignId,
+                advertiserId,
+                advertiser.name,
+                inventoryName,
+                publisherId,
+            )
+        } catch (error) {
+            // Log notification error but don't fail the operation
+            console.error('Failed to send notifications:', error);
+        }
+
         return {
             success: true,
             message: 'Inventory removed from campaign successfully'
@@ -534,6 +656,23 @@ export class InventoryCampaignService {
             where: {
                 id: campaignId,
                 advertiserId
+            },
+            select: {
+                id: true,
+                name: true,
+                status: true,
+                advertiser: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                },
+                client: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                }
             }
         });
 
@@ -548,12 +687,28 @@ export class InventoryCampaignService {
                     campaignId,
                     inventoryId
                 }
+            },
+            include: {
+                inventory: {
+                    include: {
+                        publisher: {
+                            select: {
+                                id: true,
+                                firstName: true,
+                                lastName: true
+                            }
+                        }
+                    }
+                }
             }
         });
 
         if (!assignment) {
             throw new ResourceNotFoundException('Campaign inventory assignment', `${campaignId}:${inventoryId}`);
         }
+
+        // Get previous max bid
+        const previousBid = assignment.maxBid;
 
         // Update the assignment
         await this.prisma.campaignInventory.update({
@@ -567,6 +722,20 @@ export class InventoryCampaignService {
                 maxBid
             }
         });
+
+        // Create and send notifications
+        try {
+            await this.inventoryNotificationService.notifyInventoryBidUpdated(
+                campaign,
+                assignment.inventory,
+                advertiserId,
+                parseInt(previousBid.toString()),
+                maxBid,
+            )
+        } catch (error) {
+            // Log notification error but don't fail the operation
+            console.error('Failed to send notifications:', error);
+        }
 
         return {
             success: true,

@@ -20,19 +20,18 @@ import { InventoryModule } from './inventory/inventory.module';
 import { CampaignModule } from './campaign/campaign.module';
 
 import { RedisModule } from './redis/redis.module';
-import { FileStorageModule } from './file-storage/file-storage.module';
 import { CreativeModule } from './creative/creative.module';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { KafkaModule } from './kafka/kafka.module';
 import { RtbModule } from './rtb/rtb.module';
-import { RtbModule } from './rtb/rtb.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
-      envFilePath: `.env`,
+      envFilePath: `.env.development`,
     }),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
@@ -77,11 +76,11 @@ import { RtbModule } from './rtb/rtb.module';
     ClientModule,
     InventoryModule,
     CampaignModule,
-    FileStorageModule,
     CreativeModule,
     RedisModule,
     KafkaModule,
     RtbModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [
@@ -101,4 +100,4 @@ import { RtbModule } from './rtb/rtb.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

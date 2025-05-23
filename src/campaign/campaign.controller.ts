@@ -28,7 +28,8 @@ import {
   ApiBearerAuth,
   ApiParam,
   ApiResponse,
-  ApiConsumes
+  ApiConsumes,
+  ApiOkResponse
 } from '@nestjs/swagger';
 import {
   ApiStandardResponse,
@@ -37,15 +38,18 @@ import {
 import { CampaignTargetingDto } from './dto/targetting-rule.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { existsSync, mkdirSync } from 'fs';
-import { diskStorage } from 'multer';
+import { diskStorage, memoryStorage } from 'multer';
 import { extname } from 'path';
+import { FileValidationService } from 'src/common/file-upload/file-validation.service';
 
 @ApiTags('campaign')
 @ApiBearerAuth()
 @UseGuards(AdvertiserGuard)
 @Controller('campaign')
 export class CampaignController {
-  constructor(private readonly campaignService: CampaignService) { }
+  constructor(private readonly campaignService: CampaignService,
+    private readonly fileValidationService: FileValidationService,
+  ) { }
 
   // Create a Campaign 
   @Post()
@@ -53,29 +57,7 @@ export class CampaignController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: (req, file, cb) => {
-          const uploadPath = './uploads/audience-csv';
-          if (!existsSync(uploadPath)) {
-            mkdirSync(uploadPath, { recursive: true });
-          }
-          cb(null, uploadPath);
-        },
-        filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          cb(null, uniqueSuffix + extname(file.originalname));
-        }
-      }),
-      fileFilter: (req, file, cb) => {
-        if (file.mimetype === 'text/csv' ||
-          file.mimetype === 'application/csv' ||
-          file.mimetype === 'application/vnd.ms-excel' ||
-          file.originalname.toLowerCase().endsWith('.csv')) {
-          cb(null, true);
-        } else {
-          cb(new BadRequestException('Only CSV files are allowed'), false);
-        }
-      }
+      storage: memoryStorage(),
     })
   )
   @ApiStandardResponse({
@@ -88,15 +70,31 @@ export class CampaignController {
     @UploadedFile(
       new ParseFilePipe({
         validators: [
-          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }),
         ],
         fileIsRequired: false,
       }),
     )
-    file?: any,
+    file?: Express.Multer.File,
     @Request() req?,
   ) {
-    return this.campaignService.create(req.user.id, createCampaignDto, file);
+    if (file) {
+      const validationResult = await this.fileValidationService.validateCsvBuffer(file.buffer);
+
+      console.log('File validation result:', validationResult);
+
+      if (!validationResult) {
+        throw new BadRequestException({
+          message: 'Invalid CSV file format',
+        });
+      }
+
+      console.log("File Plss" + file.buffer);
+
+
+      // Continue with campaign creation
+      return this.campaignService.create(req.user.id, createCampaignDto, file);
+    }
   }
 
   // Update a Campaign
@@ -105,29 +103,7 @@ export class CampaignController {
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: (req, file, cb) => {
-          const uploadPath = './uploads/audience-csv';
-          if (!existsSync(uploadPath)) {
-            mkdirSync(uploadPath, { recursive: true });
-          }
-          cb(null, uploadPath);
-        },
-        filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          cb(null, uniqueSuffix + extname(file.originalname));
-        }
-      }),
-      fileFilter: (req, file, cb) => {
-        if (file.mimetype === 'text/csv' ||
-          file.mimetype === 'application/csv' ||
-          file.mimetype === 'application/vnd.ms-excel' ||
-          file.originalname.toLowerCase().endsWith('.csv')) {
-          cb(null, true);
-        } else {
-          cb(new BadRequestException('Only CSV files are allowed'), false);
-        }
-      }
+      storage: memoryStorage(),
     })
   )
   @ApiStandardResponse({
@@ -141,15 +117,29 @@ export class CampaignController {
     @UploadedFile(
       new ParseFilePipe({
         validators: [
-          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
+          new MaxFileSizeValidator({ maxSize: 10 * 1024 * 1024 }), // 10MB
         ],
         fileIsRequired: false,
       }),
     )
-    file?: any,
+    file?: Express.Multer.File,
     @Request() req?,
   ) {
-    return this.campaignService.update(id, req.user.id, updateCampaignDto, file);
+    if (file) {
+      const validationResult = await this.fileValidationService.validateCsvBuffer(file.buffer);
+
+      console.log('File validation result:', validationResult);
+
+      if (!validationResult) {
+        throw new BadRequestException({
+          message: 'Invalid CSV file format',
+        });
+      }
+
+      return this.campaignService.update(id, req.user.id, updateCampaignDto, file);
+    }
+
+    return this.campaignService.update(id, req.user.id, updateCampaignDto);
   }
 
   // Get all campaigns for specific advertiser
@@ -222,7 +212,30 @@ export class CampaignController {
   }
 
 
-  // Campaign - Inventory Relation Api's
-
+  // Get Campaign Audience URI
+  @Get(':id/audience-file')
+  @ApiOperation({ summary: 'Get a pre-signed URL to download campaign audience file' })
+  @ApiParam({ name: 'id', description: 'Campaign ID', type: String })
+  @ApiOkResponse({
+    description: 'Pre-signed URL to download the audience file',
+    schema: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          description: 'Pre-signed URL with temporary access to download the file',
+          example: 'https://bucket-name.s3.region.amazonaws.com/path/to/file.csv?params'
+        }
+      }
+    }
+  })
+  @ApiStandardErrors()
+  async getAudienceFile(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req
+  ) {
+    const url = await this.campaignService.getAudienceFileUrl(id, req.user.id);
+    return { url };
+  }
 }
 
