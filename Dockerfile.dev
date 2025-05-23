@@ -1,25 +1,41 @@
-FROM node:23 AS development
+FROM node:23
+
+# Enable and prepare pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /usr/src/app
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install NestJS CLI globally
+RUN npm install -g @nestjs/cli
 
-# Copy pnpm specific files
-COPY pnpm-lock.yaml package.json ./
+# Create upload directories
+RUN mkdir -p uploads/audience-csv
+
+# Copy package files
+COPY package.json pnpm-lock.yaml* ./
 
 # Install dependencies
 RUN pnpm install
 
-# Copy prisma schema first
-COPY prisma ./prisma/
+# Copy tsconfig.json and nest-cli.json first
+COPY tsconfig.json nest-cli.json ./
 
-# Generate Prisma client for the Alpine Linux environment
+# Copy other necessary files
+COPY prisma ./prisma/
+COPY scripts ./scripts/
+
+# Generate Prisma client
 RUN npx prisma generate
 
-# Copy the rest of the application
-COPY . .
+# Copy source code
+COPY src ./src/
 
+# Build the application
 RUN pnpm run build
 
+# Ensure the templates directory exists and copy mail templates directly
+RUN mkdir -p dist/src/mail/templates
+COPY src/mail/templates/*.hbs dist/src/mail/templates/
+
+# Command to run the application
 CMD ["pnpm", "run", "start:dev"]

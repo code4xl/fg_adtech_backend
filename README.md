@@ -57,6 +57,11 @@ $ pnpm run test:e2e
 $ pnpm run test:cov
 ```
 
+docker compose -f docker-compose.dev.yml down
+docker rmi nestjs_api_dev programmatic_adtech_backend-api
+docker build -f Dockerfile.dev -t nestjs_api_dev --no-cache .
+docker compose -f docker-compose.dev.yml up
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.

@@ -20,6 +20,8 @@ model BidResponse {
     creative   Creative    @relation(fields: [creativeId], references: [id])
     advertiser Advertiser  @relation(fields: [advertiserId], references: [id])
     auctionLog AuctionLog? // Optional relation to auction log
+
+    Impression Impression[]
 }
 
 // Key fields:

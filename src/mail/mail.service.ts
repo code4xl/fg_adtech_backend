@@ -34,4 +34,19 @@ export class MailService {
       },
     });
   }
+
+  async sendMfaCodeEmail(email: string, verificationCode: string, expiryMinutes: number) {
+    const appName = this.configService.get<string>('APP_NAME', 'Ocean Ad Network');
+    
+    return await this.mailerService.sendMail({
+      to: email,
+      subject: `${appName} - Your Login Verification Code`,
+      template: './mfa-code',
+      context: {
+        verificationCode,
+        expiryMinutes,
+        appName,
+      },
+    });
+  }
 }

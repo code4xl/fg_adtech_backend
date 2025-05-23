@@ -24,7 +24,7 @@ async function bootstrap() {
     logger: new ConsoleLogger({
       json: false,
       colors: true,
-      // logLevels: ['error', 'warn', 'debug'],
+      logLevels: ['error', 'warn', 'debug', 'verbose', 'log'],
       prefix: 'OceanAdTech',
     }),
   });
@@ -38,13 +38,13 @@ async function bootstrap() {
     helmet({
       contentSecurityPolicy: {
         directives: {
-          defaultSrc: [`'self'`],
-          scriptSrc: [`'self'`, `'unsafe-inline'`, 'cdn.jsdelivr.net'],
-          styleSrc: [`'self'`, `'unsafe-inline'`, 'cdn.jsdelivr.net'],
-          imgSrc: [`'self'`, 'data:', 'cdn.jsdelivr.net'],
+          defaultSrc: ["'self'"],  // Note the quotes around 'self'
+          scriptSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
+          styleSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
+          imgSrc: ["'self'", 'data:', 'cdn.jsdelivr.net'],
           connectSrc: [
-            `'self'`,
-            `'https://5x2p27zf-3000.inc1.devtunnels.ms`,
+            "'self'",
+            'https://5x2p27zf-3000.inc1.devtunnels.ms',
             'https://programmatic.api.oceanadnetwork.com',
           ],
         },
@@ -90,17 +90,17 @@ async function bootstrap() {
       .setDescription('Documentation for OceanAdTech API')
       .setVersion('1.0')
       .setOpenAPIVersion('3.0.0')
+      .addServer('http://localhost:3000', 'Development Server')
       .addServer(
         'https://programmatic.api.oceanadnetwork.com',
         'Production Server',
       )
-      .addServer('http://localhost:3000', 'Development Server')
       .addBearerAuth()
       .build();
 
     const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api', app, document, {
-      swaggerUiEnabled: false,
+    SwaggerModule.setup('swagger', app, document, {
+      swaggerUiEnabled: true,
       customSiteTitle: 'OceanAdTech API Docs',
       explorer: true,
       jsonDocumentUrl: '/api-json',

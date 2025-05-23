@@ -23,6 +23,8 @@ import { RedisModule } from './redis/redis.module';
 import { CreativeModule } from './creative/creative.module';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { KafkaModule } from './kafka/kafka.module';
+import { SeedDbModule } from './seed-db/seed-db.module';
+import { ResilienceModule } from './common/resilience/resilience.module';
 import { RtbModule } from './rtb/rtb.module';
 import { NotificationModule } from './notification/notification.module';
 
@@ -31,7 +33,7 @@ import { NotificationModule } from './notification/notification.module';
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
-      envFilePath: `.env.development`,
+      envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
     }),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
@@ -54,7 +56,7 @@ import { NotificationModule } from './notification/notification.module';
           options: {
             client: {
               clientId: 'nestjs-app',
-              brokers: (configService.get<string>('KAFKA_BROKERS') ?? '').split(
+              brokers: (configService.get<string>('kafka.brokers') ?? '').split(
                 ',',
               ),
             },
@@ -80,6 +82,8 @@ import { NotificationModule } from './notification/notification.module';
     RedisModule,
     KafkaModule,
     RtbModule,
+    SeedDbModule,
+    ResilienceModule,
     NotificationModule,
   ],
   controllers: [AppController],

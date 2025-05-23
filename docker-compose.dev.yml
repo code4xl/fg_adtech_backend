@@ -1,48 +1,47 @@
 services:
-  api:
-    container_name: nestjs_api_dev
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    volumes:
-      - .:/usr/src/app
-      - /usr/src/app/node_modules
-    ports:
-      - '${PORT:-3000}:${PORT:-3000}'
-    env_file:
-      - .env.development
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-    depends_on:
-      - redis
-      - kafka
-    networks:
-      - app-network
-    command: npm run start:dev
-
-  zookeeper:
-    image: bitnami/zookeeper:latest
-    container_name: zookeeper
-    ports:
-      - '2181:2181'
-    environment:
-      - ALLOW_ANONYMOUS_LOGIN=yes
-    networks:
-      - app-network
-
   kafka:
     image: bitnami/kafka:latest
     container_name: kafka
     ports:
-      - '9092:9092'
+      - '9092:9092' # External/client communication
+      - '9093:9093' # Internal controller communication
     environment:
-      - KAFKA_BROKER_ID=1
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
+      # KRaft mode configuration
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+
+      # Fixed listeners configuration
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
       - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
-      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+
+      # Inter-broker communication
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+
+      # Other settings
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
       - ALLOW_PLAINTEXT_LISTENER=yes
+
+      # For development only
+      - KAFKA_KRAFT_CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk
+    volumes:
+      - kafka-data:/bitnami/kafka
+    networks:
+      - app-network
+
+  # Keep the management tools for development
+  kafdrop:
+    image: obsidiandynamics/kafdrop
+    container_name: kafdrop
+    ports:
+      - '9000:9000'
+    environment:
+      - KAFKA_BROKERCONNECT=kafka:9092
+      - JVM_OPTS=-Xms32M -Xmx64M
     depends_on:
-      - zookeeper
+      - kafka
     networks:
       - app-network
 
@@ -57,19 +56,6 @@ services:
     volumes:
       - redis-data:/data
 
-  kafdrop:
-    image: obsidiandynamics/kafdrop
-    container_name: kafdrop
-    ports:
-      - '9000:9000'
-    environment:
-      - KAFKA_BROKERCONNECT=kafka:9092
-      - JVM_OPTS=-Xms32M -Xmx64M
-    depends_on:
-      - kafka
-    networks:
-      - app-network
-
   redis-commander:
     image: rediscommander/redis-commander:latest
     container_name: redis-commander
@@ -82,9 +68,28 @@ services:
     networks:
       - app-network
 
+  api:
+    container_name: nestjs_api_dev
+    depends_on:
+      - kafka
+      - redis
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - '${PORT:-3000}:${PORT:-3000}'
+    env_file:
+      - .env.development
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge
 
 volumes:
   redis-data:
+  kafka-data:
