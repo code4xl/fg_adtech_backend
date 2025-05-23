@@ -1,6 +1,5 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cache } from 'cache-manager';
 import { WithRetry } from 'src/common/resilience/retry.decorator';
 import { ConfigService } from '@nestjs/config';
@@ -8,9 +7,6 @@ import Redis from 'ioredis';
 
 @Injectable()
 export class RedisService {
-  private readonly logger = new Logger(RedisService.name);
-  constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) { }
-  @WithRetry(3, 100, 2, [Error])
   private readonly logger = new Logger(RedisService.name);
   private readonly pubClient: Redis;
   private readonly subClient: Redis;
@@ -33,6 +29,7 @@ export class RedisService {
     this.pubClient.on('error', (err) => this.logger.error(`Redis Pub Client Error: ${err.message}`, err.stack));
     this.subClient.on('error', (err) => this.logger.error(`Redis Sub Client Error: ${err.message}`, err.stack));
   }
+  @WithRetry(3, 100, 2, [Error])
 
   // Cache methods
   async get<T>(key: string): Promise<T | undefined> {
