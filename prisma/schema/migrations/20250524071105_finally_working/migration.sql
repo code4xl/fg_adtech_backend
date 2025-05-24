@@ -49,6 +49,9 @@ CREATE TYPE "AuctionLogStatus" AS ENUM ('STARTED', 'COMPLETED', 'FAILED', 'NO_BI
 -- CreateEnum
 CREATE TYPE "AuctionType" AS ENUM ('FIRST_PRICE', 'SECOND_PRICE');
 
+-- CreateEnum
+CREATE TYPE "UserType" AS ENUM ('ADVERTISER', 'PUBLISHER', 'CLIENT', 'ADMIN');
+
 -- CreateTable
 CREATE TABLE "AdInventory" (
     "id" UUID NOT NULL,
@@ -73,6 +76,9 @@ CREATE TABLE "Admin" (
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
+    "mfaEnabled" BOOLEAN NOT NULL DEFAULT false,
+    "mfaVerificationCode" TEXT,
+    "mfaCodeExpiry" TIMESTAMP(3),
 
     CONSTRAINT "Admin_pkey" PRIMARY KEY ("id")
 );
@@ -94,6 +100,9 @@ CREATE TABLE "Advertiser" (
     "verificationToken" TEXT,
     "resetPasswordToken" TEXT,
     "resetPasswordExpires" TIMESTAMP(3),
+    "mfaEnabled" BOOLEAN NOT NULL DEFAULT false,
+    "mfaVerificationCode" TEXT,
+    "mfaCodeExpiry" TIMESTAMP(3),
 
     CONSTRAINT "Advertiser_pkey" PRIMARY KEY ("id")
 );
@@ -287,6 +296,7 @@ CREATE TABLE "Creative" (
     "width" INTEGER NOT NULL,
     "height" INTEGER NOT NULL,
     "fileUrl" TEXT NOT NULL,
+    "s3Key" TEXT,
     "landingUrl" TEXT NOT NULL,
     "status" "CreativeStatus" NOT NULL DEFAULT 'PENDING_REVIEW',
     "reviewNotes" TEXT,
@@ -415,6 +425,21 @@ CREATE TABLE "PublisherLanguage" (
 );
 
 -- CreateTable
+CREATE TABLE "Notification" (
+    "id" UUID NOT NULL,
+    "userId" UUID NOT NULL,
+    "userType" "UserType" NOT NULL,
+    "title" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "isRead" BOOLEAN NOT NULL DEFAULT false,
+    "data" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Publisher" (
     "id" UUID NOT NULL,
     "firstName" TEXT NOT NULL,
@@ -427,6 +452,12 @@ CREATE TABLE "Publisher" (
     "status" "PublisherStatus" NOT NULL DEFAULT 'ACTIVE',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "verificationToken" TEXT,
+    "resetPasswordToken" TEXT,
+    "resetPasswordExpires" TIMESTAMP(3),
+    "mfaEnabled" BOOLEAN NOT NULL DEFAULT false,
+    "mfaVerificationCode" TEXT,
+    "mfaCodeExpiry" TIMESTAMP(3),
 
     CONSTRAINT "Publisher_pkey" PRIMARY KEY ("id")
 );
@@ -548,7 +579,19 @@ CREATE UNIQUE INDEX "HourlyMetrics_campaignId_inventoryId_date_hour_key" ON "Hou
 CREATE UNIQUE INDEX "InventoryAvailability_inventoryId_date_key" ON "InventoryAvailability"("inventoryId", "date");
 
 -- CreateIndex
+CREATE INDEX "Notification_userId_userType_idx" ON "Notification"("userId", "userType");
+
+-- CreateIndex
+CREATE INDEX "Notification_isRead_idx" ON "Notification"("isRead");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Publisher_email_key" ON "Publisher"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Publisher_verificationToken_key" ON "Publisher"("verificationToken");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Publisher_resetPasswordToken_key" ON "Publisher"("resetPasswordToken");
 
 -- CreateIndex
 CREATE INDEX "ImpressionTrack_timestamp_idx" ON "ImpressionTrack"("timestamp");

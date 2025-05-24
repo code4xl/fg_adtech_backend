@@ -51,4 +51,15 @@ export default () => ({
   timescale: {
     databaseUrl: process.env.TIMESCALE_DATABASE_URL,
   },
+  openai: {
+    apiKey: process.env.OPENAI_API_KEY,
+  },
+  ai: {
+    rateLimitWindow: process.env.AI_RATE_LIMIT_WINDOW 
+      ? parseInt(process.env.AI_RATE_LIMIT_WINDOW, 10) 
+      : 60000,
+    maxRequestsPerWindow: process.env.AI_MAX_REQUESTS 
+      ? parseInt(process.env.AI_MAX_REQUESTS, 10) 
+      : 10,
+  }
 });

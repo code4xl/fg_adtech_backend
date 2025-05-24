@@ -27,7 +27,7 @@ import { SeedDbModule } from './seed-db/seed-db.module';
 import { ResilienceModule } from './common/resilience/resilience.module';
 import { RtbModule } from './rtb/rtb.module';
 import { NotificationModule } from './notification/notification.module';
-
+import { AiModule } from './ai/ai.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -81,6 +81,7 @@ import { NotificationModule } from './notification/notification.module';
     CreativeModule,
     RedisModule,
     KafkaModule,
+    AiModule,
     RtbModule,
     SeedDbModule,
     ResilienceModule,

@@ -3,7 +3,6 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { AdminSeeder } from './modules/admin.seeder';
 import { AdvertiserSeeder } from './modules/advertiser.seeder';
 import { PublisherSeeder } from './modules/publisher.seeder';
-import { CampaignSeeder } from './modules/campaign.seeder';
 import { ContentCategorySeeder } from './modules/content-category.seeder';
 import { AdInventorySeeder } from './modules/ad-inventory.seeder';
 import { CreativeSeeder } from './modules/creative.seeder';
