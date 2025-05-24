@@ -7,17 +7,18 @@
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "moduleResolution": "node",
-    "target": "ES2023",
+    "target": "ES2022",
     "sourceMap": true,
     "outDir": "./dist",
-     "esModuleInterop": true,
+    "esModuleInterop": true,
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
-    "strictNullChecks": true,
+    "strictNullChecks": false,
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "useDefineForClassFields": false
   }
 }

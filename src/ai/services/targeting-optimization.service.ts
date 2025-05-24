@@ -199,21 +199,7 @@ export class TargetingOptimizationService {
     businessCategory: string,
     currentTargeting: CampaignTargetingDto
   ) {
-    const successfulCampaigns = await this.prisma.campaign.findMany({
-      where: {
-        businessCategory,
-        status: 'COMPLETED',
-        statistics: {
-          some: {
-            ctr: { gte: 2.0 }
-          }
-        }
-      },
-      include: {
-        targetingRules: true
-      },
-      take: 20
-    });
+        const successfulCampaigns = await this.prisma.campaign.findMany({      where: {        businessCategory: businessCategory as any,        status: 'COMPLETED',        statistics: {          some: {            ctr: { gte: 2.0 }          }        }      },      include: {        targetingRules: true      },      take: 20    });
 
     const opportunities = {
       untappedGeos: [] as string[],
@@ -246,19 +232,7 @@ export class TargetingOptimizationService {
   }
 
   private async analyzeCompetitorTargeting(businessCategory: string) {
-    const recentCampaigns = await this.prisma.campaign.findMany({
-      where: {
-        businessCategory,
-        status: 'ACTIVE',
-        createdAt: {
-          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-        }
-      },
-      include: {
-        targetingRules: true
-      },
-      take: 10
-    });
+        const recentCampaigns = await this.prisma.campaign.findMany({      where: {        businessCategory: businessCategory as any,        status: 'ACTIVE',        createdAt: {          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)        }      },      include: {        targetingRules: true      },      take: 10    });
 
     const targetingPatterns = {
       commonGeos: new Map<string, number>(),

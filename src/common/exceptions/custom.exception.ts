@@ -3,14 +3,7 @@ import { HttpException, HttpStatus, Inject } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ErrorConfigService } from './error-config.service';
 
-export class CustomException extends HttpException {
-  constructor(
-    message: string,
-    status: HttpStatus,
-    public readonly code: string,
-    public readonly errors?: Record<string, any>,
-    @Inject(ErrorConfigService) private errorConfigService?: ErrorConfigService,
-  ) {
+export class CustomException extends HttpException {  constructor(    message: string,    status: HttpStatus,    public readonly code: string,    public readonly errors?: Record<string, any>,    private errorConfigService?: ErrorConfigService,  ) {
     const formattedCode = errorConfigService
       ? errorConfigService.formatErrorCode(code, status)
       : `OceanAdTech_${code}_${status}`;

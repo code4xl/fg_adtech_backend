@@ -207,26 +207,9 @@ export class BudgetIntelligenceService {
     businessCategory: string,
     targetingRules: any[]
   ) {
-    const competitorCampaigns = await this.prisma.campaign.count({
-      where: {
-        businessCategory,
-        status: CampaignStatus.ACTIVE,
-        createdAt: {
-          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-        }
-      }
-    });
+        const competitorCampaigns = await this.prisma.campaign.count({      where: {        businessCategory: businessCategory as any,        status: CampaignStatus.ACTIVE,        createdAt: {          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)        }      }    });
 
-    const avgSpend = await this.prisma.campaign.aggregate({
-      where: {
-        businessCategory,
-        status: { in: [CampaignStatus.ACTIVE, CampaignStatus.COMPLETED] }
-      },
-      _avg: {
-        budget: true,
-        dailyBudget: true
-      }
-    });
+        const avgSpend = await this.prisma.campaign.aggregate({      where: {        businessCategory: businessCategory as any,        status: { in: [CampaignStatus.ACTIVE, CampaignStatus.COMPLETED] }      },      _avg: {        budget: true,        dailyBudget: true      }    });
 
     return {
       activeCompetitors: competitorCampaigns,
@@ -421,12 +404,7 @@ Provide detailed performance predictions with confidence intervals and key facto
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const campaigns = await this.prisma.campaign.count({
-      where: {
-        businessCategory: category,
-        createdAt: { gte: startDate }
-      }
-    });
+        const campaigns = await this.prisma.campaign.count({      where: {        businessCategory: category as any,        createdAt: { gte: startDate }      }    });
 
     return {
       newEntrants: campaigns,
@@ -476,23 +454,7 @@ Provide detailed performance predictions with confidence intervals and key facto
   }
 
   private async getCompetitiveInsights(category: string, targetingRules: any[]) {
-    const competitors = await this.prisma.campaign.count({
-      where: {
-        businessCategory: category,
-        status: CampaignStatus.ACTIVE
-      }
-    });
-
-    const totalSpend = await this.prisma.campaignStatistics.aggregate({
-      where: {
-        campaign: {
-          businessCategory: category
-        }
-      },
-      _sum: {
-        spend: true
-      }
-    });
+        const competitors = await this.prisma.campaign.count({      where: {        businessCategory: category as any,        status: CampaignStatus.ACTIVE      }    });    const totalSpend = await this.prisma.campaignStatistics.aggregate({      where: {        campaign: {          businessCategory: category as any        }      },      _sum: {        spend: true      }    });
 
     return {
       activeCompetitors: competitors,

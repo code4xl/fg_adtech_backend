@@ -81,10 +81,7 @@ import { AIUsageInterceptor } from '../interceptors/ai-usage.interceptor';
       summary: 'Generate new campaign name suggestions',
       description: 'Creates alternative campaign names based on campaign context and criteria'
     })
-    @ApiStandardResponse({
-      type: [CampaignNameSuggestion],
-      description: 'Campaign names generated successfully'
-    })
+        @ApiResponse({      status: 200,      description: 'Campaign names generated successfully',      type: [CampaignNameSuggestion]    })
     @ApiStandardErrors()
     async regenerateNames(
       @Body() regenerateRequest: RegenerateNamesRequestDto,

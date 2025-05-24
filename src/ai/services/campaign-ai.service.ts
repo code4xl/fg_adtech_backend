@@ -70,16 +70,7 @@ export class CampaignAIService {
     criteria?: string,
     count: number = 3
   ): Promise<CampaignNameSuggestion[]> {
-    const campaign = await this.prisma.campaign.findFirst({
-      where: { id: campaignId, advertiserId },
-      select: {
-        name: true,
-        objective: true,
-        businessCategory: true,
-        websiteUrl: true,
-        targeting: true
-      }
-    });
+        const campaign = await this.prisma.campaign.findFirst({      where: { id: campaignId, advertiserId },      select: {        name: true,        objective: true,        businessCategory: true,        websiteUrl: true      }    });
 
     if (!campaign) {
       throw new BadRequestException('Campaign not found');

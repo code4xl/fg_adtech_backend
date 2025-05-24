@@ -27,9 +27,7 @@ export class AIRateLimitGuard implements CanActivate {
       return false;
     }
 
-    const key = `${this.keyPrefix}${user.id}`;
-    const current = await this.redisService.get(key);
-    const currentCount = current ? parseInt(current, 10) : 0;
+        const key = `${this.keyPrefix}${user.id}`;    const current = await this.redisService.get(key);    const currentCount = current ? parseInt(current as string, 10) : 0;
 
     if (currentCount >= this.maxRequests) {
       const ttl = await this.redisService.ttl(key);

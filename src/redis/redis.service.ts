@@ -1,7 +1,7 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cache } from 'cache-manager';
-import { WithRetry } from 'src/common/resilience/retry.decorator';
+import { WithRetry } from '../common/resilience/retry.decorator';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
@@ -29,9 +29,9 @@ export class RedisService {
     this.pubClient.on('error', (err) => this.logger.error(`Redis Pub Client Error: ${err.message}`, err.stack));
     this.subClient.on('error', (err) => this.logger.error(`Redis Sub Client Error: ${err.message}`, err.stack));
   }
-  @WithRetry(3, 100, 2, [Error])
 
   // Cache methods
+  @WithRetry(3, 100, 2, [Error])
   async get<T>(key: string): Promise<T | undefined> {
     try {
       const result = await this.cache.get<T>(key);
@@ -62,6 +62,14 @@ export class RedisService {
 
   async reset(): Promise<void> {
     await this.cache.clear();
+  }
+
+  async ttl(key: string): Promise<number> {
+    return this.pubClient.ttl(key);
+  }
+
+  async incr(key: string): Promise<number> {
+    return this.pubClient.incr(key);
   }
 
   // Pub/Sub methods
@@ -111,7 +119,6 @@ export class RedisService {
     return notifications.map(notification => JSON.parse(notification));
   }
 
-  // Add this method to your RedisService
   async clearQueuedNotifications(userId: string): Promise<void> {
     try {
       const key = `notifications:queue:${userId}`;
@@ -124,8 +131,8 @@ export class RedisService {
   }
 
   /**
- * Store a broadcast message in the history
- */
+   * Store a broadcast message in the history
+   */
   async storeBroadcast(userType: string, message: any): Promise<void> {
     try {
       const key = `notifications:${userType.toLowerCase()}:broadcast:history`;
@@ -166,8 +173,6 @@ export class RedisService {
       if (!results || results.length === 0) {
         return [];
       }
-
-      await this.pubClient.lrange(key, 0, -1);
 
       // Parse the JSON strings
       return results.map(item => {
