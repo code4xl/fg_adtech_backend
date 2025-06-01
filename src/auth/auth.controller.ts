@@ -26,10 +26,18 @@ import {
   ClientAuthenticationGuard,
   PublisherAuthenticationGuard,
 } from 'src/common/guards/authentication.guard';
-import { AdminGuard, AdvertiserGuard, ClientGuard, PublisherGuard } from 'src/common/guards/authorization.guard';
+import {
+  AdminGuard,
+  AdvertiserGuard,
+  ClientGuard,
+  PublisherGuard,
+} from 'src/common/guards/authorization.guard';
 import { CreateAdvertiserDto } from 'src/advertiser/dto/create-advertiser.dto';
 import { LoginDto } from './dto/login.dto';
-import { RequestPasswordResetDto, ResetPasswordDto } from './dto/reset-password.dto';
+import {
+  RequestPasswordResetDto,
+  ResetPasswordDto,
+} from './dto/reset-password.dto';
 import { ValidationFailedException } from 'src/common/exceptions/custom.exception';
 import { CreatePublisherSignupDto } from 'src/publishers/dto/create-publisher-signup.dto';
 import { ToggleMfaDto, VerifyMfaDto } from './dto/mfa.dto';
@@ -40,7 +48,7 @@ import { RoleGuard } from 'src/common/guards/role.guard';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   @Post('advertiser/signup')
   @ApiOperation({ summary: 'Register a new advertiser' })
@@ -60,7 +68,9 @@ export class AuthController {
     description: 'Publisher has been successfully registered.',
   })
   @ApiResponse({ status: 400, description: 'Bad request.' })
-  async publisherSignup(@Body() createPublisherSignupDto: CreatePublisherSignupDto) {
+  async publisherSignup(
+    @Body() createPublisherSignupDto: CreatePublisherSignupDto,
+  ) {
     return this.authService.publisherSignup(createPublisherSignupDto);
   }
 
@@ -148,15 +158,25 @@ export class AuthController {
   @Post(':role/verify-mfa')
   @ApiOperation({ summary: 'Verify MFA code and complete login' })
   @ApiResponse({ status: 200, description: 'MFA verification successful' })
-  @ApiResponse({ status: 401, description: 'Invalid or expired verification code' })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid or expired verification code',
+  })
   @HttpCode(200)
-  async verifyMfa(@Param('role') role: string, @Body() verifyMfaDto: VerifyMfaDto) {
+  async verifyMfa(
+    @Param('role') role: string,
+    @Body() verifyMfaDto: VerifyMfaDto,
+  ) {
     const validRoles = ['admin', 'advertiser', 'publisher'];
     if (!validRoles.includes(role)) {
       throw new BadRequestException('Invalid role specified');
     }
-    
-    return this.authService.verifyMfaCode(verifyMfaDto.code, verifyMfaDto.tempToken, role);
+
+    return this.authService.verifyMfaCode(
+      verifyMfaDto.code,
+      verifyMfaDto.tempToken,
+      role,
+    );
   }
 
   @Post(':role/toggle-mfa')
@@ -166,17 +186,21 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt'), RoleGuard)
   @ApiBearerAuth()
   @HttpCode(200)
-  async toggleMfa(@Request() req, @Param('role') role: string, @Body() toggleMfaDto: ToggleMfaDto) {
+  async toggleMfa(
+    @Request() req,
+    @Param('role') role: string,
+    @Body() toggleMfaDto: ToggleMfaDto,
+  ) {
     const validRoles = ['admin', 'advertiser', 'publisher'];
     if (!validRoles.includes(role)) {
       throw new BadRequestException('Invalid role specified');
     }
-    
+
     // Ensure the role matches the authenticated user's role
     if (req.user.role !== role) {
       throw new UnauthorizedException('Unauthorized to perform this action');
     }
-    
+
     return this.authService.toggleMfa(req.user.id, role, toggleMfaDto.enable);
   }
 
@@ -191,7 +215,10 @@ export class AuthController {
   }
 
   @Post(':role/forgot-password')
-  async requestPasswordReset(@Param('role') role: string, @Body() dto: RequestPasswordResetDto) {
+  async requestPasswordReset(
+    @Param('role') role: string,
+    @Body() dto: RequestPasswordResetDto,
+  ) {
     let isValidRole = await this.validateRole(role);
 
     if (!isValidRole) {
@@ -219,7 +246,7 @@ export class AuthController {
       await this.authService.verifyResetToken(email, token);
 
       // Redirect to frontend reset password page with params
-      return res.json({ message: "Done" });
+      return res.json({ message: 'Done' });
     } catch (error) {
       // Redirect to error page if token is invalid
       return res.redirect(`${process.env.FRONTEND_URL}/reset-password-error`);

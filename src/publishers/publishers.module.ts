@@ -3,18 +3,15 @@ import { Module } from '@nestjs/common';
 import { PublisherService } from './publisher.service'; // Add this import
 import { AdminPublisherController } from './admin.publisher.controller';
 import { PublisherController } from './publisher.controller';
+import { PublisherWebsiteController } from './publisher.website.controller';
 
 @Module({
   controllers: [
     AdminPublisherController,
-    PublisherController
+    PublisherController,
+    PublisherWebsiteController,
   ],
-  providers: [
-    // PublishersService,
-    PublisherService  
-  ],
-  exports: [
-    PublisherService  
-  ]
+  providers: [PublisherService],
+  exports: [PublisherService],
 })
 export class PublishersModule {}

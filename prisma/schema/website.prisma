@@ -1,7 +1,8 @@
 model Website {
     id          String        @id @default(uuid()) @db.Uuid
     publisherId String        @db.Uuid
-    domain      String        @unique
+    domain      String?       @unique
+    url         String?       @unique
     name        String
     description String?
     isActive    Boolean       @default(true)
@@ -12,7 +13,9 @@ model Website {
     publisher   Publisher     @relation(fields: [publisherId], references: [id], onDelete: Cascade)
     inventories AdInventory[]
 
-    WebsiteCategory WebsiteCategory[]
+    websiteCategories ContentCategory[]
 
     BidRequest BidRequest[]
+
+    @@index([publisherId, url], name: "idx_website_publisher_url")
 }

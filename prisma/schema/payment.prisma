@@ -70,27 +70,3 @@ model Wallet {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 }
-
-// Add payment enums
-enum PaymentType {
-    CREDIT_CARD
-    DEBIT_CARD
-    NET_BANKING
-    UPI
-    WALLET
-}
-
-enum TransactionType {
-    CREDIT
-    DEBIT
-    REFUND
-    ADJUSTMENT
-}
-
-enum TransactionStatus {
-    PENDING
-    COMPLETED
-    FAILED
-    CANCELLED
-    REFUNDED
-}

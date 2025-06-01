@@ -52,7 +52,6 @@ export class PublisherService {
         lastName: createPublisherDto.lastName,
         email: createPublisherDto.email,
         password: hashedPassword,
-        domain: createPublisherDto.domain,
         status: createPublisherDto.status || PublisherStatus.ACTIVE,
       },
     });
@@ -83,38 +82,6 @@ export class PublisherService {
 
     // Return publisher with associated data
     return this.findOne(publisher.id);
-  }
-  async getPublishersByCategoryAndLanguage(
-    categoryId?: string,
-    language?: string,
-  ) {
-    const where: any = {};
-
-    // Add category filter if provided
-    if (categoryId) {
-      where.categories = {
-        some: { categoryId },
-      };
-    }
-
-    // Add language filter if provided
-    if (language) {
-      where.languages = {
-        some: { language },
-      };
-    }
-
-    return this.prisma.publisher.findMany({
-      where,
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        domain: true,
-        status: true,
-      },
-    });
   }
   async findAll(query?: { status?: string; search?: string }) {
     const where: any = {};
@@ -153,15 +120,12 @@ export class PublisherService {
         firstName: true,
         lastName: true,
         email: true,
-        domain: true,
         status: true,
         createdAt: true,
         updatedAt: true,
         _count: {
           select: {
             inventories: true,
-            categories: true,
-            languages: true,
           },
         },
       },
@@ -173,17 +137,8 @@ export class PublisherService {
     const publisher = await this.prisma.publisher.findUnique({
       where: { id },
       include: {
-        categories: {
-          include: {
-            category: true,
-          },
-        },
-        languages: true,
-        _count: {
-          select: {
-            inventories: true,
-          },
-        },
+        inventories: true,
+        websites: true,
       },
     });
 
@@ -221,7 +176,9 @@ export class PublisherService {
     // Hash the password if it's being updated
     let data: any = { ...updatePublisherDto };
     if (updatePublisherDto.password) {
-      data.password = await bcrypt.hash(updatePublisherDto.password, 10);
+      throw new BadRequestException(
+        'Password update is not allowed via this endpoint.',
+      );
     }
 
     // Remove categoryIds and languages from data as they're handled separately
@@ -233,272 +190,142 @@ export class PublisherService {
       data: publisherData,
     });
 
-    // Update categories if provided
-    if (categoryIds && categoryIds.length > 0) {
-      // Get current categories
-      const currentCategories = await this.prisma.publisherCategory.findMany({
-        where: { publisherId: id },
-        select: { categoryId: true },
-      });
-
-      const currentCategoryIds = currentCategories.map((c) => c.categoryId);
-
-      // Categories to add
-      const categoriesToAdd = categoryIds.filter(
-        (catId) => !currentCategoryIds.includes(catId),
-      );
-
-      // Categories to remove
-      const categoriesToRemove = currentCategoryIds.filter(
-        (catId) => !categoryIds.includes(catId),
-      );
-
-      // Add new categories
-      await Promise.all(
-        categoriesToAdd.map((categoryId) =>
-          this.assignCategory(id, categoryId),
-        ),
-      );
-
-      // Remove old categories
-      await Promise.all(
-        categoriesToRemove.map((categoryId) =>
-          this.removeCategory(id, categoryId),
-        ),
-      );
-    }
-
-    // Update languages if provided
-    if (languages && languages.length > 0) {
-      // Get current languages
-      const currentLanguages = await this.prisma.publisherLanguage.findMany({
-        where: { publisherId: id },
-        select: { language: true },
-      });
-
-      const currentLanguageValues = currentLanguages.map((l) => l.language);
-
-      // Languages to add
-      const languagesToAdd = languages.filter(
-        (lang) => !currentLanguageValues.includes(lang as Language),
-      );
-
-      // Languages to remove
-      const languagesToRemove = currentLanguageValues.filter(
-        (lang) => !languages.includes(lang as string),
-      );
-
-      // Add new languages
-      await Promise.all(
-        languagesToAdd.map((language) => this.assignLanguage(id, language)),
-      );
-
-      // Remove old languages
-      await Promise.all(
-        languagesToRemove.map((language) =>
-          this.removeLanguage(id, language as string),
-        ),
-      );
-    }
-
     // Return updated publisher
     return this.findOne(id);
   }
-
-  async remove(id: string) {
+  async deactivatePublisherAccount(id: string) {
     // Check if publisher exists
-    await this.findOne(id);
-
-    // Check if publisher has inventory
-    const inventoryCount = await this.prisma.adInventory.count({
-      where: { publisherId: id },
-    });
-
-    if (inventoryCount > 0) {
-      throw new BadRequestException(
-        'Cannot delete publisher with active inventory. Delete inventory first or deactivate publisher instead.',
-      );
+    const publisher = await this.findOne(id);
+    if (!publisher) {
+      throw new ResourceNotFoundException('Publisher', id);
     }
-
-    // Delete publisher and all related data (categories, languages)
-    return this.prisma.publisher.delete({
+    // Deactivate the publisher account
+    return this.prisma.publisher.update({
       where: { id },
-    });
-  }
-
-  async getPublisherInventory(publisherId: string) {
-    // Verify publisher exists
-    await this.findOne(publisherId);
-
-    return this.prisma.adInventory.findMany({
-      where: { publisherId },
-      include: {
-        floorPrices: {
-          where: {
-            startDate: { lte: new Date() },
-            OR: [{ endDate: { gte: new Date() } }, { endDate: null }],
-          },
-          orderBy: { startDate: 'desc' },
-          take: 1,
-        },
-        categories: {
-          include: {
-            category: true,
-          },
-        },
-        _count: {
-          select: {
-            impressions: true,
-          },
-        },
-      },
-    });
-  }
-
-  async getPublisherCategories(publisherId: string) {
-    // Verify publisher exists
-    await this.findOne(publisherId);
-
-    return this.prisma.publisherCategory.findMany({
-      where: { publisherId },
-      include: {
-        category: true,
-      },
-    });
-  }
-
-  async assignCategory(publisherId: string, categoryId: string) {
-    // Verify publisher exists
-    await this.findOne(publisherId);
-
-    // Verify category exists
-    const category = await this.prisma.contentCategory.findUnique({
-      where: { id: categoryId },
-    });
-
-    if (!category) {
-      throw new ResourceNotFoundException('Category', categoryId);
-    }
-
-    // Check if assignment already exists
-    const existingAssignment = await this.prisma.publisherCategory.findFirst({
-      where: {
-        publisherId,
-        categoryId,
-      },
-    });
-
-    if (existingAssignment) {
-      return existingAssignment;
-    }
-
-    // Create new assignment
-    return this.prisma.publisherCategory.create({
       data: {
-        publisherId,
-        categoryId,
+        status: PublisherStatus.DEACTIVATED,
       },
     });
   }
-
-  async removeCategory(publisherId: string, categoryId: string) {
-    // Verify assignment exists
-    const assignment = await this.prisma.publisherCategory.findFirst({
-      where: {
-        publisherId,
-        categoryId,
-      },
+  async createWebsite(createWebsiteDto: CreateWebsiteDto) {
+    // Check if publisher exists
+    const publisher = await this.prisma.publisher.findUnique({
+      where: { id: createWebsiteDto.publisherId },
     });
 
-    if (!assignment) {
+    if (!publisher) {
       throw new ResourceNotFoundException(
-        'Category assignment',
-        `${publisherId}:${categoryId}`,
+        'Publisher',
+        createWebsiteDto.publisherId,
+      );
+    }
+    // Generate Initialization Script
+    const initializationScript = `
+    <script></script>`;
+    // Check if website URL already exists
+    const existingWebsite = await this.prisma.website.findUnique({
+      where: { url: createWebsiteDto.url },
+    });
+
+    if (existingWebsite) {
+      throw new DuplicateResourceException(
+        'Website',
+        'url',
+        createWebsiteDto.url,
       );
     }
 
-    // Delete assignment
-    return this.prisma.publisherCategory.delete({
-      where: {
-        publisherId_categoryId: {
-          publisherId,
-          categoryId,
+    // Create website
+    let data = await this.prisma.website.create({
+      data: {
+        url: createWebsiteDto.url,
+        name: createWebsiteDto.websiteName,
+        publisherId: createWebsiteDto.publisherId,
+        initScript: initializationScript,
+        isActive: true,
+        description: createWebsiteDto.description || '',
+        websiteCategories: {
+          connect: createWebsiteDto.categoryIds.map((id) => ({ id })),
         },
       },
     });
+    return data;
   }
-
-  async getPublisherLanguages(publisherId: string) {
-    // Verify publisher exists
+  async getAllWebsites(publisherId: string) {
     await this.findOne(publisherId);
 
-    return this.prisma.publisherLanguage.findMany({
+    const data = await this.prisma.website.findMany({
       where: { publisherId },
+      include: {
+        inventories: true,
+        websiteCategories: true,
+      },
     });
+
+    return data;
   }
-
-  async assignLanguage(publisherId: string, language: string) {
-    // Verify publisher exists
-    await this.findOne(publisherId);
-
-    // Verify language is valid
-    if (!Object.values(Language).includes(language as Language)) {
-      throw new BadRequestException(`Invalid language: ${language}`);
-    }
-
-    // Check if assignment already exists
-    const existingAssignment = await this.prisma.publisherLanguage.findFirst({
-      where: {
-        publisherId,
-        language: language as Language,
+  async getWebsiteById(publisherId: string, websiteId: string) {
+    const website = await this.prisma.website.findUnique({
+      where: { id: websiteId, publisherId, isActive: true },
+      include: {
+        inventories: true,
+        websiteCategories: true,
       },
     });
-
-    if (existingAssignment) {
-      return existingAssignment;
+    if (!website) {
+      throw new ResourceNotFoundException('Website', websiteId);
     }
-
-    // Create new assignment
-    return this.prisma.publisherLanguage.create({
-      data: {
-        publisherId,
-        language: language as Language,
-      },
-    });
+    return website;
   }
-
-  async removeLanguage(publisherId: string, language: string) {
-    // Verify language is valid
-    if (!Object.values(Language).includes(language as Language)) {
-      throw new BadRequestException(`Invalid language: ${language}`);
-    }
-
-    // Verify assignment exists
-    const assignment = await this.prisma.publisherLanguage.findFirst({
-      where: {
-        publisherId,
-        language: language as Language,
+  async getWebsiteByURL(publisherId: string, websiteURL: string) {
+    const website = await this.prisma.website.findUnique({
+      where: { url: websiteURL, publisherId, isActive: true },
+      include: {
+        inventories: true,
+        websiteCategories: true,
       },
     });
+    if (!website) {
+      throw new ResourceNotFoundException('Website', websiteURL);
+    }
+    return website;
+  }
+  async activateWebsite(publisherId: string, websiteId: string) {
+    await this.getWebsiteById(publisherId, websiteId);
+    const data = await this.prisma.website.update({
+      where: { id: websiteId },
+      data: { isActive: true },
+    });
 
-    if (!assignment) {
-      throw new ResourceNotFoundException(
-        'Language assignment',
-        `${publisherId}:${language}`,
+    return data;
+  }
+  async deleteWebsite(publisherId: string, websiteId: string) {
+    await this.getWebsiteById(publisherId, websiteId);
+
+    // Check if website has active inventories
+    const activeInventories = await this.prisma.adInventory.count({
+      where: {
+        websiteId: websiteId,
+        isActive: true,
+      },
+    });
+    if (activeInventories > 0) {
+      throw new BadRequestException(
+        'Cannot delete website with active inventories. Please deactivate them first.',
       );
     }
-
-    // Delete assignment
-    return this.prisma.publisherLanguage.delete({
-      where: {
-        publisherId_language: {
-          publisherId,
-          language: language as Language,
-        },
+    // Delete website
+    return await this.prisma.website.update({
+      where: { id: websiteId },
+      data: {
+        isActive: false, // Soft delete
       },
     });
   }
-
+  async getAvailableAdSlotTemplates() {
+    const adSlotTypes = await this.prisma.adSlotTemplate.findMany({});
+    return adSlotTypes;
+  }
   // Inventory Management Methods
   async createInventory(
     publisherId: string,
@@ -1258,26 +1085,6 @@ export class PublisherService {
     // Get targeting rules
     return this.prisma.inventoryTargetingRule.findMany({
       where: { inventoryId },
-    });
-  }
-
-  async createWebsite(publisherId: string, createWebsiteDto: CreateWebsiteDto) {
-    const publisher = await this.prisma.publisher.findUnique({
-      where: { id: publisherId },
-    });
-
-    if (!publisher) {
-      throw new ResourceNotFoundException('Publisher', publisherId);
-    }
-
-    const existingWebsite = await this.prisma.website.findFirst({
-      where: {
-        OR: [
-          { url: createWebsiteDto.url },
-          { websiteName: createWebsiteDto.websiteName },
-        ],
-        publisherId,
-      },
     });
   }
 }

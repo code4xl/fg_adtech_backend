@@ -28,6 +28,7 @@ import { ResilienceModule } from './common/resilience/resilience.module';
 import { RtbModule } from './rtb/rtb.module';
 import { NotificationModule } from './notification/notification.module';
 import { AiModule } from './ai/ai.module';
+import { PublishersModule } from './publishers/publishers.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -105,4 +106,4 @@ import { AiModule } from './ai/ai.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

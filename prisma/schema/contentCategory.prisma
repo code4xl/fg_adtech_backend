@@ -8,17 +8,5 @@ model ContentCategory {
   updatedAt   DateTime @updatedAt
 
   // Only keep website relationship for basic categorization
-  websites WebsiteCategory[]
-}
-
-// Keep this relationship for basic website categorization
-model WebsiteCategory {
-  websiteId  String   @db.Uuid
-  categoryId String   @db.Uuid
-  createdAt  DateTime @default(now())
-
-  website  Website         @relation(fields: [websiteId], references: [id], onDelete: Cascade)
-  category ContentCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-
-  @@id([websiteId, categoryId])
+  websites Website[]
 }
