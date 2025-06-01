@@ -1,14 +1,24 @@
+// Simplified ContentCategory - No hierarchy, just flat categories
 model ContentCategory {
   id          String   @id @default(uuid()) @db.Uuid
-  name        String
-  parentId    String?  @db.Uuid
+  name        String   @unique // "Technology", "Finance", "Sports", "Entertainment"
   description String?
+  isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Relations
-  parentCategory  ContentCategory?    @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  childCategories ContentCategory[]   @relation("CategoryHierarchy")
-  inventories     InventoryCategory[]
-  publishers      PublisherCategory[]
+  // Only keep website relationship for basic categorization
+  websites WebsiteCategory[]
+}
+
+// Keep this relationship for basic website categorization
+model WebsiteCategory {
+  websiteId  String   @db.Uuid
+  categoryId String   @db.Uuid
+  createdAt  DateTime @default(now())
+
+  website  Website         @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  category ContentCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([websiteId, categoryId])
 }

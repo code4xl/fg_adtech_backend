@@ -21,9 +21,6 @@ model Publisher {
 
   // Relations
   inventories AdInventory[]
-  categories  PublisherCategory[]
-
-  languages   PublisherLanguage[] // not needed
   bidRequests BidRequest[]
 
   websites Website[]

@@ -15,7 +15,6 @@ model AdInventory {
   // Relations
   publisher        Publisher                @relation(fields: [publisherId], references: [id])
   floorPrices      FloorPrice[]
-  categories       InventoryCategory[]
   bidRequests      BidRequest[]
   targetingRules   InventoryTargetingRule[]
 

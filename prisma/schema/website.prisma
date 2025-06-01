@@ -11,4 +11,6 @@ model Website {
     // Relations
     publisher   Publisher     @relation(fields: [publisherId], references: [id], onDelete: Cascade)
     inventories AdInventory[]
+
+    WebsiteCategory WebsiteCategory[]
 }
