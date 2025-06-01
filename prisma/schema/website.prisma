@@ -13,4 +13,6 @@ model Website {
     inventories AdInventory[]
 
     WebsiteCategory WebsiteCategory[]
+
+    BidRequest BidRequest[]
 }

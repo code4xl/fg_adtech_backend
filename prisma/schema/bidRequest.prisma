@@ -22,6 +22,7 @@ model BidRequest {
   // Relations
   inventory    AdInventory   @relation(fields: [inventoryId], references: [id])
   publisher    Publisher     @relation(fields: [publisherId], references: [id])
+  website      Website?      @relation(fields: [websiteId], references: [id])
   bidResponses BidResponse[] // Relation to bid responses
   auctionLogs  AuctionLog[] // Relation to auction logs
 }
