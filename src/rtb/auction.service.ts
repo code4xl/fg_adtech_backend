@@ -35,7 +35,7 @@ export class AuctionService {
 
       // 1. Find eligible campaigns
       const eligibleCampaigns =
-        await this.campaignEligibility.getEligibleCampaigns(bidRequest);
+        await this.campaignEligibility.getEligibleCampaigns(bidRequest); //ambiguous
 
       if (eligibleCampaigns.length === 0) {
         this.logger.debug(`No eligible campaigns for auction ${auctionId}`);

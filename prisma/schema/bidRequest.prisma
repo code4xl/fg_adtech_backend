@@ -3,6 +3,7 @@ model BidRequest {
   requestId        String      @unique // Unique ID for external reference
   inventoryId      String      @db.Uuid
   publisherId      String      @db.Uuid
+  websiteId        String?     @db.Uuid // Optional website ID for the publisher
   userAgent        String?
   ipAddress        String?
   deviceType       String?

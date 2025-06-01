@@ -29,6 +29,4 @@ model Advertiser {
     Campaign           Campaign[]
 
     bidResponses BidResponse[]
-
-    Impression Impression[]
 }

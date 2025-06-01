@@ -1,3 +1,4 @@
+// done
 import { Injectable, Logger } from '@nestjs/common';
 import { AuctionLogStatus } from '@prisma/client';
 import { kafkaTopics } from 'src/kafka/constants/kafka.config';

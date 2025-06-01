@@ -30,6 +30,16 @@ services:
       - kafka-data:/bitnami/kafka
     networks:
       - app-network
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1',
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
   # Keep the management tools for development
   kafdrop:
@@ -41,7 +51,8 @@ services:
       - KAFKA_BROKERCONNECT=kafka:9092
       - JVM_OPTS=-Xms32M -Xmx64M
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     networks:
       - app-network
 
@@ -55,24 +66,19 @@ services:
       - app-network
     volumes:
       - redis-data:/data
-
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    container_name: redis-commander
-    ports:
-      - '8081:8081'
-    environment:
-      - REDIS_HOSTS=local:redis:6379
-    depends_on:
-      - redis
-    networks:
-      - app-network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   api:
     container_name: nestjs_api_dev
     depends_on:
-      - kafka
-      - redis
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     build:
       context: .
       dockerfile: Dockerfile.dev
@@ -85,6 +91,7 @@ services:
       - .env.development
     networks:
       - app-network
+    restart: unless-stopped
 
 networks:
   app-network:

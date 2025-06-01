@@ -7,7 +7,7 @@ import * as bcrypt from 'bcryptjs';
 import {
   ResourceNotFoundException,
   DuplicateResourceException,
-  BadRequestException
+  BadRequestException,
 } from '../common/exceptions/custom.exception';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { UpdateInventoryDto } from './dto/update-inventory.dto';
@@ -15,12 +15,13 @@ import { CreateFloorPriceDto } from './dto/create-floor-price.dto';
 import { UpdateFloorPriceDto } from './dto/update-floor-price.dto';
 import { CreateTargetingRuleDto } from './dto/create-targeting-rule.dto';
 import { UpdateTargetingRuleDto } from './dto/update-targeting-rule.dto';
+import { CreateWebsiteDto } from './dto/create-website.dto';
 
 // Since the ApprovalStatus enum might be causing issues, define it here
 enum ApprovalStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
-  REJECTED = 'REJECTED'
+  REJECTED = 'REJECTED',
 }
 
 @Injectable()
@@ -30,14 +31,14 @@ export class PublisherService {
   async create(createPublisherDto: CreatePublisherDto) {
     // Check if email already exists
     const existingPublisher = await this.prisma.publisher.findUnique({
-      where: { email: createPublisherDto.email }
+      where: { email: createPublisherDto.email },
     });
 
     if (existingPublisher) {
       throw new DuplicateResourceException(
         'Publisher',
         'email',
-        createPublisherDto.email
+        createPublisherDto.email,
       );
     }
 
@@ -52,48 +53,57 @@ export class PublisherService {
         email: createPublisherDto.email,
         password: hashedPassword,
         domain: createPublisherDto.domain,
-        status: createPublisherDto.status || PublisherStatus.ACTIVE
-      }
+        status: createPublisherDto.status || PublisherStatus.ACTIVE,
+      },
     });
 
     // Assign categories if provided
-    if (createPublisherDto.categoryIds && createPublisherDto.categoryIds.length > 0) {
+    if (
+      createPublisherDto.categoryIds &&
+      createPublisherDto.categoryIds.length > 0
+    ) {
       await Promise.all(
-        createPublisherDto.categoryIds.map(categoryId =>
-          this.assignCategory(publisher.id, categoryId)
-        )
+        createPublisherDto.categoryIds.map((categoryId) =>
+          this.assignCategory(publisher.id, categoryId),
+        ),
       );
     }
 
     // Assign languages if provided
-    if (createPublisherDto.languages && createPublisherDto.languages.length > 0) {
+    if (
+      createPublisherDto.languages &&
+      createPublisherDto.languages.length > 0
+    ) {
       await Promise.all(
-        createPublisherDto.languages.map(language =>
-          this.assignLanguage(publisher.id, language)
-        )
+        createPublisherDto.languages.map((language) =>
+          this.assignLanguage(publisher.id, language),
+        ),
       );
     }
 
     // Return publisher with associated data
     return this.findOne(publisher.id);
   }
-  async getPublishersByCategoryAndLanguage(categoryId?: string, language?: string) {
+  async getPublishersByCategoryAndLanguage(
+    categoryId?: string,
+    language?: string,
+  ) {
     const where: any = {};
-    
+
     // Add category filter if provided
     if (categoryId) {
       where.categories = {
-        some: { categoryId }
+        some: { categoryId },
       };
     }
-    
+
     // Add language filter if provided
     if (language) {
       where.languages = {
-        some: { language }
+        some: { language },
       };
     }
-    
+
     return this.prisma.publisher.findMany({
       where,
       select: {
@@ -102,8 +112,8 @@ export class PublisherService {
         lastName: true,
         email: true,
         domain: true,
-        status: true
-      }
+        status: true,
+      },
     });
   }
   async findAll(query?: { status?: string; search?: string }) {
@@ -118,21 +128,21 @@ export class PublisherService {
         {
           firstName: {
             contains: query.search,
-            mode: 'insensitive'
-          }
+            mode: 'insensitive',
+          },
         },
         {
           lastName: {
             contains: query.search,
-            mode: 'insensitive'
-          }
+            mode: 'insensitive',
+          },
         },
         {
           email: {
             contains: query.search,
-            mode: 'insensitive'
-          }
-        }
+            mode: 'insensitive',
+          },
+        },
       ];
     }
 
@@ -151,11 +161,11 @@ export class PublisherService {
           select: {
             inventories: true,
             categories: true,
-            languages: true
-          }
-        }
+            languages: true,
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -165,16 +175,16 @@ export class PublisherService {
       include: {
         categories: {
           include: {
-            category: true
-          }
+            category: true,
+          },
         },
         languages: true,
         _count: {
           select: {
-            inventories: true
-          }
-        }
-      }
+            inventories: true,
+          },
+        },
+      },
     });
 
     if (!publisher) {
@@ -195,15 +205,15 @@ export class PublisherService {
       const existingPublisher = await this.prisma.publisher.findFirst({
         where: {
           email: updatePublisherDto.email,
-          id: { not: id }
-        }
+          id: { not: id },
+        },
       });
 
       if (existingPublisher) {
         throw new DuplicateResourceException(
           'Publisher',
           'email',
-          updatePublisherDto.email
+          updatePublisherDto.email,
         );
       }
     }
@@ -220,7 +230,7 @@ export class PublisherService {
     // Update publisher basic info
     await this.prisma.publisher.update({
       where: { id },
-      data: publisherData
+      data: publisherData,
     });
 
     // Update categories if provided
@@ -228,33 +238,33 @@ export class PublisherService {
       // Get current categories
       const currentCategories = await this.prisma.publisherCategory.findMany({
         where: { publisherId: id },
-        select: { categoryId: true }
+        select: { categoryId: true },
       });
-      
-      const currentCategoryIds = currentCategories.map(c => c.categoryId);
-      
+
+      const currentCategoryIds = currentCategories.map((c) => c.categoryId);
+
       // Categories to add
       const categoriesToAdd = categoryIds.filter(
-        catId => !currentCategoryIds.includes(catId)
+        (catId) => !currentCategoryIds.includes(catId),
       );
-      
+
       // Categories to remove
       const categoriesToRemove = currentCategoryIds.filter(
-        catId => !categoryIds.includes(catId)
+        (catId) => !categoryIds.includes(catId),
       );
-      
+
       // Add new categories
       await Promise.all(
-        categoriesToAdd.map(categoryId => 
-          this.assignCategory(id, categoryId)
-        )
+        categoriesToAdd.map((categoryId) =>
+          this.assignCategory(id, categoryId),
+        ),
       );
-      
+
       // Remove old categories
       await Promise.all(
-        categoriesToRemove.map(categoryId => 
-          this.removeCategory(id, categoryId)
-        )
+        categoriesToRemove.map((categoryId) =>
+          this.removeCategory(id, categoryId),
+        ),
       );
     }
 
@@ -263,33 +273,31 @@ export class PublisherService {
       // Get current languages
       const currentLanguages = await this.prisma.publisherLanguage.findMany({
         where: { publisherId: id },
-        select: { language: true }
+        select: { language: true },
       });
-      
-      const currentLanguageValues = currentLanguages.map(l => l.language);
-      
+
+      const currentLanguageValues = currentLanguages.map((l) => l.language);
+
       // Languages to add
       const languagesToAdd = languages.filter(
-        lang => !currentLanguageValues.includes(lang as Language)
+        (lang) => !currentLanguageValues.includes(lang as Language),
       );
-      
+
       // Languages to remove
       const languagesToRemove = currentLanguageValues.filter(
-        lang => !languages.includes(lang as string)
+        (lang) => !languages.includes(lang as string),
       );
-      
+
       // Add new languages
       await Promise.all(
-        languagesToAdd.map(language => 
-          this.assignLanguage(id, language)
-        )
+        languagesToAdd.map((language) => this.assignLanguage(id, language)),
       );
-      
+
       // Remove old languages
       await Promise.all(
-        languagesToRemove.map(language => 
-          this.removeLanguage(id, language as string)
-        )
+        languagesToRemove.map((language) =>
+          this.removeLanguage(id, language as string),
+        ),
       );
     }
 
@@ -303,18 +311,18 @@ export class PublisherService {
 
     // Check if publisher has inventory
     const inventoryCount = await this.prisma.adInventory.count({
-      where: { publisherId: id }
+      where: { publisherId: id },
     });
 
     if (inventoryCount > 0) {
       throw new BadRequestException(
-        'Cannot delete publisher with active inventory. Delete inventory first or deactivate publisher instead.'
+        'Cannot delete publisher with active inventory. Delete inventory first or deactivate publisher instead.',
       );
     }
 
     // Delete publisher and all related data (categories, languages)
     return this.prisma.publisher.delete({
-      where: { id }
+      where: { id },
     });
   }
 
@@ -328,25 +336,22 @@ export class PublisherService {
         floorPrices: {
           where: {
             startDate: { lte: new Date() },
-            OR: [
-              { endDate: { gte: new Date() } },
-              { endDate: null }
-            ]
+            OR: [{ endDate: { gte: new Date() } }, { endDate: null }],
           },
           orderBy: { startDate: 'desc' },
-          take: 1
+          take: 1,
         },
         categories: {
           include: {
-            category: true
-          }
+            category: true,
+          },
         },
         _count: {
           select: {
-            impressions: true
-          }
-        }
-      }
+            impressions: true,
+          },
+        },
+      },
     });
   }
 
@@ -357,8 +362,8 @@ export class PublisherService {
     return this.prisma.publisherCategory.findMany({
       where: { publisherId },
       include: {
-        category: true
-      }
+        category: true,
+      },
     });
   }
 
@@ -368,7 +373,7 @@ export class PublisherService {
 
     // Verify category exists
     const category = await this.prisma.contentCategory.findUnique({
-      where: { id: categoryId }
+      where: { id: categoryId },
     });
 
     if (!category) {
@@ -379,8 +384,8 @@ export class PublisherService {
     const existingAssignment = await this.prisma.publisherCategory.findFirst({
       where: {
         publisherId,
-        categoryId
-      }
+        categoryId,
+      },
     });
 
     if (existingAssignment) {
@@ -391,8 +396,8 @@ export class PublisherService {
     return this.prisma.publisherCategory.create({
       data: {
         publisherId,
-        categoryId
-      }
+        categoryId,
+      },
     });
   }
 
@@ -401,14 +406,14 @@ export class PublisherService {
     const assignment = await this.prisma.publisherCategory.findFirst({
       where: {
         publisherId,
-        categoryId
-      }
+        categoryId,
+      },
     });
 
     if (!assignment) {
       throw new ResourceNotFoundException(
         'Category assignment',
-        `${publisherId}:${categoryId}`
+        `${publisherId}:${categoryId}`,
       );
     }
 
@@ -417,9 +422,9 @@ export class PublisherService {
       where: {
         publisherId_categoryId: {
           publisherId,
-          categoryId
-        }
-      }
+          categoryId,
+        },
+      },
     });
   }
 
@@ -428,7 +433,7 @@ export class PublisherService {
     await this.findOne(publisherId);
 
     return this.prisma.publisherLanguage.findMany({
-      where: { publisherId }
+      where: { publisherId },
     });
   }
 
@@ -445,8 +450,8 @@ export class PublisherService {
     const existingAssignment = await this.prisma.publisherLanguage.findFirst({
       where: {
         publisherId,
-        language: language as Language
-      }
+        language: language as Language,
+      },
     });
 
     if (existingAssignment) {
@@ -457,8 +462,8 @@ export class PublisherService {
     return this.prisma.publisherLanguage.create({
       data: {
         publisherId,
-        language: language as Language
-      }
+        language: language as Language,
+      },
     });
   }
 
@@ -472,14 +477,14 @@ export class PublisherService {
     const assignment = await this.prisma.publisherLanguage.findFirst({
       where: {
         publisherId,
-        language: language as Language
-      }
+        language: language as Language,
+      },
     });
 
     if (!assignment) {
       throw new ResourceNotFoundException(
         'Language assignment',
-        `${publisherId}:${language}`
+        `${publisherId}:${language}`,
       );
     }
 
@@ -488,14 +493,17 @@ export class PublisherService {
       where: {
         publisherId_language: {
           publisherId,
-          language: language as Language
-        }
-      }
+          language: language as Language,
+        },
+      },
     });
   }
 
   // Inventory Management Methods
-  async createInventory(publisherId: string, createInventoryDto: CreateInventoryDto) {
+  async createInventory(
+    publisherId: string,
+    createInventoryDto: CreateInventoryDto,
+  ) {
     // Verify publisher exists
     await this.findOne(publisherId);
 
@@ -508,9 +516,12 @@ export class PublisherService {
         position: 'IN_CONTENT', // Default position, should come from DTO
         width: 300, // Default width, should come from DTO
         height: 250, // Default height, should come from DTO
-        isActive: createInventoryDto.active !== undefined ? createInventoryDto.active : true,
+        isActive:
+          createInventoryDto.active !== undefined
+            ? createInventoryDto.active
+            : true,
         approvalStatus: ApprovalStatus.PENDING,
-      }
+      },
     });
 
     // Create floor price if provided
@@ -521,17 +532,21 @@ export class PublisherService {
           basePrice: createInventoryDto.floorPrice,
           currency: 'USD', // Default currency
           startDate: new Date(),
-        }
+        },
       });
     }
 
     return inventory;
   }
 
-  async updatePublisherInventory(publisherId: string, inventoryId: string, updateInventoryDto: UpdateInventoryDto) {
+  async updatePublisherInventory(
+    publisherId: string,
+    inventoryId: string,
+    updateInventoryDto: UpdateInventoryDto,
+  ) {
     // Verify inventory exists and belongs to publisher
     const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
+      where: { id: inventoryId },
     });
 
     if (!inventory) {
@@ -539,7 +554,9 @@ export class PublisherService {
     }
 
     if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to update this inventory');
+      throw new ForbiddenException(
+        'You do not have permission to update this inventory',
+      );
     }
 
     // Update inventory
@@ -547,8 +564,8 @@ export class PublisherService {
       where: { id: inventoryId },
       data: {
         name: updateInventoryDto.name,
-        isActive: updateInventoryDto.active
-      }
+        isActive: updateInventoryDto.active,
+      },
     });
 
     // Update floor price if provided
@@ -557,19 +574,16 @@ export class PublisherService {
         where: {
           inventoryId,
           startDate: { lte: new Date() },
-          OR: [
-            { endDate: { gte: new Date() } },
-            { endDate: null }
-          ]
+          OR: [{ endDate: { gte: new Date() } }, { endDate: null }],
         },
-        orderBy: { startDate: 'desc' }
+        orderBy: { startDate: 'desc' },
       });
 
       if (existingFloorPrice) {
         // End the current floor price
         await this.prisma.floorPrice.update({
           where: { id: existingFloorPrice.id },
-          data: { endDate: new Date() }
+          data: { endDate: new Date() },
         });
       }
 
@@ -579,8 +593,8 @@ export class PublisherService {
           inventoryId,
           basePrice: updateInventoryDto.floorPrice,
           currency: 'USD',
-          startDate: new Date()
-        }
+          startDate: new Date(),
+        },
       });
     }
 
@@ -590,7 +604,7 @@ export class PublisherService {
   async deletePublisherInventory(publisherId: string, inventoryId: string) {
     // Verify inventory exists and belongs to publisher
     const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
+      where: { id: inventoryId },
     });
 
     if (!inventory) {
@@ -598,37 +612,43 @@ export class PublisherService {
     }
 
     if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to delete this inventory');
+      throw new ForbiddenException(
+        'You do not have permission to delete this inventory',
+      );
     }
 
     // Check if inventory has active campaigns
     const campaignCount = await this.prisma.campaignInventory.count({
-      where: { 
+      where: {
         inventoryId,
         campaign: {
           status: {
-            in: ['ACTIVE', 'SCHEDULED']
-          }
-        }
-      }
+            in: ['ACTIVE', 'SCHEDULED'],
+          },
+        },
+      },
     });
 
     if (campaignCount > 0) {
       throw new BadRequestException(
-        'Cannot delete inventory with active campaigns. Please deactivate inventory instead.'
+        'Cannot delete inventory with active campaigns. Please deactivate inventory instead.',
       );
     }
 
     // Delete inventory and all related data
     return this.prisma.adInventory.delete({
-      where: { id: inventoryId }
+      where: { id: inventoryId },
     });
   }
 
-  async toggleInventoryStatus(publisherId: string, inventoryId: string, active: boolean) {
+  async toggleInventoryStatus(
+    publisherId: string,
+    inventoryId: string,
+    active: boolean,
+  ) {
     // Verify inventory exists and belongs to publisher
     const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
+      where: { id: inventoryId },
     });
 
     if (!inventory) {
@@ -636,20 +656,27 @@ export class PublisherService {
     }
 
     if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to update this inventory');
+      throw new ForbiddenException(
+        'You do not have permission to update this inventory',
+      );
     }
 
     // Update inventory status
     return this.prisma.adInventory.update({
       where: { id: inventoryId },
-      data: { isActive: active }
+      data: { isActive: active },
     });
   }
 
-  async getInventoryMetrics(publisherId: string, inventoryId: string, startDate: string, endDate: string) {
+  async getInventoryMetrics(
+    publisherId: string,
+    inventoryId: string,
+    startDate: string,
+    endDate: string,
+  ) {
     // Verify inventory exists and belongs to publisher
     const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
+      where: { id: inventoryId },
     });
 
     if (!inventory) {
@@ -657,11 +684,15 @@ export class PublisherService {
     }
 
     if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to view metrics for this inventory');
+      throw new ForbiddenException(
+        'You do not have permission to view metrics for this inventory',
+      );
     }
 
     // Parse dates
-    const start = startDate ? new Date(startDate) : new Date(new Date().setDate(new Date().getDate() - 30));
+    const start = startDate
+      ? new Date(startDate)
+      : new Date(new Date().setDate(new Date().getDate() - 30));
     const end = endDate ? new Date(endDate) : new Date();
 
     // Get impressions data
@@ -671,15 +702,15 @@ export class PublisherService {
         inventoryId,
         createdAt: {
           gte: start,
-          lte: end
-        }
+          lte: end,
+        },
       },
       _count: {
-        id: true
+        id: true,
       },
       _sum: {
-        revenue: true
-      }
+        revenue: true,
+      },
     });
 
     // Get clicks data
@@ -687,16 +718,16 @@ export class PublisherService {
       by: ['createdAt'],
       where: {
         impression: {
-          inventoryId
+          inventoryId,
         },
         createdAt: {
           gte: start,
-          lte: end
-        }
+          lte: end,
+        },
       },
       _count: {
-        id: true
-      }
+        id: true,
+      },
     });
 
     // Format the metrics
@@ -704,19 +735,21 @@ export class PublisherService {
     const metricsMap = new Map();
 
     // Initialize metrics map with dates
-    dateRange.forEach(date => {
+    dateRange.forEach((date) => {
       metricsMap.set(date.toISOString().split('T')[0], {
         date: date.toISOString().split('T')[0],
         impressions: 0,
         clicks: 0,
         ctr: 0,
-        revenue: 0
+        revenue: 0,
       });
     });
 
     // Fill in impressions data
-    impressions.forEach(impression => {
-      const dateKey = new Date(impression.createdAt).toISOString().split('T')[0];
+    impressions.forEach((impression) => {
+      const dateKey = new Date(impression.createdAt)
+        .toISOString()
+        .split('T')[0];
       if (metricsMap.has(dateKey)) {
         const metrics = metricsMap.get(dateKey);
         metrics.impressions = impression._count.id;
@@ -726,7 +759,7 @@ export class PublisherService {
     });
 
     // Fill in clicks data
-    clicks.forEach(click => {
+    clicks.forEach((click) => {
       const dateKey = new Date(click.createdAt).toISOString().split('T')[0];
       if (metricsMap.has(dateKey)) {
         const metrics = metricsMap.get(dateKey);
@@ -743,10 +776,20 @@ export class PublisherService {
     const metricsArray = Array.from(metricsMap.values());
 
     // Calculate totals
-    const totalImpressions = metricsArray.reduce((sum, metric) => sum + metric.impressions, 0);
-    const totalClicks = metricsArray.reduce((sum, metric) => sum + metric.clicks, 0);
-    const totalRevenue = metricsArray.reduce((sum, metric) => sum + metric.revenue, 0);
-    const totalCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+    const totalImpressions = metricsArray.reduce(
+      (sum, metric) => sum + metric.impressions,
+      0,
+    );
+    const totalClicks = metricsArray.reduce(
+      (sum, metric) => sum + metric.clicks,
+      0,
+    );
+    const totalRevenue = metricsArray.reduce(
+      (sum, metric) => sum + metric.revenue,
+      0,
+    );
+    const totalCtr =
+      totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
 
     return {
       daily: metricsArray,
@@ -757,9 +800,9 @@ export class PublisherService {
         revenue: totalRevenue,
         period: {
           start: start.toISOString().split('T')[0],
-          end: end.toISOString().split('T')[0]
-        }
-      }
+          end: end.toISOString().split('T')[0],
+        },
+      },
     };
   }
 
@@ -777,10 +820,14 @@ export class PublisherService {
   }
 
   // Category Management Methods
-  async assignCategoriesToInventory(publisherId: string, inventoryId: string, categoryIds: string[]) {
+  async assignCategoriesToInventory(
+    publisherId: string,
+    inventoryId: string,
+    categoryIds: string[],
+  ) {
     // Verify inventory exists and belongs to publisher
     const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
+      where: { id: inventoryId },
     });
 
     if (!inventory) {
@@ -788,30 +835,32 @@ export class PublisherService {
     }
 
     if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to update this inventory');
+      throw new ForbiddenException(
+        'You do not have permission to update this inventory',
+      );
     }
 
     // Get current categories
     const currentCategories = await this.prisma.inventoryCategory.findMany({
       where: { inventoryId },
-      select: { categoryId: true }
+      select: { categoryId: true },
     });
-    
-    const currentCategoryIds = currentCategories.map(c => c.categoryId);
-    
+
+    const currentCategoryIds = currentCategories.map((c) => c.categoryId);
+
     // Categories to add
     const categoriesToAdd = categoryIds.filter(
-      catId => !currentCategoryIds.includes(catId)
+      (catId) => !currentCategoryIds.includes(catId),
     );
-    
+
     // Add new categories
     await Promise.all(
       categoriesToAdd.map(async (categoryId) => {
         // Verify category exists
         const category = await this.prisma.contentCategory.findUnique({
-          where: { id: categoryId }
+          where: { id: categoryId },
         });
-        
+
         if (!category) {
           throw new ResourceNotFoundException('Category', categoryId);
         }
@@ -819,24 +868,28 @@ export class PublisherService {
         return this.prisma.inventoryCategory.create({
           data: {
             inventoryId,
-            categoryId
-          }
+            categoryId,
+          },
         });
-      })
+      }),
     );
 
     return this.prisma.inventoryCategory.findMany({
       where: { inventoryId },
       include: {
-        category: true
-      }
+        category: true,
+      },
     });
   }
 
-  async removeCategoryFromInventory(publisherId: string, inventoryId: string, categoryId: string) {
+  async removeCategoryFromInventory(
+    publisherId: string,
+    inventoryId: string,
+    categoryId: string,
+  ) {
     // Verify inventory exists and belongs to publisher
     const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
+      where: { id: inventoryId },
     });
 
     if (!inventory) {
@@ -844,19 +897,24 @@ export class PublisherService {
     }
 
     if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to update this inventory');
+      throw new ForbiddenException(
+        'You do not have permission to update this inventory',
+      );
     }
 
     // Verify category assignment exists
     const categoryAssignment = await this.prisma.inventoryCategory.findFirst({
       where: {
         inventoryId,
-        categoryId
-      }
+        categoryId,
+      },
     });
 
     if (!categoryAssignment) {
-      throw new ResourceNotFoundException('Category assignment', `${inventoryId}:${categoryId}`);
+      throw new ResourceNotFoundException(
+        'Category assignment',
+        `${inventoryId}:${categoryId}`,
+      );
     }
 
     // Remove category
@@ -864,9 +922,9 @@ export class PublisherService {
       where: {
         inventoryId_categoryId: {
           inventoryId,
-          categoryId
-        }
-      }
+          categoryId,
+        },
+      },
     });
   }
 
@@ -877,43 +935,47 @@ export class PublisherService {
     // Get current categories
     const currentCategories = await this.prisma.publisherCategory.findMany({
       where: { publisherId },
-      select: { categoryId: true }
+      select: { categoryId: true },
     });
-    
-    const currentCategoryIds = currentCategories.map(c => c.categoryId);
-    
+
+    const currentCategoryIds = currentCategories.map((c) => c.categoryId);
+
     // Categories to add
     const categoriesToAdd = categoryIds.filter(
-      catId => !currentCategoryIds.includes(catId)
+      (catId) => !currentCategoryIds.includes(catId),
     );
-    
+
     // Categories to remove
     const categoriesToRemove = currentCategoryIds.filter(
-      catId => !categoryIds.includes(catId)
+      (catId) => !categoryIds.includes(catId),
     );
-    
+
     // Add new categories
     await Promise.all(
-      categoriesToAdd.map(categoryId => 
-        this.assignCategory(publisherId, categoryId)
-      )
+      categoriesToAdd.map((categoryId) =>
+        this.assignCategory(publisherId, categoryId),
+      ),
     );
-    
+
     // Remove old categories
     await Promise.all(
-      categoriesToRemove.map(categoryId => 
-        this.removeCategory(publisherId, categoryId)
-      )
+      categoriesToRemove.map((categoryId) =>
+        this.removeCategory(publisherId, categoryId),
+      ),
     );
 
     return this.getPublisherCategories(publisherId);
   }
 
   // Floor Price Management Methods
-  async createFloorPrice(publisherId: string, inventoryId: string, createFloorPriceDto: CreateFloorPriceDto) {
+  async createFloorPrice(
+    publisherId: string,
+    inventoryId: string,
+    createFloorPriceDto: CreateFloorPriceDto,
+  ) {
     // Verify inventory exists and belongs to publisher
     const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
+      where: { id: inventoryId },
     });
 
     if (!inventory) {
@@ -921,7 +983,9 @@ export class PublisherService {
     }
 
     if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to update this inventory');
+      throw new ForbiddenException(
+        'You do not have permission to update this inventory',
+      );
     }
 
     // Create floor price
@@ -930,16 +994,23 @@ export class PublisherService {
         inventoryId,
         basePrice: createFloorPriceDto.price,
         currency: 'USD',
-        startDate: createFloorPriceDto.startDate ? new Date(createFloorPriceDto.startDate) : new Date()
+        startDate: createFloorPriceDto.startDate
+          ? new Date(createFloorPriceDto.startDate)
+          : new Date(),
         // Omit endDate and buyerTargeting to prevent type issues
-      }
+      },
     });
   }
 
-  async updateFloorPrice(publisherId: string, inventoryId: string, floorPriceId: string, updateFloorPriceDto: UpdateFloorPriceDto) {
+  async updateFloorPrice(
+    publisherId: string,
+    inventoryId: string,
+    floorPriceId: string,
+    updateFloorPriceDto: UpdateFloorPriceDto,
+  ) {
     // Verify inventory exists and belongs to publisher
     const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
+      where: { id: inventoryId },
     });
 
     if (!inventory) {
@@ -947,12 +1018,14 @@ export class PublisherService {
     }
 
     if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to update this inventory');
+      throw new ForbiddenException(
+        'You do not have permission to update this inventory',
+      );
     }
 
     // Verify floor price exists and belongs to inventory
     const floorPrice = await this.prisma.floorPrice.findUnique({
-      where: { id: floorPriceId }
+      where: { id: floorPriceId },
     });
 
     if (!floorPrice) {
@@ -960,7 +1033,9 @@ export class PublisherService {
     }
 
     if (floorPrice.inventoryId !== inventoryId) {
-      throw new ForbiddenException('Floor price does not belong to this inventory');
+      throw new ForbiddenException(
+        'Floor price does not belong to this inventory',
+      );
     }
 
     // Update floor price
@@ -968,16 +1043,22 @@ export class PublisherService {
       where: { id: floorPriceId },
       data: {
         basePrice: updateFloorPriceDto.price,
-        startDate: updateFloorPriceDto.startDate ? new Date(updateFloorPriceDto.startDate) : undefined
+        startDate: updateFloorPriceDto.startDate
+          ? new Date(updateFloorPriceDto.startDate)
+          : undefined,
         // Omit endDate and buyerTargeting to prevent type issues
-      }
+      },
     });
   }
 
-  async deleteFloorPrice(publisherId: string, inventoryId: string, floorPriceId: string) {
+  async deleteFloorPrice(
+    publisherId: string,
+    inventoryId: string,
+    floorPriceId: string,
+  ) {
     // Verify inventory exists and belongs to publisher
     const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
+      where: { id: inventoryId },
     });
 
     if (!inventory) {
@@ -985,12 +1066,14 @@ export class PublisherService {
     }
 
     if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to update this inventory');
+      throw new ForbiddenException(
+        'You do not have permission to update this inventory',
+      );
     }
 
     // Verify floor price exists and belongs to inventory
     const floorPrice = await this.prisma.floorPrice.findUnique({
-      where: { id: floorPriceId }
+      where: { id: floorPriceId },
     });
 
     if (!floorPrice) {
@@ -998,20 +1081,26 @@ export class PublisherService {
     }
 
     if (floorPrice.inventoryId !== inventoryId) {
-      throw new ForbiddenException('Floor price does not belong to this inventory');
+      throw new ForbiddenException(
+        'Floor price does not belong to this inventory',
+      );
     }
 
     // Delete floor price
     return this.prisma.floorPrice.delete({
-      where: { id: floorPriceId }
+      where: { id: floorPriceId },
     });
   }
 
   // Targeting Rules Methods
-  async createTargetingRule(publisherId: string, inventoryId: string, createTargetingRuleDto: CreateTargetingRuleDto) {
+  async createTargetingRule(
+    publisherId: string,
+    inventoryId: string,
+    createTargetingRuleDto: CreateTargetingRuleDto,
+  ) {
     // Verify inventory exists and belongs to publisher
     const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
+      where: { id: inventoryId },
     });
 
     if (!inventory) {
@@ -1019,7 +1108,9 @@ export class PublisherService {
     }
 
     if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to update this inventory');
+      throw new ForbiddenException(
+        'You do not have permission to update this inventory',
+      );
     }
 
     // Create targeting rule
@@ -1029,19 +1120,30 @@ export class PublisherService {
         ruleType: createTargetingRuleDto.type as any, // Type conversion needed
         ruleData: {
           name: createTargetingRuleDto.name,
-          include: createTargetingRuleDto.include !== undefined ? createTargetingRuleDto.include : true,
+          include:
+            createTargetingRuleDto.include !== undefined
+              ? createTargetingRuleDto.include
+              : true,
           values: createTargetingRuleDto.values || [],
           parameters: createTargetingRuleDto.parameters || {},
-          isActive: createTargetingRuleDto.active !== undefined ? createTargetingRuleDto.active : true
-        }
-      }
+          isActive:
+            createTargetingRuleDto.active !== undefined
+              ? createTargetingRuleDto.active
+              : true,
+        },
+      },
     });
   }
 
-  async updateTargetingRule(publisherId: string, inventoryId: string, ruleId: string, updateTargetingRuleDto: UpdateTargetingRuleDto) {
+  async updateTargetingRule(
+    publisherId: string,
+    inventoryId: string,
+    ruleId: string,
+    updateTargetingRuleDto: UpdateTargetingRuleDto,
+  ) {
     // Verify inventory exists and belongs to publisher
     const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
+      where: { id: inventoryId },
     });
 
     if (!inventory) {
@@ -1049,12 +1151,14 @@ export class PublisherService {
     }
 
     if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to update this inventory');
+      throw new ForbiddenException(
+        'You do not have permission to update this inventory',
+      );
     }
 
     // Verify targeting rule exists and belongs to inventory
     const targetingRule = await this.prisma.inventoryTargetingRule.findUnique({
-      where: { id: ruleId }
+      where: { id: ruleId },
     });
 
     if (!targetingRule) {
@@ -1062,7 +1166,9 @@ export class PublisherService {
     }
 
     if (targetingRule.inventoryId !== inventoryId) {
-      throw new ForbiddenException('Targeting rule does not belong to this inventory');
+      throw new ForbiddenException(
+        'Targeting rule does not belong to this inventory',
+      );
     }
 
     // Get existing rule data
@@ -1072,23 +1178,34 @@ export class PublisherService {
     return this.prisma.inventoryTargetingRule.update({
       where: { id: ruleId },
       data: {
-        ruleType: updateTargetingRuleDto.type as any || undefined,
+        ruleType: (updateTargetingRuleDto.type as any) || undefined,
         ruleData: {
           ...existingData,
           name: updateTargetingRuleDto.name || existingData.name,
-          include: updateTargetingRuleDto.include !== undefined ? updateTargetingRuleDto.include : existingData.include,
+          include:
+            updateTargetingRuleDto.include !== undefined
+              ? updateTargetingRuleDto.include
+              : existingData.include,
           values: updateTargetingRuleDto.values || existingData.values,
-          parameters: updateTargetingRuleDto.parameters || existingData.parameters,
-          isActive: updateTargetingRuleDto.active !== undefined ? updateTargetingRuleDto.active : existingData.isActive
-        }
-      }
+          parameters:
+            updateTargetingRuleDto.parameters || existingData.parameters,
+          isActive:
+            updateTargetingRuleDto.active !== undefined
+              ? updateTargetingRuleDto.active
+              : existingData.isActive,
+        },
+      },
     });
   }
 
-  async deleteTargetingRule(publisherId: string, inventoryId: string, ruleId: string) {
+  async deleteTargetingRule(
+    publisherId: string,
+    inventoryId: string,
+    ruleId: string,
+  ) {
     // Verify inventory exists and belongs to publisher
     const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
+      where: { id: inventoryId },
     });
 
     if (!inventory) {
@@ -1096,12 +1213,14 @@ export class PublisherService {
     }
 
     if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to update this inventory');
+      throw new ForbiddenException(
+        'You do not have permission to update this inventory',
+      );
     }
 
     // Verify targeting rule exists and belongs to inventory
     const targetingRule = await this.prisma.inventoryTargetingRule.findUnique({
-      where: { id: ruleId }
+      where: { id: ruleId },
     });
 
     if (!targetingRule) {
@@ -1109,19 +1228,21 @@ export class PublisherService {
     }
 
     if (targetingRule.inventoryId !== inventoryId) {
-      throw new ForbiddenException('Targeting rule does not belong to this inventory');
+      throw new ForbiddenException(
+        'Targeting rule does not belong to this inventory',
+      );
     }
 
     // Delete targeting rule
     return this.prisma.inventoryTargetingRule.delete({
-      where: { id: ruleId }
+      where: { id: ruleId },
     });
   }
 
   async getTargetingRules(publisherId: string, inventoryId: string) {
     // Verify inventory exists and belongs to publisher
     const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
+      where: { id: inventoryId },
     });
 
     if (!inventory) {
@@ -1129,12 +1250,34 @@ export class PublisherService {
     }
 
     if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to view this inventory');
+      throw new ForbiddenException(
+        'You do not have permission to view this inventory',
+      );
     }
 
     // Get targeting rules
     return this.prisma.inventoryTargetingRule.findMany({
-      where: { inventoryId }
+      where: { inventoryId },
+    });
+  }
+
+  async createWebsite(publisherId: string, createWebsiteDto: CreateWebsiteDto) {
+    const publisher = await this.prisma.publisher.findUnique({
+      where: { id: publisherId },
+    });
+
+    if (!publisher) {
+      throw new ResourceNotFoundException('Publisher', publisherId);
+    }
+
+    const existingWebsite = await this.prisma.website.findFirst({
+      where: {
+        OR: [
+          { url: createWebsiteDto.url },
+          { websiteName: createWebsiteDto.websiteName },
+        ],
+        publisherId,
+      },
     });
   }
 }

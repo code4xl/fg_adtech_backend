@@ -27,6 +27,7 @@ import { CreateFloorPriceDto } from './dto/create-floor-price.dto';
 import { UpdateFloorPriceDto } from './dto/update-floor-price.dto';
 import { CreateTargetingRuleDto } from './dto/create-targeting-rule.dto';
 import { UpdateTargetingRuleDto } from './dto/update-targeting-rule.dto';
+import { CreateWebsiteDto } from './dto/create-website.dto';
 
 @ApiTags('publishers')
 @Controller('publishers')
@@ -51,7 +52,10 @@ export class PublisherController {
     status: 200,
     description: 'Publisher profile updated successfully',
   })
-  async updateProfile(@Request() req, @Body() updatePublisherDto: UpdatePublisherDto) {
+  async updateProfile(
+    @Request() req,
+    @Body() updatePublisherDto: UpdatePublisherDto,
+  ) {
     return this.publisherService.update(req.user.id, updatePublisherDto);
   }
 
@@ -92,8 +96,14 @@ export class PublisherController {
     status: HttpStatus.CREATED,
     description: 'Inventory created successfully',
   })
-  async createInventory(@Request() req, @Body() createInventoryDto: CreateInventoryDto) {
-    return this.publisherService.createInventory(req.user.id, createInventoryDto);
+  async createInventory(
+    @Request() req,
+    @Body() createInventoryDto: CreateInventoryDto,
+  ) {
+    return this.publisherService.createInventory(
+      req.user.id,
+      createInventoryDto,
+    );
   }
 
   @Patch('inventory/:id')
@@ -104,10 +114,14 @@ export class PublisherController {
   })
   async updateInventory(
     @Request() req,
-    @Param('id') inventoryId: string, 
-    @Body() updateInventoryDto: UpdateInventoryDto
+    @Param('id') inventoryId: string,
+    @Body() updateInventoryDto: UpdateInventoryDto,
   ) {
-    return this.publisherService.updatePublisherInventory(req.user.id, inventoryId, updateInventoryDto);
+    return this.publisherService.updatePublisherInventory(
+      req.user.id,
+      inventoryId,
+      updateInventoryDto,
+    );
   }
 
   @Delete('inventory/:id')
@@ -117,7 +131,10 @@ export class PublisherController {
     description: 'Inventory deleted successfully',
   })
   async deleteInventory(@Request() req, @Param('id') inventoryId: string) {
-    return this.publisherService.deletePublisherInventory(req.user.id, inventoryId);
+    return this.publisherService.deletePublisherInventory(
+      req.user.id,
+      inventoryId,
+    );
   }
 
   @Patch('inventory/:id/status')
@@ -129,9 +146,13 @@ export class PublisherController {
   async toggleInventoryStatus(
     @Request() req,
     @Param('id') inventoryId: string,
-    @Body('active') active: boolean
+    @Body('active') active: boolean,
   ) {
-    return this.publisherService.toggleInventoryStatus(req.user.id, inventoryId, active);
+    return this.publisherService.toggleInventoryStatus(
+      req.user.id,
+      inventoryId,
+      active,
+    );
   }
 
   @Get('inventory/:id/metrics')
@@ -144,9 +165,14 @@ export class PublisherController {
     @Request() req,
     @Param('id') inventoryId: string,
     @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string
+    @Query('endDate') endDate: string,
   ) {
-    return this.publisherService.getInventoryMetrics(req.user.id, inventoryId, startDate, endDate);
+    return this.publisherService.getInventoryMetrics(
+      req.user.id,
+      inventoryId,
+      startDate,
+      endDate,
+    );
   }
 
   // Category Management Endpoints
@@ -159,9 +185,13 @@ export class PublisherController {
   async assignCategoriesToInventory(
     @Request() req,
     @Param('id') inventoryId: string,
-    @Body('categoryIds') categoryIds: string[]
+    @Body('categoryIds') categoryIds: string[],
   ) {
-    return this.publisherService.assignCategoriesToInventory(req.user.id, inventoryId, categoryIds);
+    return this.publisherService.assignCategoriesToInventory(
+      req.user.id,
+      inventoryId,
+      categoryIds,
+    );
   }
 
   @Delete('inventory/:id/categories/:categoryId')
@@ -173,9 +203,13 @@ export class PublisherController {
   async removeCategoryFromInventory(
     @Request() req,
     @Param('id') inventoryId: string,
-    @Param('categoryId') categoryId: string
+    @Param('categoryId') categoryId: string,
   ) {
-    return this.publisherService.removeCategoryFromInventory(req.user.id, inventoryId, categoryId);
+    return this.publisherService.removeCategoryFromInventory(
+      req.user.id,
+      inventoryId,
+      categoryId,
+    );
   }
 
   @Post('categories/assign')
@@ -186,9 +220,12 @@ export class PublisherController {
   })
   async assignCategoriesToProfile(
     @Request() req,
-    @Body('categoryIds') categoryIds: string[]
+    @Body('categoryIds') categoryIds: string[],
   ) {
-    return this.publisherService.assignCategoriesToProfile(req.user.id, categoryIds);
+    return this.publisherService.assignCategoriesToProfile(
+      req.user.id,
+      categoryIds,
+    );
   }
 
   // Floor Price Management Endpoints
@@ -201,9 +238,13 @@ export class PublisherController {
   async createFloorPrice(
     @Request() req,
     @Param('id') inventoryId: string,
-    @Body() createFloorPriceDto: CreateFloorPriceDto
+    @Body() createFloorPriceDto: CreateFloorPriceDto,
   ) {
-    return this.publisherService.createFloorPrice(req.user.id, inventoryId, createFloorPriceDto);
+    return this.publisherService.createFloorPrice(
+      req.user.id,
+      inventoryId,
+      createFloorPriceDto,
+    );
   }
 
   @Patch('inventory/:id/floor-prices/:floorPriceId')
@@ -216,9 +257,14 @@ export class PublisherController {
     @Request() req,
     @Param('id') inventoryId: string,
     @Param('floorPriceId') floorPriceId: string,
-    @Body() updateFloorPriceDto: UpdateFloorPriceDto
+    @Body() updateFloorPriceDto: UpdateFloorPriceDto,
   ) {
-    return this.publisherService.updateFloorPrice(req.user.id, inventoryId, floorPriceId, updateFloorPriceDto);
+    return this.publisherService.updateFloorPrice(
+      req.user.id,
+      inventoryId,
+      floorPriceId,
+      updateFloorPriceDto,
+    );
   }
 
   @Delete('inventory/:id/floor-prices/:floorPriceId')
@@ -230,9 +276,13 @@ export class PublisherController {
   async deleteFloorPrice(
     @Request() req,
     @Param('id') inventoryId: string,
-    @Param('floorPriceId') floorPriceId: string
+    @Param('floorPriceId') floorPriceId: string,
   ) {
-    return this.publisherService.deleteFloorPrice(req.user.id, inventoryId, floorPriceId);
+    return this.publisherService.deleteFloorPrice(
+      req.user.id,
+      inventoryId,
+      floorPriceId,
+    );
   }
 
   // Targeting Rules Endpoints
@@ -245,9 +295,13 @@ export class PublisherController {
   async createTargetingRule(
     @Request() req,
     @Param('id') inventoryId: string,
-    @Body() createTargetingRuleDto: CreateTargetingRuleDto
+    @Body() createTargetingRuleDto: CreateTargetingRuleDto,
   ) {
-    return this.publisherService.createTargetingRule(req.user.id, inventoryId, createTargetingRuleDto);
+    return this.publisherService.createTargetingRule(
+      req.user.id,
+      inventoryId,
+      createTargetingRuleDto,
+    );
   }
 
   @Patch('inventory/:id/targeting-rules/:ruleId')
@@ -260,9 +314,14 @@ export class PublisherController {
     @Request() req,
     @Param('id') inventoryId: string,
     @Param('ruleId') ruleId: string,
-    @Body() updateTargetingRuleDto: UpdateTargetingRuleDto
+    @Body() updateTargetingRuleDto: UpdateTargetingRuleDto,
   ) {
-    return this.publisherService.updateTargetingRule(req.user.id, inventoryId, ruleId, updateTargetingRuleDto);
+    return this.publisherService.updateTargetingRule(
+      req.user.id,
+      inventoryId,
+      ruleId,
+      updateTargetingRuleDto,
+    );
   }
 
   @Delete('inventory/:id/targeting-rules/:ruleId')
@@ -274,9 +333,13 @@ export class PublisherController {
   async deleteTargetingRule(
     @Request() req,
     @Param('id') inventoryId: string,
-    @Param('ruleId') ruleId: string
+    @Param('ruleId') ruleId: string,
   ) {
-    return this.publisherService.deleteTargetingRule(req.user.id, inventoryId, ruleId);
+    return this.publisherService.deleteTargetingRule(
+      req.user.id,
+      inventoryId,
+      ruleId,
+    );
   }
 
   @Get('inventory/:id/targeting-rules')
@@ -285,10 +348,26 @@ export class PublisherController {
     status: HttpStatus.OK,
     description: 'Targeting rules retrieved successfully',
   })
-  async getTargetingRules(
-    @Request() req,
-    @Param('id') inventoryId: string
-  ) {
+  async getTargetingRules(@Request() req, @Param('id') inventoryId: string) {
     return this.publisherService.getTargetingRules(req.user.id, inventoryId);
   }
-} 
+
+  // New Flow
+
+  @Post('website')
+  @ApiOperation({ summary: 'Create new website' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: 'Website created successfully',
+  })
+  async createWebsite(
+    @Request() req,
+    @Body() createWebsiteDto: CreateWebsiteDto,
+  ) {
+    const publisherId = createWebsiteDto.publisherId;
+    if (!publisherId) {
+      throw new ForbiddenException('Publisher ID is required');
+    }
+    return this.publisherService.createWebsite(publisherId, createWebsiteDto);
+  }
+}

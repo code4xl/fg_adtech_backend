@@ -1,24 +1,36 @@
 // Creative model for ads
 model Creative {
-    id          String         @id @default(uuid()) @db.Uuid
-    campaignId  String         @db.Uuid
-    inventoryId String         @db.Uuid
-    name        String
-    type        CreativeType
-    width       Int
-    height      Int
-    fileUrl     String
-    s3Key       String?
-    landingUrl  String
-    status      CreativeStatus @default(PENDING_REVIEW)
-    reviewNotes String?
-    createdAt   DateTime       @default(now())
-    updatedAt   DateTime       @updatedAt
+    id         String @id @default(uuid()) @db.Uuid
+    campaignId String @db.Uuid
+
+    name                   String
+    type                   CreativeType
+    width                  Int
+    height                 Int
+    fileUrl                String
+    s3Key                  String?
+    landingUrl             String
+    status                 CreativeStatus @default(PENDING_REVIEW)
+    contentSafetyThreshold Float? // 
+    reviewNotes            String?
+    createdAt              DateTime       @default(now())
+    updatedAt              DateTime       @updatedAt
 
     // Relations
     campaign     Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-    inventory    AdInventory   @relation(fields: [inventoryId], references: [id])
     bidResponses BidResponse[]
+}
 
-    Impression Impression[]
+model AdSlotTemplate {
+    id        String            @id @default(uuid()) @db.Uuid
+    name      String // e.g., "Leaderboard", "Rectangle", "Skyscraper"
+    width     Int
+    height    Int
+    format    InventoryFormat
+    position  InventoryPosition
+    isActive  Boolean           @default(true)
+    createdAt DateTime          @default(now())
+    updatedAt DateTime          @updatedAt
+
+    // This can be used to validate creative sizes and inventory creation
 }

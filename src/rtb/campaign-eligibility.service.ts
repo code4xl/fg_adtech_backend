@@ -34,6 +34,7 @@ export class CampaignEligibilityService {
       if (campaignCriteria) {
         // Use cached criteria for initial filtering
         campaigns = await this.getActiveCampaignsWithInventory(
+          // ambiguous
           bidRequest.inventoryId,
         );
       } else {
@@ -85,7 +86,7 @@ export class CampaignEligibilityService {
           // Push inventory filtering to database level
           campaignInventories: {
             some: {
-              inventoryId: bidRequest.inventoryId,
+              inventoryId: bidRequest.inventoryId, // ambiguous
             },
           },
           // Push creative filtering to database level
@@ -349,6 +350,7 @@ export class CampaignEligibilityService {
         startDate: { lte: new Date() },
         endDate: { gte: new Date() },
         campaignInventories: {
+          // flagged to remove
           some: {
             inventoryId,
           },
