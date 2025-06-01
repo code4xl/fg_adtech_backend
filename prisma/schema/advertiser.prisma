@@ -24,9 +24,7 @@ model Advertiser {
     mfaCodeExpiry        DateTime?
     clients              Client[] // Relationship with Client
 
-    // Relations
-    blockedInventories InventoryBlockedAdvertiser[]
-    Campaign           Campaign[]
+    Campaign Campaign[]
 
     bidResponses BidResponse[]
 }
