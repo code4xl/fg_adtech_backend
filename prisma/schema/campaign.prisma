@@ -16,7 +16,6 @@ model Campaign {
     businessCategory BusinessCategory
     websiteUrl       String
     interests        CampaignInterest[]
-    audienceCSV      String // no use
     ageMin           Int? // Age targeting
     ageMax           Int?
     genders          String[] // Gender targeting
