@@ -33,7 +33,14 @@
     "seed:clean": "dotenv -e .env.development -- ts-node -r tsconfig-paths/register src/cli.ts db:seed --clean",
     "seed:module": "dotenv -e .env.development -- ts-node -r tsconfig-paths/register src/cli.ts db:seed:module",
     "seed:info": "dotenv -e .env.development -- ts-node -r tsconfig-paths/register src/cli.ts db:seed:info",
-    "db:clean": "dotenv -e .env.development -- ts-node -r tsconfig-paths/register src/cli.ts db:clean"
+    "db:clean": "dotenv -e .env.development -- ts-node -r tsconfig-paths/register src/cli.ts db:clean",
+    "docker:up:dev": "docker compose -f docker-compose.dev.yml up -d",
+    "docker:build:dev": "docker compose -f docker-compose.dev.yml up --build -d",
+    "docker-logs:api:dev": "docker compose -f docker-compose.dev.yml logs api -f",
+    "docker-logs:kafka:dev": "docker compose -f docker-compose.dev.yml logs kafka -f",
+    "docker-logs:redis:dev": "docker compose -f docker-compose.dev.yml logs redis -f",
+    "docker:down:dev": "docker compose -f docker-compose.dev.yml down",
+    "docker:down:dev:v": "docker compose -f docker-compose.dev.yml down -v"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.810.0",

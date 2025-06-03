@@ -12,10 +12,3 @@ model Notification {
     @@index([userId, userType])
     @@index([isRead])
 }
-
-enum UserType {
-    ADVERTISER
-    PUBLISHER
-    CLIENT
-    ADMIN
-}

@@ -8,7 +8,7 @@ import {
   IsArray,
   ValidateNested,
   Min,
-  Max
+  Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import {
@@ -16,32 +16,31 @@ import {
   BusinessCategory,
   CampaignInterest,
   BidStrategy,
-  CampaignPacing
+  CampaignPacing,
 } from '@prisma/client';
 import { CampaignTargetingDto } from '../../campaign/dto/targetting-rule.dto';
-
 export class BudgetRangeDto {
-    @ApiProperty({
-      description: 'Minimum budget',
-      example: 1000
-    })
-    @IsNumber()
-    @Min(1)
-    min: number;
-  
-    @ApiProperty({
-      description: 'Maximum budget',
-      example: 10000
-    })
-    @IsNumber()
-    @Min(1)
-    max: number;
-  }
+  @ApiProperty({
+    description: 'Minimum budget',
+    example: 1000,
+  })
+  @IsNumber()
+  @Min(1)
+  min: number;
+
+  @ApiProperty({
+    description: 'Maximum budget',
+    example: 10000,
+  })
+  @IsNumber()
+  @Min(1)
+  max: number;
+}
 export class AdvertiserContextDto {
   @ApiProperty({
     description: 'Whether to consider previous campaigns for optimization',
     required: false,
-    default: true
+    default: true,
   })
   @IsOptional()
   @IsBoolean()
@@ -50,7 +49,7 @@ export class AdvertiserContextDto {
   @ApiProperty({
     description: 'Budget range constraints',
     required: false,
-    example: { min: 1000, max: 10000 }
+    example: { min: 1000, max: 10000 },
   })
   @IsOptional()
   @ValidateNested()
@@ -60,7 +59,7 @@ export class AdvertiserContextDto {
   @ApiProperty({
     description: 'Target regions to consider',
     required: false,
-    example: ['US', 'CA', 'UK']
+    example: ['US', 'CA', 'UK'],
   })
   @IsOptional()
   @IsArray()
@@ -70,7 +69,7 @@ export class AdvertiserContextDto {
   @ApiProperty({
     description: 'Preferred campaign duration in days',
     required: false,
-    example: 30
+    example: 30,
   })
   @IsOptional()
   @IsNumber()
@@ -79,11 +78,11 @@ export class AdvertiserContextDto {
   preferredDuration?: number;
 }
 
-
 export class CampaignAnalysisRequestDto {
   @ApiProperty({
     description: 'Natural language description of the campaign',
-    example: 'Promote our new fitness app to young professionals in Mumbai who are interested in health and wellness'
+    example:
+      'Promote our new fitness app to young professionals in Mumbai who are interested in health and wellness',
   })
   @IsNotEmpty()
   @IsString()
@@ -91,7 +90,7 @@ export class CampaignAnalysisRequestDto {
 
   @ApiProperty({
     description: 'Additional context for better AI suggestions',
-    required: false
+    required: false,
   })
   @IsOptional()
   @ValidateNested()
@@ -100,7 +99,7 @@ export class CampaignAnalysisRequestDto {
 
   @ApiProperty({
     description: 'Client ID if campaign is for a specific client',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
@@ -110,13 +109,14 @@ export class CampaignAnalysisRequestDto {
 export class CampaignNameSuggestion {
   @ApiProperty({
     description: 'Suggested campaign name',
-    example: 'FitPro Mumbai Launch - Q2 2025'
+    example: 'FitPro Mumbai Launch - Q2 2025',
   })
   name: string;
 
   @ApiProperty({
     description: 'Rationale for the suggestion',
-    example: 'Combines product name, target location, and timeframe for clarity'
+    example:
+      'Combines product name, target location, and timeframe for clarity',
   })
   rationale: string;
 }
@@ -124,31 +124,31 @@ export class CampaignNameSuggestion {
 export class BudgetSuggestion {
   @ApiProperty({
     description: 'Total campaign budget',
-    example: 5000
+    example: 5000,
   })
   budget: number;
 
   @ApiProperty({
     description: 'Daily budget',
-    example: 200
+    example: 200,
   })
   dailyBudget: number;
 
   @ApiProperty({
     description: 'Bid strategy',
-    enum: BidStrategy
+    enum: BidStrategy,
   })
   bidStrategy: BidStrategy;
 
   @ApiProperty({
     description: 'Bid amount if applicable',
-    example: 2.5
+    example: 2.5,
   })
   bidAmount?: number;
 
   @ApiProperty({
     description: 'Rationale for budget allocation',
-    example: 'Based on Mumbai market CPM rates and fitness app benchmarks'
+    example: 'Based on Mumbai market CPM rates and fitness app benchmarks',
   })
   rationale: string;
 }
@@ -156,78 +156,79 @@ export class BudgetSuggestion {
 export class CampaignAnalysisResponseDto {
   @ApiProperty({
     description: 'AI confidence score',
-    example: 0.85
+    example: 0.85,
   })
   confidence: number;
 
   @ApiProperty({
     description: 'Suggested campaign names',
-    type: [CampaignNameSuggestion]
+    type: [CampaignNameSuggestion],
   })
   namesSuggestions: CampaignNameSuggestion[];
 
   @ApiProperty({
     description: 'Selected campaign name',
-    example: 'FitPro Mumbai Launch - Q2 2025'
+    example: 'FitPro Mumbai Launch - Q2 2025',
   })
   name: string;
 
   @ApiProperty({
-    description: 'Budget suggestions'
+    description: 'Budget suggestions',
   })
   budgetSuggestion: BudgetSuggestion;
 
   @ApiProperty({
     description: 'Campaign objective',
-    enum: CampaignObjective
+    enum: CampaignObjective,
   })
   objective: CampaignObjective;
 
   @ApiProperty({
     description: 'Business category',
-    enum: BusinessCategory
+    enum: BusinessCategory,
   })
   businessCategory: BusinessCategory;
 
   @ApiProperty({
     description: 'Target interests',
     enum: CampaignInterest,
-    isArray: true
+    isArray: true,
   })
   interests: CampaignInterest[];
 
   @ApiProperty({
     description: 'Campaign pacing',
-    enum: CampaignPacing
+    enum: CampaignPacing,
   })
   pacing: CampaignPacing;
 
   @ApiProperty({
     description: 'Website URL',
-    example: 'https://fitpro.app/download'
+    example: 'https://fitpro.app/download',
   })
   websiteUrl: string;
 
   @ApiProperty({
     description: 'Suggested start date',
-    example: '2025-06-01T00:00:00Z'
+    example: '2025-06-01T00:00:00Z',
   })
   startDate: string;
 
   @ApiProperty({
     description: 'Suggested end date',
-    example: '2025-06-30T23:59:59Z'
+    example: '2025-06-30T23:59:59Z',
   })
   endDate: string;
 
   @ApiProperty({
-    description: 'Targeting suggestions'
+    description: 'Targeting suggestions',
   })
   targeting: CampaignTargetingDto;
 
   @ApiProperty({
     description: 'AI analysis summary',
-    example: 'Campaign optimized for urban fitness enthusiasts in Mumbai metropolitan area'
+    example:
+      'Campaign optimized for urban fitness enthusiasts in Mumbai metropolitan area',
   })
   analysisSummary: string;
 }
@@ -235,7 +236,7 @@ export class CampaignAnalysisResponseDto {
 export class RegenerateNamesRequestDto {
   @ApiProperty({
     description: 'Campaign ID to regenerate names for',
-    example: '550e8400-e29b-41d4-a716-446655440000'
+    example: '550e8400-e29b-41d4-a716-446655440000',
   })
   @IsNotEmpty()
   @IsString()
@@ -244,7 +245,7 @@ export class RegenerateNamesRequestDto {
   @ApiProperty({
     description: 'Additional criteria for name generation',
     required: false,
-    example: 'Include summer season reference'
+    example: 'Include summer season reference',
   })
   @IsOptional()
   @IsString()
@@ -255,7 +256,7 @@ export class RegenerateNamesRequestDto {
     required: false,
     default: 3,
     minimum: 1,
-    maximum: 10
+    maximum: 10,
   })
   @IsOptional()
   @IsNumber()

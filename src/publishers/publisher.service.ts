@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePublisherDto } from './dto/create-publisher.dto';
 import { UpdatePublisherDto } from './dto/update-publisher.dto';
@@ -7,105 +11,57 @@ import * as bcrypt from 'bcryptjs';
 import {
   ResourceNotFoundException,
   DuplicateResourceException,
-  BadRequestException
+  BadRequestException,
 } from '../common/exceptions/custom.exception';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { UpdateInventoryDto } from './dto/update-inventory.dto';
-import { CreateFloorPriceDto } from './dto/create-floor-price.dto';
+import { CreateFloorPriceDto } from './dto/floor-price.dto';
 import { UpdateFloorPriceDto } from './dto/update-floor-price.dto';
-import { CreateTargetingRuleDto } from './dto/create-targeting-rule.dto';
-import { UpdateTargetingRuleDto } from './dto/update-targeting-rule.dto';
+import { CreateWebsiteDto } from './dto/create-website.dto';
+import {
+  ActivateInventoryDto,
+  CreateAdInventoryDto,
+} from './dto/inventory.dto';
+import {
+  CreateBehavioralTargetingDto,
+  UpdateBehavioralTargetingDto,
+} from './dto/targeting/behavourial-targeting.dto';
+import {
+  CreateContextualTargetingDto,
+  UpdateContextualTargetingDto,
+} from './dto/targeting/contextual-targeting.dto';
+import {
+  CreateDemographicTargetingDto,
+  UpdateDemographicTargetingDto,
+} from './dto/targeting/demographic-targeting.dto';
+import {
+  CreateDeviceTargetingDto,
+  UpdateDeviceTargetingDto,
+} from './dto/targeting/device-targeting.dto';
+import {
+  CreateFrequencyTargetingDto,
+  UpdateFrequencyTargetingDto,
+} from './dto/targeting/frequency-targeting.dto';
+import {
+  CreateGeographicTargetingDto,
+  UpdateGeographicTargetingDto,
+} from './dto/targeting/geographic-targeting.dto';
+import {
+  CreateTimeTargetingDto,
+  UpdateTimeTargetingDto,
+} from './dto/targeting/time-targeting.dto';
 
 // Since the ApprovalStatus enum might be causing issues, define it here
 enum ApprovalStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
-  REJECTED = 'REJECTED'
+  REJECTED = 'REJECTED',
 }
 
 @Injectable()
 export class PublisherService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createPublisherDto: CreatePublisherDto) {
-    // Check if email already exists
-    const existingPublisher = await this.prisma.publisher.findUnique({
-      where: { email: createPublisherDto.email }
-    });
-
-    if (existingPublisher) {
-      throw new DuplicateResourceException(
-        'Publisher',
-        'email',
-        createPublisherDto.email
-      );
-    }
-
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(createPublisherDto.password, 10);
-
-    // Create publisher
-    const publisher = await this.prisma.publisher.create({
-      data: {
-        firstName: createPublisherDto.firstName,
-        lastName: createPublisherDto.lastName,
-        email: createPublisherDto.email,
-        password: hashedPassword,
-        domain: createPublisherDto.domain,
-        status: createPublisherDto.status || PublisherStatus.ACTIVE
-      }
-    });
-
-    // Assign categories if provided
-    if (createPublisherDto.categoryIds && createPublisherDto.categoryIds.length > 0) {
-      await Promise.all(
-        createPublisherDto.categoryIds.map(categoryId =>
-          this.assignCategory(publisher.id, categoryId)
-        )
-      );
-    }
-
-    // Assign languages if provided
-    if (createPublisherDto.languages && createPublisherDto.languages.length > 0) {
-      await Promise.all(
-        createPublisherDto.languages.map(language =>
-          this.assignLanguage(publisher.id, language)
-        )
-      );
-    }
-
-    // Return publisher with associated data
-    return this.findOne(publisher.id);
-  }
-  async getPublishersByCategoryAndLanguage(categoryId?: string, language?: string) {
-    const where: any = {};
-    
-    // Add category filter if provided
-    if (categoryId) {
-      where.categories = {
-        some: { categoryId }
-      };
-    }
-    
-    // Add language filter if provided
-    if (language) {
-      where.languages = {
-        some: { language }
-      };
-    }
-    
-    return this.prisma.publisher.findMany({
-      where,
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        domain: true,
-        status: true
-      }
-    });
-  }
   async findAll(query?: { status?: string; search?: string }) {
     const where: any = {};
 
@@ -118,21 +74,21 @@ export class PublisherService {
         {
           firstName: {
             contains: query.search,
-            mode: 'insensitive'
-          }
+            mode: 'insensitive',
+          },
         },
         {
           lastName: {
             contains: query.search,
-            mode: 'insensitive'
-          }
+            mode: 'insensitive',
+          },
         },
         {
           email: {
             contains: query.search,
-            mode: 'insensitive'
-          }
-        }
+            mode: 'insensitive',
+          },
+        },
       ];
     }
 
@@ -143,19 +99,16 @@ export class PublisherService {
         firstName: true,
         lastName: true,
         email: true,
-        domain: true,
         status: true,
         createdAt: true,
         updatedAt: true,
         _count: {
           select: {
             inventories: true,
-            categories: true,
-            languages: true
-          }
-        }
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
   }
 
@@ -163,18 +116,9 @@ export class PublisherService {
     const publisher = await this.prisma.publisher.findUnique({
       where: { id },
       include: {
-        categories: {
-          include: {
-            category: true
-          }
-        },
-        languages: true,
-        _count: {
-          select: {
-            inventories: true
-          }
-        }
-      }
+        inventories: true,
+        websites: true,
+      },
     });
 
     if (!publisher) {
@@ -195,15 +139,15 @@ export class PublisherService {
       const existingPublisher = await this.prisma.publisher.findFirst({
         where: {
           email: updatePublisherDto.email,
-          id: { not: id }
-        }
+          id: { not: id },
+        },
       });
 
       if (existingPublisher) {
         throw new DuplicateResourceException(
           'Publisher',
           'email',
-          updatePublisherDto.email
+          updatePublisherDto.email,
         );
       }
     }
@@ -211,7 +155,9 @@ export class PublisherService {
     // Hash the password if it's being updated
     let data: any = { ...updatePublisherDto };
     if (updatePublisherDto.password) {
-      data.password = await bcrypt.hash(updatePublisherDto.password, 10);
+      throw new BadRequestException(
+        'Password update is not allowed via this endpoint.',
+      );
     }
 
     // Remove categoryIds and languages from data as they're handled separately
@@ -220,921 +166,1385 @@ export class PublisherService {
     // Update publisher basic info
     await this.prisma.publisher.update({
       where: { id },
-      data: publisherData
+      data: publisherData,
     });
-
-    // Update categories if provided
-    if (categoryIds && categoryIds.length > 0) {
-      // Get current categories
-      const currentCategories = await this.prisma.publisherCategory.findMany({
-        where: { publisherId: id },
-        select: { categoryId: true }
-      });
-      
-      const currentCategoryIds = currentCategories.map(c => c.categoryId);
-      
-      // Categories to add
-      const categoriesToAdd = categoryIds.filter(
-        catId => !currentCategoryIds.includes(catId)
-      );
-      
-      // Categories to remove
-      const categoriesToRemove = currentCategoryIds.filter(
-        catId => !categoryIds.includes(catId)
-      );
-      
-      // Add new categories
-      await Promise.all(
-        categoriesToAdd.map(categoryId => 
-          this.assignCategory(id, categoryId)
-        )
-      );
-      
-      // Remove old categories
-      await Promise.all(
-        categoriesToRemove.map(categoryId => 
-          this.removeCategory(id, categoryId)
-        )
-      );
-    }
-
-    // Update languages if provided
-    if (languages && languages.length > 0) {
-      // Get current languages
-      const currentLanguages = await this.prisma.publisherLanguage.findMany({
-        where: { publisherId: id },
-        select: { language: true }
-      });
-      
-      const currentLanguageValues = currentLanguages.map(l => l.language);
-      
-      // Languages to add
-      const languagesToAdd = languages.filter(
-        lang => !currentLanguageValues.includes(lang as Language)
-      );
-      
-      // Languages to remove
-      const languagesToRemove = currentLanguageValues.filter(
-        lang => !languages.includes(lang as string)
-      );
-      
-      // Add new languages
-      await Promise.all(
-        languagesToAdd.map(language => 
-          this.assignLanguage(id, language)
-        )
-      );
-      
-      // Remove old languages
-      await Promise.all(
-        languagesToRemove.map(language => 
-          this.removeLanguage(id, language as string)
-        )
-      );
-    }
 
     // Return updated publisher
     return this.findOne(id);
   }
-
-  async remove(id: string) {
+  async deactivatePublisherAccount(id: string) {
     // Check if publisher exists
-    await this.findOne(id);
-
-    // Check if publisher has inventory
-    const inventoryCount = await this.prisma.adInventory.count({
-      where: { publisherId: id }
+    const publisher = await this.findOne(id);
+    if (!publisher) {
+      throw new ResourceNotFoundException('Publisher', id);
+    }
+    // Deactivate the publisher account
+    return this.prisma.publisher.update({
+      where: { id },
+      data: {
+        status: PublisherStatus.DEACTIVATED,
+      },
+    });
+  }
+  async createWebsite(createWebsiteDto: CreateWebsiteDto) {
+    // Check if publisher exists
+    const publisher = await this.prisma.publisher.findUnique({
+      where: { id: createWebsiteDto.publisherId },
     });
 
-    if (inventoryCount > 0) {
+    if (!publisher) {
+      throw new ResourceNotFoundException(
+        'Publisher',
+        createWebsiteDto.publisherId,
+      );
+    }
+    // Generate Initialization Script
+    const initializationScript = `
+    <script></script>`;
+    // Check if website URL already exists
+    const existingWebsite = await this.prisma.website.findUnique({
+      where: { url: createWebsiteDto.url },
+    });
+
+    if (existingWebsite) {
+      throw new DuplicateResourceException(
+        'Website',
+        'url',
+        createWebsiteDto.url,
+      );
+    }
+
+    // Create website
+    let data = await this.prisma.website.create({
+      data: {
+        url: createWebsiteDto.url,
+        name: createWebsiteDto.websiteName,
+        publisherId: createWebsiteDto.publisherId,
+        initScript: initializationScript,
+        isActive: true,
+        description: createWebsiteDto.description || '',
+        websiteCategories: {
+          connect: createWebsiteDto.categoryIds.map((id) => ({ id })),
+        },
+      },
+    });
+    return data;
+  }
+  async getAllWebsites(publisherId: string) {
+    await this.findOne(publisherId);
+
+    const data = await this.prisma.website.findMany({
+      where: { publisherId },
+      include: {
+        inventories: true,
+        websiteCategories: true,
+      },
+    });
+
+    return data;
+  }
+  async getWebsiteById(publisherId: string, websiteId: string) {
+    const website = await this.prisma.website.findUnique({
+      where: { id: websiteId, publisherId, isActive: true },
+      include: {
+        inventories: true,
+        websiteCategories: true,
+      },
+    });
+    if (!website) {
+      throw new ResourceNotFoundException('Website', websiteId);
+    }
+    return website;
+  }
+  async getWebsiteByURL(publisherId: string, websiteURL: string) {
+    const website = await this.prisma.website.findUnique({
+      where: { url: websiteURL, publisherId, isActive: true },
+      include: {
+        inventories: true,
+        websiteCategories: true,
+      },
+    });
+    if (!website) {
+      throw new ResourceNotFoundException('Website', websiteURL);
+    }
+    return website;
+  }
+  async activateWebsite(publisherId: string, websiteId: string) {
+    await this.getWebsiteById(publisherId, websiteId);
+    const data = await this.prisma.website.update({
+      where: { id: websiteId },
+      data: { isActive: true },
+    });
+
+    return data;
+  }
+  async deleteWebsite(publisherId: string, websiteId: string) {
+    await this.getWebsiteById(publisherId, websiteId);
+
+    // Check if website has active inventories
+    const activeInventories = await this.prisma.adInventory.count({
+      where: {
+        websiteId: websiteId,
+        isActive: true,
+      },
+    });
+    if (activeInventories > 0) {
       throw new BadRequestException(
-        'Cannot delete publisher with active inventory. Delete inventory first or deactivate publisher instead.'
+        'Cannot delete website with active inventories. Please deactivate them first.',
       );
     }
-
-    // Delete publisher and all related data (categories, languages)
-    return this.prisma.publisher.delete({
-      where: { id }
-    });
-  }
-
-  async getPublisherInventory(publisherId: string) {
-    // Verify publisher exists
-    await this.findOne(publisherId);
-
-    return this.prisma.adInventory.findMany({
-      where: { publisherId },
-      include: {
-        floorPrices: {
-          where: {
-            startDate: { lte: new Date() },
-            OR: [
-              { endDate: { gte: new Date() } },
-              { endDate: null }
-            ]
-          },
-          orderBy: { startDate: 'desc' },
-          take: 1
-        },
-        categories: {
-          include: {
-            category: true
-          }
-        },
-        _count: {
-          select: {
-            impressions: true
-          }
-        }
-      }
-    });
-  }
-
-  async getPublisherCategories(publisherId: string) {
-    // Verify publisher exists
-    await this.findOne(publisherId);
-
-    return this.prisma.publisherCategory.findMany({
-      where: { publisherId },
-      include: {
-        category: true
-      }
-    });
-  }
-
-  async assignCategory(publisherId: string, categoryId: string) {
-    // Verify publisher exists
-    await this.findOne(publisherId);
-
-    // Verify category exists
-    const category = await this.prisma.contentCategory.findUnique({
-      where: { id: categoryId }
-    });
-
-    if (!category) {
-      throw new ResourceNotFoundException('Category', categoryId);
-    }
-
-    // Check if assignment already exists
-    const existingAssignment = await this.prisma.publisherCategory.findFirst({
-      where: {
-        publisherId,
-        categoryId
-      }
-    });
-
-    if (existingAssignment) {
-      return existingAssignment;
-    }
-
-    // Create new assignment
-    return this.prisma.publisherCategory.create({
+    // Delete website
+    return await this.prisma.website.update({
+      where: { id: websiteId },
       data: {
-        publisherId,
-        categoryId
-      }
+        isActive: false, // Soft delete
+      },
     });
   }
-
-  async removeCategory(publisherId: string, categoryId: string) {
-    // Verify assignment exists
-    const assignment = await this.prisma.publisherCategory.findFirst({
-      where: {
-        publisherId,
-        categoryId
-      }
-    });
-
-    if (!assignment) {
-      throw new ResourceNotFoundException(
-        'Category assignment',
-        `${publisherId}:${categoryId}`
-      );
-    }
-
-    // Delete assignment
-    return this.prisma.publisherCategory.delete({
-      where: {
-        publisherId_categoryId: {
-          publisherId,
-          categoryId
-        }
-      }
-    });
+  async getAvailableAdSlotTemplates() {
+    const adSlotTypes = await this.prisma.adSlotTemplate.findMany({});
+    return adSlotTypes;
   }
-
-  async getPublisherLanguages(publisherId: string) {
-    // Verify publisher exists
-    await this.findOne(publisherId);
-
-    return this.prisma.publisherLanguage.findMany({
-      where: { publisherId }
-    });
-  }
-
-  async assignLanguage(publisherId: string, language: string) {
-    // Verify publisher exists
-    await this.findOne(publisherId);
-
-    // Verify language is valid
-    if (!Object.values(Language).includes(language as Language)) {
-      throw new BadRequestException(`Invalid language: ${language}`);
-    }
-
-    // Check if assignment already exists
-    const existingAssignment = await this.prisma.publisherLanguage.findFirst({
-      where: {
-        publisherId,
-        language: language as Language
-      }
-    });
-
-    if (existingAssignment) {
-      return existingAssignment;
-    }
-
-    // Create new assignment
-    return this.prisma.publisherLanguage.create({
-      data: {
-        publisherId,
-        language: language as Language
-      }
-    });
-  }
-
-  async removeLanguage(publisherId: string, language: string) {
-    // Verify language is valid
-    if (!Object.values(Language).includes(language as Language)) {
-      throw new BadRequestException(`Invalid language: ${language}`);
-    }
-
-    // Verify assignment exists
-    const assignment = await this.prisma.publisherLanguage.findFirst({
-      where: {
-        publisherId,
-        language: language as Language
-      }
-    });
-
-    if (!assignment) {
-      throw new ResourceNotFoundException(
-        'Language assignment',
-        `${publisherId}:${language}`
-      );
-    }
-
-    // Delete assignment
-    return this.prisma.publisherLanguage.delete({
-      where: {
-        publisherId_language: {
-          publisherId,
-          language: language as Language
-        }
-      }
-    });
-  }
-
   // Inventory Management Methods
-  async createInventory(publisherId: string, createInventoryDto: CreateInventoryDto) {
-    // Verify publisher exists
-    await this.findOne(publisherId);
-
+  async createAdSlot(createInventoryDto: CreateAdInventoryDto) {
+    // Verify publisher exists & website belongs to publisher
+    await this.findOne(createInventoryDto.publisherId);
+    await this.getWebsiteById(
+      createInventoryDto.publisherId,
+      createInventoryDto.websiteId,
+    );
+    // check ad slot template exists
+    const checkTemplateExist = await this.prisma.adSlotTemplate.findUnique({
+      where: { id: createInventoryDto.adSlotTemplateId },
+    });
+    if (!checkTemplateExist) {
+      throw new ResourceNotFoundException(
+        'Ad Slot Template',
+        createInventoryDto.adSlotTemplateId,
+      );
+    }
     // Create inventory
     const inventory = await this.prisma.adInventory.create({
       data: {
-        publisherId,
         name: createInventoryDto.name,
-        format: createInventoryDto.type as InventoryFormat,
-        position: 'IN_CONTENT', // Default position, should come from DTO
-        width: 300, // Default width, should come from DTO
-        height: 250, // Default height, should come from DTO
-        isActive: createInventoryDto.active !== undefined ? createInventoryDto.active : true,
+        adSlotTemplateId: createInventoryDto.adSlotTemplateId,
+        publisherId: createInventoryDto.publisherId,
+        websiteId: createInventoryDto.websiteId,
+        isActive: true,
+        viewabilityScore: createInventoryDto.viewabilityScore || 0.8,
         approvalStatus: ApprovalStatus.PENDING,
-      }
+      },
+      include: {
+        adSlotTemplate: {
+          select: {
+            format: true,
+            height: true,
+            width: true,
+            position: true,
+            id: true,
+            name: true,
+          },
+        },
+        publisher: {
+          select: {
+            id: true,
+            email: true,
+          },
+        },
+        website: {
+          select: {
+            initScript: true,
+            url: true,
+            name: true,
+            id: true,
+          },
+        },
+        floorPrices: true,
+      },
     });
 
-    // Create floor price if provided
-    if (createInventoryDto.floorPrice) {
-      await this.prisma.floorPrice.create({
-        data: {
-          inventoryId: inventory.id,
-          basePrice: createInventoryDto.floorPrice,
-          currency: 'USD', // Default currency
-          startDate: new Date(),
-        }
-      });
+    return inventory;
+  }
+  async getAdSlotsForPublisher(publisherId: string) {
+    // Verify publisher exists
+    await this.findOne(publisherId);
+
+    // Get all ad slots for the publisher
+    const adSlots = await this.prisma.adInventory.findMany({
+      where: { publisherId },
+      include: {
+        adSlotTemplate: true,
+        website: true,
+        floorPrices: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return adSlots;
+  }
+  async getAdSlotsForWebsite(publisherId: string, websiteId: string) {
+    // Verify publisher exists
+    await this.findOne(publisherId);
+    // Verify website exists and belongs to publisher
+    const website = await this.getWebsiteById(publisherId, websiteId);
+
+    // Get all ad slots for the publisher
+    const adSlots = await this.prisma.adInventory.findMany({
+      where: { publisherId, websiteId },
+      include: {
+        adSlotTemplate: true,
+        website: true,
+        floorPrices: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return adSlots;
+  }
+  async getSpecificAdSlot(
+    publisherId: string,
+    inventoryId: string,
+    websiteId: string,
+  ) {
+    // Verify publisher exists
+    await this.findOne(publisherId);
+    // Verify website exists and belongs to publisher
+    const website = await this.getWebsiteById(publisherId, websiteId);
+
+    // Get specific ad slot for the publisher and website
+    const adSlot = await this.prisma.adInventory.findUnique({
+      where: { id: inventoryId, publisherId, websiteId },
+      include: {
+        adSlotTemplate: true,
+        website: true,
+        floorPrices: true,
+      },
+    });
+
+    if (!adSlot) {
+      throw new ResourceNotFoundException('Ad Slot', inventoryId);
+    }
+
+    return adSlot;
+  }
+  //
+  async toggleActivationStatus(activateDto: ActivateInventoryDto) {
+    // Verify Ad Slot Exist
+    const { publisherId, inventoryId, websiteId, isActive } = activateDto;
+    await this.getSpecificAdSlot(publisherId, inventoryId, websiteId);
+
+    // Update inventory activation status
+    const updatedInventory = await this.prisma.adInventory.update({
+      where: { id: inventoryId, publisherId, websiteId },
+      data: { isActive },
+      include: {
+        adSlotTemplate: true,
+        website: true,
+        floorPrices: true,
+      },
+    });
+    if (!updatedInventory) {
+      throw new ResourceNotFoundException('Ad Slot', inventoryId);
+    }
+    return updatedInventory;
+  }
+  async deleteAdSlot(publisherId: string, adSlotId: string, websiteId: string) {
+    // Verify Ad Slot Exist
+    const adSlot = await this.getSpecificAdSlot(
+      publisherId,
+      adSlotId,
+      websiteId,
+    );
+    if (!adSlot) {
+      throw new ResourceNotFoundException('Ad Slot', adSlotId);
+    }
+    const del = await this.prisma.adInventory.delete({
+      where: { id: adSlotId, publisherId, websiteId },
+    });
+    if (!del) {
+      throw new ResourceNotFoundException('Ad Slot', adSlotId);
+    }
+    return del;
+  }
+  async createFloorPriceRule(createFloorPriceDto: CreateFloorPriceDto) {
+    // Verify inventory exists and belongs to publisher
+    const inventory = await this.prisma.adInventory.findUnique({
+      where: { id: createFloorPriceDto.inventoryId },
+    });
+
+    if (!inventory) {
+      throw new ResourceNotFoundException(
+        'Inventory',
+        createFloorPriceDto.inventoryId,
+      );
+    }
+
+    if (inventory.publisherId !== createFloorPriceDto.publisherId) {
+      throw new ForbiddenException(
+        'You do not have permission to create floor price for this inventory',
+      );
+    }
+
+    // Create floor price
+    return await this.prisma.floorPrice.create({
+      data: {
+        inventoryId: createFloorPriceDto.inventoryId,
+        basePrice: createFloorPriceDto.basePrice,
+        currency: 'USD',
+        startDate: createFloorPriceDto.startDate
+          ? new Date(createFloorPriceDto.startDate)
+          : new Date(),
+        endDate: createFloorPriceDto.endDate
+          ? new Date(createFloorPriceDto.endDate)
+          : null,
+      },
+    });
+  }
+
+  async getAllFloorPriceRules(publisherId: string, inventoryId: string) {
+    // Verify inventory exists and belongs to publisher
+    const inventory = await this.prisma.adInventory.findUnique({
+      where: { id: inventoryId },
+    });
+
+    if (!inventory) {
+      throw new ResourceNotFoundException('Inventory', inventoryId);
+    }
+
+    if (inventory.publisherId !== publisherId) {
+      throw new ForbiddenException(
+        'You do not have permission to view floor prices for this inventory',
+      );
+    }
+
+    // Get all floor prices for the inventory
+    return await this.prisma.floorPrice.findMany({
+      where: { inventoryId },
+      orderBy: { startDate: 'desc' },
+    });
+  }
+  async getSingleFloorPriceRule(
+    publisherId: string,
+    inventoryId: string,
+    floorPriceId: string,
+  ) {
+    // Verify inventory exists and belongs to publisher
+    const inventory = await this.prisma.adInventory.findUnique({
+      where: { id: inventoryId },
+    });
+
+    if (!inventory) {
+      throw new ResourceNotFoundException('Inventory', inventoryId);
+    }
+
+    if (inventory.publisherId !== publisherId) {
+      throw new ForbiddenException(
+        'You do not have permission to view floor prices for this inventory',
+      );
+    }
+
+    // Get all floor prices for the inventory
+    return await this.prisma.floorPrice.findUnique({
+      where: { inventoryId, id: floorPriceId },
+    });
+  }
+  async updateFloorPriceRule(updateFloorPriceDto: UpdateFloorPriceDto) {
+    // Verify Floor Price Exists
+    const floorPrice = await this.prisma.floorPrice.findUnique({
+      where: { id: updateFloorPriceDto.id },
+    });
+    if (!floorPrice) {
+      throw new ResourceNotFoundException(
+        'Floor Price',
+        updateFloorPriceDto.id,
+      );
+    }
+    // Verify inventory exists and belongs to publisher
+    const inventory = await this.prisma.adInventory.findUnique({
+      where: { id: floorPrice.inventoryId },
+    });
+    if (!inventory) {
+      throw new ResourceNotFoundException('Inventory', floorPrice.inventoryId);
+    }
+    if (inventory.publisherId !== updateFloorPriceDto.publisherId) {
+      throw new ForbiddenException(
+        'You do not have permission to update this floor price',
+      );
+    }
+    // Update Floor Price
+    const updatedFloorPrice = await this.prisma.floorPrice.update({
+      where: { id: updateFloorPriceDto.id },
+      data: {
+        basePrice: updateFloorPriceDto.basePrice,
+        currency: 'USD',
+        startDate: updateFloorPriceDto.startDate
+          ? new Date(updateFloorPriceDto.startDate)
+          : new Date(),
+        endDate: updateFloorPriceDto.endDate
+          ? new Date(updateFloorPriceDto.endDate)
+          : null,
+      },
+    });
+    return updatedFloorPrice;
+  }
+  async deleteFloorPriceRule(publisherId: string, floorPriceId: string) {
+    // check floor price exist & belong to publisher
+    const floorPrice = await this.prisma.floorPrice.findUnique({
+      where: { id: floorPriceId, AND: { inventory: { publisherId } } },
+    });
+    if (!floorPrice) {
+      throw new ResourceNotFoundException('Floor Price', floorPriceId);
+    }
+    // Delete Floor Price
+    const del = await this.prisma.floorPrice.delete({
+      where: { id: floorPriceId },
+    });
+    return del;
+  }
+
+  // Helper method to verify inventory ownership
+  private async verifyInventoryOwnership(
+    publisherId: string,
+    inventoryId: string,
+  ) {
+    const inventory = await this.prisma.adInventory.findFirst({
+      where: {
+        id: inventoryId,
+        publisherId: publisherId,
+      },
+    });
+
+    if (!inventory) {
+      throw new NotFoundException('Inventory not found or access denied');
     }
 
     return inventory;
   }
 
-  async updatePublisherInventory(publisherId: string, inventoryId: string, updateInventoryDto: UpdateInventoryDto) {
-    // Verify inventory exists and belongs to publisher
-    const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
-    });
+  // ======================
+  // DEMOGRAPHIC TARGETING
+  // ======================
 
-    if (!inventory) {
-      throw new ResourceNotFoundException('Inventory', inventoryId);
-    }
+  async addDemographicTargeting(
+    publisherId: string,
+    createDto: CreateDemographicTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, createDto.inventoryId);
 
-    if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to update this inventory');
-    }
-
-    // Update inventory
-    const updatedInventory = await this.prisma.adInventory.update({
-      where: { id: inventoryId },
-      data: {
-        name: updateInventoryDto.name,
-        isActive: updateInventoryDto.active
-      }
-    });
-
-    // Update floor price if provided
-    if (updateInventoryDto.floorPrice) {
-      const existingFloorPrice = await this.prisma.floorPrice.findFirst({
-        where: {
-          inventoryId,
-          startDate: { lte: new Date() },
-          OR: [
-            { endDate: { gte: new Date() } },
-            { endDate: null }
-          ]
-        },
-        orderBy: { startDate: 'desc' }
-      });
-
-      if (existingFloorPrice) {
-        // End the current floor price
-        await this.prisma.floorPrice.update({
-          where: { id: existingFloorPrice.id },
-          data: { endDate: new Date() }
-        });
-      }
-
-      // Create new floor price
-      await this.prisma.floorPrice.create({
-        data: {
-          inventoryId,
-          basePrice: updateInventoryDto.floorPrice,
-          currency: 'USD',
-          startDate: new Date()
-        }
-      });
-    }
-
-    return updatedInventory;
-  }
-
-  async deletePublisherInventory(publisherId: string, inventoryId: string) {
-    // Verify inventory exists and belongs to publisher
-    const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
-    });
-
-    if (!inventory) {
-      throw new ResourceNotFoundException('Inventory', inventoryId);
-    }
-
-    if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to delete this inventory');
-    }
-
-    // Check if inventory has active campaigns
-    const campaignCount = await this.prisma.campaignInventory.count({
-      where: { 
-        inventoryId,
-        campaign: {
-          status: {
-            in: ['ACTIVE', 'SCHEDULED']
-          }
-        }
-      }
-    });
-
-    if (campaignCount > 0) {
+    // Validate age range if both are provided
+    if (
+      createDto.ageMin &&
+      createDto.ageMax &&
+      createDto.ageMin > createDto.ageMax
+    ) {
       throw new BadRequestException(
-        'Cannot delete inventory with active campaigns. Please deactivate inventory instead.'
+        'Minimum age cannot be greater than maximum age',
       );
     }
 
-    // Delete inventory and all related data
-    return this.prisma.adInventory.delete({
-      where: { id: inventoryId }
-    });
-  }
-
-  async toggleInventoryStatus(publisherId: string, inventoryId: string, active: boolean) {
-    // Verify inventory exists and belongs to publisher
-    const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
-    });
-
-    if (!inventory) {
-      throw new ResourceNotFoundException('Inventory', inventoryId);
-    }
-
-    if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to update this inventory');
-    }
-
-    // Update inventory status
-    return this.prisma.adInventory.update({
-      where: { id: inventoryId },
-      data: { isActive: active }
-    });
-  }
-
-  async getInventoryMetrics(publisherId: string, inventoryId: string, startDate: string, endDate: string) {
-    // Verify inventory exists and belongs to publisher
-    const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
-    });
-
-    if (!inventory) {
-      throw new ResourceNotFoundException('Inventory', inventoryId);
-    }
-
-    if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to view metrics for this inventory');
-    }
-
-    // Parse dates
-    const start = startDate ? new Date(startDate) : new Date(new Date().setDate(new Date().getDate() - 30));
-    const end = endDate ? new Date(endDate) : new Date();
-
-    // Get impressions data
-    const impressions = await this.prisma.impression.groupBy({
-      by: ['createdAt'],
-      where: {
-        inventoryId,
-        createdAt: {
-          gte: start,
-          lte: end
-        }
+    return this.prisma.demographicTargeting.create({
+      data: {
+        inventoryId: createDto.inventoryId,
+        ageMin: createDto.ageMin,
+        ageMax: createDto.ageMax,
+        genders: createDto.genders || [],
+        languages: createDto.languages || [],
+        education: createDto.education || [],
+        incomeRange: createDto.incomeRange || [],
       },
-      _count: {
-        id: true
-      },
-      _sum: {
-        revenue: true
-      }
-    });
-
-    // Get clicks data
-    const clicks = await this.prisma.click.groupBy({
-      by: ['createdAt'],
-      where: {
-        impression: {
-          inventoryId
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
         },
-        createdAt: {
-          gte: start,
-          lte: end
-        }
       },
-      _count: {
-        id: true
+    });
+  }
+
+  async getDemographicTargeting(publisherId: string, inventoryId: string) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    return this.prisma.demographicTargeting.findMany({
+      where: {
+        inventoryId: inventoryId,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async updateDemographicTargeting(
+    publisherId: string,
+    id: string,
+    updateDto: UpdateDemographicTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, updateDto.inventoryId);
+
+    // Check if the targeting rule exists and belongs to the inventory
+    const existingRule = await this.prisma.demographicTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: updateDto.inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Demographic targeting rule not found');
+    }
+
+    // Validate age range if both are provided
+    if (
+      updateDto.ageMin &&
+      updateDto.ageMax &&
+      updateDto.ageMin > updateDto.ageMax
+    ) {
+      throw new BadRequestException(
+        'Minimum age cannot be greater than maximum age',
+      );
+    }
+
+    return this.prisma.demographicTargeting.update({
+      where: { id },
+      data: {
+        ageMin: updateDto.ageMin,
+        ageMax: updateDto.ageMax,
+        genders: updateDto.genders,
+        languages: updateDto.languages,
+        education: updateDto.education,
+        incomeRange: updateDto.incomeRange,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async deleteDemographicTargeting(
+    publisherId: string,
+    inventoryId: string,
+    id: string,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    const existingRule = await this.prisma.demographicTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Demographic targeting rule not found');
+    }
+
+    await this.prisma.demographicTargeting.delete({
+      where: { id },
+    });
+
+    return { message: 'Demographic targeting rule deleted successfully' };
+  }
+
+  // ======================
+  // GEOGRAPHIC TARGETING
+  // ======================
+
+  async addGeographicTargeting(
+    publisherId: string,
+    createDto: CreateGeographicTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, createDto.inventoryId);
+
+    return this.prisma.geographicTargeting.create({
+      data: {
+        inventoryId: createDto.inventoryId,
+        countries: createDto.countries || [],
+        states: createDto.states || [],
+        cities: createDto.cities || [],
+        postalCodes: createDto.postalCodes || [],
+        radius: createDto.radius,
+        latitude: createDto.latitude,
+        longitude: createDto.longitude,
+        isInclude: createDto.isInclude ?? true,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getGeographicTargeting(publisherId: string, inventoryId: string) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    return this.prisma.geographicTargeting.findMany({
+      where: {
+        inventoryId: inventoryId,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async updateGeographicTargeting(
+    publisherId: string,
+    id: string,
+    updateDto: UpdateGeographicTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, updateDto.inventoryId);
+
+    const existingRule = await this.prisma.geographicTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: updateDto.inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Geographic targeting rule not found');
+    }
+
+    return this.prisma.geographicTargeting.update({
+      where: { id },
+      data: {
+        countries: updateDto.countries,
+        states: updateDto.states,
+        cities: updateDto.cities,
+        postalCodes: updateDto.postalCodes,
+        radius: updateDto.radius,
+        latitude: updateDto.latitude,
+        longitude: updateDto.longitude,
+        isInclude: updateDto.isInclude,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async deleteGeographicTargeting(
+    publisherId: string,
+    inventoryId: string,
+    id: string,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    const existingRule = await this.prisma.geographicTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Geographic targeting rule not found');
+    }
+
+    await this.prisma.geographicTargeting.delete({
+      where: { id },
+    });
+
+    return { message: 'Geographic targeting rule deleted successfully' };
+  }
+
+  // ======================
+  // DEVICE TARGETING
+  // ======================
+
+  async addDeviceTargeting(
+    publisherId: string,
+    createDto: CreateDeviceTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, createDto.inventoryId);
+
+    return this.prisma.deviceTargeting.create({
+      data: {
+        inventoryId: createDto.inventoryId,
+        deviceTypes: createDto.deviceTypes || [],
+        operatingSystems: createDto.operatingSystems || [],
+        browsers: createDto.browsers || [],
+        connectionTypes: createDto.connectionTypes || [],
+        minOSVersion: createDto.minOSVersion,
+        maxOSVersion: createDto.maxOSVersion,
+        deviceModels: createDto.deviceModels || [],
+        isInclude: createDto.isInclude ?? true,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getDeviceTargeting(publisherId: string, inventoryId: string) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    return this.prisma.deviceTargeting.findMany({
+      where: {
+        inventoryId: inventoryId,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async updateDeviceTargeting(
+    publisherId: string,
+    id: string,
+    updateDto: UpdateDeviceTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, updateDto.inventoryId);
+
+    const existingRule = await this.prisma.deviceTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: updateDto.inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Device targeting rule not found');
+    }
+
+    return this.prisma.deviceTargeting.update({
+      where: { id },
+      data: {
+        deviceTypes: updateDto.deviceTypes,
+        operatingSystems: updateDto.operatingSystems,
+        browsers: updateDto.browsers,
+        connectionTypes: updateDto.connectionTypes,
+        minOSVersion: updateDto.minOSVersion,
+        maxOSVersion: updateDto.maxOSVersion,
+        deviceModels: updateDto.deviceModels,
+        isInclude: updateDto.isInclude,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async deleteDeviceTargeting(
+    publisherId: string,
+    inventoryId: string,
+    id: string,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    const existingRule = await this.prisma.deviceTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Device targeting rule not found');
+    }
+
+    await this.prisma.deviceTargeting.delete({
+      where: { id },
+    });
+
+    return { message: 'Device targeting rule deleted successfully' };
+  }
+
+  // ======================
+  // CONTEXTUAL TARGETING
+  // ======================
+
+  async addContextualTargeting(
+    publisherId: string,
+    createDto: CreateContextualTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, createDto.inventoryId);
+
+    return this.prisma.contextualTargeting.create({
+      data: {
+        inventoryId: createDto.inventoryId,
+        contentCategories: createDto.contentCategories || [],
+        keywords: createDto.keywords || [],
+        urlPatterns: createDto.urlPatterns || [],
+        pageTypes: createDto.pageTypes || [],
+        brandSafety: createDto.brandSafety || [],
+        blockedKeywords: createDto.blockedKeywords || [],
+        isInclude: createDto.isInclude ?? true,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getContextualTargeting(publisherId: string, inventoryId: string) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    return this.prisma.contextualTargeting.findMany({
+      where: {
+        inventoryId: inventoryId,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async updateContextualTargeting(
+    publisherId: string,
+    id: string,
+    updateDto: UpdateContextualTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, updateDto.inventoryId);
+
+    const existingRule = await this.prisma.contextualTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: updateDto.inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Contextual targeting rule not found');
+    }
+
+    return this.prisma.contextualTargeting.update({
+      where: { id },
+      data: {
+        contentCategories: updateDto.contentCategories,
+        keywords: updateDto.keywords,
+        urlPatterns: updateDto.urlPatterns,
+        pageTypes: updateDto.pageTypes,
+        brandSafety: updateDto.brandSafety,
+        blockedKeywords: updateDto.blockedKeywords,
+        isInclude: updateDto.isInclude,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async deleteContextualTargeting(
+    publisherId: string,
+    inventoryId: string,
+    id: string,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    const existingRule = await this.prisma.contextualTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Contextual targeting rule not found');
+    }
+
+    await this.prisma.contextualTargeting.delete({
+      where: { id },
+    });
+
+    return { message: 'Contextual targeting rule deleted successfully' };
+  }
+
+  // ======================
+  // BEHAVIORAL TARGETING
+  // ======================
+
+  async addBehavioralTargeting(
+    publisherId: string,
+    createDto: CreateBehavioralTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, createDto.inventoryId);
+
+    return this.prisma.behavioralTargeting.create({
+      data: {
+        inventoryId: createDto.inventoryId,
+        interests: createDto.interests || [],
+        purchaseIntent: createDto.purchaseIntent || [],
+        lifestyleSegments: createDto.lifestyleSegments || [],
+        audienceTypes: createDto.audienceTypes || [],
+        userSegments: createDto.userSegments || [],
+        purchaseFrequency: createDto.purchaseFrequency || [],
+        sessionEngagement: createDto.sessionEngagement || [],
+        avgOrderValue: createDto.avgOrderValue,
+        sessionDuration: createDto.sessionDuration,
+        pageViews: createDto.pageViews,
+        isInclude: createDto.isInclude ?? true,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getBehavioralTargeting(publisherId: string, inventoryId: string) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    return this.prisma.behavioralTargeting.findMany({
+      where: {
+        inventoryId: inventoryId,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async updateBehavioralTargeting(
+    publisherId: string,
+    id: string,
+    updateDto: UpdateBehavioralTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, updateDto.inventoryId);
+
+    const existingRule = await this.prisma.behavioralTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: updateDto.inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Behavioral targeting rule not found');
+    }
+
+    return this.prisma.behavioralTargeting.update({
+      where: { id },
+      data: {
+        interests: updateDto.interests,
+        purchaseIntent: updateDto.purchaseIntent,
+        lifestyleSegments: updateDto.lifestyleSegments,
+        audienceTypes: updateDto.audienceTypes,
+        userSegments: updateDto.userSegments,
+        purchaseFrequency: updateDto.purchaseFrequency,
+        sessionEngagement: updateDto.sessionEngagement,
+        avgOrderValue: updateDto.avgOrderValue,
+        sessionDuration: updateDto.sessionDuration,
+        pageViews: updateDto.pageViews,
+        isInclude: updateDto.isInclude,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async deleteBehavioralTargeting(
+    publisherId: string,
+    inventoryId: string,
+    id: string,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    const existingRule = await this.prisma.behavioralTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Behavioral targeting rule not found');
+    }
+
+    await this.prisma.behavioralTargeting.delete({
+      where: { id },
+    });
+
+    return { message: 'Behavioral targeting rule deleted successfully' };
+  }
+
+  // ======================
+  // TIME TARGETING
+  // ======================
+
+  async addTimeTargeting(
+    publisherId: string,
+    createDto: CreateTimeTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, createDto.inventoryId);
+
+    // Validate time range if both start and end hours are provided
+    if (createDto.startHour !== undefined && createDto.endHour !== undefined) {
+      if (createDto.startHour > createDto.endHour) {
+        throw new BadRequestException(
+          'Start hour cannot be greater than end hour',
+        );
       }
-    });
+    }
 
-    // Format the metrics
-    const dateRange = this.getDateRange(start, end);
-    const metricsMap = new Map();
-
-    // Initialize metrics map with dates
-    dateRange.forEach(date => {
-      metricsMap.set(date.toISOString().split('T')[0], {
-        date: date.toISOString().split('T')[0],
-        impressions: 0,
-        clicks: 0,
-        ctr: 0,
-        revenue: 0
-      });
-    });
-
-    // Fill in impressions data
-    impressions.forEach(impression => {
-      const dateKey = new Date(impression.createdAt).toISOString().split('T')[0];
-      if (metricsMap.has(dateKey)) {
-        const metrics = metricsMap.get(dateKey);
-        metrics.impressions = impression._count.id;
-        metrics.revenue = impression._sum.revenue || 0;
-        metricsMap.set(dateKey, metrics);
+    // Validate date range if both dates are provided
+    if (createDto.startDate && createDto.endDate) {
+      if (createDto.startDate > createDto.endDate) {
+        throw new BadRequestException('Start date cannot be after end date');
       }
+    }
+
+    return this.prisma.timeTargeting.create({
+      data: {
+        inventoryId: createDto.inventoryId,
+        timezone: createDto.timezone || 'Asia/Kolkata',
+        timeSlots: createDto.timeSlots || [],
+        daysOfWeek: createDto.daysOfWeek || [],
+        holidayTypes: createDto.holidayTypes || [],
+        startHour: createDto.startHour,
+        endHour: createDto.endHour,
+        startDate: createDto.startDate,
+        endDate: createDto.endDate,
+        includeHolidays: createDto.includeHolidays ?? true,
+        workingDaysOnly: createDto.workingDaysOnly ?? false,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getTimeTargeting(publisherId: string, inventoryId: string) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    return this.prisma.timeTargeting.findMany({
+      where: {
+        inventoryId: inventoryId,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async updateTimeTargeting(
+    publisherId: string,
+    id: string,
+    updateDto: UpdateTimeTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, updateDto.inventoryId);
+
+    const existingRule = await this.prisma.timeTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: updateDto.inventoryId,
+      },
     });
 
-    // Fill in clicks data
-    clicks.forEach(click => {
-      const dateKey = new Date(click.createdAt).toISOString().split('T')[0];
-      if (metricsMap.has(dateKey)) {
-        const metrics = metricsMap.get(dateKey);
-        metrics.clicks = click._count.id;
-        // Calculate CTR
-        if (metrics.impressions > 0) {
-          metrics.ctr = (metrics.clicks / metrics.impressions) * 100;
-        }
-        metricsMap.set(dateKey, metrics);
+    if (!existingRule) {
+      throw new NotFoundException('Time targeting rule not found');
+    }
+
+    // Validate time range if both start and end hours are provided
+    if (updateDto.startHour !== undefined && updateDto.endHour !== undefined) {
+      if (updateDto.startHour > updateDto.endHour) {
+        throw new BadRequestException(
+          'Start hour cannot be greater than end hour',
+        );
       }
+    }
+
+    // Validate date range if both dates are provided
+    if (updateDto.startDate && updateDto.endDate) {
+      if (updateDto.startDate > updateDto.endDate) {
+        throw new BadRequestException('Start date cannot be after end date');
+      }
+    }
+
+    return this.prisma.timeTargeting.update({
+      where: { id },
+      data: {
+        timezone: updateDto.timezone,
+        timeSlots: updateDto.timeSlots,
+        daysOfWeek: updateDto.daysOfWeek,
+        holidayTypes: updateDto.holidayTypes,
+        startHour: updateDto.startHour,
+        endHour: updateDto.endHour,
+        startDate: updateDto.startDate,
+        endDate: updateDto.endDate,
+        includeHolidays: updateDto.includeHolidays,
+        workingDaysOnly: updateDto.workingDaysOnly,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async deleteTimeTargeting(
+    publisherId: string,
+    inventoryId: string,
+    id: string,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    const existingRule = await this.prisma.timeTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: inventoryId,
+      },
     });
 
-    // Convert map to array
-    const metricsArray = Array.from(metricsMap.values());
+    if (!existingRule) {
+      throw new NotFoundException('Time targeting rule not found');
+    }
 
-    // Calculate totals
-    const totalImpressions = metricsArray.reduce((sum, metric) => sum + metric.impressions, 0);
-    const totalClicks = metricsArray.reduce((sum, metric) => sum + metric.clicks, 0);
-    const totalRevenue = metricsArray.reduce((sum, metric) => sum + metric.revenue, 0);
-    const totalCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+    await this.prisma.timeTargeting.delete({
+      where: { id },
+    });
+
+    return { message: 'Time targeting rule deleted successfully' };
+  }
+
+  // ======================
+  // FREQUENCY TARGETING
+  // ======================
+
+  async addFrequencyTargeting(
+    publisherId: string,
+    createDto: CreateFrequencyTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, createDto.inventoryId);
+
+    return this.prisma.frequencyTargeting.create({
+      data: {
+        inventoryId: createDto.inventoryId,
+        maxImpressions: createDto.maxImpressions,
+        frequencyWindow: createDto.frequencyWindow,
+        frequencyScope: createDto.frequencyScope,
+        maxClicksPerUser: createDto.maxClicksPerUser,
+        minTimeBetween: createDto.minTimeBetween,
+        customTimeWindowHours: createDto.customTimeWindowHours,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getFrequencyTargeting(publisherId: string, inventoryId: string) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    return this.prisma.frequencyTargeting.findMany({
+      where: {
+        inventoryId: inventoryId,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async updateFrequencyTargeting(
+    publisherId: string,
+    id: string,
+    updateDto: UpdateFrequencyTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, updateDto.inventoryId);
+
+    const existingRule = await this.prisma.frequencyTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: updateDto.inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Frequency targeting rule not found');
+    }
+
+    return this.prisma.frequencyTargeting.update({
+      where: { id },
+      data: {
+        maxImpressions: updateDto.maxImpressions,
+        frequencyWindow: updateDto.frequencyWindow,
+        frequencyScope: updateDto.frequencyScope,
+        maxClicksPerUser: updateDto.maxClicksPerUser,
+        minTimeBetween: updateDto.minTimeBetween,
+        customTimeWindowHours: updateDto.customTimeWindowHours,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async deleteFrequencyTargeting(
+    publisherId: string,
+    inventoryId: string,
+    id: string,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    const existingRule = await this.prisma.frequencyTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Frequency targeting rule not found');
+    }
+
+    await this.prisma.frequencyTargeting.delete({
+      where: { id },
+    });
+
+    return { message: 'Frequency targeting rule deleted successfully' };
+  }
+
+  // ======================
+  // GET ALL TARGETING RULES
+  // ======================
+
+  async getAllTargetingRules(publisherId: string, inventoryId: string) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    const [
+      demographic,
+      geographic,
+      device,
+      contextual,
+      behavioral,
+      time,
+      frequency,
+    ] = await Promise.all([
+      this.prisma.demographicTargeting.findMany({
+        where: { inventoryId },
+      }),
+      this.prisma.geographicTargeting.findMany({
+        where: { inventoryId },
+      }),
+      this.prisma.deviceTargeting.findMany({
+        where: { inventoryId },
+      }),
+      this.prisma.contextualTargeting.findMany({
+        where: { inventoryId },
+      }),
+      this.prisma.behavioralTargeting.findMany({
+        where: { inventoryId },
+      }),
+      this.prisma.timeTargeting.findMany({
+        where: { inventoryId },
+      }),
+      this.prisma.frequencyTargeting.findMany({
+        where: { inventoryId },
+      }),
+    ]);
 
     return {
-      daily: metricsArray,
-      totals: {
-        impressions: totalImpressions,
-        clicks: totalClicks,
-        ctr: totalCtr,
-        revenue: totalRevenue,
-        period: {
-          start: start.toISOString().split('T')[0],
-          end: end.toISOString().split('T')[0]
-        }
-      }
+      inventoryId,
+      targeting: {
+        demographic,
+        geographic,
+        device,
+        contextual,
+        behavioral,
+        time,
+        frequency,
+      },
     };
-  }
-
-  // Helper method to generate date range
-  private getDateRange(startDate: Date, endDate: Date): Date[] {
-    const dates: Date[] = [];
-    const currentDate = new Date(startDate);
-
-    while (currentDate <= endDate) {
-      dates.push(new Date(currentDate));
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    return dates;
-  }
-
-  // Category Management Methods
-  async assignCategoriesToInventory(publisherId: string, inventoryId: string, categoryIds: string[]) {
-    // Verify inventory exists and belongs to publisher
-    const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
-    });
-
-    if (!inventory) {
-      throw new ResourceNotFoundException('Inventory', inventoryId);
-    }
-
-    if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to update this inventory');
-    }
-
-    // Get current categories
-    const currentCategories = await this.prisma.inventoryCategory.findMany({
-      where: { inventoryId },
-      select: { categoryId: true }
-    });
-    
-    const currentCategoryIds = currentCategories.map(c => c.categoryId);
-    
-    // Categories to add
-    const categoriesToAdd = categoryIds.filter(
-      catId => !currentCategoryIds.includes(catId)
-    );
-    
-    // Add new categories
-    await Promise.all(
-      categoriesToAdd.map(async (categoryId) => {
-        // Verify category exists
-        const category = await this.prisma.contentCategory.findUnique({
-          where: { id: categoryId }
-        });
-        
-        if (!category) {
-          throw new ResourceNotFoundException('Category', categoryId);
-        }
-
-        return this.prisma.inventoryCategory.create({
-          data: {
-            inventoryId,
-            categoryId
-          }
-        });
-      })
-    );
-
-    return this.prisma.inventoryCategory.findMany({
-      where: { inventoryId },
-      include: {
-        category: true
-      }
-    });
-  }
-
-  async removeCategoryFromInventory(publisherId: string, inventoryId: string, categoryId: string) {
-    // Verify inventory exists and belongs to publisher
-    const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
-    });
-
-    if (!inventory) {
-      throw new ResourceNotFoundException('Inventory', inventoryId);
-    }
-
-    if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to update this inventory');
-    }
-
-    // Verify category assignment exists
-    const categoryAssignment = await this.prisma.inventoryCategory.findFirst({
-      where: {
-        inventoryId,
-        categoryId
-      }
-    });
-
-    if (!categoryAssignment) {
-      throw new ResourceNotFoundException('Category assignment', `${inventoryId}:${categoryId}`);
-    }
-
-    // Remove category
-    return this.prisma.inventoryCategory.delete({
-      where: {
-        inventoryId_categoryId: {
-          inventoryId,
-          categoryId
-        }
-      }
-    });
-  }
-
-  async assignCategoriesToProfile(publisherId: string, categoryIds: string[]) {
-    // Verify publisher exists
-    await this.findOne(publisherId);
-
-    // Get current categories
-    const currentCategories = await this.prisma.publisherCategory.findMany({
-      where: { publisherId },
-      select: { categoryId: true }
-    });
-    
-    const currentCategoryIds = currentCategories.map(c => c.categoryId);
-    
-    // Categories to add
-    const categoriesToAdd = categoryIds.filter(
-      catId => !currentCategoryIds.includes(catId)
-    );
-    
-    // Categories to remove
-    const categoriesToRemove = currentCategoryIds.filter(
-      catId => !categoryIds.includes(catId)
-    );
-    
-    // Add new categories
-    await Promise.all(
-      categoriesToAdd.map(categoryId => 
-        this.assignCategory(publisherId, categoryId)
-      )
-    );
-    
-    // Remove old categories
-    await Promise.all(
-      categoriesToRemove.map(categoryId => 
-        this.removeCategory(publisherId, categoryId)
-      )
-    );
-
-    return this.getPublisherCategories(publisherId);
-  }
-
-  // Floor Price Management Methods
-  async createFloorPrice(publisherId: string, inventoryId: string, createFloorPriceDto: CreateFloorPriceDto) {
-    // Verify inventory exists and belongs to publisher
-    const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
-    });
-
-    if (!inventory) {
-      throw new ResourceNotFoundException('Inventory', inventoryId);
-    }
-
-    if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to update this inventory');
-    }
-
-    // Create floor price
-    return this.prisma.floorPrice.create({
-      data: {
-        inventoryId,
-        basePrice: createFloorPriceDto.price,
-        currency: 'USD',
-        startDate: createFloorPriceDto.startDate ? new Date(createFloorPriceDto.startDate) : new Date()
-        // Omit endDate and buyerTargeting to prevent type issues
-      }
-    });
-  }
-
-  async updateFloorPrice(publisherId: string, inventoryId: string, floorPriceId: string, updateFloorPriceDto: UpdateFloorPriceDto) {
-    // Verify inventory exists and belongs to publisher
-    const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
-    });
-
-    if (!inventory) {
-      throw new ResourceNotFoundException('Inventory', inventoryId);
-    }
-
-    if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to update this inventory');
-    }
-
-    // Verify floor price exists and belongs to inventory
-    const floorPrice = await this.prisma.floorPrice.findUnique({
-      where: { id: floorPriceId }
-    });
-
-    if (!floorPrice) {
-      throw new ResourceNotFoundException('Floor Price', floorPriceId);
-    }
-
-    if (floorPrice.inventoryId !== inventoryId) {
-      throw new ForbiddenException('Floor price does not belong to this inventory');
-    }
-
-    // Update floor price
-    return this.prisma.floorPrice.update({
-      where: { id: floorPriceId },
-      data: {
-        basePrice: updateFloorPriceDto.price,
-        startDate: updateFloorPriceDto.startDate ? new Date(updateFloorPriceDto.startDate) : undefined
-        // Omit endDate and buyerTargeting to prevent type issues
-      }
-    });
-  }
-
-  async deleteFloorPrice(publisherId: string, inventoryId: string, floorPriceId: string) {
-    // Verify inventory exists and belongs to publisher
-    const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
-    });
-
-    if (!inventory) {
-      throw new ResourceNotFoundException('Inventory', inventoryId);
-    }
-
-    if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to update this inventory');
-    }
-
-    // Verify floor price exists and belongs to inventory
-    const floorPrice = await this.prisma.floorPrice.findUnique({
-      where: { id: floorPriceId }
-    });
-
-    if (!floorPrice) {
-      throw new ResourceNotFoundException('Floor Price', floorPriceId);
-    }
-
-    if (floorPrice.inventoryId !== inventoryId) {
-      throw new ForbiddenException('Floor price does not belong to this inventory');
-    }
-
-    // Delete floor price
-    return this.prisma.floorPrice.delete({
-      where: { id: floorPriceId }
-    });
-  }
-
-  // Targeting Rules Methods
-  async createTargetingRule(publisherId: string, inventoryId: string, createTargetingRuleDto: CreateTargetingRuleDto) {
-    // Verify inventory exists and belongs to publisher
-    const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
-    });
-
-    if (!inventory) {
-      throw new ResourceNotFoundException('Inventory', inventoryId);
-    }
-
-    if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to update this inventory');
-    }
-
-    // Create targeting rule
-    return this.prisma.inventoryTargetingRule.create({
-      data: {
-        inventoryId,
-        ruleType: createTargetingRuleDto.type as any, // Type conversion needed
-        ruleData: {
-          name: createTargetingRuleDto.name,
-          include: createTargetingRuleDto.include !== undefined ? createTargetingRuleDto.include : true,
-          values: createTargetingRuleDto.values || [],
-          parameters: createTargetingRuleDto.parameters || {},
-          isActive: createTargetingRuleDto.active !== undefined ? createTargetingRuleDto.active : true
-        }
-      }
-    });
-  }
-
-  async updateTargetingRule(publisherId: string, inventoryId: string, ruleId: string, updateTargetingRuleDto: UpdateTargetingRuleDto) {
-    // Verify inventory exists and belongs to publisher
-    const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
-    });
-
-    if (!inventory) {
-      throw new ResourceNotFoundException('Inventory', inventoryId);
-    }
-
-    if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to update this inventory');
-    }
-
-    // Verify targeting rule exists and belongs to inventory
-    const targetingRule = await this.prisma.inventoryTargetingRule.findUnique({
-      where: { id: ruleId }
-    });
-
-    if (!targetingRule) {
-      throw new ResourceNotFoundException('Targeting Rule', ruleId);
-    }
-
-    if (targetingRule.inventoryId !== inventoryId) {
-      throw new ForbiddenException('Targeting rule does not belong to this inventory');
-    }
-
-    // Get existing rule data
-    const existingData = targetingRule.ruleData as any;
-
-    // Update targeting rule
-    return this.prisma.inventoryTargetingRule.update({
-      where: { id: ruleId },
-      data: {
-        ruleType: updateTargetingRuleDto.type as any || undefined,
-        ruleData: {
-          ...existingData,
-          name: updateTargetingRuleDto.name || existingData.name,
-          include: updateTargetingRuleDto.include !== undefined ? updateTargetingRuleDto.include : existingData.include,
-          values: updateTargetingRuleDto.values || existingData.values,
-          parameters: updateTargetingRuleDto.parameters || existingData.parameters,
-          isActive: updateTargetingRuleDto.active !== undefined ? updateTargetingRuleDto.active : existingData.isActive
-        }
-      }
-    });
-  }
-
-  async deleteTargetingRule(publisherId: string, inventoryId: string, ruleId: string) {
-    // Verify inventory exists and belongs to publisher
-    const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
-    });
-
-    if (!inventory) {
-      throw new ResourceNotFoundException('Inventory', inventoryId);
-    }
-
-    if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to update this inventory');
-    }
-
-    // Verify targeting rule exists and belongs to inventory
-    const targetingRule = await this.prisma.inventoryTargetingRule.findUnique({
-      where: { id: ruleId }
-    });
-
-    if (!targetingRule) {
-      throw new ResourceNotFoundException('Targeting Rule', ruleId);
-    }
-
-    if (targetingRule.inventoryId !== inventoryId) {
-      throw new ForbiddenException('Targeting rule does not belong to this inventory');
-    }
-
-    // Delete targeting rule
-    return this.prisma.inventoryTargetingRule.delete({
-      where: { id: ruleId }
-    });
-  }
-
-  async getTargetingRules(publisherId: string, inventoryId: string) {
-    // Verify inventory exists and belongs to publisher
-    const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId }
-    });
-
-    if (!inventory) {
-      throw new ResourceNotFoundException('Inventory', inventoryId);
-    }
-
-    if (inventory.publisherId !== publisherId) {
-      throw new ForbiddenException('You do not have permission to view this inventory');
-    }
-
-    // Get targeting rules
-    return this.prisma.inventoryTargetingRule.findMany({
-      where: { inventoryId }
-    });
   }
 }

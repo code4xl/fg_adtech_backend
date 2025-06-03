@@ -30,20 +30,20 @@ enum ApprovalStatus {
   REJECTED
 }
 
-enum TargetingRuleType {
-  DEMOGRAPHIC
-  GEOGRAPHIC
-  DEVICE
-  CONTEXTUAL
-  BEHAVIORAL
-  TIME
-  FREQUENCY
-}
+// enum TargetingRuleType {
+//   DEMOGRAPHIC
+//   GEOGRAPHIC
+//   DEVICE
+//   CONTEXTUAL
+//   BEHAVIORAL
+//   TIME
+//   FREQUENCY
+// }
 
 enum PublisherStatus {
   ACTIVE
-  SUSPENDED
-  PENDING
+  DEACTIVATED
+  DELETED
 }
 
 // Campaign enums
@@ -57,6 +57,11 @@ enum CampaignStatus {
   CANCELED
   REJECTED
   BUDGET_EXHAUSTED
+}
+
+enum FloorPriceCurrency {
+  USD
+  INR
 }
 
 enum CampaignObjective {
@@ -149,4 +154,299 @@ enum AuctionLogStatus {
 enum AuctionType {
   FIRST_PRICE
   SECOND_PRICE
+}
+
+enum UserType {
+  ADVERTISER
+  PUBLISHER
+  CLIENT
+  ADMIN
+}
+
+// Add payment enums
+enum PaymentType {
+  CREDIT_CARD
+  DEBIT_CARD
+  NET_BANKING
+  UPI
+  WALLET
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+  REFUND
+  ADJUSTMENT
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+// Enhanced enums for targeting rules
+// Add these to your existing enums.prisma.txt file
+
+// DEMOGRAPHIC ENUMS
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  NON_BINARY
+  PREFER_NOT_TO_SAY
+}
+
+enum Education {
+  HIGH_SCHOOL
+  DIPLOMA
+  BACHELOR
+  MASTER
+  PHD
+  PROFESSIONAL_DEGREE
+  TECHNICAL_CERTIFICATION
+}
+
+enum IncomeRange {
+  BELOW_25K
+  RANGE_25K_50K
+  RANGE_50K_100K
+  RANGE_100K_200K
+  RANGE_200K_500K
+  ABOVE_500K
+}
+
+// DEVICE ENUMS
+enum DeviceType {
+  DESKTOP
+  MOBILE
+  TABLET
+  SMART_TV
+  GAMING_CONSOLE
+  WEARABLE
+}
+
+enum OperatingSystem {
+  ANDROID
+  IOS
+  WINDOWS
+  MACOS
+  LINUX
+  CHROME_OS
+  KINDLE_OS
+  FIRE_OS
+}
+
+enum BrowserType {
+  CHROME
+  FIREFOX
+  SAFARI
+  EDGE
+  OPERA
+  BRAVE
+  SAMSUNG_INTERNET
+  UC_BROWSER
+  OTHER
+}
+
+enum ConnectionType {
+  WIFI
+  CELLULAR_2G
+  CELLULAR_3G
+  CELLULAR_4G
+  CELLULAR_5G
+  ETHERNET
+  FIBER
+  DSL
+  SATELLITE
+}
+
+// CONTEXTUAL ENUMS
+enum PageType {
+  HOMEPAGE
+  ARTICLE
+  PRODUCT
+  CATEGORY
+  CHECKOUT
+  SEARCH_RESULTS
+  USER_PROFILE
+  CONTACT
+  ABOUT
+  BLOG
+  NEWS
+  GALLERY
+}
+
+enum BrandSafety {
+  SAFE
+  MODERATE
+  ADULT_CONTENT
+  UNSAFE
+}
+
+// BEHAVIORAL ENUMS
+enum PurchaseIntent {
+  HIGH
+  MEDIUM
+  LOW
+  RESEARCH_PHASE
+  READY_TO_BUY
+}
+
+enum LifestyleSegment {
+  FITNESS_ENTHUSIAST
+  TECH_SAVVY
+  FAMILY_ORIENTED
+  BUDGET_CONSCIOUS
+  LUXURY_SHOPPER
+  ECO_CONSCIOUS
+  EARLY_ADOPTER
+  HEALTH_CONSCIOUS
+  TRAVEL_ENTHUSIAST
+  FOODIE
+  GAMING_ENTHUSIAST
+  FASHION_FORWARD
+}
+
+enum PurchaseFrequency {
+  DAILY
+  WEEKLY
+  BI_WEEKLY
+  MONTHLY
+  QUARTERLY
+  RARELY
+  FIRST_TIME_BUYER
+}
+
+enum SessionEngagement {
+  HIGH_ENGAGEMENT // >10 minutes
+  MEDIUM_ENGAGEMENT // 3-10 minutes
+  LOW_ENGAGEMENT // <3 minutes
+  BOUNCE // Single page view
+}
+
+// TIME ENUMS
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum TimeSlot {
+  EARLY_MORNING // 5-9 AM
+  MORNING // 9-12 PM
+  AFTERNOON // 12-5 PM
+  EVENING // 5-9 PM
+  NIGHT // 9 PM-12 AM
+  LATE_NIGHT // 12-5 AM
+}
+
+enum HolidayType {
+  NATIONAL_HOLIDAYS
+  RELIGIOUS_HOLIDAYS
+  SHOPPING_HOLIDAYS // Black Friday, etc.
+  SEASONAL_HOLIDAYS
+  LOCAL_HOLIDAYS
+}
+
+// FREQUENCY ENUMS
+enum FrequencyScope {
+  CAMPAIGN
+  CREATIVE
+  ADVERTISER
+  AD_GROUP
+  PLACEMENT
+}
+
+enum FrequencyWindow {
+  HOURLY
+  DAILY
+  WEEKLY
+  MONTHLY
+  LIFETIME
+}
+
+// GEOGRAPHIC ENUMS (Country codes - showing major ones)
+enum CountryCode {
+  IN // India
+  US // United States
+  UK // United Kingdom
+  CA // Canada
+  AU // Australia
+  DE // Germany
+  FR // France
+  JP // Japan
+  SG // Singapore
+  AE // UAE
+  // Add more as needed
+}
+
+// Indian states enum (since you're based in Mumbai)
+enum IndianState {
+  ANDHRA_PRADESH
+  ARUNACHAL_PRADESH
+  ASSAM
+  BIHAR
+  CHHATTISGARH
+  GOA
+  GUJARAT
+  HARYANA
+  HIMACHAL_PRADESH
+  JHARKHAND
+  KARNATAKA
+  KERALA
+  MADHYA_PRADESH
+  MAHARASHTRA
+  MANIPUR
+  MEGHALAYA
+  MIZORAM
+  NAGALAND
+  ODISHA
+  PUNJAB
+  RAJASTHAN
+  SIKKIM
+  TAMIL_NADU
+  TELANGANA
+  TRIPURA
+  UTTAR_PRADESH
+  UTTARAKHAND
+  WEST_BENGAL
+  // Union Territories
+  ANDAMAN_AND_NICOBAR
+  CHANDIGARH
+  DADRA_AND_NAGAR_HAVELI_AND_DAMAN_AND_DIU
+  DELHI
+  JAMMU_AND_KASHMIR
+  LADAKH
+  LAKSHADWEEP
+  PUDUCHERRY
+}
+
+// AUDIENCE ATTRIBUTES
+enum AudienceType {
+  LOOKALIKE
+  CUSTOM
+  INTEREST_BASED
+  BEHAVIORAL
+  DEMOGRAPHIC
+  RETARGETING
+  SIMILAR_TO_CONVERTERS
+}
+
+enum UserSegment {
+  NEW_VISITORS
+  RETURNING_VISITORS
+  LOYAL_CUSTOMERS
+  HIGH_VALUE_CUSTOMERS
+  CART_ABANDONERS
+  RECENT_PURCHASERS
+  INACTIVE_USERS
+  MOBILE_USERS
+  DESKTOP_USERS
 }
