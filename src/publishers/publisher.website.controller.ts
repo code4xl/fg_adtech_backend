@@ -13,7 +13,7 @@ import { PublisherGuard } from 'src/common/guards/authorization.guard';
 import { PublisherService } from './publisher.service';
 import { CreateWebsiteDto } from './dto/create-website.dto';
 
-@ApiTags('publishers/websites')
+@ApiTags('Publisher Websites')
 @Controller('publishers/websites')
 @UseGuards(PublisherGuard)
 @ApiBearerAuth()
@@ -83,7 +83,7 @@ export class PublisherWebsiteController {
     return { message: 'Website activated successfully' };
   }
 
-  @Delete(':/publisherId/:websiteId')
+  @Delete(':publisherId/:websiteId')
   @ApiResponse({
     status: 200,
     description: 'Delete a website by ID',

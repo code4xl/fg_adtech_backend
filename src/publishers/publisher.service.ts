@@ -6,12 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePublisherDto } from './dto/create-publisher.dto';
 import { UpdatePublisherDto } from './dto/update-publisher.dto';
-import {
-  Language,
-  PublisherStatus,
-  InventoryFormat,
-  TargetingRuleType,
-} from '@prisma/client';
+import { Language, PublisherStatus, InventoryFormat } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import {
   ResourceNotFoundException,
@@ -28,25 +23,33 @@ import {
   CreateAdInventoryDto,
 } from './dto/inventory.dto';
 import {
-  TargetingRuleResponseDto,
-  TargetingRulesListResponseDto,
-  DemographicTargeting,
-  GeographicTargeting,
-  DeviceTargeting,
-  ContextualTargeting,
-  BehavioralTargeting,
-  TimeTargeting,
-  FrequencyTargeting,
-  CreateTargetingRuleDto,
-  UpdateTargetingRuleDto,
-  TimeTargetingDto,
-  ContextualTargetingDto,
-  BehavioralTargetingDto,
-  DemographicTargetingDto,
-  DeviceTargetingDto,
-  FrequencyTargetingDto,
-  GeographicTargetingDto,
-} from './dto/targeting-rules.dto';
+  CreateBehavioralTargetingDto,
+  UpdateBehavioralTargetingDto,
+} from './dto/targeting/behavourial-targeting.dto';
+import {
+  CreateContextualTargetingDto,
+  UpdateContextualTargetingDto,
+} from './dto/targeting/contextual-targeting.dto';
+import {
+  CreateDemographicTargetingDto,
+  UpdateDemographicTargetingDto,
+} from './dto/targeting/demographic-targeting.dto';
+import {
+  CreateDeviceTargetingDto,
+  UpdateDeviceTargetingDto,
+} from './dto/targeting/device-targeting.dto';
+import {
+  CreateFrequencyTargetingDto,
+  UpdateFrequencyTargetingDto,
+} from './dto/targeting/frequency-targeting.dto';
+import {
+  CreateGeographicTargetingDto,
+  UpdateGeographicTargetingDto,
+} from './dto/targeting/geographic-targeting.dto';
+import {
+  CreateTimeTargetingDto,
+  UpdateTimeTargetingDto,
+} from './dto/targeting/time-targeting.dto';
 
 // Since the ApprovalStatus enum might be causing issues, define it here
 enum ApprovalStatus {
@@ -329,7 +332,6 @@ export class PublisherService {
         websiteId: createInventoryDto.websiteId,
         isActive: true,
         viewabilityScore: createInventoryDto.viewabilityScore || 0.8,
-        targetingRules: {},
         approvalStatus: ApprovalStatus.PENDING,
       },
       include: {
@@ -374,7 +376,6 @@ export class PublisherService {
         adSlotTemplate: true,
         website: true,
         floorPrices: true,
-        targetingRules: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -394,7 +395,6 @@ export class PublisherService {
         adSlotTemplate: true,
         website: true,
         floorPrices: true,
-        targetingRules: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -418,7 +418,6 @@ export class PublisherService {
         adSlotTemplate: true,
         website: true,
         floorPrices: true,
-        targetingRules: true,
       },
     });
 
@@ -442,7 +441,6 @@ export class PublisherService {
         adSlotTemplate: true,
         website: true,
         floorPrices: true,
-        targetingRules: true,
       },
     });
     if (!updatedInventory) {
@@ -604,669 +602,949 @@ export class PublisherService {
     return del;
   }
 
-  async addTargetingRule(
+  // Helper method to verify inventory ownership
+  private async verifyInventoryOwnership(
+    publisherId: string,
     inventoryId: string,
-    createTargetingRuleDto: CreateTargetingRuleDto,
-  ): Promise<TargetingRuleResponseDto> {
-    // Verify inventory exists
+  ) {
     const inventory = await this.prisma.adInventory.findFirst({
       where: {
         id: inventoryId,
+        publisherId: publisherId,
       },
     });
 
     if (!inventory) {
-      throw new NotFoundException('Inventory not found.');
+      throw new NotFoundException('Inventory not found or access denied');
     }
 
-    // Validate rule data based on rule type
-    this.validateTargetingRuleData(
-      createTargetingRuleDto.ruleType,
-      createTargetingRuleDto.ruleData,
-    );
-
-    // Create targeting rule
-    const targetingRule = await this.prisma.inventoryTargetingRule.create({
-      data: {
-        inventoryId,
-        ruleType: createTargetingRuleDto.ruleType,
-        ruleData: JSON.stringify(createTargetingRuleDto.ruleData),
-      },
-    });
-
-    return this.mapToTargetingRuleResponse(targetingRule);
+    return inventory;
   }
 
-  /**
-   * Get targeting rules for inventory
-   */
-  async getTargetingRules(
-    inventoryId: string,
-    ruleType?: string,
-    page: number = 1,
-    limit: number = 10,
-  ): Promise<TargetingRulesListResponseDto> {
-    // Verify inventory ownership
-    const inventory = await this.prisma.adInventory.findFirst({
-      where: {
-        id: inventoryId,
-      },
-    });
+  // ======================
+  // DEMOGRAPHIC TARGETING
+  // ======================
 
-    if (!inventory) {
-      throw new NotFoundException('Inventory not found');
-    }
+  async addDemographicTargeting(
+    publisherId: string,
+    createDto: CreateDemographicTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, createDto.inventoryId);
 
-    const skip = (page - 1) * limit;
-    const where: any = { inventoryId };
-
+    // Validate age range if both are provided
     if (
-      ruleType &&
-      Object.values(TargetingRuleType).includes(ruleType as TargetingRuleType)
+      createDto.ageMin &&
+      createDto.ageMax &&
+      createDto.ageMin > createDto.ageMax
     ) {
-      where.ruleType = ruleType as TargetingRuleType;
+      throw new BadRequestException(
+        'Minimum age cannot be greater than maximum age',
+      );
     }
 
-    const [targetingRules, total] = await Promise.all([
-      this.prisma.inventoryTargetingRule.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prisma.inventoryTargetingRule.count({ where }),
-    ]);
-
-    return {
-      targetingRules: targetingRules.map((rule) =>
-        this.mapToTargetingRuleResponse(rule),
-      ),
-      total,
-      page,
-      limit,
-    };
-  }
-
-  /**
-   * Get specific targeting rule
-   */
-  async getTargetingRule(
-    inventoryId: string,
-    targetingRuleId: string,
-  ): Promise<TargetingRuleResponseDto> {
-    // Verify inventory ownership and get targeting rule
-
-    const targetingRule = await this.prisma.inventoryTargetingRule.findFirst({
-      where: {
-        id: targetingRuleId,
-        inventoryId,
-        inventory: {
-          id: inventoryId,
-        },
+    return this.prisma.demographicTargeting.create({
+      data: {
+        inventoryId: createDto.inventoryId,
+        ageMin: createDto.ageMin,
+        ageMax: createDto.ageMax,
+        genders: createDto.genders || [],
+        languages: createDto.languages || [],
+        education: createDto.education || [],
+        incomeRange: createDto.incomeRange || [],
       },
       include: {
-        inventory: true,
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
-
-    if (!targetingRule) {
-      throw new NotFoundException('Targeting rule not found');
-    }
-
-    return this.mapToTargetingRuleResponse(targetingRule);
   }
 
-  /**
-   * Update targeting rule
-   */
-  async updateTargetingRule(
-    inventoryId: string,
-    targetingRuleId: string,
-    updateTargetingRuleDto: UpdateTargetingRuleDto,
-  ): Promise<TargetingRuleResponseDto> {
-    // Verify targeting rule exists and inventory ownership
-    const existingRule = await this.prisma.inventoryTargetingRule.findFirst({
+  async getDemographicTargeting(publisherId: string, inventoryId: string) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    return this.prisma.demographicTargeting.findMany({
       where: {
-        id: targetingRuleId,
-        inventoryId,
-        inventory: {
-          id: inventoryId,
-        },
+        inventoryId: inventoryId,
       },
       include: {
-        inventory: true,
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async updateDemographicTargeting(
+    publisherId: string,
+    id: string,
+    updateDto: UpdateDemographicTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, updateDto.inventoryId);
+
+    // Check if the targeting rule exists and belongs to the inventory
+    const existingRule = await this.prisma.demographicTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: updateDto.inventoryId,
       },
     });
 
     if (!existingRule) {
-      throw new NotFoundException('Targeting rule not found');
+      throw new NotFoundException('Demographic targeting rule not found');
     }
 
-    // Validate rule data if provided
-    if (updateTargetingRuleDto.ruleData && updateTargetingRuleDto.ruleType) {
-      this.validateTargetingRuleData(
-        updateTargetingRuleDto.ruleType,
-        updateTargetingRuleDto.ruleData,
+    // Validate age range if both are provided
+    if (
+      updateDto.ageMin &&
+      updateDto.ageMax &&
+      updateDto.ageMin > updateDto.ageMax
+    ) {
+      throw new BadRequestException(
+        'Minimum age cannot be greater than maximum age',
       );
     }
 
-    // Update targeting rule
-    const updatedRule = await this.prisma.inventoryTargetingRule.update({
-      where: { id: targetingRuleId },
+    return this.prisma.demographicTargeting.update({
+      where: { id },
       data: {
-        ...(updateTargetingRuleDto.ruleType && {
-          ruleType: updateTargetingRuleDto.ruleType,
-        }),
-        ...(updateTargetingRuleDto.ruleData && {
-          ruleData: JSON.stringify(updateTargetingRuleDto.ruleData),
-        }),
-      },
-    });
-
-    return this.mapToTargetingRuleResponse(updatedRule);
-  }
-
-  /**
-   * Delete targeting rule
-   */
-  async deleteTargetingRule(
-    inventoryId: string,
-    targetingRuleId: string,
-  ): Promise<void> {
-    // Verify targeting rule exists and inventory ownership
-    const existingRule = await this.prisma.inventoryTargetingRule.findFirst({
-      where: {
-        id: targetingRuleId,
-        inventoryId,
-        inventory: {
-          id: inventoryId,
-        },
+        ageMin: updateDto.ageMin,
+        ageMax: updateDto.ageMax,
+        genders: updateDto.genders,
+        languages: updateDto.languages,
+        education: updateDto.education,
+        incomeRange: updateDto.incomeRange,
       },
       include: {
-        inventory: true,
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async deleteDemographicTargeting(
+    publisherId: string,
+    inventoryId: string,
+    id: string,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    const existingRule = await this.prisma.demographicTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: inventoryId,
       },
     });
 
     if (!existingRule) {
-      throw new NotFoundException('Targeting rule not found');
+      throw new NotFoundException('Demographic targeting rule not found');
     }
 
-    // Delete targeting rule
-    await this.prisma.inventoryTargetingRule.delete({
-      where: { id: targetingRuleId },
+    await this.prisma.demographicTargeting.delete({
+      where: { id },
+    });
+
+    return { message: 'Demographic targeting rule deleted successfully' };
+  }
+
+  // ======================
+  // GEOGRAPHIC TARGETING
+  // ======================
+
+  async addGeographicTargeting(
+    publisherId: string,
+    createDto: CreateGeographicTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, createDto.inventoryId);
+
+    return this.prisma.geographicTargeting.create({
+      data: {
+        inventoryId: createDto.inventoryId,
+        countries: createDto.countries || [],
+        states: createDto.states || [],
+        cities: createDto.cities || [],
+        postalCodes: createDto.postalCodes || [],
+        radius: createDto.radius,
+        latitude: createDto.latitude,
+        longitude: createDto.longitude,
+        isInclude: createDto.isInclude ?? true,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
   }
 
-  /**
-   * Validate targeting rule data based on rule type
-   */
-  private validateTargetingRuleData(
-    ruleType: TargetingRuleType,
-    ruleData: any,
-  ): void {
-    if (!ruleData || typeof ruleData !== 'object') {
-      throw new BadRequestException('Rule data must be a valid object');
-    }
+  async getGeographicTargeting(publisherId: string, inventoryId: string) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
 
-    switch (ruleType) {
-      case TargetingRuleType.DEMOGRAPHIC:
-        this.validateDemographicRule(ruleData);
-        break;
-      case TargetingRuleType.GEOGRAPHIC:
-        this.validateGeographicRule(ruleData);
-        break;
-      case TargetingRuleType.DEVICE:
-        this.validateDeviceRule(ruleData);
-        break;
-      case TargetingRuleType.CONTEXTUAL:
-        this.validateContextualRule(ruleData);
-        break;
-      case TargetingRuleType.BEHAVIORAL:
-        this.validateBehavioralRule(ruleData);
-        break;
-      case TargetingRuleType.TIME:
-        this.validateTimeRule(ruleData);
-        break;
-      case TargetingRuleType.FREQUENCY:
-        this.validateFrequencyRule(ruleData);
-        break;
-      default:
-        throw new BadRequestException('Invalid targeting rule type');
-    }
+    return this.prisma.geographicTargeting.findMany({
+      where: {
+        inventoryId: inventoryId,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
   }
 
-  /**
-   * Validate demographic targeting rule
-   */
-  private validateDemographicRule(data: DemographicTargeting): void {
-    if (data.ageMin !== undefined && (data.ageMin < 13 || data.ageMin > 100)) {
-      throw new BadRequestException('Age minimum must be between 13 and 100');
+  async updateGeographicTargeting(
+    publisherId: string,
+    id: string,
+    updateDto: UpdateGeographicTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, updateDto.inventoryId);
+
+    const existingRule = await this.prisma.geographicTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: updateDto.inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Geographic targeting rule not found');
     }
-    if (data.ageMax !== undefined && (data.ageMax < 13 || data.ageMax > 100)) {
-      throw new BadRequestException('Age maximum must be between 13 and 100');
-    }
-    if (data.ageMin && data.ageMax && data.ageMin > data.ageMax) {
-      throw new BadRequestException(
-        'Age minimum cannot be greater than age maximum',
-      );
-    }
-    if (
-      data.genders &&
-      (!Array.isArray(data.genders) || data.genders.length === 0)
-    ) {
-      throw new BadRequestException('Genders must be a non-empty array');
-    }
-    if (
-      data.languages &&
-      (!Array.isArray(data.languages) || data.languages.length === 0)
-    ) {
-      throw new BadRequestException('Languages must be a non-empty array');
-    }
+
+    return this.prisma.geographicTargeting.update({
+      where: { id },
+      data: {
+        countries: updateDto.countries,
+        states: updateDto.states,
+        cities: updateDto.cities,
+        postalCodes: updateDto.postalCodes,
+        radius: updateDto.radius,
+        latitude: updateDto.latitude,
+        longitude: updateDto.longitude,
+        isInclude: updateDto.isInclude,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
   }
 
-  /**
-   * Validate geographic targeting rule
-   */
-  private validateGeographicRule(data: GeographicTargeting): void {
-    if (
-      data.countries &&
-      (!Array.isArray(data.countries) || data.countries.length === 0)
-    ) {
-      throw new BadRequestException('Countries must be a non-empty array');
+  async deleteGeographicTargeting(
+    publisherId: string,
+    inventoryId: string,
+    id: string,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    const existingRule = await this.prisma.geographicTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Geographic targeting rule not found');
     }
-    if (
-      data.regions &&
-      (!Array.isArray(data.regions) || data.regions.length === 0)
-    ) {
-      throw new BadRequestException('Regions must be a non-empty array');
+
+    await this.prisma.geographicTargeting.delete({
+      where: { id },
+    });
+
+    return { message: 'Geographic targeting rule deleted successfully' };
+  }
+
+  // ======================
+  // DEVICE TARGETING
+  // ======================
+
+  async addDeviceTargeting(
+    publisherId: string,
+    createDto: CreateDeviceTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, createDto.inventoryId);
+
+    return this.prisma.deviceTargeting.create({
+      data: {
+        inventoryId: createDto.inventoryId,
+        deviceTypes: createDto.deviceTypes || [],
+        operatingSystems: createDto.operatingSystems || [],
+        browsers: createDto.browsers || [],
+        connectionTypes: createDto.connectionTypes || [],
+        minOSVersion: createDto.minOSVersion,
+        maxOSVersion: createDto.maxOSVersion,
+        deviceModels: createDto.deviceModels || [],
+        isInclude: createDto.isInclude ?? true,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getDeviceTargeting(publisherId: string, inventoryId: string) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    return this.prisma.deviceTargeting.findMany({
+      where: {
+        inventoryId: inventoryId,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async updateDeviceTargeting(
+    publisherId: string,
+    id: string,
+    updateDto: UpdateDeviceTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, updateDto.inventoryId);
+
+    const existingRule = await this.prisma.deviceTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: updateDto.inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Device targeting rule not found');
     }
-    if (
-      data.cities &&
-      (!Array.isArray(data.cities) || data.cities.length === 0)
-    ) {
-      throw new BadRequestException('Cities must be a non-empty array');
+
+    return this.prisma.deviceTargeting.update({
+      where: { id },
+      data: {
+        deviceTypes: updateDto.deviceTypes,
+        operatingSystems: updateDto.operatingSystems,
+        browsers: updateDto.browsers,
+        connectionTypes: updateDto.connectionTypes,
+        minOSVersion: updateDto.minOSVersion,
+        maxOSVersion: updateDto.maxOSVersion,
+        deviceModels: updateDto.deviceModels,
+        isInclude: updateDto.isInclude,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async deleteDeviceTargeting(
+    publisherId: string,
+    inventoryId: string,
+    id: string,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    const existingRule = await this.prisma.deviceTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Device targeting rule not found');
     }
-    if (data.radius !== undefined && (data.radius < 1 || data.radius > 1000)) {
-      throw new BadRequestException(
-        'Radius must be between 1 and 1000 kilometers',
-      );
+
+    await this.prisma.deviceTargeting.delete({
+      where: { id },
+    });
+
+    return { message: 'Device targeting rule deleted successfully' };
+  }
+
+  // ======================
+  // CONTEXTUAL TARGETING
+  // ======================
+
+  async addContextualTargeting(
+    publisherId: string,
+    createDto: CreateContextualTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, createDto.inventoryId);
+
+    return this.prisma.contextualTargeting.create({
+      data: {
+        inventoryId: createDto.inventoryId,
+        contentCategories: createDto.contentCategories || [],
+        keywords: createDto.keywords || [],
+        urlPatterns: createDto.urlPatterns || [],
+        pageTypes: createDto.pageTypes || [],
+        brandSafety: createDto.brandSafety || [],
+        blockedKeywords: createDto.blockedKeywords || [],
+        isInclude: createDto.isInclude ?? true,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getContextualTargeting(publisherId: string, inventoryId: string) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    return this.prisma.contextualTargeting.findMany({
+      where: {
+        inventoryId: inventoryId,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async updateContextualTargeting(
+    publisherId: string,
+    id: string,
+    updateDto: UpdateContextualTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, updateDto.inventoryId);
+
+    const existingRule = await this.prisma.contextualTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: updateDto.inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Contextual targeting rule not found');
     }
-    if (data.coordinates) {
-      if (
-        typeof data.coordinates.lat !== 'number' ||
-        typeof data.coordinates.lng !== 'number'
-      ) {
+
+    return this.prisma.contextualTargeting.update({
+      where: { id },
+      data: {
+        contentCategories: updateDto.contentCategories,
+        keywords: updateDto.keywords,
+        urlPatterns: updateDto.urlPatterns,
+        pageTypes: updateDto.pageTypes,
+        brandSafety: updateDto.brandSafety,
+        blockedKeywords: updateDto.blockedKeywords,
+        isInclude: updateDto.isInclude,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async deleteContextualTargeting(
+    publisherId: string,
+    inventoryId: string,
+    id: string,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    const existingRule = await this.prisma.contextualTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Contextual targeting rule not found');
+    }
+
+    await this.prisma.contextualTargeting.delete({
+      where: { id },
+    });
+
+    return { message: 'Contextual targeting rule deleted successfully' };
+  }
+
+  // ======================
+  // BEHAVIORAL TARGETING
+  // ======================
+
+  async addBehavioralTargeting(
+    publisherId: string,
+    createDto: CreateBehavioralTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, createDto.inventoryId);
+
+    return this.prisma.behavioralTargeting.create({
+      data: {
+        inventoryId: createDto.inventoryId,
+        interests: createDto.interests || [],
+        purchaseIntent: createDto.purchaseIntent || [],
+        lifestyleSegments: createDto.lifestyleSegments || [],
+        audienceTypes: createDto.audienceTypes || [],
+        userSegments: createDto.userSegments || [],
+        purchaseFrequency: createDto.purchaseFrequency || [],
+        sessionEngagement: createDto.sessionEngagement || [],
+        avgOrderValue: createDto.avgOrderValue,
+        sessionDuration: createDto.sessionDuration,
+        pageViews: createDto.pageViews,
+        isInclude: createDto.isInclude ?? true,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getBehavioralTargeting(publisherId: string, inventoryId: string) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    return this.prisma.behavioralTargeting.findMany({
+      where: {
+        inventoryId: inventoryId,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async updateBehavioralTargeting(
+    publisherId: string,
+    id: string,
+    updateDto: UpdateBehavioralTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, updateDto.inventoryId);
+
+    const existingRule = await this.prisma.behavioralTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: updateDto.inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Behavioral targeting rule not found');
+    }
+
+    return this.prisma.behavioralTargeting.update({
+      where: { id },
+      data: {
+        interests: updateDto.interests,
+        purchaseIntent: updateDto.purchaseIntent,
+        lifestyleSegments: updateDto.lifestyleSegments,
+        audienceTypes: updateDto.audienceTypes,
+        userSegments: updateDto.userSegments,
+        purchaseFrequency: updateDto.purchaseFrequency,
+        sessionEngagement: updateDto.sessionEngagement,
+        avgOrderValue: updateDto.avgOrderValue,
+        sessionDuration: updateDto.sessionDuration,
+        pageViews: updateDto.pageViews,
+        isInclude: updateDto.isInclude,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async deleteBehavioralTargeting(
+    publisherId: string,
+    inventoryId: string,
+    id: string,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    const existingRule = await this.prisma.behavioralTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Behavioral targeting rule not found');
+    }
+
+    await this.prisma.behavioralTargeting.delete({
+      where: { id },
+    });
+
+    return { message: 'Behavioral targeting rule deleted successfully' };
+  }
+
+  // ======================
+  // TIME TARGETING
+  // ======================
+
+  async addTimeTargeting(
+    publisherId: string,
+    createDto: CreateTimeTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, createDto.inventoryId);
+
+    // Validate time range if both start and end hours are provided
+    if (createDto.startHour !== undefined && createDto.endHour !== undefined) {
+      if (createDto.startHour > createDto.endHour) {
         throw new BadRequestException(
-          'Coordinates must have valid lat and lng numbers',
+          'Start hour cannot be greater than end hour',
         );
       }
-      if (data.coordinates.lat < -90 || data.coordinates.lat > 90) {
-        throw new BadRequestException('Latitude must be between -90 and 90');
+    }
+
+    // Validate date range if both dates are provided
+    if (createDto.startDate && createDto.endDate) {
+      if (createDto.startDate > createDto.endDate) {
+        throw new BadRequestException('Start date cannot be after end date');
       }
-      if (data.coordinates.lng < -180 || data.coordinates.lng > 180) {
-        throw new BadRequestException('Longitude must be between -180 and 180');
-      }
     }
+
+    return this.prisma.timeTargeting.create({
+      data: {
+        inventoryId: createDto.inventoryId,
+        timezone: createDto.timezone || 'Asia/Kolkata',
+        timeSlots: createDto.timeSlots || [],
+        daysOfWeek: createDto.daysOfWeek || [],
+        holidayTypes: createDto.holidayTypes || [],
+        startHour: createDto.startHour,
+        endHour: createDto.endHour,
+        startDate: createDto.startDate,
+        endDate: createDto.endDate,
+        includeHolidays: createDto.includeHolidays ?? true,
+        workingDaysOnly: createDto.workingDaysOnly ?? false,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
   }
 
-  /**
-   * Validate device targeting rule
-   */
-  private validateDeviceRule(data: DeviceTargeting): void {
-    if (
-      data.deviceTypes &&
-      (!Array.isArray(data.deviceTypes) || data.deviceTypes.length === 0)
-    ) {
-      throw new BadRequestException('Device types must be a non-empty array');
-    }
-    if (
-      data.operatingSystems &&
-      (!Array.isArray(data.operatingSystems) ||
-        data.operatingSystems.length === 0)
-    ) {
-      throw new BadRequestException(
-        'Operating systems must be a non-empty array',
-      );
-    }
-    if (
-      data.browsers &&
-      (!Array.isArray(data.browsers) || data.browsers.length === 0)
-    ) {
-      throw new BadRequestException('Browsers must be a non-empty array');
-    }
-    if (
-      data.connectionTypes &&
-      (!Array.isArray(data.connectionTypes) ||
-        data.connectionTypes.length === 0)
-    ) {
-      throw new BadRequestException(
-        'Connection types must be a non-empty array',
-      );
-    }
-  }
+  async getTimeTargeting(publisherId: string, inventoryId: string) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
 
-  /**
-   * Validate contextual targeting rule
-   */
-  private validateContextualRule(data: ContextualTargeting): void {
-    if (
-      data.keywords &&
-      (!Array.isArray(data.keywords) || data.keywords.length === 0)
-    ) {
-      throw new BadRequestException('Keywords must be a non-empty array');
-    }
-    if (
-      data.categories &&
-      (!Array.isArray(data.categories) || data.categories.length === 0)
-    ) {
-      throw new BadRequestException('Categories must be a non-empty array');
-    }
-    if (
-      data.domains &&
-      (!Array.isArray(data.domains) || data.domains.length === 0)
-    ) {
-      throw new BadRequestException('Domains must be a non-empty array');
-    }
-    if (
-      data.blockedDomains &&
-      (!Array.isArray(data.blockedDomains) || data.blockedDomains.length === 0)
-    ) {
-      throw new BadRequestException(
-        'Blocked domains must be a non-empty array',
-      );
-    }
-  }
-
-  /**
-   * Validate behavioral targeting rule
-   */
-  private validateBehavioralRule(data: BehavioralTargeting): void {
-    if (
-      data.interests &&
-      (!Array.isArray(data.interests) || data.interests.length === 0)
-    ) {
-      throw new BadRequestException('Interests must be a non-empty array');
-    }
-    if (
-      data.behaviors &&
-      (!Array.isArray(data.behaviors) || data.behaviors.length === 0)
-    ) {
-      throw new BadRequestException('Behaviors must be a non-empty array');
-    }
-    if (
-      data.purchaseIntent &&
-      (!Array.isArray(data.purchaseIntent) || data.purchaseIntent.length === 0)
-    ) {
-      throw new BadRequestException(
-        'Purchase intent must be a non-empty array',
-      );
-    }
-  }
-
-  /**
-   * Validate time targeting rule
-   */
-  private validateTimeRule(data: TimeTargeting): void {
-    const validDays = [
-      'monday',
-      'tuesday',
-      'wednesday',
-      'thursday',
-      'friday',
-      'saturday',
-      'sunday',
-    ];
-
-    if (
-      data.daysOfWeek &&
-      (!Array.isArray(data.daysOfWeek) || data.daysOfWeek.length === 0)
-    ) {
-      throw new BadRequestException('Days of week must be a non-empty array');
-    }
-    if (
-      data.daysOfWeek &&
-      !data.daysOfWeek.every((day) => validDays.includes(day.toLowerCase()))
-    ) {
-      throw new BadRequestException('Invalid day of week provided');
-    }
-    if (
-      data.hoursOfDay &&
-      (!Array.isArray(data.hoursOfDay) || data.hoursOfDay.length === 0)
-    ) {
-      throw new BadRequestException('Hours of day must be a non-empty array');
-    }
-    if (
-      data.hoursOfDay &&
-      !data.hoursOfDay.every((hour) => hour >= 0 && hour <= 23)
-    ) {
-      throw new BadRequestException('Hours must be between 0 and 23');
-    }
-    if (
-      data.startDate &&
-      data.endDate &&
-      new Date(data.startDate) > new Date(data.endDate)
-    ) {
-      throw new BadRequestException('Start date cannot be after end date');
-    }
-  }
-
-  /**
-   * Validate frequency targeting rule
-   */
-  private validateFrequencyRule(data: FrequencyTargeting): void {
-    if (data.maxImpressions !== undefined && data.maxImpressions < 1) {
-      throw new BadRequestException('Max impressions must be at least 1');
-    }
-    if (
-      data.timeWindow &&
-      !['1h', '24h', '7d', '30d'].includes(data.timeWindow)
-    ) {
-      throw new BadRequestException(
-        'Time window must be one of: 1h, 24h, 7d, 30d',
-      );
-    }
-    if (data.capType && !['user', 'device', 'ip'].includes(data.capType)) {
-      throw new BadRequestException(
-        'Cap type must be one of: user, device, ip',
-      );
-    }
-  }
-
-  /**
-   * Map database model to response DTO
-   */
-  private mapToTargetingRuleResponse(
-    targetingRule: any,
-  ): TargetingRuleResponseDto {
-    return {
-      id: targetingRule.id,
-      inventoryId: targetingRule.inventoryId,
-      ruleType: targetingRule.ruleType,
-      ruleData: targetingRule.ruleData,
-      createdAt: targetingRule.createdAt,
-      updatedAt: targetingRule.updatedAt,
-    };
-  }
-
-  /**
-   * Get targeting rules summary for inventory (helper method)
-   */
-  async getTargetingRulesSummary(
-    inventoryId: string,
-    publisherId: string,
-  ): Promise<{
-    total: number;
-    byType: Record<string, number>;
-  }> {
-    // Verify inventory ownership
-    const inventory = await this.prisma.adInventory.findFirst({
+    return this.prisma.timeTargeting.findMany({
       where: {
-        id: inventoryId,
-        publisherId: publisherId,
+        inventoryId: inventoryId,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async updateTimeTargeting(
+    publisherId: string,
+    id: string,
+    updateDto: UpdateTimeTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, updateDto.inventoryId);
+
+    const existingRule = await this.prisma.timeTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: updateDto.inventoryId,
       },
     });
 
-    if (!inventory) {
-      throw new NotFoundException(
-        'Inventory not found or not owned by publisher',
-      );
+    if (!existingRule) {
+      throw new NotFoundException('Time targeting rule not found');
     }
 
-    const [total, groupedByType] = await Promise.all([
-      this.prisma.inventoryTargetingRule.count({
+    // Validate time range if both start and end hours are provided
+    if (updateDto.startHour !== undefined && updateDto.endHour !== undefined) {
+      if (updateDto.startHour > updateDto.endHour) {
+        throw new BadRequestException(
+          'Start hour cannot be greater than end hour',
+        );
+      }
+    }
+
+    // Validate date range if both dates are provided
+    if (updateDto.startDate && updateDto.endDate) {
+      if (updateDto.startDate > updateDto.endDate) {
+        throw new BadRequestException('Start date cannot be after end date');
+      }
+    }
+
+    return this.prisma.timeTargeting.update({
+      where: { id },
+      data: {
+        timezone: updateDto.timezone,
+        timeSlots: updateDto.timeSlots,
+        daysOfWeek: updateDto.daysOfWeek,
+        holidayTypes: updateDto.holidayTypes,
+        startHour: updateDto.startHour,
+        endHour: updateDto.endHour,
+        startDate: updateDto.startDate,
+        endDate: updateDto.endDate,
+        includeHolidays: updateDto.includeHolidays,
+        workingDaysOnly: updateDto.workingDaysOnly,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async deleteTimeTargeting(
+    publisherId: string,
+    inventoryId: string,
+    id: string,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    const existingRule = await this.prisma.timeTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Time targeting rule not found');
+    }
+
+    await this.prisma.timeTargeting.delete({
+      where: { id },
+    });
+
+    return { message: 'Time targeting rule deleted successfully' };
+  }
+
+  // ======================
+  // FREQUENCY TARGETING
+  // ======================
+
+  async addFrequencyTargeting(
+    publisherId: string,
+    createDto: CreateFrequencyTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, createDto.inventoryId);
+
+    return this.prisma.frequencyTargeting.create({
+      data: {
+        inventoryId: createDto.inventoryId,
+        maxImpressions: createDto.maxImpressions,
+        frequencyWindow: createDto.frequencyWindow,
+        frequencyScope: createDto.frequencyScope,
+        maxClicksPerUser: createDto.maxClicksPerUser,
+        minTimeBetween: createDto.minTimeBetween,
+        customTimeWindowHours: createDto.customTimeWindowHours,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getFrequencyTargeting(publisherId: string, inventoryId: string) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    return this.prisma.frequencyTargeting.findMany({
+      where: {
+        inventoryId: inventoryId,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async updateFrequencyTargeting(
+    publisherId: string,
+    id: string,
+    updateDto: UpdateFrequencyTargetingDto,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, updateDto.inventoryId);
+
+    const existingRule = await this.prisma.frequencyTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: updateDto.inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Frequency targeting rule not found');
+    }
+
+    return this.prisma.frequencyTargeting.update({
+      where: { id },
+      data: {
+        maxImpressions: updateDto.maxImpressions,
+        frequencyWindow: updateDto.frequencyWindow,
+        frequencyScope: updateDto.frequencyScope,
+        maxClicksPerUser: updateDto.maxClicksPerUser,
+        minTimeBetween: updateDto.minTimeBetween,
+        customTimeWindowHours: updateDto.customTimeWindowHours,
+      },
+      include: {
+        inventory: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async deleteFrequencyTargeting(
+    publisherId: string,
+    inventoryId: string,
+    id: string,
+  ) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    const existingRule = await this.prisma.frequencyTargeting.findFirst({
+      where: {
+        id: id,
+        inventoryId: inventoryId,
+      },
+    });
+
+    if (!existingRule) {
+      throw new NotFoundException('Frequency targeting rule not found');
+    }
+
+    await this.prisma.frequencyTargeting.delete({
+      where: { id },
+    });
+
+    return { message: 'Frequency targeting rule deleted successfully' };
+  }
+
+  // ======================
+  // GET ALL TARGETING RULES
+  // ======================
+
+  async getAllTargetingRules(publisherId: string, inventoryId: string) {
+    await this.verifyInventoryOwnership(publisherId, inventoryId);
+
+    const [
+      demographic,
+      geographic,
+      device,
+      contextual,
+      behavioral,
+      time,
+      frequency,
+    ] = await Promise.all([
+      this.prisma.demographicTargeting.findMany({
         where: { inventoryId },
       }),
-      this.prisma.inventoryTargetingRule.groupBy({
-        by: ['ruleType'],
+      this.prisma.geographicTargeting.findMany({
         where: { inventoryId },
-        _count: {
-          id: true,
-        },
+      }),
+      this.prisma.deviceTargeting.findMany({
+        where: { inventoryId },
+      }),
+      this.prisma.contextualTargeting.findMany({
+        where: { inventoryId },
+      }),
+      this.prisma.behavioralTargeting.findMany({
+        where: { inventoryId },
+      }),
+      this.prisma.timeTargeting.findMany({
+        where: { inventoryId },
+      }),
+      this.prisma.frequencyTargeting.findMany({
+        where: { inventoryId },
       }),
     ]);
 
-    const byType: Record<string, number> = {};
-    groupedByType.forEach((group) => {
-      byType[group.ruleType] = group._count.id;
-    });
-
     return {
-      total,
-      byType,
-    };
-  }
-
-  /**
-   * Bulk delete targeting rules for inventory
-   */
-  async bulkDeleteTargetingRules(
-    inventoryId: string,
-    targetingRuleIds: string[],
-    publisherId: string,
-  ): Promise<{ deletedCount: number }> {
-    // Verify inventory ownership
-    const inventory = await this.prisma.adInventory.findFirst({
-      where: {
-        id: inventoryId,
-        publisherId: publisherId,
-      },
-    });
-
-    if (!inventory) {
-      throw new NotFoundException(
-        'Inventory not found or not owned by publisher',
-      );
-    }
-
-    // Delete targeting rules
-    const result = await this.prisma.inventoryTargetingRule.deleteMany({
-      where: {
-        id: { in: targetingRuleIds },
-        inventoryId,
-      },
-    });
-
-    return { deletedCount: result.count };
-  }
-
-  /**
-   * Check if targeting rule conflicts with existing rules
-   */
-  async checkTargetingRuleConflicts(
-    inventoryId: string,
-    ruleType: TargetingRuleType,
-    ruleData: any,
-    excludeRuleId?: string,
-  ): Promise<{ hasConflicts: boolean; conflictingRules: string[] }> {
-    const where: any = {
       inventoryId,
-      ruleType,
-      ...(excludeRuleId && { id: { not: excludeRuleId } }),
+      targeting: {
+        demographic,
+        geographic,
+        device,
+        contextual,
+        behavioral,
+        time,
+        frequency,
+      },
     };
-
-    const existingRules = await this.prisma.inventoryTargetingRule.findMany({
-      where,
-      select: { id: true, ruleData: true },
-    });
-
-    // Simple conflict detection logic (can be enhanced based on business rules)
-    const conflictingRules: string[] = [];
-
-    for (const existingRule of existingRules) {
-      if (this.hasRuleDataConflict(ruleType, ruleData, existingRule.ruleData)) {
-        conflictingRules.push(existingRule.id);
-      }
-    }
-
-    return {
-      hasConflicts: conflictingRules.length > 0,
-      conflictingRules,
-    };
-  }
-
-  /**
-   * Check if two rule data objects conflict
-   */
-  private hasRuleDataConflict(
-    ruleType: TargetingRuleType,
-    newData: any,
-    existingData: any,
-  ): boolean {
-    // Basic conflict detection - can be enhanced based on specific business logic
-    switch (ruleType) {
-      case TargetingRuleType.DEMOGRAPHIC:
-        return this.checkDemographicConflict(newData, existingData);
-      case TargetingRuleType.GEOGRAPHIC:
-        return this.checkGeographicConflict(newData, existingData);
-      case TargetingRuleType.TIME:
-        return this.checkTimeConflict(newData, existingData);
-      default:
-        return false; // No conflict detection for other types by default
-    }
-  }
-
-  private checkDemographicConflict(
-    newData: DemographicTargeting,
-    existingData: DemographicTargeting,
-  ): boolean {
-    // Check if age ranges overlap
-    if (
-      newData.ageMin &&
-      newData.ageMax &&
-      existingData.ageMin &&
-      existingData.ageMax
-    ) {
-      return !(
-        newData.ageMax < existingData.ageMin ||
-        newData.ageMin > existingData.ageMax
-      );
-    }
-    return false;
-  }
-
-  private checkGeographicConflict(
-    newData: GeographicTargeting,
-    existingData: GeographicTargeting,
-  ): boolean {
-    // Check if there are overlapping countries/regions/cities
-    if (newData.countries && existingData.countries) {
-      return newData.countries.some((country) =>
-        existingData.countries?.includes(country),
-      );
-    }
-    return false;
-  }
-
-  private checkTimeConflict(
-    newData: TimeTargeting,
-    existingData: TimeTargeting,
-  ): boolean {
-    // Check if time ranges overlap
-    if (newData.daysOfWeek && existingData.daysOfWeek) {
-      return newData.daysOfWeek.some((day) =>
-        existingData.daysOfWeek?.includes(day),
-      );
-    }
-    return false;
   }
 }

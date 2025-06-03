@@ -25,11 +25,10 @@ import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { UpdateInventoryDto } from './dto/update-inventory.dto';
 import { CreateFloorPriceDto } from './dto/floor-price.dto';
 import { UpdateFloorPriceDto } from './dto/update-floor-price.dto';
-import { CreateTargetingRuleDto } from './dto/create-targeting-rule.dto';
-import { UpdateTargetingRuleDto } from './dto/update-targeting-rule.dto';
+
 import { CreateWebsiteDto } from './dto/create-website.dto';
 
-@ApiTags('publishers')
+@ApiTags('Publishers')
 @Controller('publishers')
 @UseGuards(PublisherGuard)
 @ApiBearerAuth()

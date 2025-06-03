@@ -26,12 +26,18 @@ model Campaign {
     updatedAt        DateTime           @updatedAt
 
     // Relations
-    advertiser     Advertiser              @relation(fields: [advertiserId], references: [id]) // for which advertiser
-    client         Client?                 @relation(fields: [clientId], references: [id]) // for which client
-    creatives      Creative[]
-    statistics     CampaignStatistics[]
-    targetingRules CampaignTargetingRule[]
-    bidResponses   BidResponse[]
+    advertiser           Advertiser             @relation(fields: [advertiserId], references: [id]) // for which advertiser
+    client               Client?                @relation(fields: [clientId], references: [id]) // for which client
+    creatives            Creative[]
+    statistics           CampaignStatistics[]
+    demographicTargeting DemographicTargeting[]
+    geographicTargeting  GeographicTargeting[]
+    deviceTargeting      DeviceTargeting[]
+    contextualTargeting  ContextualTargeting[]
+    behavioralTargeting  BehavioralTargeting[]
+    timeTargeting        TimeTargeting[]
+    frequencyTargeting   FrequencyTargeting[]
+    bidResponses         BidResponse[]
 
     campaignBudgetTracker CampaignBudgetTracker[]
     hourlyMetrics         HourlyMetrics[]

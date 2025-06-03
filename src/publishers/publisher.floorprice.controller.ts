@@ -14,7 +14,7 @@ import { PublisherService } from './publisher.service';
 import { CreateFloorPriceDto } from './dto/floor-price.dto';
 import { UpdateFloorPriceDto } from './dto/update-floor-price.dto';
 
-@ApiTags('publishers/floorprice')
+@ApiTags('Publisher Floor Price Rules')
 @Controller('publishers/floorprice')
 @UseGuards(PublisherGuard)
 @ApiBearerAuth()

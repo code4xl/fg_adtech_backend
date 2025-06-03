@@ -16,18 +16,18 @@ import { AllExceptionsFilter } from './common/filters/global.exception';
 import { ExceptionsModule } from './common/exceptions/exceptions.module';
 import { AdminModule } from './admin/admin.module';
 import { ClientModule } from './client/client.module';
-import { InventoryModule } from './inventory/inventory.module';
-import { CampaignModule } from './campaign/campaign.module';
+// import { InventoryModule } from './inventory/inventory.module';
+// import { CampaignModule } from './campaign/campaign.module';
 
 import { RedisModule } from './redis/redis.module';
-import { CreativeModule } from './creative/creative.module';
+// import { CreativeModule } from './creative/creative.module';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { KafkaModule } from './kafka/kafka.module';
-import { SeedDbModule } from './seed-db/seed-db.module';
+// import { SeedDbModule } from './seed-db/seed-db.module';
 import { ResilienceModule } from './common/resilience/resilience.module';
-import { RtbModule } from './rtb/rtb.module';
+// import { RtbModule } from './rtb/rtb.module';
 import { NotificationModule } from './notification/notification.module';
-import { AiModule } from './ai/ai.module';
+// import { AiModule } from './ai/ai.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -76,14 +76,14 @@ import { AiModule } from './ai/ai.module';
     ExceptionsModule,
     AdminModule,
     ClientModule,
-    InventoryModule,
-    CampaignModule,
-    CreativeModule,
+    // InventoryModule,
+    // CampaignModule,
+    // CreativeModule,
     RedisModule,
     KafkaModule,
-    AiModule,
-    RtbModule,
-    SeedDbModule,
+    // AiModule,
+    // RtbModule,
+    // SeedDbModule,
     ResilienceModule,
     NotificationModule,
   ],
