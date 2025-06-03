@@ -55,7 +55,7 @@ export class CampaignAIService {
     const aiSuggestion = await this.openAIService.generateStructuredResponse<CampaignAISuggestion>(
       systemPrompt,
       userPrompt,
-      AIModel.GPT4_TURBO
+      AIModel.GPT35_TURBO
     );
 
     const processingTime = Date.now() - startTime;

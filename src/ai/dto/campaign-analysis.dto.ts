@@ -20,6 +20,23 @@ import {
 } from '@prisma/client';
 import { CampaignTargetingDto } from '../../campaign/dto/targetting-rule.dto';
 
+export class BudgetRangeDto {
+    @ApiProperty({
+      description: 'Minimum budget',
+      example: 1000
+    })
+    @IsNumber()
+    @Min(1)
+    min: number;
+  
+    @ApiProperty({
+      description: 'Maximum budget',
+      example: 10000
+    })
+    @IsNumber()
+    @Min(1)
+    max: number;
+  }
 export class AdvertiserContextDto {
   @ApiProperty({
     description: 'Whether to consider previous campaigns for optimization',
@@ -62,23 +79,6 @@ export class AdvertiserContextDto {
   preferredDuration?: number;
 }
 
-export class BudgetRangeDto {
-  @ApiProperty({
-    description: 'Minimum budget',
-    example: 1000
-  })
-  @IsNumber()
-  @Min(1)
-  min: number;
-
-  @ApiProperty({
-    description: 'Maximum budget',
-    example: 10000
-  })
-  @IsNumber()
-  @Min(1)
-  max: number;
-}
 
 export class CampaignAnalysisRequestDto {
   @ApiProperty({

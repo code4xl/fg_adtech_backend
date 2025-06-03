@@ -95,7 +95,7 @@ export class BudgetIntelligenceService {
     const aiResult = await this.openAIService.generateStructuredResponse<BudgetOptimizationResult>(
       'You are a digital advertising budget optimization expert with deep knowledge of programmatic advertising.',
       prompt,
-      AIModel.GPT4_TURBO
+      AIModel.GPT35_TURBO
     );
 
     return this.validateAndFormatBudgetResponse(aiResult, campaign);
@@ -138,7 +138,7 @@ export class BudgetIntelligenceService {
     const aiResult = await this.openAIService.generateStructuredResponse<PerformancePredictionResult>(
       'You are a data scientist specializing in advertising performance prediction and analytics.',
       prompt,
-      AIModel.GPT4_TURBO
+      AIModel.GPT35_TURBO
     );
 
     return this.formatPredictionResponse(aiResult, competitiveInsights);

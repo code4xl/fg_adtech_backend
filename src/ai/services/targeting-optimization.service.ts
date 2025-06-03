@@ -74,7 +74,7 @@ export class TargetingOptimizationService {
     const aiResult = await this.openAIService.generateStructuredResponse<TargetingOptimizationResult>(
       'You are a digital advertising targeting specialist with expertise in audience segmentation and performance optimization.',
       prompt,
-      AIModel.GPT4_TURBO
+      AIModel.GPT35_TURBO
     );
 
     return this.applyTargetingRefinements(

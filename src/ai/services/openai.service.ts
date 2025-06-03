@@ -14,7 +14,7 @@ export class OpenAIService {
   private readonly logger = new Logger(OpenAIService.name);
   private readonly apiKey: string;
   private readonly apiUrl = 'https://api.openai.com/v1/chat/completions';
-  private readonly defaultModel = AIModel.GPT4_TURBO;
+  private readonly defaultModel = AIModel.GPT35_TURBO;
   private readonly maxRetries = 3;
 
   constructor(
