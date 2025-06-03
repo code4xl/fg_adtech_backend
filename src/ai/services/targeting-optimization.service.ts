@@ -38,7 +38,7 @@ export class TargetingOptimizationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly openAIService: OpenAIService,
-    private readonly historicalDataService: HistoricalDataService
+    private readonly historicalDataService: HistoricalDataService,
   ) {}
 
   async refineTargeting(
@@ -46,18 +46,24 @@ export class TargetingOptimizationService {
     advertiserId: string,
     refinementGoals?: string,
     focusAreas?: string[],
-    includeLookalike?: boolean
+    includeLookalike?: boolean,
   ) {
-    const campaign = await this.validateAndFetchCampaign(campaignId, advertiserId);
-    
-    const currentTargeting = this.extractCurrentTargeting(campaign.targetingRules);
-    const performanceBySegment = await this.analyzeSegmentPerformance(campaignId);
+    const campaign = await this.validateAndFetchCampaign(
+      campaignId,
+      advertiserId,
+    );
+
+    const currentTargeting = this.extractCurrentTargeting(
+      campaign.targetingRules,
+    );
+    const performanceBySegment =
+      await this.analyzeSegmentPerformance(campaignId);
     const marketOpportunities = await this.identifyMarketOpportunities(
       campaign.businessCategory,
-      currentTargeting
+      currentTargeting,
     );
     const competitorTargeting = await this.analyzeCompetitorTargeting(
-      campaign.businessCategory
+      campaign.businessCategory,
     );
 
     const prompt = this.buildTargetingOptimizationPrompt(
@@ -68,45 +74,37 @@ export class TargetingOptimizationService {
       competitorTargeting,
       refinementGoals,
       focusAreas,
-      includeLookalike
+      includeLookalike,
     );
 
-    const aiResult = await this.openAIService.generateStructuredResponse<TargetingOptimizationResult>(
-      'You are a digital advertising targeting specialist with expertise in audience segmentation and performance optimization.',
-      prompt,
-      AIModel.GPT4_TURBO
-    );
+    const aiResult =
+      await this.openAIService.generateStructuredResponse<TargetingOptimizationResult>(
+        'You are a digital advertising targeting specialist with expertise in audience segmentation and performance optimization.',
+        prompt,
+        AIModel.GPT4_TURBO,
+      );
 
     return this.applyTargetingRefinements(
       campaignId,
       currentTargeting,
-      aiResult
+      aiResult,
     );
   }
 
-  private async validateAndFetchCampaign(campaignId: string, advertiserId: string) {
+  private async validateAndFetchCampaign(
+    campaignId: string,
+    advertiserId: string,
+  ) {
     const campaign = await this.prisma.campaign.findFirst({
       where: { id: campaignId, advertiserId },
       include: {
         targetingRules: true,
-        campaignInventories: {
-          include: {
-            inventory: {
-              include: {
-                categories: {
-                  include: {
-                    category: true
-                  }
-                }
-              }
-            }
-          }
-        },
+
         statistics: {
           orderBy: { date: 'desc' },
-          take: 14
-        }
-      }
+          take: 14,
+        },
+      },
     });
 
     if (!campaign) {
@@ -119,7 +117,7 @@ export class TargetingOptimizationService {
   private extractCurrentTargeting(targetingRules: any[]): CampaignTargetingDto {
     const targeting: CampaignTargetingDto = {};
 
-    targetingRules.forEach(rule => {
+    targetingRules.forEach((rule) => {
       switch (rule.ruleType) {
         case TargetingRuleType.DEMOGRAPHIC:
           targeting.demographic = rule.ruleData as any;
@@ -149,70 +147,78 @@ export class TargetingOptimizationService {
   }
 
   private async analyzeSegmentPerformance(campaignId: string) {
-    const impressions = await this.prisma.impression.findMany({
+    const impressions = await this.prisma.impressionTrack.findMany({
       where: { campaignId },
       select: {
         deviceType: true,
         country: true,
         city: true,
         viewable: true,
-        clicks: {
-          select: { id: true }
-        }
       },
-      take: 1000
+      take: 1000,
     });
 
     const segments = new Map<string, any>();
 
-    impressions.forEach(imp => {
+    impressions.forEach((imp) => {
       const deviceKey = `device_${imp.deviceType || 'unknown'}`;
       const geoKey = `geo_${imp.country || 'unknown'}_${imp.city || 'unknown'}`;
 
-      [deviceKey, geoKey].forEach(key => {
+      [deviceKey, geoKey].forEach((key) => {
         if (!segments.has(key)) {
           segments.set(key, {
             impressions: 0,
             clicks: 0,
-            viewable: 0
+            viewable: 0,
           });
         }
 
         const segment = segments.get(key);
         segment.impressions++;
-        segment.clicks += imp.clicks.length;
+        // segment.clicks += imp.clicks.length;
         segment.viewable += imp.viewable ? 1 : 0;
       });
     });
 
-    const performanceData = Array.from(segments.entries()).map(([segment, data]) => ({
-      segment,
-      ctr: data.impressions > 0 ? (data.clicks / data.impressions) * 100 : 0,
-      viewabilityRate: data.impressions > 0 ? (data.viewable / data.impressions) * 100 : 0,
-      volume: data.impressions
-    }));
+    const performanceData = Array.from(segments.entries()).map(
+      ([segment, data]) => ({
+        segment,
+        ctr: data.impressions > 0 ? (data.clicks / data.impressions) * 100 : 0,
+        viewabilityRate:
+          data.impressions > 0 ? (data.viewable / data.impressions) * 100 : 0,
+        volume: data.impressions,
+      }),
+    );
 
     return performanceData.sort((a, b) => b.ctr - a.ctr);
   }
 
   private async identifyMarketOpportunities(
     businessCategory: string,
-    currentTargeting: CampaignTargetingDto
+    currentTargeting: CampaignTargetingDto,
   ) {
-        const successfulCampaigns = await this.prisma.campaign.findMany({      where: {        businessCategory: businessCategory as any,        status: 'COMPLETED',        statistics: {          some: {            ctr: { gte: 2.0 }          }        }      },      include: {        targetingRules: true      },      take: 20    });
+    const successfulCampaigns = await this.prisma.campaign.findMany({
+      where: {
+        businessCategory: businessCategory as any,
+        status: 'COMPLETED',
+        statistics: { some: { ctr: { gte: 2.0 } } },
+      },
+      include: { targetingRules: true },
+      take: 20,
+    });
 
     const opportunities = {
       untappedGeos: [] as string[],
       highPerformingDemographics: [] as any[],
       effectiveTimeSlots: [] as number[],
-      recommendedInterests: [] as string[]
+      recommendedInterests: [] as string[],
     };
 
-    successfulCampaigns.forEach(campaign => {
+    successfulCampaigns.forEach((campaign) => {
       const targeting = this.extractCurrentTargeting(campaign.targetingRules);
-      
+
       if (targeting.geo?.cities) {
-        targeting.geo.cities.forEach(city => {
+        targeting.geo.cities.forEach((city) => {
           if (!currentTargeting.geo?.cities?.includes(city)) {
             opportunities.untappedGeos.push(city);
           }
@@ -220,7 +226,7 @@ export class TargetingOptimizationService {
       }
 
       if (targeting.time?.hoursOfDay) {
-        targeting.time.hoursOfDay.forEach(hour => {
+        targeting.time.hoursOfDay.forEach((hour) => {
           if (!currentTargeting.time?.hoursOfDay?.includes(hour)) {
             opportunities.effectiveTimeSlots.push(hour);
           }
@@ -232,33 +238,41 @@ export class TargetingOptimizationService {
   }
 
   private async analyzeCompetitorTargeting(businessCategory: string) {
-        const recentCampaigns = await this.prisma.campaign.findMany({      where: {        businessCategory: businessCategory as any,        status: 'ACTIVE',        createdAt: {          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)        }      },      include: {        targetingRules: true      },      take: 10    });
+    const recentCampaigns = await this.prisma.campaign.findMany({
+      where: {
+        businessCategory: businessCategory as any,
+        status: 'ACTIVE',
+        createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+      },
+      include: { targetingRules: true },
+      take: 10,
+    });
 
     const targetingPatterns = {
       commonGeos: new Map<string, number>(),
       commonDevices: new Map<string, number>(),
       commonInterests: new Map<string, number>(),
-      avgBudget: 0
+      avgBudget: 0,
     };
 
-    recentCampaigns.forEach(campaign => {
+    recentCampaigns.forEach((campaign) => {
       targetingPatterns.avgBudget += Number(campaign.budget);
       const targeting = this.extractCurrentTargeting(campaign.targetingRules);
-      
+
       if (targeting.geo?.cities) {
-        targeting.geo.cities.forEach(city => {
+        targeting.geo.cities.forEach((city) => {
           targetingPatterns.commonGeos.set(
             city,
-            (targetingPatterns.commonGeos.get(city) || 0) + 1
+            (targetingPatterns.commonGeos.get(city) || 0) + 1,
           );
         });
       }
 
       if (targeting.device?.deviceTypes) {
-        targeting.device.deviceTypes.forEach(device => {
+        targeting.device.deviceTypes.forEach((device) => {
           targetingPatterns.commonDevices.set(
             device,
-            (targetingPatterns.commonDevices.get(device) || 0) + 1
+            (targetingPatterns.commonDevices.get(device) || 0) + 1,
           );
         });
       }
@@ -275,7 +289,7 @@ export class TargetingOptimizationService {
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
         .map(([device]) => device),
-      averageBudget: targetingPatterns.avgBudget
+      averageBudget: targetingPatterns.avgBudget,
     };
   }
 
@@ -287,7 +301,7 @@ export class TargetingOptimizationService {
     competitorData: any,
     goals?: string,
     focusAreas?: string[],
-    includeLookalike?: boolean
+    includeLookalike?: boolean,
   ): string {
     return `Optimize targeting for campaign:
 
@@ -301,9 +315,13 @@ Current Targeting:
 ${JSON.stringify(currentTargeting, null, 2)}
 
 Performance by Segment (Top 10):
-${performanceData.slice(0, 10).map(seg => 
-  `- ${seg.segment}: CTR ${seg.ctr.toFixed(2)}%, Volume: ${seg.volume}`
-).join('\n')}
+${performanceData
+  .slice(0, 10)
+  .map(
+    (seg) =>
+      `- ${seg.segment}: CTR ${seg.ctr.toFixed(2)}%, Volume: ${seg.volume}`,
+  )
+  .join('\n')}
 
 Market Opportunities:
 - Untapped Geos: ${opportunities.untappedGeos.slice(0, 5).join(', ')}
@@ -324,11 +342,11 @@ Provide enhanced targeting with specific additions/removals and expected impact.
   private async applyTargetingRefinements(
     campaignId: string,
     currentTargeting: CampaignTargetingDto,
-    aiResult: TargetingOptimizationResult
+    aiResult: TargetingOptimizationResult,
   ) {
     const refinedTargeting = this.mergeTargeting(
       currentTargeting,
-      aiResult.enhancedTargeting
+      aiResult.enhancedTargeting,
     );
 
     const summary = {
@@ -341,8 +359,8 @@ Provide enhanced targeting with specific additions/removals and expected impact.
       confidence: aiResult.confidence,
       implementationSteps: this.generateImplementationSteps(
         aiResult.additions,
-        aiResult.removals
-      )
+        aiResult.removals,
+      ),
     };
 
     await this.saveTargetingAnalysis(campaignId, summary);
@@ -352,14 +370,14 @@ Provide enhanced targeting with specific additions/removals and expected impact.
 
   private mergeTargeting(
     current: CampaignTargetingDto,
-    enhanced: CampaignTargetingDto
+    enhanced: CampaignTargetingDto,
   ): CampaignTargetingDto {
     const merged: CampaignTargetingDto = {};
 
     if (enhanced.demographic || current.demographic) {
       merged.demographic = {
         ...current.demographic,
-        ...enhanced.demographic
+        ...enhanced.demographic,
       };
     }
 
@@ -367,25 +385,20 @@ Provide enhanced targeting with specific additions/removals and expected impact.
       merged.geo = {
         countries: this.mergeArrays(
           current.geo?.countries,
-          enhanced.geo?.countries
+          enhanced.geo?.countries,
         ),
-        regions: this.mergeArrays(
-          current.geo?.regions,
-          enhanced.geo?.regions
-        ),
-        cities: this.mergeArrays(
-          current.geo?.cities,
-          enhanced.geo?.cities
-        ),
+        regions: this.mergeArrays(current.geo?.regions, enhanced.geo?.regions),
+        cities: this.mergeArrays(current.geo?.cities, enhanced.geo?.cities),
         postalCodes: this.mergeArrays(
           current.geo?.postalCodes,
-          enhanced.geo?.postalCodes
+          enhanced.geo?.postalCodes,
         ),
-        radiusTargets: enhanced.geo?.radiusTargets || current.geo?.radiusTargets || [],
+        radiusTargets:
+          enhanced.geo?.radiusTargets || current.geo?.radiusTargets || [],
         excludedCountries: this.mergeArrays(
           current.geo?.excludedCountries,
-          enhanced.geo?.excludedCountries
-        )
+          enhanced.geo?.excludedCountries,
+        ),
       };
     }
 
@@ -395,8 +408,8 @@ Provide enhanced targeting with specific additions/removals and expected impact.
         ...enhanced.device,
         deviceTypes: this.mergeArrays(
           current.device?.deviceTypes,
-          enhanced.device?.deviceTypes
-        )
+          enhanced.device?.deviceTypes,
+        ),
       };
     }
 
@@ -406,15 +419,15 @@ Provide enhanced targeting with specific additions/removals and expected impact.
         ...enhanced.behavioral,
         interests: this.mergeArrays(
           current.behavioral?.interests,
-          enhanced.behavioral?.interests
-        )
+          enhanced.behavioral?.interests,
+        ),
       };
     }
 
     if (enhanced.time || current.time) {
       merged.time = {
         ...current.time,
-        ...enhanced.time
+        ...enhanced.time,
       };
     }
 
@@ -429,27 +442,33 @@ Provide enhanced targeting with specific additions/removals and expected impact.
     if (!current && !enhanced) return [];
     if (!current) return enhanced!;
     if (!enhanced) return current;
-    
+
     return [...new Set([...current, ...enhanced])];
   }
 
   private generateImplementationSteps(
     additions: any[],
-    removals: any[]
+    removals: any[],
   ): string[] {
     const steps = [];
 
     if (additions.length > 0) {
       steps.push('1. Add new targeting parameters via Campaign Targeting API');
       additions.forEach((add, index) => {
-        steps.push(`   ${index + 1}.${index + 1} Add ${add.category}: ${add.suggestions.slice(0, 3).join(', ')}`);
+        steps.push(
+          `   ${index + 1}.${index + 1} Add ${add.category}: ${add.suggestions.slice(0, 3).join(', ')}`,
+        );
       });
     }
 
     if (removals.length > 0) {
-      steps.push(`${additions.length > 0 ? '2' : '1'}. Remove underperforming segments`);
+      steps.push(
+        `${additions.length > 0 ? '2' : '1'}. Remove underperforming segments`,
+      );
       removals.forEach((rem, index) => {
-        steps.push(`   ${index + 1} Remove ${rem.category}: ${rem.suggestions.slice(0, 3).join(', ')}`);
+        steps.push(
+          `   ${index + 1} Remove ${rem.category}: ${rem.suggestions.slice(0, 3).join(', ')}`,
+        );
       });
     }
 

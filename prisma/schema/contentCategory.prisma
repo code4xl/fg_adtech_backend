@@ -1,4 +1,3 @@
-// Simplified ContentCategory - No hierarchy, just flat categories
 model ContentCategory {
   id          String   @id @default(uuid()) @db.Uuid
   name        String   @unique // "Technology", "Finance", "Sports", "Entertainment"

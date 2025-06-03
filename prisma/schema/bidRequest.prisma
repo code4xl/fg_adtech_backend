@@ -3,7 +3,7 @@ model BidRequest {
   requestId        String      @unique // Unique ID for external reference
   inventoryId      String      @db.Uuid
   publisherId      String      @db.Uuid
-  websiteId        String?     @db.Uuid // Optional website ID for the publisher
+  websiteId        String      @db.Uuid // Optional website ID for the publisher
   userAgent        String?
   ipAddress        String?
   deviceType       String?
@@ -22,7 +22,7 @@ model BidRequest {
   // Relations
   inventory    AdInventory   @relation(fields: [inventoryId], references: [id])
   publisher    Publisher     @relation(fields: [publisherId], references: [id])
-  website      Website?      @relation(fields: [websiteId], references: [id])
+  website      Website       @relation(fields: [websiteId], references: [id])
   bidResponses BidResponse[] // Relation to bid responses
   auctionLogs  AuctionLog[] // Relation to auction logs
 }

@@ -21,26 +21,40 @@ export class CampaignService {
     private readonly campaignHelper: CampaignHelperService,
     private readonly s3StorageService: S3StorageService,
     private readonly campaignNotificationService: CampaignNotificationService,
-  ) { }
+  ) {}
 
   // Create a new campaign
-  async create(advertiserId: string, createCampaignDto: CreateCampaignDto, file: Express.Multer.File) {
+  async create(
+    advertiserId: string,
+    createCampaignDto: CreateCampaignDto,
+    file: Express.Multer.File,
+  ) {
     // Validate campaign dates
-    await this.campaignHelper.validateCampaignDates(createCampaignDto.startDate, createCampaignDto.endDate);
+    await this.campaignHelper.validateCampaignDates(
+      createCampaignDto.startDate,
+      createCampaignDto.endDate,
+    );
 
     // Validate client belongs to advertiser if clientId is provided
     if (createCampaignDto.clientId) {
-      await this.campaignHelper.validateClient(createCampaignDto.clientId, advertiserId);
+      await this.campaignHelper.validateClient(
+        createCampaignDto.clientId,
+        advertiserId,
+      );
     }
 
     // Validate bid strategy and bid amount
-    this.campaignHelper.validateBidStrategy(createCampaignDto.bidStrategy || 'LOWEST_COST', createCampaignDto.bidAmount);
+    this.campaignHelper.validateBidStrategy(
+      createCampaignDto.bidStrategy || 'LOWEST_COST',
+      createCampaignDto.bidAmount,
+    );
 
     // Determine initial status based on start date
     const startDate = new Date(createCampaignDto.startDate);
     const endDate = new Date(createCampaignDto.endDate);
     const now = new Date();
-    const initialStatus = startDate <= now ? CampaignStatus.ACTIVE : CampaignStatus.SCHEDULED;
+    const initialStatus =
+      startDate <= now ? CampaignStatus.ACTIVE : CampaignStatus.SCHEDULED;
 
     // We'll use a transaction to ensure that everything succeeds or fails together
     const campaign = await this.prisma.$transaction(async (tx) => {
@@ -62,47 +76,58 @@ export class CampaignService {
           interests: createCampaignDto.interests,
           audienceCSV: '', // We'll update this after uploading to S3
           advertiser: {
-            connect: { id: advertiserId }
+            connect: { id: advertiserId },
           },
-          client: createCampaignDto.clientId ? {
-            connect: { id: createCampaignDto.clientId }
-          } : undefined
-        }
+          client: createCampaignDto.clientId
+            ? {
+                connect: { id: createCampaignDto.clientId },
+              }
+            : undefined,
+        },
       });
 
       // Now upload the file to S3
-      console.log("File" + file.size);
-      console.log("File" + file.buffer);
-      console.log("File" + file.mimetype);
+      console.log('File' + file.size);
+      console.log('File' + file.buffer);
+      console.log('File' + file.mimetype);
       if (file) {
         try {
           // Generate the S3 key for this campaign's audience file
-          const s3Key = this.s3StorageService.generateCampaignAudienceKey(campaign.name, campaign.id);
+          const s3Key = this.s3StorageService.generateCampaignAudienceKey(
+            campaign.name,
+            campaign.id,
+          );
 
           // Upload the file to S3
           await this.s3StorageService.uploadFile(
             file.buffer,
             s3Key,
-            'text/csv'
+            'text/csv',
           );
 
           // Update the campaign record with the S3 key
           await tx.campaign.update({
             where: { id: campaign.id },
-            data: { audienceCSV: s3Key }
+            data: { audienceCSV: s3Key },
           });
 
           // Update the local campaign object to return
           campaign.audienceCSV = s3Key;
         } catch (error) {
           // If S3 upload fails, we need to throw an error to roll back the transaction
-          throw new BadRequestException(`Failed to upload audience file: ${error.message}`);
+          throw new BadRequestException(
+            `Failed to upload audience file: ${error.message}`,
+          );
         }
       }
 
       // Create targeting rules if provided
       if (createCampaignDto.targeting) {
-        await this.createTargetingRules(tx, campaign.id, createCampaignDto.targeting);
+        await this.createTargetingRules(
+          tx,
+          campaign.id,
+          createCampaignDto.targeting,
+        );
       }
 
       return campaign;
@@ -112,7 +137,7 @@ export class CampaignService {
     await this.campaignNotificationService.notifyCampaignCreated(
       campaign,
       advertiserId,
-      createCampaignDto.clientId
+      createCampaignDto.clientId,
     );
 
     return campaign;
@@ -122,7 +147,7 @@ export class CampaignService {
   private async createTargetingRules(
     tx: Prisma.TransactionClient,
     campaignId: string,
-    targeting: CampaignTargetingDto
+    targeting: CampaignTargetingDto,
   ) {
     const targetingRules: any = [];
 
@@ -131,7 +156,7 @@ export class CampaignService {
       targetingRules.push({
         campaignId,
         ruleType: TargetingRuleType.DEMOGRAPHIC,
-        ruleData: targeting.demographic
+        ruleData: targeting.demographic,
       });
     }
 
@@ -140,7 +165,7 @@ export class CampaignService {
       targetingRules.push({
         campaignId,
         ruleType: TargetingRuleType.GEOGRAPHIC,
-        ruleData: targeting.geo
+        ruleData: targeting.geo,
       });
     }
 
@@ -149,7 +174,7 @@ export class CampaignService {
       targetingRules.push({
         campaignId,
         ruleType: TargetingRuleType.DEVICE,
-        ruleData: targeting.device
+        ruleData: targeting.device,
       });
     }
 
@@ -158,7 +183,7 @@ export class CampaignService {
       targetingRules.push({
         campaignId,
         ruleType: TargetingRuleType.CONTEXTUAL,
-        ruleData: targeting.contextual
+        ruleData: targeting.contextual,
       });
     }
 
@@ -167,7 +192,7 @@ export class CampaignService {
       targetingRules.push({
         campaignId,
         ruleType: TargetingRuleType.BEHAVIORAL,
-        ruleData: targeting.behavioral
+        ruleData: targeting.behavioral,
       });
     }
 
@@ -176,7 +201,7 @@ export class CampaignService {
       targetingRules.push({
         campaignId,
         ruleType: TargetingRuleType.TIME,
-        ruleData: targeting.time
+        ruleData: targeting.time,
       });
     }
 
@@ -185,14 +210,14 @@ export class CampaignService {
       targetingRules.push({
         campaignId,
         ruleType: TargetingRuleType.FREQUENCY,
-        ruleData: targeting.frequencyCap
+        ruleData: targeting.frequencyCap,
       });
     }
 
     // Create all targeting rules in the database
     if (targetingRules.length > 0) {
       await tx.campaignTargetingRule.createMany({
-        data: targetingRules
+        data: targetingRules,
       });
     }
   }
@@ -201,7 +226,7 @@ export class CampaignService {
   async updateCampaignTargeting(
     campaignId: string,
     advertiserId: string,
-    targeting: CampaignTargetingDto
+    targeting: CampaignTargetingDto,
   ) {
     // Verify campaign exists and belongs to advertiser
     const campaign = await this.prisma.campaign.findUnique({
@@ -210,8 +235,8 @@ export class CampaignService {
         id: true,
         name: true,
         advertiserId: true,
-        clientId: true
-      }
+        clientId: true,
+      },
     });
 
     if (!campaign) {
@@ -226,7 +251,7 @@ export class CampaignService {
     await this.prisma.$transaction(async (tx) => {
       // Delete existing targeting rules
       await tx.campaignTargetingRule.deleteMany({
-        where: { campaignId }
+        where: { campaignId },
       });
 
       // Create new targeting rules
@@ -237,7 +262,7 @@ export class CampaignService {
     await this.campaignNotificationService.notifyCampaignTargetingUpdated(
       campaign,
       advertiserId,
-      campaign.clientId!
+      campaign.clientId!,
     );
 
     return { message: 'Campaign targeting updated successfully' };
@@ -251,8 +276,8 @@ export class CampaignService {
       select: {
         id: true,
         advertiserId: true,
-        targetingRules: true
-      }
+        targetingRules: true,
+      },
     });
 
     if (!campaign) {
@@ -304,12 +329,12 @@ export class CampaignService {
       page = 1,
       limit = 10,
       sortBy = 'createdAt',
-      sortOrder = 'desc'
+      sortOrder = 'desc',
     } = query;
 
     // Build where clause
     const where: Prisma.CampaignWhereInput = {
-      advertiserId
+      advertiserId,
     };
 
     if (status) where.status = status;
@@ -318,7 +343,7 @@ export class CampaignService {
     if (search) {
       where.name = {
         contains: search,
-        mode: 'insensitive'
+        mode: 'insensitive',
       };
     }
 
@@ -330,24 +355,23 @@ export class CampaignService {
         skip: (page - 1) * limit,
         take: limit,
         orderBy: {
-          [sortBy]: sortOrder
+          [sortBy]: sortOrder,
         },
         include: {
           client: {
             select: {
               id: true,
               name: true,
-              companyName: true
-            }
+              companyName: true,
+            },
           },
           _count: {
             select: {
-              campaignInventories: true,
-              creatives: true
-            }
-          }
-        }
-      })
+              creatives: true,
+            },
+          },
+        },
+      }),
     ]);
 
     return {
@@ -356,8 +380,8 @@ export class CampaignService {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit)
-      }
+        totalPages: Math.ceil(total / limit),
+      },
     };
   }
 
@@ -369,33 +393,18 @@ export class CampaignService {
           select: {
             id: true,
             name: true,
-            companyName: true
-          }
-        },
-        campaignInventories: {
-          include: {
-            inventory: {
-              select: {
-                id: true,
-                name: true,
-                width: true,
-                height: true,
-                format: true,
-                position: true,
-                viewabilityScore: true
-              }
-            }
-          }
+            companyName: true,
+          },
         },
         creatives: true,
         statistics: {
           orderBy: {
-            date: 'desc'
+            date: 'desc',
           },
-          take: 7 // Last 7 days of statistics
+          take: 7, // Last 7 days of statistics
         },
-        targetingRules: true
-      }
+        targetingRules: true,
+      },
     });
 
     if (!campaign) {
@@ -428,8 +437,8 @@ export class CampaignService {
         startDate: true,
         endDate: true,
         bidStrategy: true,
-        audienceCSV: true
-      }
+        audienceCSV: true,
+      },
     });
 
     if (!campaign) {
@@ -442,7 +451,9 @@ export class CampaignService {
 
     // Validate that we aren't trying to update a completed or canceled campaign
     if (['COMPLETED', 'CANCELED', 'REJECTED'].includes(campaign.status)) {
-      throw new BadRequestException(`Cannot update a campaign with status: ${campaign.status}`);
+      throw new BadRequestException(
+        `Cannot update a campaign with status: ${campaign.status}`,
+      );
     }
 
     // Validate campaign dates if provided
@@ -460,14 +471,17 @@ export class CampaignService {
 
     // Validate client if provided
     if (updateCampaignDto.clientId) {
-      await this.campaignHelper.validateClient(updateCampaignDto.clientId, advertiserId);
+      await this.campaignHelper.validateClient(
+        updateCampaignDto.clientId,
+        advertiserId,
+      );
     }
 
     // Validate bid strategy and amount if provided
     if (updateCampaignDto.bidStrategy || updateCampaignDto.bidAmount) {
       this.campaignHelper.validateBidStrategy(
         updateCampaignDto.bidStrategy || campaign.bidStrategy,
-        updateCampaignDto.bidAmount
+        updateCampaignDto.bidAmount,
       );
     }
 
@@ -480,7 +494,8 @@ export class CampaignService {
 
       // Update status based on new start date if campaign is in DRAFT or SCHEDULED status
       if (['DRAFT', 'SCHEDULED'].includes(campaign.status)) {
-        status = startDate <= now ? CampaignStatus.ACTIVE : CampaignStatus.SCHEDULED;
+        status =
+          startDate <= now ? CampaignStatus.ACTIVE : CampaignStatus.SCHEDULED;
       }
     }
 
@@ -493,14 +508,13 @@ export class CampaignService {
         // Generate the S3 key for this campaign's audience file
         // If name is being updated, use the new name
         const campaignName = updateCampaignDto.name || campaign.name;
-        const s3Key = this.s3StorageService.generateCampaignAudienceKey(campaignName, campaign.id);
+        const s3Key = this.s3StorageService.generateCampaignAudienceKey(
+          campaignName,
+          campaign.id,
+        );
 
         // Upload the new file to S3
-        await this.s3StorageService.uploadFile(
-          file.buffer,
-          s3Key,
-          'text/csv'
-        );
+        await this.s3StorageService.uploadFile(file.buffer, s3Key, 'text/csv');
 
         // Delete the old file if it exists and is different from the new one
         if (campaign.audienceCSV && campaign.audienceCSV !== s3Key) {
@@ -513,7 +527,7 @@ export class CampaignService {
         const oldKey = campaign.audienceCSV;
         const newKey = this.s3StorageService.generateCampaignAudienceKey(
           updateCampaignDto.name,
-          campaign.id
+          campaign.id,
         );
 
         if (oldKey !== newKey) {
@@ -539,8 +553,12 @@ export class CampaignService {
           name: updateCampaignDto.name,
           budget: updateCampaignDto.budget,
           dailyBudget: updateCampaignDto.dailyBudget,
-          startDate: updateCampaignDto.startDate ? new Date(updateCampaignDto.startDate) : undefined,
-          endDate: updateCampaignDto.endDate ? new Date(updateCampaignDto.endDate) : undefined,
+          startDate: updateCampaignDto.startDate
+            ? new Date(updateCampaignDto.startDate)
+            : undefined,
+          endDate: updateCampaignDto.endDate
+            ? new Date(updateCampaignDto.endDate)
+            : undefined,
           objective: updateCampaignDto.objective,
           bidStrategy: updateCampaignDto.bidStrategy,
           bidAmount: updateCampaignDto.bidAmount,
@@ -550,8 +568,8 @@ export class CampaignService {
           websiteUrl: updateCampaignDto.websiteUrl,
           interests: updateCampaignDto.interests,
           audienceCSV: audienceCSVKey,
-          clientId: updateCampaignDto.clientId
-        }
+          clientId: updateCampaignDto.clientId,
+        },
       });
 
       return updatedCampaign;
@@ -561,7 +579,7 @@ export class CampaignService {
     await this.campaignNotificationService.notifyCampaignUpdated(
       updatedCampaign,
       advertiserId,
-      updatedCampaign.clientId!
+      updatedCampaign.clientId!,
     );
 
     return updatedCampaign;
@@ -577,8 +595,8 @@ export class CampaignService {
         advertiserId: true,
         clientId: true,
         status: true,
-        audienceCSV: true
-      }
+        audienceCSV: true,
+      },
     });
 
     if (!campaign) {
@@ -591,14 +609,16 @@ export class CampaignService {
 
     // If campaign is active, we should cancel it instead of deleting
     if (campaign.status === CampaignStatus.ACTIVE) {
-      throw new BadRequestException('Cannot delete an active campaign. Please cancel it first.');
+      throw new BadRequestException(
+        'Cannot delete an active campaign. Please cancel it first.',
+      );
     }
 
     // Send notification before deleting
     await this.campaignNotificationService.notifyCampaignDeleted(
       campaign.name,
       advertiserId,
-      campaign.clientId!
+      campaign.clientId!,
     );
 
     // Delete the audience file from S3 if it exists
@@ -608,7 +628,7 @@ export class CampaignService {
 
     // Delete campaign
     return this.prisma.campaign.delete({
-      where: { id }
+      where: { id },
     });
   }
 
@@ -618,15 +638,18 @@ export class CampaignService {
    * @param advertiserId Advertiser ID for permission check
    * @returns Pre-signed URL
    */
-  async getAudienceFileUrl(campaignId: string, advertiserId: string): Promise<string> {
+  async getAudienceFileUrl(
+    campaignId: string,
+    advertiserId: string,
+  ): Promise<string> {
     // Check if campaign exists and belongs to the advertiser
     const campaign = await this.prisma.campaign.findUnique({
       where: { id: campaignId },
       select: {
         id: true,
         advertiserId: true,
-        audienceCSV: true
-      }
+        audienceCSV: true,
+      },
     });
 
     if (!campaign) {
@@ -638,13 +661,15 @@ export class CampaignService {
     }
 
     if (!campaign.audienceCSV) {
-      throw new BadRequestException('This campaign does not have an audience file');
+      throw new BadRequestException(
+        'This campaign does not have an audience file',
+      );
     }
 
     // Generate a pre-signed URL for the audience file
     const presignedUrl = await this.s3StorageService.getPresignedUrl(
       campaign.audienceCSV,
-      3600 // 1 hour expiration
+      3600, // 1 hour expiration
     );
 
     return presignedUrl;

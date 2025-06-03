@@ -30,15 +30,15 @@ enum ApprovalStatus {
   REJECTED
 }
 
-enum TargetingRuleType {
-  DEMOGRAPHIC
-  GEOGRAPHIC
-  DEVICE
-  CONTEXTUAL
-  BEHAVIORAL
-  TIME
-  FREQUENCY
-}
+// enum TargetingRuleType {
+//   DEMOGRAPHIC
+//   GEOGRAPHIC
+//   DEVICE
+//   CONTEXTUAL
+//   BEHAVIORAL
+//   TIME
+//   FREQUENCY
+// }
 
 enum PublisherStatus {
   ACTIVE
@@ -57,6 +57,11 @@ enum CampaignStatus {
   CANCELED
   REJECTED
   BUDGET_EXHAUSTED
+}
+
+enum FloorPriceCurrency {
+  USD
+  INR
 }
 
 enum CampaignObjective {

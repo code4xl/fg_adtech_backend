@@ -130,7 +130,6 @@ export class AuthService {
         lastName: createPublisherSignupDto.lastName,
         email: createPublisherSignupDto.email,
         password: hashedPassword,
-        domain: createPublisherSignupDto.domain,
         emailVerifiedAt: null,
         verificationToken,
       },

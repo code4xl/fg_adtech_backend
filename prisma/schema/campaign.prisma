@@ -55,19 +55,6 @@ model CampaignStatistics {
     @@unique([campaignId, date])
 }
 
-// Campaign targeting rules
-model CampaignTargetingRule {
-    id         String            @id @default(uuid()) @db.Uuid
-    campaignId String            @db.Uuid
-    ruleType   TargetingRuleType
-    ruleData   Json
-    createdAt  DateTime          @default(now())
-    updatedAt  DateTime          @updatedAt
-
-    // Relations
-    campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-}
-
 model CampaignBudgetTracker {
     id              String   @id @default(uuid()) @db.Uuid
     campaignId      String   @db.Uuid
