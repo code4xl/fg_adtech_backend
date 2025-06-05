@@ -1,255 +1,301 @@
-// import { Injectable, Logger } from '@nestjs/common';
-// import { faker } from '@faker-js/faker';
-// import {
-//   CampaignStatus,
-//   CampaignObjective,
-//   BidStrategy,
-//   CampaignPacing,
-//   BusinessCategory,
-//   CampaignInterest,
-// } from '@prisma/client';
-// import { PrismaService } from 'src/prisma/prisma.service';
-// import { ISeeder } from '../interfaces/seeder.interface';
-// import { Decimal } from '@prisma/client/runtime/library';
+import { Injectable, Logger } from '@nestjs/common';
+import { faker } from '@faker-js/faker';
+import {
+  CampaignStatus,
+  CampaignObjective,
+  BidStrategy,
+  CampaignPacing,
+  BusinessCategory,
+  CampaignInterest,
+} from '@prisma/client';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { ISeeder } from '../interfaces/seeder.interface';
 
-// @Injectable()
-// export class CampaignSeeder implements ISeeder {
-//   private readonly logger = new Logger(CampaignSeeder.name);
+@Injectable()
+export class CampaignSeeder implements ISeeder {
+  private readonly logger = new Logger(CampaignSeeder.name);
 
-//   constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
-//   getModuleName(): string {
-//     return 'Campaign';
-//   }
+  getModuleName(): string {
+    return 'Campaign';
+  }
 
-//   getDependencies(): string[] {
-//     // Campaign depends on Advertiser
-//     return ['Advertiser'];
-//   }
+  getDependencies(): string[] {
+    // Campaign depends on Advertiser and Client
+    return ['Advertiser', 'Client'];
+  }
 
-//   async seed(count: number = 20): Promise<void> {
-//     this.logger.log(`Seeding ${count} campaigns...`);
+  async seed(count: number = 25): Promise<void> {
+    this.logger.log(`Seeding ${count} campaigns...`);
 
-//     try {
-//       // Get all advertisers to assign campaigns to
-//       const advertisers = await this.prisma.advertiser.findMany({
-//         select: { id: true },
-//       });
+    try {
+      // Get all advertisers to assign campaigns to
+      const advertisers = await this.prisma.advertiser.findMany({
+        select: { id: true },
+      });
 
-//       if (advertisers.length === 0) {
-//         throw new Error('No advertisers found. Please seed advertisers first.');
-//       }
+      if (advertisers.length === 0) {
+        throw new Error('No advertisers found. Please seed advertisers first.');
+      }
 
-//       const campaignData: any = [];
+      // Get all clients (some campaigns might be for specific clients)
+      const clients = await this.prisma.client.findMany({
+        select: { id: true, advertiserId: true },
+      });
 
-//       // All possible values for enums
-//       const statuses = Object.values(CampaignStatus);
-//       const objectives = Object.values(CampaignObjective);
-//       const bidStrategies = Object.values(BidStrategy);
-//       const pacingOptions = Object.values(CampaignPacing);
-//       const businessCategories = Object.values(BusinessCategory);
-//       const interests = Object.values(CampaignInterest);
+      const campaignData: any = [];
 
-//       // Generate fake campaigns
-//       for (let i = 0; i < count; i++) {
-//         // Randomly assign to an advertiser
-//         const advertiser = faker.helpers.arrayElement(advertisers);
+      // All possible values for enums
+      const statuses = Object.values(CampaignStatus);
+      const objectives = Object.values(CampaignObjective);
+      const bidStrategies = Object.values(BidStrategy);
+      const pacingOptions = Object.values(CampaignPacing);
+      const businessCategories = Object.values(BusinessCategory);
+      const interests = Object.values(CampaignInterest);
 
-//         const now = new Date();
-//         const thirtyDaysAgo = new Date(now);
-//         thirtyDaysAgo.setDate(now.getDate() - 30);
-//         const oneYearFromNow = new Date(now);
-//         oneYearFromNow.setFullYear(now.getFullYear() + 1);
+      // Generate fake campaigns
+      for (let i = 0; i < count; i++) {
+        // Randomly assign to an advertiser
+        const advertiser = faker.helpers.arrayElement(advertisers);
 
-//         // Generate random dates ensuring endDate is after startDate
-//         const startDate = faker.date.between({
-//           from: thirtyDaysAgo,
-//           to: now,
-//         });
-//         const endDate = faker.date.between({
-//           from: now,
-//           to: oneYearFromNow,
-//         });
-//         // Generate budget values
-//         const budget = faker.number.float({
-//           min: 1000,
-//           max: 100000,
-//           fractionDigits: 2,
-//         });
-//         const dailyBudget = faker.datatype.boolean()
-//           ? faker.number.float({
-//             min: budget / 30,
-//             max: budget / 10,
-//             fractionDigits: 2,
-//           })
-//           : null;
+        // Get clients for this advertiser
+        const advertiserClients = clients.filter(
+          (c) => c.advertiserId === advertiser.id,
+        );
 
-//         const bidStrategy = faker.helpers.arrayElement(bidStrategies);
-//         const bidAmount =
-//           bidStrategy === BidStrategy.BID_CAP ||
-//             bidStrategy === BidStrategy.TARGET_COST
-//             ? faker.number.float({ min: 0.5, max: 50.0, fractionDigits: 2 })
-//             : null;
+        // Determine client assignment strategy
+        let client = null;
+        if (advertiserClients.length > 0) {
+          // 60% chance to assign to a client if advertiser has clients
+          if (faker.datatype.boolean(0.6)) {
+            client = faker.helpers.arrayElement(advertiserClients);
+          }
+        }
 
-//         campaignData.push({
-//           name: `${faker.company.catchPhrase()} Campaign`,
-//           advertiserId: advertiser.id,
-//           clientId: null, // You can add client logic here if needed
-//           budget: budget,
-//           dailyBudget: dailyBudget,
-//           startDate: startDate,
-//           endDate: endDate,
-//           status: faker.helpers.arrayElement(statuses),
-//           objective: faker.helpers.arrayElement(objectives),
-//           bidStrategy: bidStrategy,
-//           bidAmount: bidAmount,
-//           pacing: faker.helpers.arrayElement(pacingOptions),
-//           businessCategory: faker.helpers.arrayElement(businessCategories),
-//           websiteUrl: faker.internet.url(),
-//           // Generate random interests as a comma-separated string
-//           interests: faker.helpers.arrayElements(interests, { max: 5, min: 1 }),
-//           // Generate a CSV string for audiences
-//           audienceCSV: this.generateAudienceCSV(),
-//           createdAt: faker.date.past(),
-//           updatedAt: faker.date.recent(),
-//         });
-//       }
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(now.getDate() - 30);
+        const oneYearFromNow = new Date(now);
+        oneYearFromNow.setFullYear(now.getFullYear() + 1);
 
-//       // Add a default campaign for testing
-//       const defaultAdvertiser = await this.prisma.advertiser.findFirst({
-//         where: { email: 'advertiser@example.com' },
-//       });
+        // Generate random dates ensuring endDate is after startDate
+        const startDate = faker.date.between({
+          from: thirtyDaysAgo,
+          to: now,
+        });
+        const endDate = faker.date.between({
+          from: new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000), // At least 7 days after start
+          to: oneYearFromNow,
+        });
 
-//       if (defaultAdvertiser) {
-//         campaignData.push({
-//           name: 'Test Campaign',
-//           advertiserId: defaultAdvertiser.id,
-//           clientId: null,
-//           budget: 5000.0,
-//           dailyBudget: 250.0,
-//           startDate: new Date(),
-//           endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-//           status: CampaignStatus.ACTIVE,
-//           objective: CampaignObjective.AWARENESS,
-//           bidStrategy: BidStrategy.LOWEST_COST,
-//           bidAmount: null,
-//           pacing: CampaignPacing.STANDARD,
-//           businessCategory: BusinessCategory.TECHNOLOGY,
-//           websiteUrl: 'https://example.com',
-//           interests: [
-//             CampaignInterest.TECHNOLOGY,
-//             CampaignInterest.FOOD_AND_DRINK,
-//             CampaignInterest.BUSINESS_AND_FINANCE,
-//           ],
-//           audienceCSV: 'age:25-45,gender:all,location:US',
-//           createdAt: new Date(),
-//           updatedAt: new Date(),
-//         });
-//       }
+        // Generate budget values
+        const budget = faker.number.float({
+          min: 1000,
+          max: 100000,
+          fractionDigits: 2,
+        });
+        const dailyBudget = faker.datatype.boolean(0.8)
+          ? faker.number.float({
+              min: budget / 365,
+              max: budget / 30,
+              fractionDigits: 2,
+            })
+          : null;
 
-//       // Insert all campaigns
-//       await this.prisma.campaign.createMany({
-//         data: campaignData,
-//       });
+        const bidStrategy = faker.helpers.arrayElement(bidStrategies);
+        const bidAmount =
+          bidStrategy === BidStrategy.BID_CAP ||
+          bidStrategy === BidStrategy.TARGET_COST
+            ? faker.number.float({ min: 0.5, max: 50.0, fractionDigits: 2 })
+            : null;
 
-//       const campaignCount = await this.prisma.campaign.count();
-//       this.logger.log(`Successfully seeded ${campaignCount} campaigns`);
+        // Generate targeting arrays
+        const selectedInterests = faker.helpers.arrayElements(interests, {
+          max: 5,
+          min: 1,
+        });
+        const genders = faker.helpers.arrayElements(
+          ['male', 'female', 'other'],
+          { max: 3, min: 1 },
+        );
+        const locations = faker.helpers.arrayElements(
+          ['US', 'IN', 'UK', 'CA', 'AU'],
+          { max: 3, min: 1 },
+        );
+        const deviceTypes = faker.helpers.arrayElements(
+          ['mobile', 'desktop', 'tablet'],
+          { max: 3, min: 1 },
+        );
 
-//       // Optionally seed related data
-//       await this.seedCampaignRelations();
-//     } catch (error) {
-//       this.logger.error('Error seeding campaigns');
-//       this.logger.error(error);
-//       throw error;
-//     }
-//   }
+        campaignData.push({
+          name: `${faker.company.catchPhrase()} Campaign`,
+          advertiserId: advertiser.id,
+          clientId: client?.id || null, // Now properly handles null values
+          budget: budget,
+          dailyBudget: dailyBudget,
+          startDate: startDate,
+          endDate: endDate,
+          status: faker.helpers.arrayElement(statuses),
+          objective: faker.helpers.arrayElement(objectives),
+          bidStrategy: bidStrategy,
+          bidAmount: bidAmount,
+          pacing: faker.helpers.arrayElement(pacingOptions),
+          businessCategory: faker.helpers.arrayElement(businessCategories),
+          websiteUrl: faker.internet.url(),
+          interests: selectedInterests,
+          ageMin: faker.number.int({ min: 18, max: 45 }),
+          ageMax: faker.number.int({ min: 46, max: 65 }),
+          genders: genders,
+          locations: locations,
+          deviceTypes: deviceTypes,
+          createdAt: faker.date.past(),
+          updatedAt: faker.date.recent(),
+        });
+      }
 
-//   async clean(): Promise<void> {
-//     this.logger.log('Cleaning campaigns table...');
+      // Add a default test campaign
+      const defaultAdvertiser = await this.prisma.advertiser.findFirst({
+        where: { email: 'advertiser@example.com' },
+      });
 
-//     try {
-//       // Clean related tables first (respecting foreign key constraints)
-//       await this.prisma.campaignStatistics.deleteMany({});
-//       await this.prisma.campaignTargetingRule.deleteMany({});
-//       await this.prisma.campaignInventory.deleteMany({});
+      const defaultClient = await this.prisma.client.findFirst({
+        where: { email: 'client@example.com' },
+      });
 
-//       // Clean main table
-//       const deleted = await this.prisma.campaign.deleteMany({});
-//       this.logger.log(`Deleted ${deleted.count} campaigns`);
-//     } catch (error) {
-//       this.logger.error('Error cleaning campaigns table');
-//       this.logger.error(error);
-//       throw error;
-//     }
-//   }
+      if (defaultAdvertiser) {
+        campaignData.push({
+          name: 'Test Campaign',
+          advertiserId: defaultAdvertiser.id,
+          clientId: defaultClient?.id || null, // Handle case where default client doesn't exist
+          budget: 5000.0,
+          dailyBudget: 250.0,
+          startDate: new Date(),
+          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+          status: CampaignStatus.ACTIVE,
+          objective: CampaignObjective.AWARENESS,
+          bidStrategy: BidStrategy.LOWEST_COST,
+          bidAmount: null,
+          pacing: CampaignPacing.STANDARD,
+          businessCategory: BusinessCategory.TECHNOLOGY,
+          websiteUrl: 'https://example.com',
+          interests: [
+            CampaignInterest.TECHNOLOGY,
+            CampaignInterest.BUSINESS_AND_FINANCE,
+          ],
+          ageMin: 25,
+          ageMax: 45,
+          genders: ['male', 'female'],
+          locations: ['US', 'IN'],
+          deviceTypes: ['mobile', 'desktop'],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
 
-//   async isSeeded(): Promise<boolean> {
-//     const count = await this.prisma.campaign.count();
-//     return count > 0;
-//   }
+      // Insert all campaigns
+      await this.prisma.campaign.createMany({
+        data: campaignData,
+        skipDuplicates: true,
+      });
 
-//   // Helper method to generate audience CSV
-//   private generateAudienceCSV(): string {
-//     const ageRanges = ['18-24', '25-34', '35-44', '45-54', '55+'];
-//     const genders = ['male', 'female', 'all'];
-//     const locations = ['US', 'UK', 'CA', 'AU', 'IN'];
-//     const devices = ['mobile', 'desktop', 'tablet'];
+      const campaignCount = await this.prisma.campaign.count();
+      this.logger.log(`Successfully seeded ${campaignCount} campaigns`);
 
-//     return [
-//       `age:${faker.helpers.arrayElement(ageRanges)}`,
-//       `gender:${faker.helpers.arrayElement(genders)}`,
-//       `location:${faker.helpers.arrayElements(locations, { min: 1, max: 3 }).join('|')}`,
-//       `devices:${faker.helpers.arrayElements(devices, { min: 1, max: 3 }).join('|')}`,
-//     ].join(',');
-//   }
+      // Seed related campaign statistics
+      await this.seedCampaignStatistics();
+    } catch (error) {
+      this.logger.error('Error seeding campaigns');
+      this.logger.error(error);
+      throw error;
+    }
+  }
 
-//   // Optional: Seed related data like statistics, targeting rules
-//   private async seedCampaignRelations(): Promise<void> {
-//     try {
-//       const campaigns = await this.prisma.campaign.findMany({
-//         select: { id: true },
-//       });
+  async clean(): Promise<void> {
+    this.logger.log('Cleaning campaigns table...');
 
-//       // Seed some campaign statistics for the last 7 days
-//       const statisticsData: any = [];
+    try {
+      // Clean related tables first (respecting foreign key constraints)
+      await this.prisma.campaignStatistics.deleteMany({});
+      await this.prisma.campaignBudgetTracker.deleteMany({});
+      await this.prisma.creative.deleteMany({});
+      await this.prisma.demographicTargeting.deleteMany({});
+      await this.prisma.geographicTargeting.deleteMany({});
+      await this.prisma.deviceTargeting.deleteMany({});
+      await this.prisma.contextualTargeting.deleteMany({});
+      await this.prisma.behavioralTargeting.deleteMany({});
+      await this.prisma.timeTargeting.deleteMany({});
+      await this.prisma.frequencyTargeting.deleteMany({});
+      await this.prisma.hourlyMetrics.deleteMany({});
 
-//       for (const campaign of campaigns.slice(0, 10)) {
-//         // Only seed stats for first 10 campaigns
-//         for (let i = 0; i < 7; i++) {
-//           const date = new Date();
-//           date.setDate(date.getDate() - i);
+      // Clean main table
+      const deleted = await this.prisma.campaign.deleteMany({});
+      this.logger.log(`Deleted ${deleted.count} campaigns`);
+    } catch (error) {
+      this.logger.error('Error cleaning campaigns table');
+      this.logger.error(error);
+      throw error;
+    }
+  }
 
-//           const impressions = faker.number.int({ min: 1000, max: 100000 });
-//           const clicks = faker.number.int({ min: 0, max: impressions * 0.1 });
-//           const conversions = faker.number.int({ min: 0, max: clicks * 0.1 });
-//           const spend = faker.number.float({
-//             min: 10,
-//             max: 1000,
-//             fractionDigits: 2,
-//           });
+  async isSeeded(): Promise<boolean> {
+    const count = await this.prisma.campaign.count();
+    return count > 0;
+  }
 
-//           statisticsData.push({
-//             campaignId: campaign.id,
-//             date: date,
-//             impressions: impressions,
-//             clicks: clicks,
-//             conversions: conversions,
-//             spend: spend,
-//             ctr: clicks / impressions,
-//             cpc: clicks > 0 ? spend / clicks : null,
-//           });
-//         }
-//       }
+  /**
+   * Seed related campaign statistics for the last 7 days
+   */
+  private async seedCampaignStatistics(): Promise<void> {
+    try {
+      const campaigns = await this.prisma.campaign.findMany({
+        select: { id: true },
+        take: 10, // Only seed stats for first 10 campaigns
+      });
 
-//       await this.prisma.campaignStatistics.createMany({
-//         data: statisticsData,
-//         skipDuplicates: true,
-//       });
+      const statisticsData: any = [];
 
-//       this.logger.log(`Seeded ${statisticsData.length} campaign statistics`);
-//     } catch (error) {
-//       this.logger.warn('Error seeding campaign relations, but continuing...');
-//       // Don't throw - these are optional
-//     }
-//   }
-// }
+      for (const campaign of campaigns) {
+        for (let i = 0; i < 7; i++) {
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+
+          const impressions = faker.number.int({ min: 100, max: 10000 });
+          const clicks = faker.number.int({
+            min: 0,
+            max: Math.floor(impressions * 0.1),
+          });
+          const conversions = faker.number.int({
+            min: 0,
+            max: Math.floor(clicks * 0.1),
+          });
+          const spend = faker.number.float({
+            min: 10,
+            max: 500,
+            fractionDigits: 2,
+          });
+
+          statisticsData.push({
+            campaignId: campaign.id,
+            date: date,
+            impressions: impressions,
+            clicks: clicks,
+            conversions: conversions,
+            spend: spend,
+            ctr: impressions > 0 ? clicks / impressions : null,
+            cpc: clicks > 0 ? spend / clicks : null,
+          });
+        }
+      }
+
+      await this.prisma.campaignStatistics.createMany({
+        data: statisticsData,
+        skipDuplicates: true,
+      });
+
+      this.logger.log(`Seeded ${statisticsData.length} campaign statistics`);
+    } catch (error) {
+      this.logger.warn('Error seeding campaign statistics, but continuing...');
+    }
+  }
+}

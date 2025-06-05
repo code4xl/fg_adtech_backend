@@ -87,14 +87,11 @@
 //       campaign.targetingRules,
 //     );
 
-//     const prompt = this.buildBudgetOptimizationPrompt(
-//       campaign,
-//       constraints,
-//       optimizationGoal,
-//       historicalPerformance,
-//       marketBenchmarks,
-//       competitorSpend,
-//     );
+    // const aiResult = await this.openAIService.generateStructuredResponse<BudgetOptimizationResult>(
+    //   'You are a digital advertising budget optimization expert with deep knowledge of programmatic advertising.',
+    //   prompt,
+    //   AIModel.GPT35_TURBO
+    // );
 
 //     const aiResult =
 //       await this.openAIService.generateStructuredResponse<BudgetOptimizationResult>(
@@ -130,12 +127,11 @@
 //       timeframeDays,
 //     );
 
-//     const competitiveInsights = includeCompetitiveAnalysis
-//       ? await this.getCompetitiveInsights(
-//           campaign.businessCategory,
-//           campaign.targetingRules,
-//         )
-//       : null;
+    // const aiResult = await this.openAIService.generateStructuredResponse<PerformancePredictionResult>(
+    //   'You are a data scientist specializing in advertising performance prediction and analytics.',
+    //   prompt,
+    //   AIModel.GPT35_TURBO
+    // );
 
 //     const prompt = this.buildPerformancePredictionPrompt(
 //       campaign,

@@ -9,6 +9,7 @@ model Website {
     createdAt   DateTime      @default(now())
     updatedAt   DateTime      @updatedAt
     initScript  String?
+    cdnURL      String?
     // Relations
     publisher   Publisher     @relation(fields: [publisherId], references: [id], onDelete: Cascade)
     inventories AdInventory[]
