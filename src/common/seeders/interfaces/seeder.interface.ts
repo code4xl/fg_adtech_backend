@@ -23,4 +23,5 @@ export interface ISeeder {
    * Check if module has been seeded
    */
   isSeeded(): Promise<boolean>;
+  seed(count?: number): Promise<void>; // Add this to the interface
 }

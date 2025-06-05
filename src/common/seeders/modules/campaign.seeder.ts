@@ -59,14 +59,19 @@ export class CampaignSeeder implements ISeeder {
         // Randomly assign to an advertiser
         const advertiser = faker.helpers.arrayElement(advertisers);
 
-        // Sometimes assign to a client (if the advertiser has clients)
+        // Get clients for this advertiser
         const advertiserClients = clients.filter(
           (c) => c.advertiserId === advertiser.id,
         );
-        const client =
-          faker.datatype.boolean(0.4) && advertiserClients.length > 0
-            ? faker.helpers.arrayElement(advertiserClients)
-            : null;
+
+        // Determine client assignment strategy
+        let client = null;
+        if (advertiserClients.length > 0) {
+          // 60% chance to assign to a client if advertiser has clients
+          if (faker.datatype.boolean(0.6)) {
+            client = faker.helpers.arrayElement(advertiserClients);
+          }
+        }
 
         const now = new Date();
         const thirtyDaysAgo = new Date(now);
@@ -126,7 +131,7 @@ export class CampaignSeeder implements ISeeder {
         campaignData.push({
           name: `${faker.company.catchPhrase()} Campaign`,
           advertiserId: advertiser.id,
-          clientId: client?.id || null,
+          clientId: client?.id || null, // Now properly handles null values
           budget: budget,
           dailyBudget: dailyBudget,
           startDate: startDate,
@@ -162,7 +167,7 @@ export class CampaignSeeder implements ISeeder {
         campaignData.push({
           name: 'Test Campaign',
           advertiserId: defaultAdvertiser.id,
-          clientId: defaultClient?.id || null,
+          clientId: defaultClient?.id || null, // Handle case where default client doesn't exist
           budget: 5000.0,
           dailyBudget: 250.0,
           startDate: new Date(),
