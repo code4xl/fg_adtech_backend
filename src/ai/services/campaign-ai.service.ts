@@ -52,11 +52,11 @@
 
 //     const userPrompt = this.promptBuilder.buildUserPrompt(request);
 
-//     const aiSuggestion = await this.openAIService.generateStructuredResponse<CampaignAISuggestion>(
-//       systemPrompt,
-//       userPrompt,
-//       AIModel.GPT4_TURBO
-//     );
+    // const aiSuggestion = await this.openAIService.generateStructuredResponse<CampaignAISuggestion>(
+    //   systemPrompt,
+    //   userPrompt,
+    //   AIModel.GPT35_TURBO
+    // );
 
 //     const processingTime = Date.now() - startTime;
 //     this.logger.log(`Campaign analysis completed in ${processingTime}ms`);
