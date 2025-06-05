@@ -1,11 +1,12 @@
-// import { Module } from '@nestjs/common';
-// import { CommandModule } from 'nestjs-command';
-// import { SeedCommand } from './seed.command';
-// import { SeederModule } from '../seeder.module';
+import { Module } from '@nestjs/common';
 
-// @Module({
-//     imports: [CommandModule, SeederModule],
-//     providers: [SeedCommand],
-//     exports: [SeedCommand],
-// })
-// export class AppCommandModule { }
+import { SeederModule } from '../seeder.module';
+import { SeedCommand } from './seed.command';
+import { CommandModule } from 'nestjs-command';
+
+@Module({
+  imports: [CommandModule, SeederModule],
+  providers: [SeedCommand],
+  exports: [SeedCommand],
+})
+export class AppCommandModule {}

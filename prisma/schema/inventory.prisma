@@ -11,6 +11,7 @@ model AdInventory {
   updatedAt            DateTime               @updatedAt
   websiteId            String                 @db.Uuid
   adSlotScript         String?
+  containerHTML        String?
   publisher            Publisher              @relation(fields: [publisherId], references: [id])
   floorPrices          FloorPrice[]
   bidRequests          BidRequest[]

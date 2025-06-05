@@ -1,84 +1,97 @@
-// import { Injectable } from '@nestjs/common';
-// import { faker } from '@faker-js/faker';
-// import * as bcrypt from 'bcryptjs';
-// import { BaseSeeder } from '../base.seeder';
-// import { PrismaService } from 'src/prisma/prisma.service';
+import { Injectable, Logger } from '@nestjs/common';
+import { faker } from '@faker-js/faker';
+import * as bcrypt from 'bcryptjs';
+import { PublisherStatus } from '@prisma/client';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { ISeeder } from '../interfaces/seeder.interface';
 
-// @Injectable()
-// export class PublisherSeeder extends BaseSeeder {
-//     constructor(protected readonly prisma: PrismaService) {
-//         super(prisma);
-//     }
+@Injectable()
+export class PublisherSeeder implements ISeeder {
+  private readonly logger = new Logger(PublisherSeeder.name);
 
-//     getModuleName(): string {
-//         return 'Publisher';
-//     }
+  constructor(private readonly prisma: PrismaService) {}
 
-//     getDependencies(): string[] {
-//         // Publisher has no dependencies
-//         return [];
-//     }
+  getModuleName(): string {
+    return 'Publisher';
+  }
 
-//     async seed(count: number = 10): Promise<void> {
-//         this.logger.log(`Seeding ${count} publishers...`);
+  getDependencies(): string[] {
+    // Publisher has no dependencies
+    return [];
+  }
 
-//         try {
-//             const publisherData: any = [];
+  async seed(count: number = 10): Promise<void> {
+    this.logger.log(`Seeding ${count} publishers...`);
 
-//             // Generate fake publishers
-//             for (let i = 0; i < count; i++) {
-//                 const password = faker.internet.password();
-//                 const hashedPassword = await bcrypt.hash(password, 10);
-//                 const verificationStatus = faker.datatype.boolean(0.8); // 80% chance of verified email
+    try {
+      const publisherData: any = [];
 
-//                 publisherData.push({
-//                     firstName: faker.person.firstName(),
-//                     lastName: faker.person.lastName(),
-//                     email: faker.internet.email().toLowerCase(),
-//                     password: hashedPassword,
-//                     emailVerifiedAt: verificationStatus ? faker.date.past() : null,
-//                 });
-//             }
+      // Generate fake publishers
+      for (let i = 0; i < count; i++) {
+        const password = faker.internet.password();
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const verificationStatus = faker.datatype.boolean(0.8); // 80% chance of verified email
 
-//             // Add a default publisher for testing
-//             publisherData.push({
-//                 firstName: 'Test',
-//                 lastName: 'Publisher',
-//                 email: 'publisher@example.com',
-//                 password: await bcrypt.hash('publisherpass123', 10),
-//                 emailVerifiedAt: new Date(),
-//             });
+        publisherData.push({
+          firstName: faker.person.firstName(),
+          lastName: faker.person.lastName(),
+          email: faker.internet.email().toLowerCase(),
+          password: hashedPassword,
+          emailVerifiedAt: verificationStatus ? faker.date.past() : null,
+          status: faker.helpers.arrayElement(Object.values(PublisherStatus)),
+          mfaEnabled: faker.datatype.boolean(0.25), // 25% chance of MFA enabled
+          createdAt: faker.date.past(),
+          updatedAt: faker.date.recent(),
+        });
+      }
 
-//             // Insert all publishers
-//             await this.prisma.publisher.createMany({
-//                 data: publisherData,
-//                 skipDuplicates: true,
-//             });
+      // Add a default publisher for testing
+      publisherData.push({
+        firstName: 'Test',
+        lastName: 'Publisher',
+        email: 'publisher@example.com',
+        password: await bcrypt.hash('publisherpass123', 10),
+        emailVerifiedAt: new Date(),
+        status: PublisherStatus.ACTIVE,
+        mfaEnabled: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
 
-//             const publisherCount = await this.prisma.publisher.count();
-//             this.logger.log(`Successfully seeded ${publisherCount} publishers`);
-//         } catch (error) {
-//             this.logger.error('Error seeding publishers');
-//             this.logger.error(error);
-//             throw error;
-//         }
-//     }
+      // Insert all publishers
+      await this.prisma.publisher.createMany({
+        data: publisherData,
+        skipDuplicates: true,
+      });
 
-//     async clean(): Promise<void> {
-//         this.logger.log('Cleaning publishers table...');
+      const publisherCount = await this.prisma.publisher.count();
+      this.logger.log(`Successfully seeded ${publisherCount} publishers`);
+    } catch (error) {
+      this.logger.error('Error seeding publishers');
+      this.logger.error(error);
+      throw error;
+    }
+  }
 
-//         try {
-//             const deleted = await this.prisma.publisher.deleteMany({});
-//             this.logger.log(`Deleted ${deleted.count} publishers`);
-//         } catch (error) {
-//             this.logger.error('Error cleaning publishers table');
-//             this.logger.error(error);
-//             throw error;
-//         }
-//     }
+  async clean(): Promise<void> {
+    this.logger.log('Cleaning publishers table...');
 
-//     async isSeeded(): Promise<boolean> {
-//         const count = await this.prisma.publisher.count();
-//         return count > 0;
-//     }
-// }
+    try {
+      // Clean related data first to avoid foreign key constraint issues
+      await this.prisma.adInventory.deleteMany({});
+      await this.prisma.website.deleteMany({});
+
+      const deleted = await this.prisma.publisher.deleteMany({});
+      this.logger.log(`Deleted ${deleted.count} publishers`);
+    } catch (error) {
+      this.logger.error('Error cleaning publishers table');
+      this.logger.error(error);
+      throw error;
+    }
+  }
+
+  async isSeeded(): Promise<boolean> {
+    const count = await this.prisma.publisher.count();
+    return count > 0;
+  }
+}

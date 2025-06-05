@@ -1,6 +1,3 @@
-// UPDATED TARGETING RULES WITH PROPER ENUMS
-// Replace the existing targetingRules.prisma.txt with this version
-
 // DEMOGRAPHIC TARGETING
 model DemographicTargeting {
   id          String  @id @default(uuid()) @db.Uuid
