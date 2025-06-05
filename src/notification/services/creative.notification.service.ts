@@ -1,7 +1,7 @@
+// src/notification/services/creative.notification.service.ts
 import { Injectable } from '@nestjs/common';
 import { NotificationService } from '../notification.service';
 import { UserType } from '../dto/create-notification.dto';
-
 
 @Injectable()
 export class CreativeNotificationService {
@@ -15,19 +15,18 @@ export class CreativeNotificationService {
         campaign: any,
         advertiserId: string,
         clientId?: string,
-        publisherId?: string
     ) {
         // Notify advertiser
         await this.notificationService.createNotification({
             userId: advertiserId,
             userType: UserType.ADVERTISER,
-            title: 'Creative added',
-            message: `A new creative "${creative.name}" has been added to campaign "${campaign.name}".`,
+            title: 'Creative uploaded successfully',
+            message: `Your creative "${creative.name}" has been uploaded to campaign "${campaign.name}" and is pending review.`,
             data: {
                 creativeId: creative.id,
                 campaignId: campaign.id,
-                inventoryId: creative.inventoryId,
-                action: 'added',
+                templateId: creative.templateId,
+                action: 'uploaded',
                 status: creative.status,
             },
         });
@@ -37,30 +36,13 @@ export class CreativeNotificationService {
             await this.notificationService.createNotification({
                 userId: clientId,
                 userType: UserType.CLIENT,
-                title: 'Creative added',
-                message: `A new creative "${creative.name}" has been added to campaign "${campaign.name}".`,
+                title: 'Creative uploaded',
+                message: `A new creative "${creative.name}" has been uploaded to campaign "${campaign.name}" and is pending review.`,
                 data: {
                     creativeId: creative.id,
                     campaignId: campaign.id,
-                    inventoryId: creative.inventoryId,
-                    action: 'added',
-                    status: creative.status,
-                },
-            });
-        }
-
-        // Notify publisher if exists
-        if (publisherId) {
-            await this.notificationService.createNotification({
-                userId: publisherId,
-                userType: UserType.PUBLISHER,
-                title: 'New creative for your inventory',
-                message: `A new creative has been submitted for review on your inventory.`,
-                data: {
-                    creativeId: creative.id,
-                    campaignId: campaign.id,
-                    inventoryId: creative.inventoryId,
-                    action: 'added',
+                    templateId: creative.templateId,
+                    action: 'uploaded',
                     status: creative.status,
                 },
             });
@@ -70,11 +52,12 @@ export class CreativeNotificationService {
         await this.notificationService.createBroadcastNotification({
             userType: UserType.ADMIN,
             title: 'New creative pending review',
-            message: `A new creative "${creative.name}" requires review.`,
+            message: `A new creative "${creative.name}" for campaign "${campaign.name}" requires review.`,
             data: {
                 creativeId: creative.id,
                 campaignId: campaign.id,
-                inventoryId: creative.inventoryId,
+                templateId: creative.templateId,
+                advertiserName: campaign.advertiser?.name,
                 action: 'review_required',
                 status: creative.status,
             },
@@ -82,27 +65,30 @@ export class CreativeNotificationService {
     }
 
     /**
- * Notify when a creative is updated
- */
+     * Notify when a creative is updated
+     */
     async notifyCreativeUpdated(
         creative: any,
         campaign: any,
         advertiserId: string,
         clientId?: string,
-        publisherId?: string
+        fileUpdated: boolean = false
     ) {
+        const fileUpdateMessage = fileUpdated ? ' The creative file has been updated and' : ' The creative details have been updated and';
+
         // Notify advertiser
         await this.notificationService.createNotification({
             userId: advertiserId,
             userType: UserType.ADVERTISER,
             title: 'Creative updated',
-            message: `Your creative "${creative.name}" in campaign "${campaign.name}" has been updated and is pending review.`,
+            message: `Your creative "${creative.name}" in campaign "${campaign.name}" has been updated.${fileUpdated ? ' The updated file is pending review.' : ''}`,
             data: {
                 creativeId: creative.id,
                 campaignId: campaign.id,
-                inventoryId: creative.inventoryId,
+                templateId: creative.templateId,
                 action: 'updated',
                 status: creative.status,
+                fileUpdated,
             },
         });
 
@@ -112,70 +98,59 @@ export class CreativeNotificationService {
                 userId: clientId,
                 userType: UserType.CLIENT,
                 title: 'Creative updated',
-                message: `A creative "${creative.name}" in campaign "${campaign.name}" has been updated and is pending review.`,
+                message: `Creative "${creative.name}" in campaign "${campaign.name}" has been updated.${fileUpdated ? ' The updated file is pending review.' : ''}`,
                 data: {
                     creativeId: creative.id,
                     campaignId: campaign.id,
-                    inventoryId: creative.inventoryId,
+                    templateId: creative.templateId,
                     action: 'updated',
                     status: creative.status,
+                    fileUpdated,
                 },
             });
         }
 
-        // Notify publisher if exists
-        if (publisherId) {
-            await this.notificationService.createNotification({
-                userId: publisherId,
-                userType: UserType.PUBLISHER,
-                title: 'Creative updated for your inventory',
-                message: `A creative for your inventory has been updated and requires review.`,
+        // Notify admin if file was updated (requires review)
+        if (fileUpdated) {
+            await this.notificationService.createBroadcastNotification({
+                userType: UserType.ADMIN,
+                title: 'Updated creative pending review',
+                message: `Creative "${creative.name}" for campaign "${campaign.name}" has been updated with a new file and requires review.`,
                 data: {
                     creativeId: creative.id,
                     campaignId: campaign.id,
-                    inventoryId: creative.inventoryId,
-                    action: 'updated',
+                    templateId: creative.templateId,
+                    advertiserName: campaign.advertiser?.name,
+                    action: 'review_required',
                     status: creative.status,
                 },
             });
         }
-
-        // Notify admin about updated creative for review
-        await this.notificationService.createBroadcastNotification({
-            userType: UserType.ADMIN,
-            title: 'Updated creative pending review',
-            message: `Creative "${creative.name}" has been updated and requires review.`,
-            data: {
-                creativeId: creative.id,
-                campaignId: campaign.id,
-                inventoryId: creative.inventoryId,
-                action: 'review_required',
-                status: creative.status,
-            },
-        });
     }
 
     /**
      * Notify when a creative is removed from a campaign
      */
     async notifyCreativeRemoved(
-        creative: any,
-        campaign: any,
+        creativeName: string,
+        campaignName: string,
+        creativeId: string,
+        campaignId: string,
+        templateId: string,
         advertiserId: string,
-        clientId?: string,
-        publisherId?: string
+        clientId?: string
     ) {
         // Notify advertiser
         await this.notificationService.createNotification({
             userId: advertiserId,
             userType: UserType.ADVERTISER,
-            title: 'Creative removed',
-            message: `Creative "${creative.name}" has been removed from campaign "${campaign.name}".`,
+            title: 'Creative deleted',
+            message: `Creative "${creativeName}" has been deleted from campaign "${campaignName}".`,
             data: {
-                creativeId: creative.id,
-                campaignId: campaign.id,
-                inventoryId: creative.inventoryId,
-                action: 'removed',
+                creativeId,
+                campaignId,
+                templateId,
+                action: 'deleted',
             },
         });
 
@@ -184,29 +159,13 @@ export class CreativeNotificationService {
             await this.notificationService.createNotification({
                 userId: clientId,
                 userType: UserType.CLIENT,
-                title: 'Creative removed',
-                message: `Creative "${creative.name}" has been removed from campaign "${campaign.name}".`,
+                title: 'Creative deleted',
+                message: `Creative "${creativeName}" has been deleted from campaign "${campaignName}".`,
                 data: {
-                    creativeId: creative.id,
-                    campaignId: campaign.id,
-                    inventoryId: creative.inventoryId,
-                    action: 'removed',
-                },
-            });
-        }
-
-        // Notify publisher if exists
-        if (publisherId) {
-            await this.notificationService.createNotification({
-                userId: publisherId,
-                userType: UserType.PUBLISHER,
-                title: 'Creative removed from inventory',
-                message: `A creative has been removed from your inventory.`,
-                data: {
-                    creativeId: creative.id,
-                    campaignId: campaign.id,
-                    inventoryId: creative.inventoryId,
-                    action: 'removed',
+                    creativeId,
+                    campaignId,
+                    templateId,
+                    action: 'deleted',
                 },
             });
         }
@@ -214,38 +173,37 @@ export class CreativeNotificationService {
         // Notify admin
         await this.notificationService.createBroadcastNotification({
             userType: UserType.ADMIN,
-            title: 'Creative removed',
-            message: `Creative "${creative.name}" has been removed from campaign "${campaign.name}".`,
+            title: 'Creative deleted',
+            message: `Creative "${creativeName}" has been deleted from campaign "${campaignName}".`,
             data: {
-                creativeId: creative.id,
-                campaignId: campaign.id,
-                inventoryId: creative.inventoryId,
-                action: 'removed',
+                creativeId,
+                campaignId,
+                templateId,
+                action: 'deleted',
             },
         });
     }
 
     /**
-     * Notify when a creative is approved
+     * Notify when a creative is approved (Admin action)
      */
     async notifyCreativeApproved(
         creative: any,
         campaign: any,
         advertiserId: string,
         clientId?: string,
-        publisherId?: string,
         notes?: string
     ) {
         // Notify advertiser
         await this.notificationService.createNotification({
             userId: advertiserId,
             userType: UserType.ADVERTISER,
-            title: 'Creative approved',
-            message: `Your creative "${creative.name}" for campaign "${campaign.name}" has been approved${notes ? `: ${notes}` : '.'}`,
+            title: 'Creative approved!',
+            message: `Great news! Your creative "${creative.name}" for campaign "${campaign.name}" has been approved and is now live.${notes ? ` Admin note: ${notes}` : ''}`,
             data: {
                 creativeId: creative.id,
                 campaignId: campaign.id,
-                inventoryId: creative.inventoryId,
+                templateId: creative.templateId,
                 action: 'approved',
                 notes,
             },
@@ -256,29 +214,12 @@ export class CreativeNotificationService {
             await this.notificationService.createNotification({
                 userId: clientId,
                 userType: UserType.CLIENT,
-                title: 'Creative approved',
-                message: `Creative "${creative.name}" for campaign "${campaign.name}" has been approved${notes ? `: ${notes}` : '.'}`,
+                title: 'Creative approved! 🎉',
+                message: `Creative "${creative.name}" for campaign "${campaign.name}" has been approved and is now live.${notes ? ` Admin note: ${notes}` : ''}`,
                 data: {
                     creativeId: creative.id,
                     campaignId: campaign.id,
-                    inventoryId: creative.inventoryId,
-                    action: 'approved',
-                    notes,
-                },
-            });
-        }
-
-        // Notify publisher if exists
-        if (publisherId) {
-            await this.notificationService.createNotification({
-                userId: publisherId,
-                userType: UserType.PUBLISHER,
-                title: 'Creative approved for your inventory',
-                message: `A creative has been approved for your inventory.`,
-                data: {
-                    creativeId: creative.id,
-                    campaignId: campaign.id,
-                    inventoryId: creative.inventoryId,
+                    templateId: creative.templateId,
                     action: 'approved',
                     notes,
                 },
@@ -287,14 +228,13 @@ export class CreativeNotificationService {
     }
 
     /**
-     * Notify when a creative is rejected
+     * Notify when a creative is rejected (Admin action)
      */
     async notifyCreativeRejected(
         creative: any,
         campaign: any,
         advertiserId: string,
         clientId?: string,
-        publisherId?: string,
         reason: string = 'No reason provided'
     ) {
         // Notify advertiser
@@ -302,11 +242,11 @@ export class CreativeNotificationService {
             userId: advertiserId,
             userType: UserType.ADVERTISER,
             title: 'Creative rejected',
-            message: `Your creative "${creative.name}" for campaign "${campaign.name}" has been rejected: ${reason}`,
+            message: `Your creative "${creative.name}" for campaign "${campaign.name}" has been rejected. Reason: ${reason}. Please update and resubmit.`,
             data: {
                 creativeId: creative.id,
                 campaignId: campaign.id,
-                inventoryId: creative.inventoryId,
+                templateId: creative.templateId,
                 action: 'rejected',
                 reason,
             },
@@ -318,30 +258,109 @@ export class CreativeNotificationService {
                 userId: clientId,
                 userType: UserType.CLIENT,
                 title: 'Creative rejected',
-                message: `Creative "${creative.name}" for campaign "${campaign.name}" has been rejected: ${reason}`,
+                message: `Creative "${creative.name}" for campaign "${campaign.name}" has been rejected. Reason: ${reason}. Please coordinate with your advertiser to update and resubmit.`,
                 data: {
                     creativeId: creative.id,
                     campaignId: campaign.id,
-                    inventoryId: creative.inventoryId,
+                    templateId: creative.templateId,
                     action: 'rejected',
                     reason,
                 },
             });
         }
+    }
 
-        // Notify publisher if exists
-        if (publisherId) {
+    /**
+     * Notify when creative file size is optimized
+     */
+    async notifyCreativeOptimized(
+        creative: any,
+        campaign: any,
+        advertiserId: string,
+        originalSize: number,
+        optimizedSize: number,
+        clientId?: string
+    ) {
+        const savedPercentage = Math.round(((originalSize - optimizedSize) / originalSize) * 100);
+
+        // Notify advertiser
+        await this.notificationService.createNotification({
+            userId: advertiserId,
+            userType: UserType.ADVERTISER,
+            title: 'Creative optimized',
+            message: `Your creative "${creative.name}" has been automatically optimized, reducing file size by ${savedPercentage}% while maintaining quality.`,
+            data: {
+                creativeId: creative.id,
+                campaignId: campaign.id,
+                templateId: creative.templateId,
+                action: 'optimized',
+                originalSize,
+                optimizedSize,
+                savedPercentage,
+            },
+        });
+
+        // Notify client if exists
+        if (clientId) {
             await this.notificationService.createNotification({
-                userId: publisherId,
-                userType: UserType.PUBLISHER,
-                title: 'Creative rejected for your inventory',
-                message: `A creative has been rejected for your inventory: ${reason}`,
+                userId: clientId,
+                userType: UserType.CLIENT,
+                title: 'Creative optimized',
+                message: `Creative "${creative.name}" has been automatically optimized, reducing file size by ${savedPercentage}% for better performance.`,
                 data: {
                     creativeId: creative.id,
                     campaignId: campaign.id,
-                    inventoryId: creative.inventoryId,
-                    action: 'rejected',
-                    reason,
+                    templateId: creative.templateId,
+                    action: 'optimized',
+                    originalSize,
+                    optimizedSize,
+                    savedPercentage,
+                },
+            });
+        }
+    }
+
+    /**
+     * Notify when creative dimensions don't match template
+     */
+    async notifyDimensionMismatch(
+        creative: any,
+        campaign: any,
+        advertiserId: string,
+        expectedDimensions: { width: number; height: number },
+        actualDimensions: { width: number; height: number },
+        clientId?: string
+    ) {
+        // Notify advertiser
+        await this.notificationService.createNotification({
+            userId: advertiserId,
+            userType: UserType.ADVERTISER,
+            title: 'Creative dimension warning',
+            message: `Your creative "${creative.name}" dimensions (${actualDimensions.width}x${actualDimensions.height}) don't match the expected template size (${expectedDimensions.width}x${expectedDimensions.height}). This may affect ad performance.`,
+            data: {
+                creativeId: creative.id,
+                campaignId: campaign.id,
+                templateId: creative.templateId,
+                action: 'dimension_warning',
+                expectedDimensions,
+                actualDimensions,
+            },
+        });
+
+        // Notify client if exists
+        if (clientId) {
+            await this.notificationService.createNotification({
+                userId: clientId,
+                userType: UserType.CLIENT,
+                title: 'Creative dimension warning',
+                message: `Creative "${creative.name}" dimensions don't match the expected template size. Please review with your advertiser.`,
+                data: {
+                    creativeId: creative.id,
+                    campaignId: campaign.id,
+                    templateId: creative.templateId,
+                    action: 'dimension_warning',
+                    expectedDimensions,
+                    actualDimensions,
                 },
             });
         }

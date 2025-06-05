@@ -45,10 +45,10 @@ import { AuthGuard } from '@nestjs/passport';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RoleGuard } from 'src/common/guards/role.guard';
 
-@ApiTags('auth')
+@ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('advertiser/signup')
   @ApiOperation({ summary: 'Register a new advertiser' })

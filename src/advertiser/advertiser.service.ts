@@ -1,39 +1,45 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { CreateAdvertiserDto } from './dto/create-advertiser.dto';
 import { UpdateAdvertiserDto } from './dto/update-advertiser.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   MovedPermanentlyException,
   ResourceNotFoundException,
+  ForbiddenException,
 } from 'src/common/exceptions/custom.exception';
+
+
+import { AdvertiserHelper } from './advertiser.helper';
 
 @Injectable()
 export class AdvertiserService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+  ) { }
 
-  findAll() {
+  // ! Advertiser CRUD Operations
+
+  async findAll() {
     return `This action returns all advertiser`;
   }
 
   async findOne(id: string) {
-    let advertiser = await this.prisma.advertiser.findUnique({
-      where: {
-        id,
-      },
-    });
-
-    if (!advertiser) {
-      throw new ResourceNotFoundException('Advertiser', id);
-    }
-
-    throw new MovedPermanentlyException('Advertiser');
+    return `This action returns specific advertiser`;
   }
 
-  update(id: number, updateAdvertiserDto: UpdateAdvertiserDto) {
+  async update(id: number, updateAdvertiserDto: UpdateAdvertiserDto) {
     return `This action updates a #${id} advertiser`;
   }
 
-  remove(id: number) {
+  async remove(id: number) {
     return `This action removes a #${id} advertiser`;
   }
+
+
+
+
+
+
+
+
 }

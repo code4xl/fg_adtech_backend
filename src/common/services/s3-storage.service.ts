@@ -49,7 +49,7 @@ export class S3StorageService {
     async uploadFile(
         fileBuffer: Buffer,
         key: string,
-        contentType: string = 'text/csv'
+        contentType: string = 'application/octet-stream'
     ): Promise<string> {
         try {
             const command = new PutObjectCommand({
@@ -145,18 +145,6 @@ export class S3StorageService {
     }
 
     /**
-     * Generate a key for storing a campaign audience file
-     * @param campaignName The name of the campaign
-     * @param campaignId The ID of the campaign
-     * @returns The S3 key for the audience file
-     */
-    generateCampaignAudienceKey(campaignName: string, campaignId: string): string {
-        // Sanitize the campaign name to make it suitable for use in a file path
-        const sanitizedName = this.sanitizeFileName(campaignName);
-        return `uploads/campaigns/${sanitizedName}-${campaignId}/audience.csv`;
-    }
-
-    /**
      * Copy an object from one location to another within the same bucket
      * @param sourceKey Source S3 object key
      * @param destinationKey Destination S3 object key
@@ -179,84 +167,122 @@ export class S3StorageService {
         }
     }
 
+    // ========================================
+    // CAMPAIGN AND CREATIVE MANAGEMENT
+    // ========================================
+
+    /**
+     * Create the initial campaign folder structure
+     * @param campaignName The name of the campaign
+     * @param campaignId The ID of the campaign
+     * @returns Boolean indicating success
+     */
+    async createCampaignFolder(campaignName: string, campaignId: string): Promise<boolean> {
+        try {
+            const sanitizedName = this.sanitizeFileName(campaignName);
+            const folderKey = `uploads/campaigns/${sanitizedName}-${campaignId}/`;
+
+            // Create an empty folder by uploading a placeholder file
+            const command = new PutObjectCommand({
+                Bucket: this.bucketName,
+                Key: `${folderKey}.keep`,
+                Body: Buffer.from('Campaign folder'),
+                ContentType: 'text/plain',
+            });
+
+            await this.s3Client.send(command);
+            this.logger.log(`Campaign folder created successfully: ${folderKey}`);
+            return true;
+        } catch (error) {
+            this.logger.error(`Error creating campaign folder: ${error.message}`, error.stack);
+            throw new Error(`Failed to create campaign folder: ${error.message}`);
+        }
+    }
+
     /**
      * Generate a key for storing a creative file
      * @param campaignName The name of the campaign 
      * @param campaignId The ID of the campaign
-     * @param inventoryName The name of the inventory
-     * @param inventoryId The ID of the inventory
-     * @param filename The creative filename
+     * @param filename The creative filename with extension
      * @returns The S3 key for the creative file
      */
     generateCreativeKey(
         campaignName: string,
         campaignId: string,
-        inventoryName: string,
-        inventoryId: string,
         filename: string
     ): string {
         const sanitizedCampaignName = this.sanitizeFileName(campaignName);
-        const sanitizedInventoryName = this.sanitizeFileName(inventoryName);
+        const sanitizedFilename = this.sanitizeFileName(filename);
 
-        return `uploads/campaigns/${sanitizedCampaignName}-${campaignId}/inventories/${sanitizedInventoryName}-${inventoryId}/${filename}`;
+        return `uploads/campaigns/${sanitizedCampaignName}-${campaignId}/creatives/${sanitizedFilename}`;
     }
 
     /**
-     * Check if an inventory folder is empty
-     * @param campaignName The name of the campaign
-     * @param campaignId The ID of the campaign
-     * @param inventoryName The name of the inventory
-     * @param inventoryId The ID of the inventory
-     * @returns Boolean indicating if the folder is empty
+     * Upload and store a creative file
+     * @param fileBuffer The creative file buffer
+     * @param campaignName The campaign name
+     * @param campaignId The campaign ID
+     * @param filename The original filename
+     * @param contentType The file content type
+     * @returns The S3 key where the file was stored
      */
-    async isInventoryFolderEmpty(
+    async uploadCreativeFile(
+        fileBuffer: Buffer,
         campaignName: string,
         campaignId: string,
-        inventoryName: string,
-        inventoryId: string
-    ): Promise<boolean> {
+        filename: string,
+        contentType: string
+    ): Promise<string> {
         try {
-            const sanitizedCampaignName = this.sanitizeFileName(campaignName);
-            const sanitizedInventoryName = this.sanitizeFileName(inventoryName);
-            const prefix = `uploads/campaigns/${sanitizedCampaignName}-${campaignId}/inventories/${sanitizedInventoryName}-${inventoryId}/`;
+            // Ensure campaign folder exists
+            await this.createCampaignFolder(campaignName, campaignId);
 
-            const command = new ListObjectsV2Command({
-                Bucket: this.bucketName,
-                Prefix: prefix,
-                MaxKeys: 2 // We only need to know if there's at least one object
-            });
+            // Generate the S3 key for the creative
+            const s3Key = this.generateCreativeKey(campaignName, campaignId, filename);
 
-            const response = await this.s3Client.send(command);
+            // Upload the file
+            await this.uploadFile(fileBuffer, s3Key, contentType);
 
-            // If there are no contents or the only content is the folder itself, the folder is empty
-            return !response.Contents || response.Contents.length === 0 ||
-                (response.Contents.length === 1 && response.Contents[0].Key === prefix);
+            this.logger.log(`Creative uploaded successfully: ${s3Key}`);
+            return s3Key;
         } catch (error) {
-            this.logger.error(`Error checking if inventory folder is empty: ${error.message}`, error.stack);
-            throw new Error(`Failed to check if inventory folder is empty: ${error.message}`);
+            this.logger.error(`Error uploading creative: ${error.message}`, error.stack);
+            throw new Error(`Failed to upload creative: ${error.message}`);
         }
     }
 
     /**
-     * Delete an inventory folder and all its contents
-     * @param campaignName The name of the campaign
-     * @param campaignId The ID of the campaign
-     * @param inventoryName The name of the inventory
-     * @param inventoryId The ID of the inventory
+     * Delete a creative file
+     * @param s3Key The S3 key of the file to delete
      * @returns Boolean indicating success
      */
-    async deleteInventoryFolder(
-        campaignName: string,
-        campaignId: string,
-        inventoryName: string,
-        inventoryId: string
-    ): Promise<boolean> {
+    async deleteCreativeFile(s3Key: string): Promise<boolean> {
         try {
-            const sanitizedCampaignName = this.sanitizeFileName(campaignName);
-            const sanitizedInventoryName = this.sanitizeFileName(inventoryName);
-            const prefix = `uploads/campaigns/${sanitizedCampaignName}-${campaignId}/inventories/${sanitizedInventoryName}-${inventoryId}/`;
+            const deleted = await this.deleteFile(s3Key);
 
-            // First, list all objects in the folder
+            if (deleted) {
+                this.logger.log(`Creative file deleted successfully: ${s3Key}`);
+            }
+
+            return deleted;
+        } catch (error) {
+            this.logger.error(`Error deleting creative file: ${error.message}`, error.stack);
+            return false;
+        }
+    }
+
+    /**
+     * Delete an entire campaign folder and all its contents
+     * @param campaignName The campaign name
+     * @param campaignId The campaign ID
+     * @returns Boolean indicating success
+     */
+    async deleteCampaignFolder(campaignName: string, campaignId: string): Promise<boolean> {
+        try {
+            const sanitizedName = this.sanitizeFileName(campaignName);
+            const prefix = `uploads/campaigns/${sanitizedName}-${campaignId}/`;
+
+            // List all objects with this prefix
             const listCommand = new ListObjectsV2Command({
                 Bucket: this.bucketName,
                 Prefix: prefix
@@ -265,104 +291,41 @@ export class S3StorageService {
             const response = await this.s3Client.send(listCommand);
 
             if (!response.Contents || response.Contents.length === 0) {
-                this.logger.log(`No objects found in inventory folder: ${prefix}`);
+                this.logger.log(`No objects found in campaign folder: ${prefix}`);
                 return true;
             }
 
-            // Create an array of objects to delete
+            // Delete all objects in batches (S3 allows max 1000 objects per delete)
             const objects = response.Contents.map(obj => ({ Key: obj.Key }));
 
-            const deleteCommand = new DeleteObjectsCommand({
-                Bucket: this.bucketName,
-                Delete: { Objects: objects }
-            });
+            for (let i = 0; i < objects.length; i += 1000) {
+                const batch = objects.slice(i, i + 1000);
+                const deleteCommand = new DeleteObjectsCommand({
+                    Bucket: this.bucketName,
+                    Delete: { Objects: batch }
+                });
 
-            await this.s3Client.send(deleteCommand);
-            this.logger.log(`Inventory folder deleted successfully: ${prefix}`);
+                await this.s3Client.send(deleteCommand);
+            }
 
+            this.logger.log(`Campaign folder deleted successfully: ${prefix}`);
             return true;
         } catch (error) {
-            this.logger.error(`Error deleting inventory folder: ${error.message}`, error.stack);
+            this.logger.error(`Error deleting campaign folder: ${error.message}`, error.stack);
             return false;
         }
     }
 
     /**
-     * Move all creatives from one inventory folder to another
-     * @param campaignName The name of the campaign
-     * @param campaignId The ID of the campaign
-     * @param oldInventoryName The old inventory name
-     * @param inventoryId The inventory ID
-     * @param newInventoryName The new inventory name
-     * @returns Boolean indicating success
+     * Get a list of all creative files in a campaign
+     * @param campaignName The campaign name
+     * @param campaignId The campaign ID
+     * @returns Array of creative file keys
      */
-    async moveInventoryFolder(
-        campaignName: string,
-        campaignId: string,
-        oldInventoryName: string,
-        inventoryId: string,
-        newInventoryName: string
-    ): Promise<boolean> {
+    async listCampaignCreatives(campaignName: string, campaignId: string): Promise<string[]> {
         try {
-            const sanitizedCampaignName = this.sanitizeFileName(campaignName);
-            const sanitizedOldInventoryName = this.sanitizeFileName(oldInventoryName);
-            const sanitizedNewInventoryName = this.sanitizeFileName(newInventoryName);
-
-            const sourcePrefix = `uploads/campaigns/${sanitizedCampaignName}-${campaignId}/inventories/${sanitizedOldInventoryName}-${inventoryId}/`;
-            const destPrefix = `uploads/campaigns/${sanitizedCampaignName}-${campaignId}/inventories/${sanitizedNewInventoryName}-${inventoryId}/`;
-
-            // List all objects in the source folder
-            const listCommand = new ListObjectsV2Command({
-                Bucket: this.bucketName,
-                Prefix: sourcePrefix
-            });
-
-            const response = await this.s3Client.send(listCommand);
-
-            if (!response.Contents || response.Contents.length === 0) {
-                this.logger.log(`No objects found in inventory folder to move: ${sourcePrefix}`);
-                return true;
-            }
-
-            // Copy each object to the new location and then delete the original
-            for (const object of response.Contents) {
-                const sourceKey = object.Key!;
-                const filename = sourceKey.split('/').pop();
-                const destinationKey = `${destPrefix}${filename}`;
-
-                // Copy to new location
-                await this.copyObject(sourceKey, destinationKey);
-
-                // Delete from old location
-                await this.deleteFile(sourceKey);
-            }
-
-            this.logger.log(`Inventory folder moved successfully from ${sourcePrefix} to ${destPrefix}`);
-            return true;
-        } catch (error) {
-            this.logger.error(`Error moving inventory folder: ${error.message}`, error.stack);
-            return false;
-        }
-    }
-
-    /**
-     * Get a list of all creative files in an inventory folder
-     * @param campaignName The name of the campaign
-     * @param campaignId The ID of the campaign
-     * @param inventoryName The name of the inventory
-     * @param inventoryId The ID of the inventory
-     * @returns Array of file keys
-     */
-    async listCreativeFiles(
-        campaignName: string,
-        campaignId: string,
-        inventoryName: string,
-        inventoryId: string
-    ): Promise<string[]> {
-        try {
-            const sanitizedCampaignName = this.sanitizeFileName(campaignName);
-            const sanitizedInventoryName = this.sanitizeFileName(inventoryName);
-            const prefix = `uploads/campaigns/${sanitizedCampaignName}-${campaignId}/inventories/${sanitizedInventoryName}-${inventoryId}/`;
+            const sanitizedName = this.sanitizeFileName(campaignName);
+            const prefix = `uploads/campaigns/${sanitizedName}-${campaignId}/creatives/`;
 
             const command = new ListObjectsV2Command({
                 Bucket: this.bucketName,
@@ -379,8 +342,66 @@ export class S3StorageService {
                 .map(obj => obj.Key)
                 .filter((key): key is string => typeof key === 'string');
         } catch (error) {
-            this.logger.error(`Error listing creative files: ${error.message}`, error.stack);
-            throw new Error(`Failed to list creative files: ${error.message}`);
+            this.logger.error(`Error listing campaign creatives: ${error.message}`, error.stack);
+            throw new Error(`Failed to list campaign creatives: ${error.message}`);
+        }
+    }
+
+    /**
+     * Move/rename a campaign folder when campaign name changes
+     * @param oldCampaignName The old campaign name
+     * @param newCampaignName The new campaign name
+     * @param campaignId The campaign ID
+     * @returns Boolean indicating success
+     */
+    async renameCampaignFolder(
+        oldCampaignName: string,
+        newCampaignName: string,
+        campaignId: string
+    ): Promise<boolean> {
+        try {
+            const oldSanitizedName = this.sanitizeFileName(oldCampaignName);
+            const newSanitizedName = this.sanitizeFileName(newCampaignName);
+
+            const sourcePrefix = `uploads/campaigns/${oldSanitizedName}-${campaignId}/`;
+            const destPrefix = `uploads/campaigns/${newSanitizedName}-${campaignId}/`;
+
+            // If names are the same after sanitization, no need to move
+            if (oldSanitizedName === newSanitizedName) {
+                return true;
+            }
+
+            // List all objects in the source folder
+            const listCommand = new ListObjectsV2Command({
+                Bucket: this.bucketName,
+                Prefix: sourcePrefix
+            });
+
+            const response = await this.s3Client.send(listCommand);
+
+            if (!response.Contents || response.Contents.length === 0) {
+                this.logger.log(`No objects found in campaign folder to move: ${sourcePrefix}`);
+                return true;
+            }
+
+            // Copy each object to the new location and then delete the original
+            for (const object of response.Contents) {
+                const sourceKey = object.Key!;
+                const relativePath = sourceKey.substring(sourcePrefix.length);
+                const destinationKey = `${destPrefix}${relativePath}`;
+
+                // Copy to new location
+                await this.copyObject(sourceKey, destinationKey);
+
+                // Delete from old location
+                await this.deleteFile(sourceKey);
+            }
+
+            this.logger.log(`Campaign folder renamed successfully from ${sourcePrefix} to ${destPrefix}`);
+            return true;
+        } catch (error) {
+            this.logger.error(`Error renaming campaign folder: ${error.message}`, error.stack);
+            return false;
         }
     }
 
@@ -399,6 +420,53 @@ export class S3StorageService {
 
         // Otherwise, use the direct S3 URL
         return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${key}`;
+    }
+
+    /**
+     * Get campaign folder statistics
+     * @param campaignName The campaign name
+     * @param campaignId The campaign ID
+     * @returns Object with folder statistics
+     */
+    async getCampaignFolderStats(campaignName: string, campaignId: string): Promise<{
+        totalFiles: number;
+        totalSize: number;
+        creativeCount: number;
+    }> {
+        try {
+            const sanitizedName = this.sanitizeFileName(campaignName);
+            const prefix = `uploads/campaigns/${sanitizedName}-${campaignId}/`;
+
+            const command = new ListObjectsV2Command({
+                Bucket: this.bucketName,
+                Prefix: prefix
+            });
+
+            const response = await this.s3Client.send(command);
+
+            if (!response.Contents || response.Contents.length === 0) {
+                return {
+                    totalFiles: 0,
+                    totalSize: 0,
+                    creativeCount: 0
+                };
+            }
+
+            const totalFiles = response.Contents.length;
+            const totalSize = response.Contents.reduce((sum, obj) => sum + (obj.Size || 0), 0);
+            const creativeCount = response.Contents.filter(obj =>
+                obj.Key?.includes('/creatives/')
+            ).length;
+
+            return {
+                totalFiles,
+                totalSize,
+                creativeCount
+            };
+        } catch (error) {
+            this.logger.error(`Error getting campaign folder stats: ${error.message}`, error.stack);
+            throw new Error(`Failed to get campaign folder stats: ${error.message}`);
+        }
     }
 
     /**

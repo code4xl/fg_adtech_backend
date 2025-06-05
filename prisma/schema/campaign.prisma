@@ -4,8 +4,6 @@ model Campaign {
     name             String
     advertiserId     String             @db.Uuid
     clientId         String             @db.Uuid
-    budget           Decimal            @db.Decimal(10, 2)
-    dailyBudget      Decimal?           @db.Decimal(10, 2)
     startDate        DateTime
     endDate          DateTime
     status           CampaignStatus     @default(DRAFT)
@@ -16,17 +14,12 @@ model Campaign {
     businessCategory BusinessCategory
     websiteUrl       String
     interests        CampaignInterest[]
-    ageMin           Int? // Age targeting
-    ageMax           Int?
-    genders          String[] // Gender targeting
-    locations        String[] // Location targeting
-    deviceTypes      String[] // Device targeting
     createdAt        DateTime           @default(now())
     updatedAt        DateTime           @updatedAt
 
     // Relations
     advertiser           Advertiser             @relation(fields: [advertiserId], references: [id]) // for which advertiser
-    client               Client?                @relation(fields: [clientId], references: [id]) // for which client
+    client               Client                 @relation(fields: [clientId], references: [id]) // for which client
     creatives            Creative[]
     statistics           CampaignStatistics[]
     demographicTargeting DemographicTargeting[]

@@ -80,6 +80,11 @@ async function bootstrap() {
   // Apply the adapter to the application
   app.useWebSocketAdapter(redisIoAdapter);
 
+  process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
+    console.error('Stack:', err.stack);
+  });
+
   // Swagger API documentation
   if (process.env.NODE_ENV !== 'production') {
     app.use(morgan('dev'));
