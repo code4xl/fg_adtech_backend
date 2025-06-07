@@ -31,8 +31,8 @@ model BidResponse {
   advertiserId String @db.Uuid
 
   // Bid details
-  bidPrice Decimal @db.Decimal(10, 4)
-  currency String  @default("USD")
+  bidPrice Decimal  @db.Decimal(10, 4)
+  currency Currency @default(INR)
 
   // Status tracking
   status          BidStatus @default(PENDING)

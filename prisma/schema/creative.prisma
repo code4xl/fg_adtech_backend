@@ -1,23 +1,25 @@
 // Creative model for ads
 model Creative {
-  id                     String         @id @default(uuid()) @db.Uuid
-  campaignId             String         @db.Uuid
-  name                   String
-  type                   CreativeType
-  templateId             String         @db.Uuid
-  adSlotTemplate         AdSlotTemplate @relation(fields: [templateId], references: [id])
-  fileUrl                String
-  s3Key                  String?
-  landingUrl             String
-  status                 CreativeStatus @default(PENDING_REVIEW)
-  contentSafetyThreshold Float? // 
-  reviewNotes            String?
-  createdAt              DateTime       @default(now())
-  updatedAt              DateTime       @updatedAt
+    id                     String         @id @default(uuid()) @db.Uuid
+    campaignId             String         @db.Uuid
+    name                   String
+    type                   CreativeType
+    templateId             String         @db.Uuid
+    adSlotTemplate         AdSlotTemplate @relation(fields: [templateId], references: [id])
+    fileUrl                String
+    s3Key                  String?
+    landingUrl             String
+    status                 CreativeStatus @default(PENDING_REVIEW)
+    contentSafetyThreshold Float? // 
+    reviewNotes            String?
+    createdAt              DateTime       @default(now())
+    updatedAt              DateTime       @updatedAt
 
-  // Relations
-  campaign        Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  bidResponses    BidResponse[]
-  ImpressionEvent ImpressionEvent[]
-  ClickEvent      ClickEvent[]
+    // Relations
+    campaign     Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+    bidResponses BidResponse[]
+
+    ImpressionEvent ImpressionEvent[]
+
+    ClickEvent ClickEvent[]
 }

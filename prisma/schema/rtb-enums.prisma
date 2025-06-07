@@ -18,5 +18,4 @@ enum AuctionStatus {
 enum AuctionType {
   FIRST_PRICE
   SECOND_PRICE
-  HEADER_BIDDING
 }

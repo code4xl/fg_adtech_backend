@@ -59,7 +59,7 @@ enum CampaignStatus {
   BUDGET_EXHAUSTED
 }
 
-enum FloorPriceCurrency {
+enum Currency {
   USD
   INR
 }

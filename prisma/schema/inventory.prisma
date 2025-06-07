@@ -24,6 +24,8 @@ model AdInventory {
   frequencyTargeting   FrequencyTargeting[]
   hourlyMetrics        HourlyMetrics[]
   website              Website                @relation(fields: [websiteId], references: [id])
-  ImpressionEvent      ImpressionEvent[]
-  ClickEvent           ClickEvent[]
+
+  ImpressionEvent ImpressionEvent[]
+
+  ClickEvent ClickEvent[]
 }
