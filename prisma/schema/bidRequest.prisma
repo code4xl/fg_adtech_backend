@@ -1,41 +1,61 @@
+// model BidRequest {
+//   id               String      @id @default(uuid()) @db.Uuid
+//   requestId        String      @unique // Unique ID for external reference
+// inventoryId      String      @db.Uuid
+// publisherId      String      @db.Uuid
+// websiteId        String      @db.Uuid // Optional website ID for the publisher
+// userAgent        String?
+// ipAddress        String?
+// deviceType       String?
+// browserType      String?
+// country          String?
+// region           String?
+// city             String?
+// requestTimestamp DateTime    @default(now())
+// floor            Decimal?    @db.Decimal(10, 4) // Minimum bid price
+// auctionType      AuctionType @default(FIRST_PRICE) // FIRST_PRICE or SECOND_PRICE
+// timeout          Int         @default(200) // Timeout in milliseconds
+// targeting        Json? // Additional targeting parameters
+// createdAt        DateTime    @default(now())
+//   updatedAt        DateTime    @updatedAt
+
+//   // Relations
+//   inventory    AdInventory   @relation(fields: [inventoryId], references: [id])
+//   publisher    Publisher     @relation(fields: [publisherId], references: [id])
+//   website      Website       @relation(fields: [websiteId], references: [id])
+//   bidResponses BidResponse[] // Relation to bid responses
+//   auctionLogs  AuctionLog[] // Relation to auction logs
+// }
 model BidRequest {
-  id               String      @id @default(uuid()) @db.Uuid
-  requestId        String      @unique // Unique ID for external reference
-  inventoryId      String      @db.Uuid
-  publisherId      String      @db.Uuid
-  websiteId        String      @db.Uuid // Optional website ID for the publisher
-  userAgent        String?
-  ipAddress        String?
-  deviceType       String?
-  browserType      String?
-  country          String?
-  region           String?
-  city             String?
-  requestTimestamp DateTime    @default(now())
-  floor            Decimal?    @db.Decimal(10, 4) // Minimum bid price
-  auctionType      AuctionType @default(FIRST_PRICE) // FIRST_PRICE or SECOND_PRICE
-  timeout          Int         @default(200) // Timeout in milliseconds
-  targeting        Json? // Additional targeting parameters
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  id                String @id @default(uuid()) @db.Uuid
+  externalRequestId String @unique // From SDK
+  inventoryId       String @db.Uuid
+  publisherId       String @db.Uuid
+  websiteId         String @db.Uuid
+
+  // Enhanced context
+  userContext   Json // Device, geo, behavioral data
+  adSlotContext Json // Size, position, format requirements
+  floorPrice    Decimal? @db.Decimal(10, 4)
+
+  // Auction settings
+  auctionType AuctionType @default(SECOND_PRICE)
+  timeout     Int         @default(200)
+
+  // Timestamps
+  requestTimestamp DateTime  @default(now())
+  processedAt      DateTime?
 
   // Relations
-  inventory    AdInventory   @relation(fields: [inventoryId], references: [id])
-  publisher    Publisher     @relation(fields: [publisherId], references: [id])
-  website      Website       @relation(fields: [websiteId], references: [id])
-  bidResponses BidResponse[] // Relation to bid responses
-  auctionLogs  AuctionLog[] // Relation to auction logs
+  inventory AdInventory @relation(fields: [inventoryId], references: [id])
+  publisher Publisher   @relation(fields: [publisherId], references: [id])
+  website   Website     @relation(fields: [websiteId], references: [id])
+
+  // One-to-many relations
+  bidResponses BidResponse[]
+  auctionLog   AuctionLog?
+
+  @@index([requestTimestamp])
+  @@index([inventoryId, requestTimestamp])
+  @@index([publisherId, requestTimestamp])
 }
-
-// Key fields:
-
-// requestId: A unique identifier for external reference, useful when communicating with other systems
-// inventoryId and publisherId: Link to the specific ad slot and the publisher who owns it
-// userAgent, ipAddress, etc.: Capture the user context for targeting purposes
-// floor: The minimum price the publisher will accept for this impression
-// auctionType: Defines whether it's a first-price or second-price auction
-// timeout: How long (in milliseconds) to wait for bids before closing the auction
-// targeting: A JSON field for additional targeting parameters that might affect bidding
-
-// How it's used:
-// When a user visits a publisher's page with an Ocean ad slot, the JavaScript SDK creates a bid request with these details. This is the starting point of the RTB process.

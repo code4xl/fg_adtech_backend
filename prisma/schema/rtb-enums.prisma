@@ -1,0 +1,22 @@
+enum BidStatus {
+    PENDING
+    WON
+    LOST
+    TIMEOUT
+    ERROR
+    CANCELLED
+}
+
+enum AuctionStatus {
+    PROCESSING
+    COMPLETED
+    NO_BIDS
+    TIMEOUT
+    ERROR
+}
+
+enum AuctionType {
+    FIRST_PRICE
+    SECOND_PRICE
+    HEADER_BIDDING
+}

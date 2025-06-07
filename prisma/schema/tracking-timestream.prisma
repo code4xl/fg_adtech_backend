@@ -1,0 +1,158 @@
+// Models for Timestream sync metadata
+model TimestreamSyncLog {
+    id           String   @id @default(uuid()) @db.Uuid
+    tableName    String // impressions, clicks, bids
+    lastSyncTime DateTime
+    recordCount  Int
+    status       String // SUCCESS, FAILED, PARTIAL
+    errorMessage String?
+    createdAt    DateTime @default(now())
+
+    @@index([tableName, lastSyncTime])
+}
+
+// Enhanced tracking for PostgreSQL (before Timestream sync)
+model ImpressionEvent {
+    id String @id @default(uuid()) @db.Uuid
+
+    // PRIMARY: Creative that was displayed
+    creativeId    String @db.Uuid
+    bidResponseId String @db.Uuid
+
+    // HIERARCHY: All related entities for multi-dimensional analytics
+    campaignId   String  @db.Uuid
+    advertiserId String  @db.Uuid
+    inventoryId  String  @db.Uuid
+    publisherId  String  @db.Uuid
+    websiteId    String  @db.Uuid
+    adSlotId     String? @db.Uuid // Specific slot on the website
+
+    // FINANCIAL: Revenue/cost tracking
+    price            Decimal? @db.Decimal(10, 4) // What advertiser paid
+    publisherRevenue Decimal? @db.Decimal(10, 4) // What publisher earned
+
+    // USER CONTEXT: For attribution and analytics
+    userId    String? // If available (cookie/device ID)
+    sessionId String? // User session identifier
+
+    // TECHNICAL DETAILS
+    timestamp   DateTime @default(now())
+    userAgent   String?
+    ipAddress   String?
+    deviceType  String?
+    browserType String?
+    osType      String?
+
+    // GEO CONTEXT
+    country String?
+    region  String?
+    city    String?
+
+    // VIEWABILITY METRICS (IAB standards)
+    viewable       Boolean? // Was it viewable per IAB standards
+    viewTime       Int? // Milliseconds in view
+    viewablePixels Int? // Pixels visible
+    adSizePixels   String? // "300x250"
+
+    // FRAUD DETECTION
+    isBot      Boolean? @default(false)
+    fraudScore Float? // 0.0 to 1.0
+
+    // ATTRIBUTION
+    referrerUrl  String?
+    pageUrl      String?
+    pageCategory String?
+
+    // SYNC STATUS
+    syncedToTimestream Boolean   @default(false)
+    syncedAt           DateTime?
+
+    // RELATIONS
+    creative  Creative    @relation(fields: [creativeId], references: [id])
+    campaign  Campaign    @relation(fields: [campaignId], references: [id])
+    inventory AdInventory @relation(fields: [inventoryId], references: [id])
+    publisher Publisher   @relation(fields: [publisherId], references: [id])
+
+    @@index([creativeId, timestamp]) // Primary: Creative performance
+    @@index([campaignId, timestamp]) // Campaign analytics
+    @@index([inventoryId, timestamp]) // Inventory performance
+    @@index([publisherId, timestamp]) // Publisher earnings
+    @@index([timestamp]) // Time-based queries
+    @@index([syncedToTimestream]) // Sync management
+    @@index([userId, campaignId]) // Frequency capping
+}
+
+model ClickEvent {
+    id String @id @default(uuid()) @db.Uuid
+
+    // LINK TO IMPRESSION
+    impressionId String? @db.Uuid // Link back to impression if available
+
+    // PRIMARY: Creative that was clicked
+    creativeId    String @db.Uuid
+    bidResponseId String @db.Uuid
+
+    // HIERARCHY: All related entities
+    campaignId   String  @db.Uuid
+    advertiserId String  @db.Uuid
+    inventoryId  String  @db.Uuid
+    publisherId  String  @db.Uuid
+    websiteId    String  @db.Uuid
+    adSlotId     String? @db.Uuid
+
+    // USER CONTEXT
+    userId    String?
+    sessionId String?
+
+    // TECHNICAL DETAILS
+    timestamp   DateTime @default(now())
+    userAgent   String?
+    ipAddress   String?
+    deviceType  String?
+    browserType String?
+    osType      String?
+
+    // GEO CONTEXT
+    country String?
+    region  String?
+    city    String?
+
+    // CLICK DETAILS
+    clickX    Int? // X coordinate of click
+    clickY    Int? // Y coordinate of click
+    clickArea String? // Which part of ad was clicked
+
+    // LANDING PAGE
+    landingUrl    String? // Where user was redirected
+    landingLoaded Boolean? // Did landing page load successfully
+
+    // FRAUD DETECTION
+    isBot        Boolean? @default(false)
+    fraudScore   Float?
+    clickPattern String? // rapid_fire, normal, suspicious
+
+    // ATTRIBUTION
+    referrerUrl        String?
+    pageUrl            String?
+    timeFromImpression Int? // Milliseconds from impression to click
+
+    // SYNC STATUS
+    syncedToTimestream Boolean   @default(false)
+    syncedAt           DateTime?
+
+    // RELATIONS
+    impression ImpressionEvent? @relation(fields: [impressionId], references: [id])
+    creative   Creative         @relation(fields: [creativeId], references: [id])
+    campaign   Campaign         @relation(fields: [campaignId], references: [id])
+    inventory  AdInventory      @relation(fields: [inventoryId], references: [id])
+    publisher  Publisher        @relation(fields: [publisherId], references: [id])
+
+    @@index([creativeId, timestamp]) // Primary: Creative performance
+    @@index([campaignId, timestamp]) // Campaign analytics
+    @@index([inventoryId, timestamp]) // Inventory performance
+    @@index([publisherId, timestamp]) // Publisher earnings
+    @@index([impressionId]) // Link to impression
+    @@index([timestamp]) // Time-based queries
+    @@index([syncedToTimestream]) // Sync management
+    @@index([userId, campaignId]) // User behavior analysis
+}
