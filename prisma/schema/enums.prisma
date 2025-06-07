@@ -151,11 +151,6 @@ enum AuctionLogStatus {
   NO_BIDS
 }
 
-enum AuctionType {
-  FIRST_PRICE
-  SECOND_PRICE
-}
-
 enum UserType {
   ADVERTISER
   PUBLISHER

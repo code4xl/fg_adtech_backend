@@ -23,5 +23,7 @@ model Publisher {
   inventories AdInventory[]
   bidRequests BidRequest[]
 
-  websites Website[]
+  websites        Website[]
+  ImpressionEvent ImpressionEvent[]
+  ClickEvent      ClickEvent[]
 }

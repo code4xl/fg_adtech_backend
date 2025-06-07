@@ -68,10 +68,11 @@ model ImpressionEvent {
     syncedAt           DateTime?
 
     // RELATIONS
-    creative  Creative    @relation(fields: [creativeId], references: [id])
-    campaign  Campaign    @relation(fields: [campaignId], references: [id])
-    inventory AdInventory @relation(fields: [inventoryId], references: [id])
-    publisher Publisher   @relation(fields: [publisherId], references: [id])
+    creative   Creative     @relation(fields: [creativeId], references: [id])
+    campaign   Campaign     @relation(fields: [campaignId], references: [id])
+    inventory  AdInventory  @relation(fields: [inventoryId], references: [id])
+    publisher  Publisher    @relation(fields: [publisherId], references: [id])
+    ClickEvent ClickEvent[]
 
     @@index([creativeId, timestamp]) // Primary: Creative performance
     @@index([campaignId, timestamp]) // Campaign analytics

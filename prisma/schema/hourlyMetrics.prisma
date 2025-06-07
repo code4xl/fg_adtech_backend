@@ -1,17 +1,17 @@
 model HourlyMetrics {
-    id          String   @id @default(uuid()) @db.Uuid
-    campaignId  String   @db.Uuid
-    inventoryId String?  @db.Uuid
-    date        DateTime @db.Date
-    hour        Int // 0-23
-    impressions Int      @default(0)
-    clicks      Int      @default(0)
-    spend       Decimal  @db.Decimal(10, 4)
-    revenue     Decimal  @db.Decimal(10, 4)
+  id          String   @id @default(uuid()) @db.Uuid
+  campaignId  String   @db.Uuid
+  inventoryId String?  @db.Uuid
+  date        DateTime @db.Date
+  hour        Int // 0-23
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  spend       Decimal  @db.Decimal(10, 4)
+  revenue     Decimal  @db.Decimal(10, 4)
 
-    // Relations
-    campaign  Campaign     @relation(fields: [campaignId], references: [id])
-    inventory AdInventory? @relation(fields: [inventoryId], references: [id])
+  // Relations
+  campaign  Campaign     @relation(fields: [campaignId], references: [id])
+  inventory AdInventory? @relation(fields: [inventoryId], references: [id])
 
-    @@unique([campaignId, inventoryId, date, hour])
+  @@unique([campaignId, inventoryId, date, hour])
 }

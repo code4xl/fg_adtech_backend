@@ -19,32 +19,32 @@
 //     winningBid BidResponse? @relation(fields: [winningBidId], references: [id])
 // }
 model AuctionLog {
-    id           String @id @default(uuid()) @db.Uuid
-    bidRequestId String @unique @db.Uuid
+  id           String @id @default(uuid()) @db.Uuid
+  bidRequestId String @unique @db.Uuid
 
-    // Auction details
-    auctionType  AuctionType
-    floorPrice   Decimal?    @db.Decimal(10, 4)
-    winningBidId String?     @db.Uuid
-    finalPrice   Decimal?    @db.Decimal(10, 4)
+  // Auction details
+  auctionType  AuctionType
+  floorPrice   Decimal?    @db.Decimal(10, 4)
+  winningBidId String?     @db.Uuid
+  finalPrice   Decimal?    @db.Decimal(10, 4)
 
-    // Performance metrics
-    totalBids       Int  @default(0)
-    validBids       Int  @default(0)
-    auctionDuration Int? // Milliseconds
+  // Performance metrics
+  totalBids       Int  @default(0)
+  validBids       Int  @default(0)
+  auctionDuration Int? // Milliseconds
 
-    // Status and timestamps
-    status      AuctionStatus @default(PROCESSING)
-    startedAt   DateTime      @default(now())
-    completedAt DateTime?
+  // Status and timestamps
+  status      AuctionStatus @default(PROCESSING)
+  startedAt   DateTime      @default(now())
+  completedAt DateTime?
 
-    // Debug information
-    errorMessage String?
-    debugData    Json?
+  // Debug information
+  errorMessage String?
+  debugData    Json?
 
-    // Relations
-    bidRequest BidRequest @relation(fields: [bidRequestId], references: [id], onDelete: Cascade)
+  // Relations
+  bidRequest BidRequest @relation(fields: [bidRequestId], references: [id], onDelete: Cascade)
 
-    @@index([status, startedAt])
-    @@index([completedAt])
+  @@index([status, startedAt])
+  @@index([completedAt])
 }

@@ -1,10 +1,10 @@
 model Admin {
-    id                 String @id @default(uuid()) @db.Uuid
-    name               String
-    email              String @unique
-    password           String
-    // MFA fields
-    mfaEnabled         Boolean @default(false)
-    mfaVerificationCode String?
-    mfaCodeExpiry      DateTime?
+  id                  String    @id @default(uuid()) @db.Uuid
+  name                String
+  email               String    @unique
+  password            String
+  // MFA fields
+  mfaEnabled          Boolean   @default(false)
+  mfaVerificationCode String?
+  mfaCodeExpiry       DateTime?
 }
