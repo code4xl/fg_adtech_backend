@@ -81,6 +81,10 @@ export class RedisService {
   async expire(key: string, seconds: number): Promise<void> {
     await this.pubClient.expire(key, seconds);
   }
+
+  async incrbyfloat(key: string, increment: number) {
+    await this.pubClient.incrbyfloat(key, increment);
+  }
   // Pub/Sub methods
   async publish(channel: string, message: any): Promise<number> {
     return this.pubClient.publish(
