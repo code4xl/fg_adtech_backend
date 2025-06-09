@@ -59,4 +59,9 @@ export const kafkaTopics = {
   // Existing aggregation topics (keep these)
   HOURLY_AGGREGATION: 'analytics.hourly.v2',
   DLQ_AUCTIONS: 'dlq.auctions',
+
+  // Phase 6: NEW - TimescaleDB specific topics
+  TIMESCALE_HEALTH_CHECK: 'timescale.health-check.v1',
+  TIMESCALE_ANALYTICS_REQUEST: 'timescale.analytics-request.v1',
+  TIMESCALE_BULK_SYNC: 'timescale.bulk-sync.v1',
 };

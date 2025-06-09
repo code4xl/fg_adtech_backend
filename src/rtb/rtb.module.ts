@@ -36,6 +36,7 @@ import { AuctionProcessor } from './consumers/auction.consumer';
 // Existing Utility Services
 import { RTBCacheService } from './services/rtb-cache.service';
 import { RTBMetricsService } from './services/rtb-metrics.service';
+import { TimescaleModule } from 'src/timescale/timescale.module';
 
 /**
  * RTB Module - Phase 5 Complete Implementation
@@ -63,6 +64,7 @@ import { RTBMetricsService } from './services/rtb-metrics.service';
     PrismaModule,  // For database operations
     RedisModule,   // For caching and real-time counters
     KafkaModule,   // For async processing
+    TimescaleModule,
   ],
   controllers: [
     RTBController,      // Main RTB endpoints (bid-request, bid-response, health)
@@ -95,6 +97,7 @@ import { RTBMetricsService } from './services/rtb-metrics.service';
     // === Utility Services ===
     RTBCacheService,             // RTB-specific caching operations
     RTBMetricsService,           // Performance metrics collection and analysis
+    TimescaleSyncConsumer,
   ],
   exports: [
     RTBService,                  // Export main service for other modules

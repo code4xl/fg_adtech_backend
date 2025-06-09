@@ -88,4 +88,18 @@ export const REDIS_KEYS = {
     `eligibility:${campaignId}:${inventoryId}`,
   BID_ADJUSTMENT_FACTOR: (campaignId: string) => `bid-adj:${campaignId}`,
 
+  // Phase 6: NEW - TimescaleDB Related Keys
+  TIMESCALE_SYNC_STATUS: (tableName: string) => `timescale:sync:status:${tableName}`,
+  TIMESCALE_LAST_SYNC: (tableName: string) => `timescale:last-sync:${tableName}`,
+  TIMESCALE_SYNC_LOCK: (tableName: string) => `timescale:sync:lock:${tableName}`,
+  TIMESCALE_BATCH_QUEUE: (tableName: string) => `timescale:batch:queue:${tableName}`,
+
+  // Analytics Cache Keys
+  TIMESCALE_CAMPAIGN_METRICS: (campaignId: string, timeRange: string) =>
+    `timescale:metrics:campaign:${campaignId}:${timeRange}`,
+  TIMESCALE_REALTIME_METRICS: (timeRange: string) =>
+    `timescale:metrics:realtime:${timeRange}`,
+  TIMESCALE_DASHBOARD_CACHE: (dashboardId: string) =>
+    `timescale:dashboard:${dashboardId}`,
+
 } as const;
