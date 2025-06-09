@@ -26,8 +26,12 @@ export class RedisService {
     this.subClient = new Redis(redisOptions);
 
     // Set up error handling
-    this.pubClient.on('error', (err) => this.logger.error(`Redis Pub Client Error: ${err.message}`, err.stack));
-    this.subClient.on('error', (err) => this.logger.error(`Redis Sub Client Error: ${err.message}`, err.stack));
+    this.pubClient.on('error', (err) =>
+      this.logger.error(`Redis Pub Client Error: ${err.message}`, err.stack),
+    );
+    this.subClient.on('error', (err) =>
+      this.logger.error(`Redis Sub Client Error: ${err.message}`, err.stack),
+    );
   }
 
   // Cache methods
@@ -71,16 +75,24 @@ export class RedisService {
   async incr(key: string): Promise<number> {
     return this.pubClient.incr(key);
   }
-
+  async incrby(key: string, increment: number): Promise<number> {
+    return this.pubClient.incrby(key, increment);
+  }
+  async expire(key: string, seconds: number): Promise<void> {
+    await this.pubClient.expire(key, seconds);
+  }
   // Pub/Sub methods
   async publish(channel: string, message: any): Promise<number> {
     return this.pubClient.publish(
       channel,
-      typeof message === 'object' ? JSON.stringify(message) : message
+      typeof message === 'object' ? JSON.stringify(message) : message,
     );
   }
 
-  async subscribe(channel: string, callback: (message: string, channel: string) => void): Promise<void> {
+  async subscribe(
+    channel: string,
+    callback: (message: string, channel: string) => void,
+  ): Promise<void> {
     await this.subClient.subscribe(channel);
     this.subClient.on('message', (subscribedChannel, message) => {
       if (channel === subscribedChannel) {
@@ -116,7 +128,7 @@ export class RedisService {
     const notifications = await this.pubClient.lrange(queueKey, 0, -1);
 
     // Parse the JSON strings
-    return notifications.map(notification => JSON.parse(notification));
+    return notifications.map((notification) => JSON.parse(notification));
   }
 
   async clearQueuedNotifications(userId: string): Promise<void> {
@@ -125,7 +137,9 @@ export class RedisService {
       await this.pubClient.del(key);
       this.logger.debug(`Cleared queued notifications for user ${userId}`);
     } catch (error) {
-      this.logger.error(`Error clearing queued notifications: ${error.message}`);
+      this.logger.error(
+        `Error clearing queued notifications: ${error.message}`,
+      );
       throw error;
     }
   }
@@ -138,10 +152,11 @@ export class RedisService {
       const key = `notifications:${userType.toLowerCase()}:broadcast:history`;
 
       // Parse and stringify to ensure consistent format with timestamp
-      const messageObj = typeof message === 'string' ? JSON.parse(message) : message;
+      const messageObj =
+        typeof message === 'string' ? JSON.parse(message) : message;
       const messageWithTimestamp = JSON.stringify({
         ...messageObj,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       // Add to the beginning of the list (newest first)
@@ -163,7 +178,10 @@ export class RedisService {
   /**
    * Get recent broadcast messages for a user type
    */
-  async getRecentBroadcasts(userType: string, count: number = 50): Promise<any[]> {
+  async getRecentBroadcasts(
+    userType: string,
+    count: number = 50,
+  ): Promise<any[]> {
     try {
       const key = `notifications:${userType.toLowerCase()}:broadcast:history`;
 
@@ -175,14 +193,18 @@ export class RedisService {
       }
 
       // Parse the JSON strings
-      return results.map(item => {
-        try {
-          return JSON.parse(item);
-        } catch (error) {
-          this.logger.error(`Error parsing broadcast message: ${error.message}`);
-          return null;
-        }
-      }).filter(item => item !== null);
+      return results
+        .map((item) => {
+          try {
+            return JSON.parse(item);
+          } catch (error) {
+            this.logger.error(
+              `Error parsing broadcast message: ${error.message}`,
+            );
+            return null;
+          }
+        })
+        .filter((item) => item !== null);
     } catch (error) {
       this.logger.error(`Error getting recent broadcasts: ${error.message}`);
       return [];

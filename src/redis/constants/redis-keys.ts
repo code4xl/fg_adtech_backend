@@ -2,7 +2,8 @@ export const REDIS_KEYS = {
   // RTB Caching
   BID_REQUEST: (requestId: string) => `rtb:bid-request:${requestId}`,
   AUCTION_RESULT: (requestId: string) => `rtb:auction:${requestId}`,
-
+  BID_CACHE: (inventoryId, deviceType) =>
+    `bid-cache:${inventoryId}:${deviceType}`,
   // Campaign Eligibility Cache
   ELIGIBLE_CAMPAIGNS: (inventoryId: string) =>
     `campaigns:eligible:${inventoryId}`,
