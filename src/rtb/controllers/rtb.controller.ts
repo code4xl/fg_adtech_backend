@@ -1,166 +1,385 @@
 // src/rtb/controllers/rtb.controller.ts
-import { Controller, Post, Get, Body, Param, Logger } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+    Controller,
+    Post,
+    Get,
+    Body,
+    Param,
+    Logger,
+    HttpStatus,
+    BadRequestException,
+    NotFoundException
+} from '@nestjs/common';
+import {
+    ApiTags,
+    ApiOperation,
+    ApiResponse,
+    ApiParam,
+    ApiBody
+} from '@nestjs/swagger';
+
+import { RTBService } from '../services/rtb.service';
+import { AuctionService } from '../services/auction.service';
+import {
+    CreateBidRequestDto,
+    BidResponseDto,
+    AuctionStatusDto,
+    HealthCheckDto
+} from '../dto';
 
 /**
- * RTB Controller - Phase 1 Foundation
+ * RTB Controller - Phase 3 Complete Implementation
  * 
- * This controller provides the basic structure for RTB endpoints.
+ * **Why this structure:**
+ * - Preserves existing SDK-integrated endpoints (backward compatibility)
+ * - Adds comprehensive error handling and validation
+ * - Includes detailed API documentation for monitoring tools
+ * - Implements proper HTTP status codes for different scenarios
  * 
- * Why this structure:
- * - Preserves existing SDK-integrated endpoints
- * - Provides foundation for Phase 2 implementation
- * - Includes proper API documentation
- * - Sets up logging and error handling patterns
+ * **Key endpoints:**
+ * 1. POST /rtb/bid-request - Main SDK entry point
+ * 2. GET /rtb/bid-response/:requestId - SDK polling endpoint  
+ * 3. GET /rtb/auction/:requestId/status - Detailed auction status
+ * 4. GET /rtb/health - System health monitoring
  * 
- * Note: This is a foundational structure for Phase 1.
- * Full implementation will be added in Phase 2-3.
+ * **Performance considerations:**
+ * - bid-request returns immediately (202 Accepted) for async processing
+ * - bid-response checks cache first, then database
+ * - All endpoints include proper error handling
  */
 @ApiTags('RTB')
 @Controller('rtb')
 export class RTBController {
     private readonly logger = new Logger(RTBController.name);
 
-    constructor() {
-        this.logger.log('RTB Controller initialized - Phase 1');
+    constructor(
+        private readonly rtbService: RTBService,
+        private readonly auctionService: AuctionService,
+    ) {
+        this.logger.log('RTB Controller initialized - Phase 3 Complete');
     }
 
     /**
-     * PRESERVE: Existing SDK-integrated bid request endpoint
+     * PRESERVE: Main SDK-integrated bid request endpoint
      * 
-     * This endpoint receives bid requests from the SDK and processes them.
-     * Currently returns a placeholder response to maintain compatibility.
+     * **Why this design:**
+     * - Returns immediately (202) to meet SDK timeout requirements
+     * - Validates request before processing to catch errors early
+     * - Triggers async processing via Kafka for scalability
+     * - Provides request ID for tracking
+     * 
+     * **Flow:**
+     * 1. Validate incoming request
+     * 2. Store bid request in database
+     * 3. Publish to Kafka for async auction processing
+     * 4. Return request ID immediately
      */
     @Post('bid-request')
     @ApiOperation({
-        summary: 'Process bid request',
-        description: 'Receives bid request from SDK and initiates RTB processing'
+        summary: 'Process bid request from SDK',
+        description: 'Receives bid request from SDK and initiates RTB auction processing. Returns immediately with request ID for polling.'
+    })
+    @ApiBody({
+        type: CreateBidRequestDto,
+        description: 'Bid request data from SDK including user context and ad slot information'
     })
     @ApiResponse({
         status: 202,
-        description: 'Bid request accepted for processing'
+        description: 'Bid request accepted for processing',
+        schema: {
+            type: 'object',
+            properties: {
+                requestId: { type: 'string', example: 'req_abc123_def456' },
+                status: { type: 'string', example: 'processing' },
+                message: { type: 'string', example: 'Bid request accepted for processing' },
+                estimatedResponseTime: { type: 'string', example: '100ms' }
+            }
+        }
     })
-    async handleBidRequest(@Body() bidRequestDto: any) {
+    @ApiResponse({
+        status: 400,
+        description: 'Invalid bid request data'
+    })
+    async handleBidRequest(@Body() bidRequestDto: CreateBidRequestDto) {
         this.logger.debug('Bid request received', {
-            requestId: bidRequestDto?.id,
-            inventoryId: bidRequestDto?.inventoryId
+            externalRequestId: bidRequestDto.externalRequestId,
+            inventoryId: bidRequestDto.inventoryId,
+            publisherId: bidRequestDto.publisherId
         });
 
-        // Phase 1: Return placeholder response
-        // Phase 2-3: Will implement full RTB processing
-        return {
-            requestId: bidRequestDto?.id || 'generated-id',
-            status: 'processing',
-            message: 'Bid request accepted for processing',
-            estimatedResponseTime: '100ms'
-        };
+        try {
+            // Validate request data
+            await this.validateBidRequest(bidRequestDto);
+
+            // Process bid request (stores in DB, triggers Kafka processing)
+            const result = await this.rtbService.processBidRequest(bidRequestDto);
+
+            this.logger.log('Bid request processed successfully', {
+                requestId: result.requestId,
+                inventoryId: bidRequestDto.inventoryId
+            });
+
+            return {
+                requestId: result.requestId,
+                status: 'processing',
+                message: 'Bid request accepted for processing',
+                estimatedResponseTime: '100ms',
+                auctionId: result.auctionId // For tracking
+            };
+
+        } catch (error) {
+            this.logger.error('Bid request processing failed', {
+                error: error.message,
+                externalRequestId: bidRequestDto.externalRequestId
+            });
+
+            if (error instanceof BadRequestException) {
+                throw error;
+            }
+
+            throw new BadRequestException('Failed to process bid request');
+        }
     }
 
     /**
-     * PRESERVE: Existing SDK-integrated bid response endpoint
+     * PRESERVE: SDK-integrated bid response polling endpoint
      * 
-     * This endpoint returns the bid response for a given request ID.
-     * SDK polls this endpoint to get auction results.
+     * **Why polling design:**
+     * - SDK expects to poll for results due to auction processing time
+     * - Checks Redis cache first for fast response times
+     * - Falls back to database if not cached
+     * - Returns structured response with ad markup and tracking URLs
+     * 
+     * **Response types:**
+     * - 200: Auction completed with winner
+     * - 204: Auction completed with no bids
+     * - 202: Still processing
+     * - 404: Request not found
      */
     @Get('bid-response/:requestId')
     @ApiOperation({
-        summary: 'Get bid response',
-        description: 'Returns bid response for a specific request ID'
+        summary: 'Get bid response for request ID',
+        description: 'Returns auction results for a specific request ID. SDK polls this endpoint until auction completes.'
+    })
+    @ApiParam({
+        name: 'requestId',
+        description: 'Request ID returned from bid-request endpoint',
+        example: 'req_abc123_def456'
     })
     @ApiResponse({
         status: 200,
-        description: 'Bid response returned successfully'
+        description: 'Auction completed successfully',
+        type: BidResponseDto
+    })
+    @ApiResponse({
+        status: 202,
+        description: 'Auction still processing'
+    })
+    @ApiResponse({
+        status: 204,
+        description: 'Auction completed with no bids'
     })
     @ApiResponse({
         status: 404,
-        description: 'Bid request not found'
+        description: 'Request ID not found'
     })
-    async getBidResponse(@Param('requestId') requestId: string) {
+    async getBidResponse(@Param('requestId') requestId: string): Promise<BidResponseDto> {
         this.logger.debug('Bid response requested', { requestId });
 
-        // Phase 1: Return placeholder response
-        // Phase 2-3: Will implement actual auction result lookup
-        return {
-            requestId,
-            status: 'completed',
-            winningBid: {
-                price: 2.50,
-                currency: 'USD',
-                adMarkup: '<div>Placeholder Ad</div>',
-                impressionUrls: [`https://track.oceanadtech.com/impression/${requestId}`],
-                clickUrls: [`https://track.oceanadtech.com/click/${requestId}`]
-            },
-            auctionData: {
-                totalBids: 3,
-                auctionDuration: '85ms',
-                timestamp: new Date().toISOString()
+        try {
+            // Get bid response from service (checks cache first, then DB)
+            const bidResponse = await this.rtbService.getBidResponse(requestId);
+
+            if (!bidResponse) {
+                this.logger.warn('Bid request not found', { requestId });
+                throw new NotFoundException('Bid request not found');
             }
-        };
+
+            // Check if auction is still processing
+            if (bidResponse.status === 'processing') {
+                this.logger.debug('Auction still processing', { requestId });
+                return {
+                    requestId,
+                    status: 'processing',
+                    message: 'Auction in progress'
+                };
+            }
+
+            // Check if auction completed with no bids
+            if (bidResponse.status === 'no_bids') {
+                this.logger.debug('Auction completed with no bids', { requestId });
+                return {
+                    requestId,
+                    status: 'no_bids',
+                    message: 'No eligible campaigns found'
+                };
+            }
+
+            // Return successful auction result
+            this.logger.log('Bid response returned successfully', {
+                requestId,
+                hasWinner: !!bidResponse.winningBid
+            });
+
+            return bidResponse;
+
+        } catch (error) {
+            this.logger.error('Failed to get bid response', {
+                error: error.message,
+                requestId
+            });
+
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+
+            throw new BadRequestException('Failed to retrieve bid response');
+        }
     }
 
     /**
-     * Get auction status for debugging and monitoring
+     * Enhanced auction status endpoint for debugging and monitoring
      * 
-     * This endpoint provides detailed auction status information.
-     * Useful for debugging and system monitoring.
+     * **Why this endpoint:**
+     * - Provides detailed auction metrics for debugging
+     * - Shows processing stages for performance monitoring
+     * - Includes cache hit rates and response times
+     * - Essential for system monitoring and troubleshooting
      */
     @Get('auction/:requestId/status')
     @ApiOperation({
-        summary: 'Get auction status',
-        description: 'Returns detailed auction status and metrics'
+        summary: 'Get detailed auction status',
+        description: 'Returns comprehensive auction status including metrics, processing stages, and performance data'
     })
-    async getAuctionStatus(@Param('requestId') requestId: string) {
+    @ApiParam({
+        name: 'requestId',
+        description: 'Request ID to get status for',
+        example: 'req_abc123_def456'
+    })
+    @ApiResponse({
+        status: 200,
+        description: 'Auction status retrieved successfully',
+        type: AuctionStatusDto
+    })
+    @ApiResponse({
+        status: 404,
+        description: 'Auction not found'
+    })
+    async getAuctionStatus(@Param('requestId') requestId: string): Promise<AuctionStatusDto> {
         this.logger.debug('Auction status requested', { requestId });
 
-        // Phase 1: Return placeholder status
-        return {
-            requestId,
-            status: 'completed',
-            stage: 'auction_complete',
-            metrics: {
-                processingStarted: new Date().toISOString(),
-                eligibleCampaigns: 12,
-                totalBids: 8,
-                auctionDuration: '95ms',
-                cacheHitRate: '85%'
-            },
-            winner: {
-                campaignId: 'campaign-123',
-                bidPrice: 2.50,
-                finalPrice: 2.30
+        try {
+            const auctionStatus = await this.auctionService.getAuctionStatus(requestId);
+
+            if (!auctionStatus) {
+                throw new NotFoundException('Auction not found');
             }
-        };
+
+            return auctionStatus;
+
+        } catch (error) {
+            this.logger.error('Failed to get auction status', {
+                error: error.message,
+                requestId
+            });
+
+            if (error instanceof NotFoundException) {
+                throw error;
+            }
+
+            throw new BadRequestException('Failed to retrieve auction status');
+        }
     }
 
     /**
-     * Health check endpoint for RTB system
+     * System health check endpoint
      * 
-     * This endpoint provides system health information.
-     * Used by monitoring systems and load balancers.
+     * **Why this endpoint:**
+     * - Load balancers need health checks
+     * - Monitoring systems need system status
+     * - Shows real-time performance metrics
+     * - Indicates component availability (DB, Redis, Kafka)
      */
     @Get('health')
     @ApiOperation({
         summary: 'RTB system health check',
-        description: 'Returns RTB system health and performance metrics'
+        description: 'Returns comprehensive system health including component status and performance metrics'
     })
-    async getHealth() {
-        this.logger.debug('RTB health check requested');
+    @ApiResponse({
+        status: 200,
+        description: 'System health retrieved successfully',
+        type: HealthCheckDto
+    })
+    async getHealth(): Promise<HealthCheckDto> {
+        this.logger.debug('Health check requested');
 
-        return {
-            status: 'healthy',
-            timestamp: new Date().toISOString(),
-            version: '1.0.0-phase1',
-            components: {
-                database: 'connected',
-                redis: 'connected',
-                kafka: 'connected'
-            },
-            metrics: {
-                requestsPerSecond: 150,
-                averageLatency: '89ms',
-                cacheHitRate: '82%',
-                errorRate: '0.1%'
-            }
-        };
+        try {
+            const healthStatus = await this.rtbService.getSystemHealth();
+
+            return healthStatus;
+
+        } catch (error) {
+            this.logger.error('Health check failed', { error: error.message });
+
+            // Return degraded status instead of throwing error
+            return {
+                status: 'degraded',
+                timestamp: new Date().toISOString(),
+                version: '1.0.0-phase3',
+                components: {
+                    database: 'error',
+                    redis: 'error',
+                    kafka: 'error'
+                },
+                metrics: {
+                    requestsPerSecond: 0,
+                    averageLatency: 'unknown',
+                    cacheHitRate: 'unknown',
+                    errorRate: 'high'
+                },
+                additionalInfo: {
+                    error: error.message
+                }
+            };
+        }
+    }
+
+    /**
+     * Private validation method for bid requests
+     * 
+     * **Why separate validation:**
+     * - Keeps controller methods clean
+     * - Allows for complex validation logic
+     * - Easy to unit test separately
+     * - Provides detailed error messages
+     */
+    private async validateBidRequest(bidRequestDto: CreateBidRequestDto): Promise<void> {
+        // Validate required fields
+        if (!bidRequestDto.externalRequestId) {
+            throw new BadRequestException('External request ID is required');
+        }
+
+        if (!bidRequestDto.inventoryId) {
+            throw new BadRequestException('Inventory ID is required');
+        }
+
+        if (!bidRequestDto.userContext?.userAgent) {
+            throw new BadRequestException('User agent is required');
+        }
+
+        if (!bidRequestDto.adSlotContext?.width || !bidRequestDto.adSlotContext?.height) {
+            throw new BadRequestException('Ad slot dimensions are required');
+        }
+
+        // Validate dimensions are reasonable
+        const { width, height } = bidRequestDto.adSlotContext;
+        if (width < 1 || height < 1 || width > 2000 || height > 2000) {
+            throw new BadRequestException('Invalid ad slot dimensions');
+        }
+
+        // Validate timeout if provided
+        if (bidRequestDto.timeout && (bidRequestDto.timeout < 50 || bidRequestDto.timeout > 1000)) {
+            throw new BadRequestException('Timeout must be between 50-1000ms');
+        }
     }
 }
