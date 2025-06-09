@@ -75,9 +75,11 @@ export class RedisService {
   async incr(key: string): Promise<number> {
     return this.pubClient.incr(key);
   }
+
   async incrby(key: string, increment: number): Promise<number> {
     return this.pubClient.incrby(key, increment);
   }
+
   async expire(key: string, seconds: number): Promise<void> {
     await this.pubClient.expire(key, seconds);
   }
@@ -85,6 +87,16 @@ export class RedisService {
   async incrbyfloat(key: string, increment: number) {
     await this.pubClient.incrbyfloat(key, increment);
   }
+
+  async llen(key: string) {
+    return this.pubClient.llen(key);
+  }
+
+  async rpush(key: string, value: string) {
+    return this.pubClient.rpush(key, value);
+  }
+
+
   // Pub/Sub methods
   async publish(channel: string, message: any): Promise<number> {
     return this.pubClient.publish(

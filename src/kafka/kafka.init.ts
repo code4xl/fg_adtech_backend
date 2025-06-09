@@ -172,6 +172,77 @@ export class KafkaInitService implements OnModuleInit {
           numPartitions: 3,    // External integration
           replicationFactor: 1,
         },
+
+        /**
+ * Phase 5: Tracking & Analytics Topics
+ * 
+ * Add these to your existing kafkaService.createTopics() call:
+ */
+
+        // =============================================
+        // PHASE 5: NEW - TRACKING EVENTS TOPICS
+        // =============================================
+        {
+          topic: kafkaTopics.IMPRESSIONS,
+          numPartitions: 8,    // High volume tracking events
+          replicationFactor: 1,
+        },
+        {
+          topic: kafkaTopics.CLICKS,
+          numPartitions: 4,    // Lower volume than impressions
+          replicationFactor: 1,
+        },
+
+        // =============================================
+        // PHASE 5: NEW - ANALYTICS & AGGREGATION TOPICS
+        // =============================================
+        {
+          topic: kafkaTopics.CAMPAIGN_METRICS,
+          numPartitions: 3,    // Aggregated data, lower volume
+          replicationFactor: 1,
+        },
+        {
+          topic: kafkaTopics.TIMESTREAM_SYNC,
+          numPartitions: 2,    // Batch processing, lower throughput
+          replicationFactor: 1,
+        },
+
+        // =============================================
+        // PHASE 5: NEW - ENHANCED ERROR HANDLING TOPICS
+        // =============================================
+        {
+          topic: kafkaTopics.DLQ_TRACKING,
+          numPartitions: 1,    // Error handling, single partition sufficient
+          replicationFactor: 1,
+        },
+
+        // =============================================
+        // PHASE 5: NEW - ALERT SYSTEM TOPICS
+        // =============================================
+        {
+          topic: kafkaTopics.FRAUD_ALERTS,
+          numPartitions: 1,    // Alert system, single partition
+          replicationFactor: 1,
+        },
+        {
+          topic: kafkaTopics.PERFORMANCE_ALERTS,
+          numPartitions: 1,    // Alert system, single partition
+          replicationFactor: 1,
+        },
+
+        // =============================================
+        // PHASE 5: NEW - TIMESTREAM BATCH TOPICS
+        // =============================================
+        {
+          topic: kafkaTopics.TIMESTREAM_BATCH_IMPRESSIONS,
+          numPartitions: 2,    // Batch processing, fewer partitions
+          replicationFactor: 1,
+        },
+        {
+          topic: kafkaTopics.TIMESTREAM_BATCH_CLICKS,
+          numPartitions: 2,    // Batch processing, fewer partitions
+          replicationFactor: 1,
+        },
       ]);
 
       this.logger.log('✅ All Kafka topics created successfully');
