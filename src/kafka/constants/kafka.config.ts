@@ -29,4 +29,13 @@ export const kafkaTopics = {
   // Error Handling
   DLQ_BID_REQUESTS: 'dlq.bid-requests',
   DLQ_TRACKING: 'dlq.tracking-events',
+
+  // New optimization topics
+  RTB_OPTIMIZATION: 'rtb.optimization.v1',
+  CAMPAIGN_BUDGET_ALERTS: 'alerts.campaign-budget.v1',
+  PERFORMANCE_UPDATES: 'analytics.performance-updates.v1',
+
+  // Google Inventory integration (future)
+  GOOGLE_BID_REQUESTS: 'external.google.bid-requests.v1',
+  GOOGLE_BID_RESPONSES: 'external.google.bid-responses.v1',
 };

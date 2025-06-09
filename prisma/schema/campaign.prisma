@@ -35,10 +35,8 @@ model Campaign {
     hourlyMetrics         HourlyMetrics[]
 
     ImpressionEvent ImpressionEvent[]
-
-    ClickEvent ClickEvent[]
-
-    ClientCampaign ClientCampaign[]
+    ClickEvent      ClickEvent[]
+    ClientCampaign  ClientCampaign[]
 }
 
 // Campaign statistics for reporting

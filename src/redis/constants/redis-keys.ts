@@ -61,4 +61,19 @@ export const REDIS_KEYS = {
   // Fraud Detection
   IP_CLICK_RATE: (ipAddress: string) => `fraud:ip:${ipAddress}`,
   USER_CLICK_PATTERN: (userId: string) => `fraud:user:${userId}`,
+
+
+  // Auction optimization
+  INVENTORY_OPTIMIZATION: (inventoryId: string) =>
+    `optimization:inventory:${inventoryId}`,
+  CAMPAIGN_ELIGIBILITY_CACHE: (inventoryId: string, hour: number) =>
+    `eligibility:${inventoryId}:${hour}`,
+
+  // Real-time bidding cache
+  BID_HISTORY: (campaignId: string) => `bid-history:${campaignId}`,
+  AUCTION_QUEUE: (priority: string) => `auction-queue:${priority}`,
+
+  // Google Inventory fallback
+  GOOGLE_INVENTORY_CACHE: (requestHash: string) =>
+    `google:inventory:${requestHash}`,
 } as const;

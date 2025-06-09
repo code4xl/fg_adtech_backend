@@ -23,6 +23,7 @@
 //     advertiser Advertiser  @relation(fields: [advertiserId], references: [id])
 //     auctionLog AuctionLog? // Optional relation to auction log
 // }
+
 model BidResponse {
   id           String @id @default(uuid()) @db.Uuid
   bidRequestId String @db.Uuid
@@ -46,6 +47,14 @@ model BidResponse {
   adMarkup       String?
   impressionUrls String[] // Multiple tracking URLs
   clickUrls      String[] // Multiple tracking URLs
+
+  // Add for auction optimization
+  bidRank         Int? // Position in auction (1st, 2nd, etc.)
+  priceAdjustment Decimal? @db.Decimal(10, 4) // Any price modifications
+
+  // Add for fraud detection
+  qualityScore Float? // 0.0 to 1.0
+  riskScore    Float? // 0.0 to 1.0
 
   // Timestamps
   createdAt   DateTime  @default(now())
