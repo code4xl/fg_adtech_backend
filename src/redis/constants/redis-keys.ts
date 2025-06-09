@@ -87,4 +87,5 @@ export const REDIS_KEYS = {
   CAMPAIGN_ELIGIBILITY: (campaignId: string, inventoryId: string) =>
     `eligibility:${campaignId}:${inventoryId}`,
   BID_ADJUSTMENT_FACTOR: (campaignId: string) => `bid-adj:${campaignId}`,
+
 } as const;
