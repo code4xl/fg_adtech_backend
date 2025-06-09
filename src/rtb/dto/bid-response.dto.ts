@@ -170,4 +170,11 @@ export class BidResponseDto {
     @IsOptional()
     @IsString()
     errorMessage?: string;
+
+    @ApiPropertyOptional({
+        description: 'Message if auction failed'
+    })
+    @IsOptional()
+    @IsString()
+    message?: string;
 }

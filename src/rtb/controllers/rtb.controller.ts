@@ -19,13 +19,13 @@ import {
 } from '@nestjs/swagger';
 
 import { RTBService } from '../services/rtb.service';
-import { AuctionService } from '../services/auction.service';
 import {
     CreateBidRequestDto,
     BidResponseDto,
     AuctionStatusDto,
     HealthCheckDto
 } from '../dto';
+import { AuctionService } from '../services/auction.service';
 
 /**
  * RTB Controller - Phase 3 Complete Implementation
