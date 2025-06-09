@@ -1,0 +1,12 @@
+model RTBMetrics {
+    id             String   @id @default(uuid()) @db.Uuid
+    timestamp      DateTime @default(now())
+    bidRequestId   String?  @db.Uuid
+    auctionLatency Int? // milliseconds
+    bidCount       Int      @default(0)
+    winRate        Float? // percentage
+    fillRate       Float? // percentage
+    avgBidPrice    Decimal? @db.Decimal(10, 4)
+
+    @@index([timestamp])
+}

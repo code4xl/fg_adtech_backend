@@ -53,9 +53,8 @@ model BidRequest {
   website   Website     @relation(fields: [websiteId], references: [id])
 
   // One-to-many relations
-  bidResponses   BidResponse[]
-  auctionLog     AuctionLog?
-  BidEligibility BidEligibility[]
+  bidResponses BidResponse[]
+  auctionLog   AuctionLog?
 
   @@index([requestTimestamp])
   @@index([inventoryId, requestTimestamp])
