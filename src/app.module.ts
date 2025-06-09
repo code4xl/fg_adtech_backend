@@ -24,6 +24,7 @@ import { KafkaModule } from './kafka/kafka.module';
 import { ResilienceModule } from './common/resilience/resilience.module';
 import { NotificationModule } from './notification/notification.module';
 import { RtbModule } from './rtb/rtb.module';
+import { RtbModule } from './rtb/rtb.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
