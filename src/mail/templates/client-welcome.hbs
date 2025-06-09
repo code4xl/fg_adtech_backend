@@ -1,0 +1,138 @@
+<!-- src/mail/templates/client-welcome.hbs -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Welcome to Ocean Ad Network</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .container {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 20px;
+    }
+    .header {
+      text-align: center;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+      margin-bottom: 20px;
+    }
+    .credentials-box {
+      background-color: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    .credential-row {
+      margin: 8px 0;
+      padding: 5px 0;
+    }
+    .credential-label {
+      font-weight: bold;
+      display: inline-block;
+      width: 80px;
+    }
+    .credential-value {
+      font-family: 'Courier New', monospace;
+      background-color: #fff;
+      padding: 3px 8px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+    .button {
+      display: inline-block;
+      background-color: #4CAF50;
+      color: white;
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+    .info-box {
+      background-color: #f0f8ff;
+      border-left: 4px solid #4CAF50;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    .contact-info {
+      background-color: #fff8dc;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    .footer {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 12px;
+      color: #777;
+      border-top: 1px solid #eee;
+      padding-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>Welcome to Ocean Ad Network</h2>
+    </div>
+    
+    <p>Hello {{clientName}},</p>
+    
+    <p>Your client account has been successfully created by Ocean Ad Network</strong>. You now have access to your campaign management portal where you can view and monitor your assigned advertising campaigns.</p>
+    
+    <div class="credentials-box">
+      <h3>Login Credentials</h3>
+      <div class="credential-row">
+        <span class="credential-label">Email:</span>
+        <span class="credential-value">{{email}}</span>
+      </div>
+      <div class="credential-row">
+        <span class="credential-label">Password:</span>
+        <span class="credential-value">{{password}}</span>
+      </div>
+    </div>
+    
+    <div style="text-align: center;">
+      <a href="{{loginUrl}}" class="button">Access Your Portal</a>
+    </div>
+    
+    <div class="info-box">
+      <h4>What you can do:</h4>
+      <ul>
+        <li>View all campaigns assigned to you</li>
+        <li>Monitor campaign performance and status</li>
+        <li>Access detailed campaign information</li>
+        <li>Track budget utilization</li>
+      </ul>
+    </div>
+    
+    <p><strong>Important:</strong> For security reasons, please change your password after your first login.</p>
+    
+    <div class="contact-info">
+      <h4>Need Help?</h4>
+      <p>If you have any questions or need assistance, please contact your advertiser:</p>
+      <p><strong>{{advertiserName}}</strong><br>
+      Email: <a href="mailto:{{advertiserEmail}}">{{advertiserEmail}}</a></p>
+    </div>
+    
+    <p>If the login button doesn't work, you can copy and paste the following link into your browser:</p>
+    <p>{{loginUrl}}</p>
+    
+    <p>Best regards,<br>The Ocean Ad Network Team</p>
+  </div>
+  
+  <div class="footer">
+    <p>This is an automated email, please do not reply.</p>
+    <p>For support, contact your advertiser at {{advertiserEmail}}</p>
+  </div>
+</body>
+</html>

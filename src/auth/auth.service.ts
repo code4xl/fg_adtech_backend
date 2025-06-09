@@ -24,7 +24,7 @@ export class AuthService {
     private jwtService: JwtService,
     private mailService: MailService,
     private config: ConfigService,
-  ) {}
+  ) { }
 
   // This function is used to register a new advertiser.
   async signup(createAdvertiserDto: CreateAdvertiserDto) {
@@ -348,6 +348,7 @@ export class AuthService {
     return { ...result, role };
   }
 
+
   // The localstrategy will return the user object to this function and it will generate a JWT token for the user.
   async login(user: any) {
     // If MFA is required, just pass through the MFA response
@@ -645,6 +646,14 @@ export class AuthService {
           resetPasswordExpires: resetTokenExpiry,
         },
       });
+    } else if (role == "client") {
+      await this.prisma.client.update({
+        where: { email },
+        data: {
+          resetPasswordToken: resetToken,
+          resetPasswordExpires: resetTokenExpiry,
+        },
+      });
     }
 
     // Send email
@@ -702,6 +711,13 @@ export class AuthService {
       });
     } else if (role === 'admin') {
       await this.prisma.admin.update({
+        where: { email },
+        data: {
+          password: hashedPassword,
+        },
+      });
+    } else if (role === 'client') {
+      await this.prisma.client.update({
         where: { email },
         data: {
           password: hashedPassword,

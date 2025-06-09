@@ -63,6 +63,5 @@ export class PublisherAuthenticationGuard extends AuthGuard('publisher') { }
 export class AdminAuthenticationGuard extends AuthGuard('admin') { }
 
 
-
 @Injectable()
 export class ClientAuthenticationGuard extends AuthGuard('client') { }

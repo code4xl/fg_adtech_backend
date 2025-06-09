@@ -33,6 +33,8 @@ model Campaign {
 
     campaignBudgetTracker CampaignBudgetTracker[]
     hourlyMetrics         HourlyMetrics[]
+
+    ClientCampaign ClientCampaign[]
 }
 
 // Campaign statistics for reporting

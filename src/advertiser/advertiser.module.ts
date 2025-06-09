@@ -19,6 +19,12 @@ import { NotificationModule } from 'src/notification/notification.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { CampaignBudgetTrackerController } from './advertiser.campaign-budget.controller';
 import { CampaignBudgetTrackerService } from './advertiser.campaign-budget.service';
+import { AdvertiserClientController } from './advertiser.client.controller';
+import { AdvertiserClientService } from './advertiser.client.service';
+import { MailService } from 'src/mail/mail.service';
+import { MailModule } from 'src/mail/mail.module';
+import { AuthService } from 'src/auth/auth.service';
+import { JwtModule, JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -31,6 +37,8 @@ import { CampaignBudgetTrackerService } from './advertiser.campaign-budget.servi
       },
     }),
     S3Module,
+    MailModule,
+    JwtModule,
   ],
   controllers: [
     AdvertiserController,
@@ -38,6 +46,7 @@ import { CampaignBudgetTrackerService } from './advertiser.campaign-budget.servi
     AdvertiserCampaignController,
     AdvertiserCreativeController,
     CampaignBudgetTrackerController,
+    AdvertiserClientController,
   ],
   providers: [
     AdvertiserService,
@@ -45,9 +54,13 @@ import { CampaignBudgetTrackerService } from './advertiser.campaign-budget.servi
     AdvertiserHelper,
     AdvertiserTargetingService,
     AdvertiserCreativeService,
+    AdvertiserClientService,
     CreativeNotificationService,
     CampaignBudgetTrackerService,
     S3StorageService,
+    MailService,
+    AuthService,
+    JwtService,
   ],
   exports: [AdvertiserService],
 })

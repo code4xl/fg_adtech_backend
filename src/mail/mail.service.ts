@@ -24,6 +24,38 @@ export class MailService {
     });
   }
 
+
+  /**
+   * Send client welcome email with login credentials
+   */
+  async sendClientWelcomeEmail(
+    clientEmail: string,
+    clientName: string,
+    password: string,
+    advertiserName: string,
+    advertiserEmail: string,
+    advertiserCompany: string
+  ) {
+    const appUrl = this.configService.get<string>('APP_URL');
+    const loginUrl = `${appUrl}/client/login`;
+
+    return await this.mailerService.sendMail({
+      to: clientEmail,
+      subject: `Welcome to Ocean Ad Network - Your Account is Ready!`,
+      template: './client-welcome',
+      context: {
+        clientName,
+        email: clientEmail,
+        password,
+        advertiserName,
+        advertiserEmail,
+        advertiserCompany,
+        loginUrl,
+        appUrl,
+      },
+    });
+  }
+
   async sendPasswordResetEmail(email: string, role: string, resetLink: string) {
     return await this.mailerService.sendMail({
       to: email,
@@ -37,7 +69,7 @@ export class MailService {
 
   async sendMfaCodeEmail(email: string, verificationCode: string, expiryMinutes: number) {
     const appName = this.configService.get<string>('APP_NAME', 'Ocean Ad Network');
-    
+
     return await this.mailerService.sendMail({
       to: email,
       subject: `${appName} - Your Login Verification Code`,

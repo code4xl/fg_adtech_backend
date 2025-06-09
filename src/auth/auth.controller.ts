@@ -11,6 +11,7 @@ import {
   BadRequestException,
   UnauthorizedException,
   HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import {
@@ -19,6 +20,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiBody,
+  ApiParam,
 } from '@nestjs/swagger';
 import {
   AdminAuthenticationGuard,
@@ -44,6 +46,7 @@ import { ToggleMfaDto, VerifyMfaDto } from './dto/mfa.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { RoleGuard } from 'src/common/guards/role.guard';
+import { ApiStandardErrors } from 'src/common/decorators/swagger.decorator';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -141,6 +144,7 @@ export class AuthController {
     return this.authService.login(req.user);
   }
 
+
   @Post('admin/login')
   @UseGuards(AdminAuthenticationGuard)
   @ApiOperation({ summary: 'Login as a admin' })
@@ -214,7 +218,54 @@ export class AuthController {
     return true;
   }
 
+
+  // Update your password reset endpoint with proper documentation
   @Post(':role/forgot-password')
+  @ApiOperation({
+    summary: 'Request password reset',
+    description: 'Send a password reset email to the user. Supports advertiser, publisher, client, and admin roles.'
+  })
+  @ApiParam({
+    name: 'role',
+    description: 'User role (advertiser, publisher, client, admin)',
+    type: String,
+    example: 'advertiser',
+    enum: ['advertiser', 'publisher', 'client', 'admin']
+  })
+  @ApiBody({
+    type: RequestPasswordResetDto,
+    description: 'Email address for password reset'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset email sent successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+        message: { type: 'string', example: 'Password reset email sent successfully' },
+        data: {
+          type: 'object',
+          properties: {
+            email: { type: 'string', example: 'user@example.com' },
+            message: { type: 'string', example: 'Password reset email sent successfully' }
+          }
+        }
+      }
+    }
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid role or email not found',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: false },
+        message: { type: 'string', example: 'Invalid url.' },
+        error: { type: 'string', example: 'Bad Request' }
+      }
+    }
+  })
   async requestPasswordReset(
     @Param('role') role: string,
     @Body() dto: RequestPasswordResetDto,

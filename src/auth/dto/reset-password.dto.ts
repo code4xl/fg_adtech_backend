@@ -3,6 +3,11 @@ import { IsEmail, IsNotEmpty, IsString, Matches, MinLength } from 'class-validat
 import { Match } from '../../common/validators/match.validator';
 
 export class RequestPasswordResetDto {
+    @ApiProperty({
+        description: 'Email address of the user requesting password reset',
+        example: 'user@example.com',
+        type: String
+    })
     @IsNotEmpty({ message: 'Email is required' })
     @IsEmail({}, { message: 'Please provide a valid email address' })
     email: string;

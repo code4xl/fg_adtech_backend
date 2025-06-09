@@ -15,7 +15,7 @@ import { SuccessInterceptor } from './common/interceptors/success.interceptor';
 import { AllExceptionsFilter } from './common/filters/global.exception';
 import { ExceptionsModule } from './common/exceptions/exceptions.module';
 import { AdminModule } from './admin/admin.module';
-import { ClientModule } from './client/client.module';
+// import { ClientModule } from './client/client.module';
 // import { InventoryModule } from './inventory/inventory.module';
 // import { CampaignModule } from './campaign/campaign.module';
 
@@ -75,7 +75,7 @@ import { NotificationModule } from './notification/notification.module';
     AdvertiserModule,
     ExceptionsModule,
     AdminModule,
-    ClientModule,
+    // ClientModule,
     // InventoryModule,
     // CampaignModule,
     // CreativeModule,
@@ -105,4 +105,4 @@ import { NotificationModule } from './notification/notification.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

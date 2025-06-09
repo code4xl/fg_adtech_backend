@@ -1,121 +1,78 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
-  HttpStatus,
-  Req,
-  ParseUUIDPipe,
-} from '@nestjs/common';
-import { ClientService } from './client.service';
-import { CreateClientDto } from './dto/create-client.dto';
-import { UpdateClientDto } from './dto/update-client.dto';
-import { AdvertiserGuard } from 'src/common/guards/authorization.guard';
-import {
-  ApiBearerAuth,
-  ApiCreatedResponse,
-  ApiOperation,
-  ApiParam,
-  ApiResponse,
-  ApiUnauthorizedResponse,
-} from '@nestjs/swagger';
+// import {
+//   Controller,
+//   Get,
+//   Param,
+//   UseGuards,
+//   Request,
+//   ParseUUIDPipe,
+// } from '@nestjs/common';
+// import {
+//   ApiTags,
+//   ApiOperation,
+//   ApiBearerAuth,
+//   ApiParam,
+// } from '@nestjs/swagger';
+// import { ClientGuard } from 'src/common/guards/authorization.guard';
+// import {
+//   ApiStandardResponse,
+//   ApiStandardErrors,
+// } from 'src/common/decorators/swagger.decorator';
+// import { ClientService } from './client.service';
+// import { CampaignSummaryDto } from 'src/client/dto/client-summary.dto';
 
-@Controller('client')
-export class ClientController {
-  constructor(private readonly clientService: ClientService) { }
+// @ApiTags('client')
+// @ApiBearerAuth()
+// @UseGuards(ClientGuard)
+// @Controller('client')
+// export class ClientController {
+//   constructor(private readonly clientService: ClientService) { }
 
-  @UseGuards(AdvertiserGuard)
-  @ApiBearerAuth()
-  @ApiCreatedResponse({
-    description: 'Client created successfully',
-  })
-  @ApiUnauthorizedResponse()
-  @ApiResponse({
-    status: HttpStatus.CONFLICT,
-    description: 'Client with this email, pan or gstin already exists',
-  })
-  @Post()
-  create(@Body() createClientDto: CreateClientDto, @Req() req) {
-    return this.clientService.create(req.user.id, createClientDto);
-  }
+//   @Get('profile')
+//   @ApiOperation({
+//     summary: 'Get client profile',
+//     description: 'Retrieves the authenticated client\'s profile information'
+//   })
+//   @ApiStandardResponse({
+//     description: 'Profile retrieved successfully',
+//   })
+//   @ApiStandardErrors()
+//   async getProfile(@Request() req) {
+//     return this.clientService.getClientProfile(req.user.sub);
+//   }
 
-  @Get()
-  @UseGuards(AdvertiserGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get all clients for the advertiser (Advertiser only)' })
-  @ApiResponse({
-    status: 200,
-    description: 'List of clients retrieved successfully.',
-  })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async findAll(@Req() req) {
-    return this.clientService.findAllByAdvertiser(req.user.id);
-  }
+//   @Get('campaigns')
+//   @ApiOperation({
+//     summary: 'Get assigned campaigns',
+//     description: 'Retrieves all campaigns assigned to the authenticated client'
+//   })
+//   @ApiStandardResponse({
+//     type: CampaignSummaryDto,
+//     description: 'Campaigns retrieved successfully',
+//   })
+//   @ApiStandardErrors()
+//   async getCampaigns(@Request() req) {
+//     return this.clientService.getClientCampaigns(req.user.sub);
+//   }
 
-  @Get(':id')
-  @UseGuards(AdvertiserGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get a client by id (Advertiser only)' })
-  @ApiParam({ name: 'id', description: 'Client ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Client retrieved successfully.',
-  })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  @ApiResponse({ status: 403, description: 'Forbidden.' })
-  @ApiResponse({ status: 404, description: 'Client not found.' })
-  async findOne(
-    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
-    @Req() req,
-  ) {
-    const client = await this.clientService.findOne(req.user.id, id);
-
-    return client;
-  }
-
-  @Patch(':id')
-  @UseGuards(AdvertiserGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update a client (Advertiser only)' })
-  @ApiParam({ name: 'id', description: 'Client ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Client has been successfully updated.',
-  })
-  @ApiResponse({ status: 400, description: 'Bad request - validation failed.' })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  @ApiResponse({ status: 403, description: 'Forbidden.' })
-  @ApiResponse({ status: 404, description: 'Client not found.' })
-  async update(
-    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
-    @Body() updateClientDto: UpdateClientDto,
-    @Req() req,
-  ) {
-    return this.clientService.update(req.user.id, id, updateClientDto);
-  }
-
-
-  // @Delete(':id')
-  // @UseGuards(AdvertiserGuard)
-  // @ApiBearerAuth()
-  // @ApiOperation({ summary: 'Delete a client (Advertiser only)' })
-  // @ApiParam({ name: 'id', description: 'Client ID' })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: 'Client has been successfully deleted.',
-  // })
-  // @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  // @ApiResponse({ status: 403, description: 'Forbidden.' })
-  // @ApiResponse({ status: 404, description: 'Client not found.' })
-  // async remove(
-  //   @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
-  //   @Req() req,
-  // ) {
-  //   return this.clientService.remove(req.user.id, id);
-  // }
-}
+//   @Get('campaigns/:campaignId')
+//   @ApiOperation({
+//     summary: 'Get campaign details',
+//     description: 'Retrieves detailed information about a specific assigned campaign'
+//   })
+//   @ApiParam({
+//     name: 'campaignId',
+//     description: 'Campaign ID',
+//     type: String,
+//     example: 'uuid-example'
+//   })
+//   @ApiStandardResponse({
+//     description: 'Campaign details retrieved successfully',
+//   })
+//   @ApiStandardErrors()
+//   async getCampaignById(
+//     @Request() req,
+//     @Param('campaignId', ParseUUIDPipe) campaignId: string,
+//   ) {
+//     return this.clientService.getClientCampaignById(req.user.sub, campaignId);
+//   }
+// }

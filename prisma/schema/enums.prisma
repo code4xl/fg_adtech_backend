@@ -7,6 +7,18 @@ enum CompanySize {
   ONE_THOUSAND_AND_ABOVE // 1001+
 }
 
+enum AdvertiserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum ClientStatus {
+  ACTIVE
+  INACTIVE
+}
+
 enum InventoryFormat {
   BANNER
   NATIVE

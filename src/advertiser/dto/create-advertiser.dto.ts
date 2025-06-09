@@ -44,6 +44,8 @@ export class CreateAdvertiserDto {
     companySize: CompanySize;
 }
 
+
+
 export class AdvertiserResponseDto {
     @ApiProperty()
     id: number;
