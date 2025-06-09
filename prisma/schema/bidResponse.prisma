@@ -1,27 +1,65 @@
-model BidResponse {
-    id                    String   @id @default(uuid()) @db.Uuid
-    bidRequestId          String   @db.Uuid
-    campaignId            String   @db.Uuid
-    creativeId            String   @db.Uuid
-    advertiserId          String   @db.Uuid
-    bidPrice              Decimal  @db.Decimal(10, 4) // The bid amount
-    currency              String   @default("USD")
-    bidTimestamp          DateTime @default(now())
-    status                String   @default("PENDING") // PENDING, WON, LOST, TIMEOUT, ERROR
-    responseTime          Int? // Response time in milliseconds
-    winNoticed            Boolean  @default(false) // Whether the win notice was sent
-    adMarkup              String? // The actual ad markup/creative to display
-    impressionTrackingUrl String? // URL for tracking impressions
-    clickTrackingUrl      String? // URL for tracking clicks
-    createdAt             DateTime @default(now())
-    updatedAt             DateTime @updatedAt
+// model BidResponse {
+//     id                    String   @id @default(uuid()) @db.Uuid
+//     bidRequestId          String   @db.Uuid
+//     campaignId            String   @db.Uuid
+//     creativeId            String   @db.Uuid
+//     advertiserId          String   @db.Uuid
+//     bidPrice              Decimal  @db.Decimal(10, 4) // The bid amount
+//     currency              String   @default("USD")
+//     bidTimestamp          DateTime @default(now())
+//     status                String   @default("PENDING") // PENDING, WON, LOST, TIMEOUT, ERROR
+//     responseTime          Int? // Response time in milliseconds
+//     winNoticed            Boolean  @default(false) // Whether the win notice was sent
+//     adMarkup              String? // The actual ad markup/creative to display
+//     impressionTrackingUrl String? // URL for tracking impressions
+//     clickTrackingUrl      String? // URL for tracking clicks
+//     createdAt             DateTime @default(now())
+//     updatedAt             DateTime @updatedAt
 
-    // Relations
-    bidRequest BidRequest  @relation(fields: [bidRequestId], references: [id], onDelete: Cascade)
-    campaign   Campaign    @relation(fields: [campaignId], references: [id])
-    creative   Creative    @relation(fields: [creativeId], references: [id])
-    advertiser Advertiser  @relation(fields: [advertiserId], references: [id])
-    auctionLog AuctionLog? // Optional relation to auction log
+//     // Relations
+//     bidRequest BidRequest  @relation(fields: [bidRequestId], references: [id], onDelete: Cascade)
+//     campaign   Campaign    @relation(fields: [campaignId], references: [id])
+//     creative   Creative    @relation(fields: [creativeId], references: [id])
+//     advertiser Advertiser  @relation(fields: [advertiserId], references: [id])
+//     auctionLog AuctionLog? // Optional relation to auction log
+// }
+model BidResponse {
+  id           String @id @default(uuid()) @db.Uuid
+  bidRequestId String @db.Uuid
+  campaignId   String @db.Uuid
+  creativeId   String @db.Uuid
+  advertiserId String @db.Uuid
+
+  // Bid details
+  bidPrice Decimal  @db.Decimal(10, 4)
+  currency Currency @default(INR)
+
+  // Status tracking
+  status          BidStatus @default(PENDING)
+  responseLatency Int? // Milliseconds
+
+  // Win details (if applicable)
+  finalPrice          Decimal? @db.Decimal(10, 4)
+  winNotificationSent Boolean  @default(false)
+
+  // Ad markup
+  adMarkup       String?
+  impressionUrls String[] // Multiple tracking URLs
+  clickUrls      String[] // Multiple tracking URLs
+
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+
+  // Relations
+  bidRequest BidRequest @relation(fields: [bidRequestId], references: [id], onDelete: Cascade)
+  campaign   Campaign   @relation(fields: [campaignId], references: [id])
+  creative   Creative   @relation(fields: [creativeId], references: [id])
+  advertiser Advertiser @relation(fields: [advertiserId], references: [id])
+
+  @@index([bidRequestId])
+  @@index([campaignId, createdAt])
+  @@index([status, createdAt])
 }
 
 // Key fields:

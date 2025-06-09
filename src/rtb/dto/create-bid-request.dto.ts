@@ -1,123 +1,65 @@
-// src/rtb/dto/create-bid-request.dto.ts
-
 import {
   IsString,
-  IsNumber,
   IsOptional,
   IsObject,
-  IsArray,
-  IsBoolean,
-  ValidateNested,
+  IsNumber,
+  IsEnum,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class AdSlotDto {
-  @ApiProperty({ example: '728x90' })
-  @IsString()
-  size: string;
-
-  @ApiProperty({ example: 'homepage-banner' })
-  @IsString()
-  slotId: string;
-
-  @ApiProperty({ example: 'above_fold' })
-  @IsString()
-  position: string;
-
-  @ApiProperty({ example: 'banner' })
-  @IsString()
-  format: string;
-}
-
-export class UserContextDto {
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
-  userAgent?: string;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
-  language?: string;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
-  deviceType?: string;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
-  browserType?: string;
-}
-
-export class TargetingDto {
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  categories?: string[];
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  interests?: string[];
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsObject()
-  custom?: Record<string, any>;
-}
-
 export class CreateBidRequestDto {
-  @ApiProperty({ example: 'pub-123-uuid' })
+  @ApiProperty({ description: 'Unique request ID from SDK' })
   @IsString()
-  publisherId: string;
+  externalRequestId: string;
 
-  @ApiProperty({ example: 'inv-456-uuid' })
+  @ApiProperty({ description: 'Inventory ID for the ad slot' })
   @IsString()
   inventoryId: string;
 
-  @ApiProperty({ example: 'req_123456789' })
+  @ApiProperty({ description: 'Publisher ID' })
   @IsString()
-  requestId: string;
+  publisherId: string;
 
-  @ApiProperty({ type: AdSlotDto })
-  @ValidateNested()
-  @Type(() => AdSlotDto)
-  adSlot: AdSlotDto;
+  @ApiProperty({ description: 'Website ID' })
+  @IsString()
+  websiteId: string;
 
-  @ApiProperty({ type: UserContextDto, required: false })
+  @ApiProperty({ description: 'User context data', required: false })
   @IsOptional()
-  @ValidateNested()
-  @Type(() => UserContextDto)
-  userContext?: UserContextDto;
+  @IsObject()
+  userContext?: {
+    userId?: string;
+    sessionId?: string;
+    ipAddress?: string;
+    userAgent?: string;
+    deviceType?: string;
+    browserType?: string;
+    osType?: string;
+    country?: string;
+    region?: string;
+    city?: string;
+  };
 
-  @ApiProperty({ type: TargetingDto, required: false })
+  @ApiProperty({ description: 'Ad slot context', required: false })
   @IsOptional()
-  @ValidateNested()
-  @Type(() => TargetingDto)
-  targeting?: TargetingDto;
+  @IsObject()
+  adSlotContext?: {
+    width?: number;
+    height?: number;
+    position?: string;
+    format?: string;
+  };
 
-  @ApiProperty({ required: false, example: 1.5 })
+  @ApiProperty({ description: 'Floor price for the auction', required: false })
   @IsOptional()
   @IsNumber()
-  floor?: number;
+  floorPrice?: number;
 
-  @ApiProperty({ required: false, example: 200 })
+  @ApiProperty({
+    description: 'Auction timeout in milliseconds',
+    required: false,
+  })
   @IsOptional()
   @IsNumber()
   timeout?: number;
-
-  @ApiProperty({ required: false, example: 'https://publisher.com/page' })
-  @IsOptional()
-  @IsString()
-  pageUrl?: string;
-
-  @ApiProperty({ required: false, example: 'https://referrer.com' })
-  @IsOptional()
-  @IsString()
-  referrer?: string;
 }

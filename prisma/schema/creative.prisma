@@ -18,4 +18,8 @@ model Creative {
     // Relations
     campaign     Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
     bidResponses BidResponse[]
+
+    ImpressionEvent ImpressionEvent[]
+
+    ClickEvent ClickEvent[]
 }

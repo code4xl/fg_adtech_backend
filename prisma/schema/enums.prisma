@@ -71,7 +71,7 @@ enum CampaignStatus {
   BUDGET_EXHAUSTED
 }
 
-enum FloorPriceCurrency {
+enum Currency {
   USD
   INR
 }
@@ -161,11 +161,6 @@ enum AuctionLogStatus {
   COMPLETED
   FAILED
   NO_BIDS
-}
-
-enum AuctionType {
-  FIRST_PRICE
-  SECOND_PRICE
 }
 
 enum UserType {

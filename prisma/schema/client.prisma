@@ -1,51 +1,51 @@
 model Client {
-    id                   String       @id @default(uuid()) @db.Uuid
-    name                 String
-    email                String       @unique
-    mobile               String       @unique
-    companyName          String
-    hqLocation           String
-    companySize          CompanySize
-    registeredAddress    String
-    companyGSTIN         String       @unique
-    PAN                  String       @unique
-    CIN                  String       @unique
-    website              String
-    password             String
-    advertiserId         String       @db.Uuid
-    emailVerifiedAt      DateTime?
-    verificationToken    String?
-    // resetToken           String?
-    // resetTokenExpiry     DateTime?
-    resetPasswordToken   String?      @unique // For password reset
-    resetPasswordExpires DateTime? // Password reset token expiration
-    status               ClientStatus @default(ACTIVE)
+  id                   String       @id @default(uuid()) @db.Uuid
+  name                 String
+  email                String       @unique
+  mobile               String       @unique
+  companyName          String
+  hqLocation           String
+  companySize          CompanySize
+  registeredAddress    String
+  companyGSTIN         String       @unique
+  PAN                  String       @unique
+  CIN                  String       @unique
+  website              String
+  password             String
+  advertiserId         String       @db.Uuid
+  emailVerifiedAt      DateTime?
+  verificationToken    String?
+  // resetToken           String?
+  // resetTokenExpiry     DateTime?
+  resetPasswordToken   String?      @unique // For password reset
+  resetPasswordExpires DateTime? // Password reset token expiration
+  status               ClientStatus @default(ACTIVE)
 
-    assignedCampaigns ClientCampaign[]
+  assignedCampaigns ClientCampaign[]
 
-    // Relations
-    advertiser Advertiser @relation(fields: [advertiserId], references: [id], onDelete: Cascade)
+  // Relations
+  advertiser Advertiser @relation(fields: [advertiserId], references: [id], onDelete: Cascade)
 
-    createdAt DateTime   @default(now())
-    updatedAt DateTime   @updatedAt
-    Campaign  Campaign[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  Campaign  Campaign[]
 
-    @@map("clients")
+  @@map("clients")
 }
 
 model ClientCampaign {
-    id         String   @id @default(uuid()) @db.Uuid
-    clientId   String   @db.Uuid
-    campaignId String   @db.Uuid
-    assignedAt DateTime @default(now())
-    assignedBy String   @db.Uuid
+  id         String   @id @default(uuid()) @db.Uuid
+  clientId   String   @db.Uuid
+  campaignId String   @db.Uuid
+  assignedAt DateTime @default(now())
+  assignedBy String   @db.Uuid
 
-    // Relations
-    client     Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
-    campaign   Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-    advertiser Advertiser @relation(fields: [assignedBy], references: [id])
+  // Relations
+  client     Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  campaign   Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  advertiser Advertiser @relation(fields: [assignedBy], references: [id])
 
-    // Ensure unique client-campaign pairs
-    @@unique([clientId, campaignId])
-    @@map("client_campaigns")
+  // Ensure unique client-campaign pairs
+  @@unique([clientId, campaignId])
+  @@map("client_campaigns")
 }

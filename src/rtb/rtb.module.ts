@@ -1,35 +1,27 @@
-// import { Module } from '@nestjs/common';
-// import { BidRequestController } from './bid-request.controller';
-// import { BidRequestService } from './bid-request.service';
-// import { RtbEnrichmentService } from './rtb-enrichment.service';
-// import { PrismaModule } from 'src/prisma/prisma.module';
+// src/rtb/rtb.module.ts
+import { Module } from '@nestjs/common';
+import { PrismaModule } from '../prisma/prisma.module';
+import { KafkaModule } from '../kafka/kafka.module';
+import { RedisModule } from '../redis/redis.module';
+import { BidRequestConsumer } from './consumer/bid-request.consumer';
+import { BidRequestController } from './controllers/bid-request.controller';
+import { AuctionService } from './services/auction.service';
+import { BidCalculationService } from './services/bid-calculation.service';
+import { BidRequestService } from './services/bid-request.service';
+import { CampaignEligibilityService } from './services/campaign-eligibility.service';
+import { CreativePerformanceService } from './services/creative-performance.service';
 
-// import { KafkaModule } from 'src/kafka/kafka.module';
-// import { AdMarkupService } from './ad-markup.service';
-// import { BidResponseConsumerService } from './bid-response-consumer.service';
-// import { BidResponseController } from './bid-response.controller';
-// import { BidResponseService } from './bid-response.service';
-// import { TrackingController } from './tracking.controller';
-// import { RedisModule } from 'src/redis/redis.module';
-// import { AuctionModule } from './auction.module';
-// import { TrackingConsumerService } from './tracking-consumer.service';
-// import { DailyAggregationService } from './daily-aggregation.service';
-
-// @Module({
-//   imports: [PrismaModule, KafkaModule, AuctionModule, RedisModule],
-//   controllers: [
-//     BidRequestController,
-//     BidResponseController,
-//     TrackingController,
-//   ],
-//   providers: [
-//     BidRequestService,
-//     RtbEnrichmentService,
-//     AdMarkupService,
-//     BidResponseService,
-//     BidResponseConsumerService,
-//     TrackingConsumerService,
-//     // DailyAggregationService,
-//   ],
-// })
-// export class RtbModule {}
+@Module({
+  imports: [PrismaModule, KafkaModule, RedisModule],
+  controllers: [BidRequestController],
+  providers: [
+    BidRequestService,
+    CampaignEligibilityService,
+    AuctionService,
+    BidCalculationService,
+    CreativePerformanceService,
+    BidRequestConsumer,
+  ],
+  exports: [BidRequestService, CampaignEligibilityService, AuctionService],
+})
+export class RtbModule {}

@@ -24,4 +24,8 @@ model Publisher {
   bidRequests BidRequest[]
 
   websites Website[]
+
+  ImpressionEvent ImpressionEvent[]
+
+  ClickEvent ClickEvent[]
 }

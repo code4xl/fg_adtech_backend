@@ -31,12 +31,37 @@ export class KafkaInitService implements OnModuleInit {
           replicationFactor: 1,
         },
         {
-          topic: kafkaTopics.TRACKING_EVENTS,
+          topic: kafkaTopics.BID_RESPONSES,
           numPartitions: 3,
           replicationFactor: 1,
         },
         {
-          topic: kafkaTopics.CAMPAIGN_UPDATES,
+          topic: kafkaTopics.CAMPAIGN_METRICS,
+          numPartitions: 3,
+          replicationFactor: 1,
+        },
+        {
+          topic: kafkaTopics.CLICKS,
+          numPartitions: 3,
+          replicationFactor: 1,
+        },
+        {
+          topic: kafkaTopics.DLQ_BID_REQUESTS,
+          numPartitions: 3,
+          replicationFactor: 1,
+        },
+        {
+          topic: kafkaTopics.DLQ_TRACKING,
+          numPartitions: 3,
+          replicationFactor: 1,
+        },
+        {
+          topic: kafkaTopics.IMPRESSIONS,
+          numPartitions: 3,
+          replicationFactor: 1,
+        },
+        {
+          topic: kafkaTopics.TIMESTREAM_SYNC,
           numPartitions: 3,
           replicationFactor: 1,
         },

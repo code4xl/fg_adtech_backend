@@ -34,6 +34,10 @@ model Campaign {
     campaignBudgetTracker CampaignBudgetTracker[]
     hourlyMetrics         HourlyMetrics[]
 
+    ImpressionEvent ImpressionEvent[]
+
+    ClickEvent ClickEvent[]
+
     ClientCampaign ClientCampaign[]
 }
 

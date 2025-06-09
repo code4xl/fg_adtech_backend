@@ -13,8 +13,20 @@ export const getKafkaConfig = (configService: ConfigService): KafkaConfig => ({
 });
 
 export const kafkaTopics = {
-  BID_REQUESTS: 'bid-requests',
-  AUCTION_RESULTS: 'auction-results',
-  TRACKING_EVENTS: 'tracking-events',
-  CAMPAIGN_UPDATES: 'campaign-updates',
+  // RTB Flow
+  BID_REQUESTS: 'rtb.bid-requests.v2',
+  BID_RESPONSES: 'rtb.bid-responses.v2',
+  AUCTION_RESULTS: 'rtb.auction-results.v2',
+
+  // Tracking Events
+  IMPRESSIONS: 'tracking.impressions.v2',
+  CLICKS: 'tracking.clicks.v2',
+
+  // Analytics & Aggregation
+  CAMPAIGN_METRICS: 'analytics.campaign-metrics.v2',
+  TIMESTREAM_SYNC: 'analytics.timestream-sync.v2',
+
+  // Error Handling
+  DLQ_BID_REQUESTS: 'dlq.bid-requests',
+  DLQ_TRACKING: 'dlq.tracking-events',
 };
