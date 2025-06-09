@@ -76,4 +76,15 @@ export const REDIS_KEYS = {
   // Google Inventory fallback
   GOOGLE_INVENTORY_CACHE: (requestHash: string) =>
     `google:inventory:${requestHash}`,
+
+
+  // NEW: Enhanced performance tracking
+  AUCTION_LATENCY: (inventoryId: string) => `metrics:auction-latency:${inventoryId}`,
+  BID_SUCCESS_RATE: (campaignId: string) => `metrics:bid-success:${campaignId}`,
+  FRAUD_SCORE: (userId: string) => `fraud:score:${userId}`,
+
+  // NEW: Real-time bidding cache
+  CAMPAIGN_ELIGIBILITY: (campaignId: string, inventoryId: string) =>
+    `eligibility:${campaignId}:${inventoryId}`,
+  BID_ADJUSTMENT_FACTOR: (campaignId: string) => `bid-adj:${campaignId}`,
 } as const;

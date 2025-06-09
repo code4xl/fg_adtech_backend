@@ -37,6 +37,8 @@ model Campaign {
     ImpressionEvent ImpressionEvent[]
     ClickEvent      ClickEvent[]
     ClientCampaign  ClientCampaign[]
+
+    BidEligibility BidEligibility[]
 }
 
 // Campaign statistics for reporting

@@ -47,22 +47,15 @@ model BidRequest {
   requestTimestamp DateTime  @default(now())
   processedAt      DateTime?
 
-  // Add for performance tracking
-  auctionStartTime  DateTime?
-  auctionEndTime    DateTime?
-  eligibleCampaigns Int       @default(0)
-
-  // Add for caching optimization
-  contextHash String? // Hash of targeting context for cache keys
-
   // Relations
   inventory AdInventory @relation(fields: [inventoryId], references: [id])
   publisher Publisher   @relation(fields: [publisherId], references: [id])
   website   Website     @relation(fields: [websiteId], references: [id])
 
   // One-to-many relations
-  bidResponses BidResponse[]
-  auctionLog   AuctionLog?
+  bidResponses   BidResponse[]
+  auctionLog     AuctionLog?
+  BidEligibility BidEligibility[]
 
   @@index([requestTimestamp])
   @@index([inventoryId, requestTimestamp])

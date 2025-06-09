@@ -28,6 +28,4 @@ model AdInventory {
   ImpressionEvent ImpressionEvent[]
 
   ClickEvent ClickEvent[]
-
-  AuctionOptimization AuctionOptimization[]
 }

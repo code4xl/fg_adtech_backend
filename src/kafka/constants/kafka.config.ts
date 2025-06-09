@@ -38,4 +38,15 @@ export const kafkaTopics = {
   // Google Inventory integration (future)
   GOOGLE_BID_REQUESTS: 'external.google.bid-requests.v1',
   GOOGLE_BID_RESPONSES: 'external.google.bid-responses.v1',
+
+  // NEW: Enhanced RTB topics
+  BID_ELIGIBILITY_CHECK: 'rtb.bid-eligibility.v1',
+  AUCTION_PREPROCESSING: 'rtb.auction-preprocessing.v1',
+  CREATIVE_PERFORMANCE_UPDATE: 'analytics.creative-performance.v1',
+  BUDGET_EXHAUSTION_ALERT: 'alerts.budget-exhaustion.v1',
+  FRAUD_DETECTION: 'security.fraud-detection.v1',
+
+  // Batch processing topics
+  TIMESTREAM_BATCH_IMPRESSIONS: 'timestream.batch.impressions.v1',
+  TIMESTREAM_BATCH_CLICKS: 'timestream.batch.clicks.v1',
 };
