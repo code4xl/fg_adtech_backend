@@ -99,6 +99,9 @@ export class ClickTrackingService {
                 return { status: 'duplicate', bidResponseId, redirectUrl };
             }
 
+            // Phase 6: NEW - Trigger TimescaleDB sync
+            await this.publishTimescaleSyncEvent('click', clickEvent.id);
+
             // 4. Detect potential click fraud
             const fraudScore = await this.calculateClickFraudScore(
                 userContext,
@@ -157,6 +160,33 @@ export class ClickTrackingService {
             });
 
             throw error;
+        }
+    }
+
+
+    // Add this new method to the existing service:
+    /**
+     * Publish TimescaleDB sync event
+     * 
+     * **Why async sync:**
+     * - Maintains fast HTTP response times
+     * - Enables reliable data synchronization
+     * - Provides retry mechanisms for failed syncs
+     */
+    private async publishTimescaleSyncEvent(eventType: 'impression' | 'click', eventId: string) {
+        try {
+            await this.kafka.publish(kafkaTopics.TIMESTREAM_SYNC, {
+                eventType: 'REAL_TIME_SYNC',
+                tableName: eventType === 'impression' ? 'impressions' : 'clicks',
+                eventId,
+                [`${eventType}Id`]: eventId,
+                timestamp: new Date().toISOString(),
+            });
+
+            this.logger.debug(`TimescaleDB sync event published for ${eventType}: ${eventId}`);
+        } catch (error) {
+            this.logger.warn(`Failed to publish TimescaleDB sync event for ${eventType} ${eventId}:`, error);
+            // Don't throw - sync failure shouldn't break impression tracking
         }
     }
 

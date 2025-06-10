@@ -36,22 +36,24 @@ import { AuctionProcessor } from './consumers/auction.consumer';
 // Existing Utility Services
 import { RTBCacheService } from './services/rtb-cache.service';
 import { RTBMetricsService } from './services/rtb-metrics.service';
+import { TimescaleModule } from 'src/timescale/timescale.module';
+import { TimescaleSyncConsumer } from 'src/timescale/consumers/timescale-sync.consumer';
 
 /**
  * RTB Module - Phase 5 Complete Implementation
- * 
+ *
  * **Phase 5 Additions:**
  * - TrackingController: HTTP endpoints for impression/click tracking
  * - ImpressionTrackingService: Complete impression processing pipeline
  * - ClickTrackingService: Complete click processing and CTR calculation
  * - TrackingKafkaConsumer: Async processing of tracking events
- * 
+ *
  * **Why these additions are essential:**
  * - Enables real-time campaign performance measurement
  * - Provides accurate billing data for impressions and clicks
  * - Supports fraud detection and quality filtering
  * - Creates foundation for conversion tracking and attribution
- * 
+ *
  * **Integration Points:**
  * - Tracking services use existing Redis counters for real-time metrics
  * - Kafka integration enables scalable analytics pipeline
@@ -60,54 +62,56 @@ import { RTBMetricsService } from './services/rtb-metrics.service';
  */
 @Module({
   imports: [
-    PrismaModule,  // For database operations
-    RedisModule,   // For caching and real-time counters
-    KafkaModule,   // For async processing
+    PrismaModule, // For database operations
+    RedisModule, // For caching and real-time counters
+    KafkaModule, // For async processing
+    TimescaleModule,
   ],
   controllers: [
-    RTBController,      // Main RTB endpoints (bid-request, bid-response, health)
+    RTBController, // Main RTB endpoints (bid-request, bid-response, health)
 
     // Phase 5: NEW - Tracking endpoints
     TrackingController, // Impression/click tracking endpoints (/track/*)
   ],
   providers: [
     // === Core Business Logic Services ===
-    RTBService,                    // Main RTB orchestration and request handling
-    AuctionService,               // Auction logic and winner determination
-    BidEvaluationService,         // Bid price calculation with performance adjustments
-    CampaignEligibilityService,   // Campaign targeting evaluation and budget checks
+    RTBService, // Main RTB orchestration and request handling
+    AuctionService, // Auction logic and winner determination
+    BidEvaluationService, // Bid price calculation with performance adjustments
+    CampaignEligibilityService, // Campaign targeting evaluation and budget checks
 
     // === Phase 5: NEW - Tracking Services ===
-    ImpressionTrackingService,    // Process impression events and update counters
-    ClickTrackingService,         // Process click events and calculate CTR
+    ImpressionTrackingService, // Process impression events and update counters
+    ClickTrackingService, // Process click events and calculate CTR
 
     // === Message Processing Services ===
-    BidRequestProcessor,          // Process incoming bid requests via Kafka
-    BidResponseProcessor,         // Generate and format bid responses
+    BidRequestProcessor, // Process incoming bid requests via Kafka
+    BidResponseProcessor, // Generate and format bid responses
 
     // === Phase 5: NEW - Tracking Kafka Consumer ===
-    TrackingKafkaConsumer,        // Process tracking events from Kafka
+    TrackingKafkaConsumer, // Process tracking events from Kafka
 
     // === Existing Kafka Consumers ===
-    RTBKafkaConsumer,            // Consume RTB-related messages
-    AuctionProcessor,            // Handle auction workflows and analytics
+    RTBKafkaConsumer, // Consume RTB-related messages
+    AuctionProcessor, // Handle auction workflows and analytics
 
     // === Utility Services ===
-    RTBCacheService,             // RTB-specific caching operations
-    RTBMetricsService,           // Performance metrics collection and analysis
+    RTBCacheService, // RTB-specific caching operations
+    RTBMetricsService, // Performance metrics collection and analysis
+    TimescaleSyncConsumer,
   ],
   exports: [
-    RTBService,                  // Export main service for other modules
-    AuctionService,              // Export auction service for processors
-    CampaignEligibilityService,  // Export eligibility service for reuse
-    BidEvaluationService,        // Export bid evaluation for processors
+    RTBService, // Export main service for other modules
+    AuctionService, // Export auction service for processors
+    CampaignEligibilityService, // Export eligibility service for reuse
+    BidEvaluationService, // Export bid evaluation for processors
 
     // Phase 5: NEW - Export tracking services
-    ImpressionTrackingService,   // Export for external integrations
-    ClickTrackingService,        // Export for external integrations
+    ImpressionTrackingService, // Export for external integrations
+    ClickTrackingService, // Export for external integrations
 
-    RTBCacheService,             // Export cache service for other modules
-    RTBMetricsService,           // Export metrics service for monitoring
+    RTBCacheService, // Export cache service for other modules
+    RTBMetricsService, // Export metrics service for monitoring
   ],
 })
 export class RTBModule {

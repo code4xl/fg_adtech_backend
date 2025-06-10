@@ -96,7 +96,25 @@ export class RedisService {
     return this.pubClient.rpush(key, value);
   }
 
+  async lpush(key: string, value: string): Promise<number> {
+    return this.pubClient.lpush(key, value);
+  }
 
+  async ltrim(key: string, start: number, stop: number): Promise<void> {
+    await this.pubClient.ltrim(key, start, stop);
+  }
+
+  async setex(key: string, seconds: number, value: string): Promise<void> {
+    await this.pubClient.setex(key, seconds, value);
+  }
+
+  async setnx(key: string, value: string): Promise<number> {
+    return this.pubClient.setnx(key, value);
+  }
+
+  async pipeline() {
+    return this.pubClient.pipeline();
+  }
   // Pub/Sub methods
   async publish(channel: string, message: any): Promise<number> {
     return this.pubClient.publish(

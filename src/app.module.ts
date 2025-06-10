@@ -23,8 +23,8 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { KafkaModule } from './kafka/kafka.module';
 import { ResilienceModule } from './common/resilience/resilience.module';
 import { NotificationModule } from './notification/notification.module';
-import { RtbModule } from './rtb/rtb.module';
-import { RtbModule } from './rtb/rtb.module';
+import { TimescaleModule } from './timescale/timescale.module';
+import { RTBModule } from './rtb/rtb.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -80,7 +80,8 @@ import { RtbModule } from './rtb/rtb.module';
     KafkaModule,
     ResilienceModule,
     NotificationModule,
-    RtbModule,
+    RTBModule,
+    TimescaleModule,
   ],
   controllers: [AppController],
   providers: [
