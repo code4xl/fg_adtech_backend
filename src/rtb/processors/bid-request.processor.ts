@@ -55,7 +55,11 @@ export class BidRequestProcessor {
       });
 
       if (eligibleCampaigns.length === 0) {
-        return await this.handleNoBidsAuction(bidRequest.auctionId, bidRequest, startTime);
+        return await this.handleNoBidsAuction(
+          bidRequest.auctionId,
+          bidRequest,
+          startTime,
+        );
       }
 
       // 3. Generate bid responses for all eligible campaigns
@@ -72,7 +76,11 @@ export class BidRequestProcessor {
       });
 
       if (bidResponses.length === 0) {
-        return await this.handleNoBidsAuction(bidRequest.auctionId, bidRequest, startTime);
+        return await this.handleNoBidsAuction(
+          bidRequest.auctionId,
+          bidRequest,
+          startTime,
+        );
       }
 
       // 4. Execute auction algorithm to determine winner
@@ -113,7 +121,12 @@ export class BidRequestProcessor {
       });
 
       // Handle processing error appropriately
-      await this.handleProcessingError(bidRequest, bidRequest.auctionId, error, startTime);
+      await this.handleProcessingError(
+        bidRequest,
+        bidRequest.auctionId,
+        error,
+        startTime,
+      );
 
       throw error;
     } finally {
