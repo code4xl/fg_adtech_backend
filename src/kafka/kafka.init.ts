@@ -56,11 +56,6 @@ export class KafkaInitService implements OnModuleInit {
           numPartitions: 8, // High volume tracking events
           replicationFactor: 1,
         },
-        {
-          topic: kafkaTopics.CLICKS,
-          numPartitions: 4, // Lower volume than impressions
-          replicationFactor: 1,
-        },
 
         {
           topic: kafkaTopics.CAMPAIGN_METRICS,
@@ -138,30 +133,23 @@ export class KafkaInitService implements OnModuleInit {
         },
 
         {
-          topic: kafkaTopics.IMPRESSIONS,
-          numPartitions: 8, // High volume tracking events
-          replicationFactor: 1,
-        },
-        {
           topic: kafkaTopics.CLICKS,
           numPartitions: 4, // Lower volume than impressions
           replicationFactor: 1,
         },
-
         {
-          topic: kafkaTopics.CAMPAIGN_METRICS,
-          numPartitions: 3, // Aggregated data, lower volume
-          replicationFactor: 1,
-        },
-
-        {
-          topic: kafkaTopics.DLQ_TRACKING,
-          numPartitions: 1, // Error handling, single partition sufficient
+          topic: kafkaTopics.AUCTION_PROCESSING,
+          numPartitions: 10, // Lower volume than impressions
           replicationFactor: 1,
         },
 
         {
           topic: kafkaTopics.FRAUD_ALERTS,
+          numPartitions: 1, // Alert system, single partition
+          replicationFactor: 1,
+        },
+        {
+          topic: kafkaTopics.DLQ_AUCTIONS,
           numPartitions: 1, // Alert system, single partition
           replicationFactor: 1,
         },

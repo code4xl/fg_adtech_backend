@@ -1,60 +1,66 @@
-import { Module, Type } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/prisma.module';
+
+import { MainSeederService } from './main.seeder';
+import { AdInventorySeeder } from './modules/ad-inventory.seeder';
+import { AdSlotTemplateSeeder } from './modules/ad-slot-template.seeder';
 import { AdminSeeder } from './modules/admin.seeder';
 import { AdvertiserSeeder } from './modules/advertiser.seeder';
-import { PublisherSeeder } from './modules/publisher.seeder';
-import { ContentCategorySeeder } from './modules/content-category.seeder';
-import { AdInventorySeeder } from './modules/ad-inventory.seeder';
-import { CreativeSeeder } from './modules/creative.seeder';
-import { ClientSeeder } from './modules/client.seeder';
+import { CampaignSeeder } from './modules/campaign.seeder';
 
+import { ContentCategorySeeder } from './modules/content-category.seeder';
+import { CreativeSeeder } from './modules/creative.seeder';
 import { FloorPriceSeeder } from './modules/floor-price.seeder';
-import { MainSeederService } from './main.seeder';
+import { NotificationSeeder } from './modules/notification.seeder';
+import { PublisherSeeder } from './modules/publisher.seeder';
+import { TargetingRuleSeeder } from './modules/targeting-rule.seeder';
+import { WebsiteSeeder } from './modules/website.seeder';
 import { DependencyResolver } from './tools/dependency.resolver';
 import { SeederRegistry } from './tools/seeders.registry';
-import { ISeeder } from './interfaces/seeder.interface';
-import { CampaignSeeder } from './modules/campaign.seeder';
-import { TargetingRuleSeeder } from './modules/targeting-rule.seeder';
-import { AdSlotTemplateSeeder } from './modules/ad-slot-template.seeder';
-import { NotificationSeeder } from './modules/notification.seeder';
-import { WebsiteSeeder } from './modules/website.seeder';
-
-// Add new seeders to this array
-const SEEDERS: Type<ISeeder>[] = [
-  AdminSeeder,
-  AdvertiserSeeder,
-  PublisherSeeder,
-  ContentCategorySeeder,
-  AdInventorySeeder,
-  CampaignSeeder,
-  CreativeSeeder,
-  ClientSeeder,
-  FloorPriceSeeder,
-  TargetingRuleSeeder,
-  AdSlotTemplateSeeder,
-  NotificationSeeder,
-  WebsiteSeeder,
-  // RtbSeeder,
-];
+import { ClientSeeder } from './modules/client.seeder';
 
 @Module({
   imports: [PrismaModule],
   providers: [
-    MainSeederService,
-    DependencyResolver,
+    // Utility services
     SeederRegistry,
-    ...SEEDERS,
-    {
-      provide: 'SEEDERS',
-      useFactory: (...seeders: ISeeder[]) => seeders,
-      inject: SEEDERS,
-    },
+    DependencyResolver,
+    MainSeederService,
+
+    // All seeders
+    AdminSeeder,
+    AdvertiserSeeder,
+    PublisherSeeder,
+    ContentCategorySeeder,
+    AdSlotTemplateSeeder,
+    ClientSeeder,
+    WebsiteSeeder,
+    AdInventorySeeder,
+    CampaignSeeder,
+    CreativeSeeder,
+    FloorPriceSeeder,
+    TargetingRuleSeeder,
+    NotificationSeeder,
   ],
-  exports: [MainSeederService],
+  exports: [MainSeederService, SeederRegistry, DependencyResolver],
 })
 export class SeederModule {
-  constructor(private seederRegistry: SeederRegistry) {
-    // Register all seeders to the registry
-    this.seederRegistry.registerSeeders(SEEDERS);
+  constructor(private readonly seederRegistry: SeederRegistry) {
+    // Register all seeders
+    this.seederRegistry.registerSeeders([
+      AdminSeeder,
+      AdvertiserSeeder,
+      PublisherSeeder,
+      ContentCategorySeeder,
+      AdSlotTemplateSeeder,
+      ClientSeeder,
+      WebsiteSeeder,
+      AdInventorySeeder,
+      CampaignSeeder,
+      CreativeSeeder,
+      FloorPriceSeeder,
+      TargetingRuleSeeder,
+      NotificationSeeder,
+    ]);
   }
 }

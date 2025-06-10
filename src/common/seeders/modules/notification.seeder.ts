@@ -19,7 +19,7 @@ export class NotificationSeeder implements ISeeder {
     return ['Admin', 'Advertiser', 'Publisher', 'Client'];
   }
 
-  async seed(count: number = 50): Promise<void> {
+  async seed(count: number = 100): Promise<void> {
     this.logger.log(`Seeding ${count} notifications...`);
 
     try {

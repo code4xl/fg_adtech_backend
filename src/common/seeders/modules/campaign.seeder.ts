@@ -27,7 +27,7 @@ export class CampaignSeeder implements ISeeder {
     return ['Advertiser', 'Client'];
   }
 
-  async seed(count: number = 25): Promise<void> {
+  async seed(count: number = 50): Promise<void> {
     this.logger.log(`Seeding ${count} campaigns...`);
 
     try {
@@ -40,10 +40,16 @@ export class CampaignSeeder implements ISeeder {
         throw new Error('No advertisers found. Please seed advertisers first.');
       }
 
-      // Get all clients (some campaigns might be for specific clients)
+      // Get all clients (campaigns require a client)
       const clients = await this.prisma.client.findMany({
         select: { id: true, advertiserId: true },
       });
+
+      if (clients.length === 0) {
+        throw new Error(
+          'No clients found. Please seed clients first since campaigns require a client.',
+        );
+      }
 
       const campaignData: any = [];
 
@@ -54,7 +60,6 @@ export class CampaignSeeder implements ISeeder {
       const pacingOptions = Object.values(CampaignPacing);
       const businessCategories = Object.values(BusinessCategory);
       const interests = Object.values(CampaignInterest);
-      const currencies = Object.values(Currency);
 
       // Generate fake campaigns
       for (let i = 0; i < count; i++) {
@@ -66,14 +71,16 @@ export class CampaignSeeder implements ISeeder {
           (c) => c.advertiserId === advertiser.id,
         );
 
-        // Determine client assignment strategy
-        let client = null;
-        if (advertiserClients.length > 0) {
-          // 60% chance to assign to a client if advertiser has clients
-          if (faker.datatype.boolean(0.6)) {
-            client = faker.helpers.arrayElement(advertiserClients);
-          }
+        // Must assign to a client - if advertiser has no clients, skip this iteration
+        if (advertiserClients.length === 0) {
+          this.logger.warn(
+            `Advertiser ${advertiser.id} has no clients, skipping campaign creation`,
+          );
+          continue;
         }
+
+        // Select a random client from this advertiser's clients
+        const selectedClient = faker.helpers.arrayElement(advertiserClients);
 
         const now = new Date();
         const thirtyDaysAgo = new Date(now);
@@ -91,28 +98,13 @@ export class CampaignSeeder implements ISeeder {
           to: oneYearFromNow,
         });
 
-        // Generate budget values
-        const currency = faker.helpers.arrayElement(currencies);
-        const budget = faker.number.float({
-          min: currency === Currency.INR ? 1000 : 50000,
-          max: currency === Currency.INR ? 100000 : 5000000,
-          fractionDigits: 2,
-        });
-        const dailyBudget = faker.datatype.boolean(0.8)
-          ? faker.number.float({
-              min: budget / 365,
-              max: budget / 30,
-              fractionDigits: 2,
-            })
-          : null;
-
         const bidStrategy = faker.helpers.arrayElement(bidStrategies);
         const bidAmount =
           bidStrategy === BidStrategy.BID_CAP ||
           bidStrategy === BidStrategy.TARGET_COST
             ? faker.number.float({
-                min: currency === Currency.INR ? 0.5 : 30,
-                max: currency === Currency.INR ? 50.0 : 2500,
+                min: 0.5,
+                max: 50.0,
                 fractionDigits: 2,
               })
             : null;
@@ -122,26 +114,11 @@ export class CampaignSeeder implements ISeeder {
           max: 5,
           min: 1,
         });
-        const genders = faker.helpers.arrayElements(
-          ['male', 'female', 'other'],
-          { max: 3, min: 1 },
-        );
-        const locations = faker.helpers.arrayElements(
-          ['US', 'IN', 'UK', 'CA', 'AU'],
-          { max: 3, min: 1 },
-        );
-        const deviceTypes = faker.helpers.arrayElements(
-          ['mobile', 'desktop', 'tablet'],
-          { max: 3, min: 1 },
-        );
 
         campaignData.push({
           name: `${faker.company.catchPhrase()} Campaign`,
           advertiserId: advertiser.id,
-          clientId: client?.id || null,
-          budget: budget,
-          dailyBudget: dailyBudget,
-          currency: currency,
+          clientId: selectedClient.id, // Always assign a valid client
           startDate: startDate,
           endDate: endDate,
           status: faker.helpers.arrayElement(statuses),
@@ -152,11 +129,6 @@ export class CampaignSeeder implements ISeeder {
           businessCategory: faker.helpers.arrayElement(businessCategories),
           websiteUrl: faker.internet.url(),
           interests: selectedInterests,
-          ageMin: faker.number.int({ min: 18, max: 45 }),
-          ageMax: faker.number.int({ min: 46, max: 65 }),
-          genders: genders,
-          locations: locations,
-          deviceTypes: deviceTypes,
           createdAt: faker.date.past(),
           updatedAt: faker.date.recent(),
         });
@@ -167,18 +139,24 @@ export class CampaignSeeder implements ISeeder {
         where: { email: 'advertiser@example.com' },
       });
 
-      const defaultClient = await this.prisma.client.findFirst({
-        where: { email: 'client@example.com' },
-      });
-
       if (defaultAdvertiser) {
+        const defaultClient = await this.prisma.client.findFirst({
+          where: {
+            email: 'client@example.com',
+            advertiserId: defaultAdvertiser.id,
+          },
+        });
+
+        if (!defaultClient) {
+          throw new Error(
+            'Default client not found for default advertiser. Please ensure client seeder creates a client for advertiser@example.com',
+          );
+        }
+
         campaignData.push({
           name: 'Test Campaign',
           advertiserId: defaultAdvertiser.id,
-          clientId: defaultClient?.id || null,
-          budget: 5000.0,
-          dailyBudget: 250.0,
-          currency: Currency.INR,
+          clientId: defaultClient.id, // Guaranteed to be non-null
           startDate: new Date(),
           endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
           status: CampaignStatus.ACTIVE,
@@ -192,11 +170,6 @@ export class CampaignSeeder implements ISeeder {
             CampaignInterest.TECHNOLOGY,
             CampaignInterest.BUSINESS_AND_FINANCE,
           ],
-          ageMin: 25,
-          ageMax: 45,
-          genders: ['male', 'female'],
-          locations: ['US', 'IN'],
-          deviceTypes: ['mobile', 'desktop'],
           createdAt: new Date(),
           updatedAt: new Date(),
         });

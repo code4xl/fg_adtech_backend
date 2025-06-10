@@ -3,7 +3,7 @@ import { faker } from '@faker-js/faker';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ISeeder } from '../interfaces/seeder.interface';
 import { CompanySize, ClientStatus } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class ClientSeeder implements ISeeder {
@@ -20,7 +20,7 @@ export class ClientSeeder implements ISeeder {
     return ['Advertiser'];
   }
 
-  async seed(count: number = 15): Promise<void> {
+  async seed(count: number = 30): Promise<void> {
     this.logger.log(`Seeding ${count} clients...`);
 
     try {

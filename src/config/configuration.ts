@@ -48,18 +48,38 @@ export default () => ({
     AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
   },
-  timescale: {
-    databaseUrl: process.env.TIMESCALE_DATABASE_URL,
-  },
   openai: {
     apiKey: process.env.OPENAI_API_KEY,
   },
   ai: {
-    rateLimitWindow: process.env.AI_RATE_LIMIT_WINDOW 
-      ? parseInt(process.env.AI_RATE_LIMIT_WINDOW, 10) 
+    rateLimitWindow: process.env.AI_RATE_LIMIT_WINDOW
+      ? parseInt(process.env.AI_RATE_LIMIT_WINDOW, 10)
       : 60000,
-    maxRequestsPerWindow: process.env.AI_MAX_REQUESTS 
-      ? parseInt(process.env.AI_MAX_REQUESTS, 10) 
+    maxRequestsPerWindow: process.env.AI_MAX_REQUESTS
+      ? parseInt(process.env.AI_MAX_REQUESTS, 10)
       : 10,
-  }
+  },
+  timescale: {
+    // Primary configuration - use the cloud URL if provided
+    databaseUrl: process.env.TIMESCALE_DATABASE_URL,
+    // Individual settings for Docker/local development
+    host: process.env.TIMESCALEDB_HOST || 'localhost',
+    port: process.env.TIMESCALEDB_PORT
+      ? parseInt(process.env.TIMESCALEDB_PORT, 10)
+      : 5432,
+    database: process.env.TIMESCALEDB_DATABASE || 'rtb_timeseries',
+    user: process.env.TIMESCALEDB_USER || 'timescale_user',
+    password: process.env.TIMESCALEDB_PASSWORD || 'timescale_pass',
+    // Connection pool settings
+    poolSize: process.env.TIMESCALEDB_POOL_SIZE
+      ? parseInt(process.env.TIMESCALEDB_POOL_SIZE, 10)
+      : 20,
+    poolTimeout: process.env.TIMESCALEDB_POOL_TIMEOUT
+      ? parseInt(process.env.TIMESCALEDB_POOL_TIMEOUT, 10)
+      : 5000,
+    // SSL settings
+    ssl:
+      process.env.NODE_ENV === 'production' ||
+      process.env.TIMESCALE_DATABASE_URL?.includes('sslmode=require'),
+  },
 });

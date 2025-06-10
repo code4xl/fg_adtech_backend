@@ -1,168 +1,146 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { SeederRegistry } from './tools/seeders.registry';
 import { DependencyResolver } from './tools/dependency.resolver';
+import { SeederRegistry } from './tools/seeders.registry';
 
 @Injectable()
 export class MainSeederService {
   private readonly logger = new Logger(MainSeederService.name);
 
   constructor(
-    private prisma: PrismaService,
-    private dependencyResolver: DependencyResolver,
-    private seederRegistry: SeederRegistry,
+    private readonly seederRegistry: SeederRegistry,
+    private readonly dependencyResolver: DependencyResolver,
   ) {}
 
-  /**
-   * Seed all modules in the correct order
-   */
   async seedAll(): Promise<void> {
-    this.logger.log('Starting to seed all modules...');
-
-    try {
-      const seeders = this.seederRegistry.getAllSeeders();
-      const orderedSeeders =
-        this.dependencyResolver.resolveSeederOrder(seeders);
-
-      // Seed each module in order
-      for (const seeder of orderedSeeders) {
-        const moduleName = seeder.getModuleName();
-        this.logger.log(`Seeding module: ${moduleName}`);
-        await seeder.seed();
-        this.logger.log(`Completed seeding module: ${moduleName}`);
-      }
-
-      this.logger.log('All modules seeded successfully');
-    } catch (error) {
-      this.logger.error('Error seeding all modules');
-      this.logger.error(error);
-      throw error;
-    }
-  }
-
-  /**
-   * Clean all modules in the correct order (reverse of seeding)
-   */
-  async cleanAll(): Promise<void> {
-    this.logger.log('Starting to clean all modules...');
-
-    try {
-      const seeders = this.seederRegistry.getAllSeeders();
-      const orderedCleaners =
-        this.dependencyResolver.resolveCleanerOrder(seeders);
-
-      // Clean each module in reverse order
-      for (const seeder of orderedCleaners) {
-        const moduleName = seeder.getModuleName();
-        this.logger.log(`Cleaning module: ${moduleName}`);
-        await seeder.clean();
-        this.logger.log(`Completed cleaning module: ${moduleName}`);
-      }
-
-      this.logger.log('All modules cleaned successfully');
-    } catch (error) {
-      this.logger.error('Error cleaning all modules');
-      this.logger.error(error);
-      throw error;
-    }
-  }
-
-  /**
-   * Clean and seed all modules
-   */
-  async resetAndSeedAll(): Promise<void> {
-    await this.cleanAll();
-    await this.seedAll();
-  }
-
-  /**
-   * Seed a specific module and all its dependencies and dependents
-   * @param moduleName The name of the module to seed
-   * @param cleanFirst Whether to clean the modules first
-   */
-  async seedModule(
-    moduleName: string,
-    cleanFirst: boolean = true,
-  ): Promise<void> {
-    if (!this.seederRegistry.moduleExists(moduleName)) {
-      throw new Error(
-        `Module "${moduleName}" not found. Available modules: ${this.seederRegistry.getAvailableModules().join(', ')}`,
-      );
-    }
-
-    this.logger.log(`Starting to seed module: ${moduleName}`);
-
-    try {
-      const allSeeders = this.seederRegistry.getAllSeeders();
-      const moduleChain = this.dependencyResolver.getModuleDependencyChain(
-        moduleName,
-        allSeeders,
-      );
-
-      this.logger.log(`Module chain to process: ${moduleChain.join(', ')}`);
-
-      // Filter seeders to only include those in the module chain
-      const seedersToProcess = allSeeders.filter((s) =>
-        moduleChain.includes(s.getModuleName()),
-      );
-
-      // Resolve order for seeding and cleaning
-      const orderedSeeders =
-        this.dependencyResolver.resolveSeederOrder(seedersToProcess);
-      const orderedCleaners =
-        this.dependencyResolver.resolveCleanerOrder(seedersToProcess);
-
-      // Clean modules if required
-      if (cleanFirst) {
-        for (const seeder of orderedCleaners) {
-          const currentModule = seeder.getModuleName();
-          this.logger.log(`Cleaning module: ${currentModule}`);
-          await seeder.clean();
-          this.logger.log(`Completed cleaning module: ${currentModule}`);
-        }
-      }
-
-      // Seed modules
-      for (const seeder of orderedSeeders) {
-        const currentModule = seeder.getModuleName();
-        this.logger.log(`Seeding module: ${currentModule}`);
-        await seeder.seed();
-        this.logger.log(`Completed seeding module: ${currentModule}`);
-      }
-
-      this.logger.log(
-        `Module ${moduleName} and related modules seeded successfully`,
-      );
-    } catch (error) {
-      this.logger.error(`Error seeding module: ${moduleName}`);
-      this.logger.error(error);
-      throw error;
-    }
-  }
-
-  /**
-   * Show the seeding order for all modules
-   */
-  getSeedingOrder(): string[] {
     const seeders = this.seederRegistry.getAllSeeders();
     const orderedSeeders = this.dependencyResolver.resolveSeederOrder(seeders);
-    return orderedSeeders.map((s) => s.getModuleName());
+
+    this.logger.log(
+      `Starting seeding process for ${orderedSeeders.length} modules...`,
+    );
+
+    for (const seeder of orderedSeeders) {
+      try {
+        const isSeeded = await seeder.isSeeded();
+        if (!isSeeded) {
+          this.logger.log(`Seeding ${seeder.getModuleName()}...`);
+          await seeder.seed();
+          this.logger.log(`✅ ${seeder.getModuleName()} seeded successfully`);
+        } else {
+          this.logger.log(
+            `⏭️  ${seeder.getModuleName()} already seeded, skipping...`,
+          );
+        }
+      } catch (error) {
+        this.logger.error(
+          `❌ Failed to seed ${seeder.getModuleName()}: ${error.message}`,
+        );
+        throw error;
+      }
+    }
+
+    this.logger.log('✅ All modules seeded successfully!');
   }
 
-  /**
-   * Show the cleaning order for all modules
-   */
-  getCleaningOrder(): string[] {
+  async cleanAll(): Promise<void> {
     const seeders = this.seederRegistry.getAllSeeders();
-    const orderedCleaners =
-      this.dependencyResolver.resolveCleanerOrder(seeders);
-    return orderedCleaners.map((s) => s.getModuleName());
+    const orderedSeeders = this.dependencyResolver.resolveCleanerOrder(seeders);
+
+    this.logger.log(
+      `Starting cleanup process for ${orderedSeeders.length} modules...`,
+    );
+
+    for (const seeder of orderedSeeders) {
+      try {
+        this.logger.log(`Cleaning ${seeder.getModuleName()}...`);
+        await seeder.clean();
+        this.logger.log(`✅ ${seeder.getModuleName()} cleaned successfully`);
+      } catch (error) {
+        this.logger.warn(
+          `⚠️  Failed to clean ${seeder.getModuleName()}: ${error.message}`,
+        );
+        // Continue with other cleanups even if one fails
+      }
+    }
+
+    this.logger.log('✅ All modules cleaned successfully!');
   }
 
-  /**
-   * List all available modules that can be seeded
-   */
+  async seedModule(moduleName: string, clean: boolean = false): Promise<void> {
+    const allSeeders = this.seederRegistry.getAllSeeders();
+    const chainModules = this.dependencyResolver.getModuleDependencyChain(
+      moduleName,
+      allSeeders,
+    );
+
+    if (!this.seederRegistry.moduleExists(moduleName)) {
+      throw new Error(
+        `Module "${moduleName}" not found. Available modules: ${this.getAvailableModules().join(', ')}`,
+      );
+    }
+
+    this.logger.log(
+      `Processing module "${moduleName}" with dependency chain: ${chainModules.join(' -> ')}`,
+    );
+
+    if (clean) {
+      this.logger.log('Cleaning modules in reverse order...');
+      // Clean in reverse order
+      const reverseChain = [...chainModules].reverse();
+      for (const name of reverseChain) {
+        const seeder = this.seederRegistry.getSeeder(name);
+        if (seeder) {
+          try {
+            await seeder.clean();
+            this.logger.log(`✅ ${name} cleaned`);
+          } catch (error) {
+            this.logger.warn(`⚠️  Failed to clean ${name}: ${error.message}`);
+          }
+        }
+      }
+    }
+
+    // Seed in correct dependency order
+    this.logger.log('Seeding modules in dependency order...');
+    for (const name of chainModules) {
+      const seeder = this.seederRegistry.getSeeder(name);
+      if (seeder) {
+        try {
+          const isSeeded = await seeder.isSeeded();
+          if (!isSeeded) {
+            this.logger.log(`Seeding ${name}...`);
+            await seeder.seed();
+            this.logger.log(`✅ ${name} seeded successfully`);
+          } else {
+            this.logger.log(`⏭️  ${name} already seeded, skipping...`);
+          }
+        } catch (error) {
+          this.logger.error(`❌ Failed to seed ${name}: ${error.message}`);
+          throw error;
+        }
+      }
+    }
+
+    this.logger.log(
+      `✅ Module "${moduleName}" and dependencies processed successfully!`,
+    );
+  }
+
   getAvailableModules(): string[] {
     return this.seederRegistry.getAvailableModules();
+  }
+
+  getSeedingOrder(): string[] {
+    const seeders = this.seederRegistry.getAllSeeders();
+    return this.dependencyResolver
+      .resolveSeederOrder(seeders)
+      .map((s) => s.getModuleName());
+  }
+
+  getCleaningOrder(): string[] {
+    const seeders = this.seederRegistry.getAllSeeders();
+    return this.dependencyResolver
+      .resolveCleanerOrder(seeders)
+      .map((s) => s.getModuleName());
   }
 }

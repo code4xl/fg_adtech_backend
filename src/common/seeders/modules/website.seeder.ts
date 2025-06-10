@@ -18,7 +18,7 @@ export class WebsiteSeeder implements ISeeder {
     return ['Publisher', 'ContentCategory'];
   }
 
-  async seed(count: number = 25): Promise<void> {
+  async seed(count: number = 50): Promise<void> {
     this.logger.log(`Seeding ${count} websites...`);
 
     try {

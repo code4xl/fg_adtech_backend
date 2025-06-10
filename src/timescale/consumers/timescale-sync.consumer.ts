@@ -142,7 +142,7 @@ export class TimescaleSyncConsumer implements OnModuleInit {
 
       // Health check topic
       await this.kafka.subscribe(
-        'timescale.health-check.v1',
+        kafkaTopics.TIMESCALE_HEALTH_CHECK,
         'timescale-health-consumer',
         this.processHealthCheck.bind(this),
       );
