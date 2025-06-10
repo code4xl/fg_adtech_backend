@@ -74,7 +74,8 @@ export class BidRequestProcessor {
         });
 
         try {
-            // 1. Set processing lock to prevent duplicate processing
+            // 1. Set processing lock to prevent duplicate processing 
+            // if two time request comes for same request id
             const lockAcquired = await this.setProcessingLock(bidRequest.id);
             if (!lockAcquired) {
                 throw new Error('Request already being processed');
@@ -93,7 +94,7 @@ export class BidRequestProcessor {
             }
 
             // 3. Generate bid responses for all eligible campaigns
-            const bidResponses = await this.generateBidResponses(
+            const bidResponses = await this.auctionService.generateBidResponses(
                 bidRequest,
                 eligibleCampaigns,
                 auctionId
@@ -227,97 +228,6 @@ export class BidRequestProcessor {
      */
     private async findEligibleCampaigns(bidRequest: any): Promise<any[]> {
         return await this.auctionService.findEligibleCampaigns(bidRequest);
-    }
-
-    /**
-     * Generate bid responses for eligible campaigns
-     * 
-     * **Why parallel processing:**
-     * - Bid calculation can be CPU intensive
-     * - Parallel processing reduces total latency
-     * - Independent bid calculations allow parallelization
-     * - Error in one bid doesn't affect others
-     */
-    private async generateBidResponses(
-        bidRequest: any,
-        eligibleCampaigns: any[],
-        auctionId: string
-    ): Promise<any[]> {
-        this.logger.debug('Generating bid responses', {
-            auctionId,
-            campaignCount: eligibleCampaigns.length
-        });
-
-        // Process campaigns in parallel with error isolation
-        const bidPromises = eligibleCampaigns.map(async (campaign) => {
-            try {
-                // 1. Final budget check (real-time)
-                const budgetAvailable = await this.rtbRedis.getCampaignBudgetStatus(campaign.id);
-                if (budgetAvailable.isExhausted) {
-                    this.logger.debug('Campaign budget exhausted', {
-                        campaignId: campaign.id,
-                        auctionId
-                    });
-                    return null;
-                }
-
-                // 2. Calculate bid price using bid evaluation service
-                const bidPrice = await this.calculateBidPrice(campaign, bidRequest);
-
-                // 3. Apply floor price check
-                if (bidRequest.floorPrice && bidPrice < bidRequest.floorPrice) {
-                    this.logger.debug('Bid below floor price', {
-                        campaignId: campaign.id,
-                        bidPrice,
-                        floorPrice: bidRequest.floorPrice,
-                        auctionId
-                    });
-                    return null;
-                }
-
-                // 4. Select matching creative
-                const creative = await this.selectCreative(campaign, bidRequest.adSlotContext);
-                if (!creative) {
-                    this.logger.debug('No matching creative found', {
-                        campaignId: campaign.id,
-                        auctionId
-                    });
-                    return null;
-                }
-
-                // 5. Create bid response object
-                return this.createBidResponse(
-                    bidRequest,
-                    campaign,
-                    creative,
-                    bidPrice,
-                    auctionId
-                );
-
-            } catch (error) {
-                this.logger.warn('Failed to generate bid for campaign', {
-                    campaignId: campaign.id,
-                    error: error.message,
-                    auctionId
-                });
-                return null;
-            }
-        });
-
-        // Wait for all bid generation to complete
-        const bidResults = await Promise.all(bidPromises);
-
-        // Filter out null results (failed/ineligible bids)
-        const validBids = bidResults.filter(bid => bid !== null);
-
-        this.logger.debug('Bid generation completed', {
-            auctionId,
-            totalCampaigns: eligibleCampaigns.length,
-            validBids: validBids.length,
-            excludedBids: eligibleCampaigns.length - validBids.length
-        });
-
-        return validBids;
     }
 
     /**

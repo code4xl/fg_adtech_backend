@@ -64,7 +64,8 @@ export class CampaignEligibilityService {
 
         try {
             // 1. Check Redis cache first
-            const cacheKey = this.buildCacheKey(inventoryId, userContext, adSlotContext);
+            // const cacheKey = this.buildCacheKey(inventoryId, userContext, adSlotContext);
+            const cacheKey = REDIS_KEYS.ELIGIBLE_CAMPAIGNS(inventoryId, userContext.deviceType);
             const cached = await this.getCachedEligibility(cacheKey);
 
             if (cached) {
@@ -100,7 +101,6 @@ export class CampaignEligibilityService {
             });
 
             return budgetValidated;
-
         } catch (error) {
             this.logger.error('Failed to get eligible campaigns', {
                 error: error.message,
@@ -128,7 +128,7 @@ export class CampaignEligibilityService {
             const spentToday = parseFloat(await this.redis.get<string>(spentKey) || '0') / 100; // Convert from cents
 
             // Get campaign budget info (cached)
-            const campaign = await this.getCampaignBudgetInfo(campaignId);
+            const campaign = await this.getCampaignBudgetInfo(campaignId, today);
             if (!campaign) {
                 this.logger.warn('Campaign not found for budget check', { campaignId });
                 return false;
@@ -340,10 +340,10 @@ export class CampaignEligibilityService {
         return results.filter(campaign => campaign !== null);
     }
 
-    private async getCampaignBudgetInfo(campaignId: string): Promise<any> {
+    private async getCampaignBudgetInfo(campaignId: string, today: string): Promise<any> {
         try {
             // Use cache for campaign budget info
-            const cacheKey = `campaign:budget:${campaignId}`;
+            const cacheKey = REDIS_KEYS.CAMPAIGN_BUDGET(campaignId, today);
             const cached = await this.redis.get<string>(cacheKey);
 
             if (cached) {

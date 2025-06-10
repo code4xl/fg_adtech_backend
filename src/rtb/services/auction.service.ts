@@ -157,7 +157,8 @@ export class AuctionService {
      * - Falls back to database if cache miss
      */
     async findEligibleCampaigns(bidRequest: any): Promise<any[]> {
-        const cacheKey = `eligible:${bidRequest.inventoryId}:${bidRequest.userContext.deviceType}`;
+        // const cacheKey = `eligible:${bidRequest.inventoryId}:${bidRequest.userContext.deviceType}`;
+        const cacheKey = REDIS_KEYS.ELIGIBLE_CAMPAIGNS(bidRequest.inventoryId, bidRequest.userContext);
 
         try {
             // 1. Check Redis cache first
@@ -203,7 +204,7 @@ export class AuctionService {
      * - Includes budget validation to prevent overspend
      * - Handles errors gracefully (failed bids are excluded)
      */
-    private async generateBidResponses(
+    async generateBidResponses(
         bidRequest: any,
         eligibleCampaigns: any[],
         auctionId: string
@@ -445,7 +446,6 @@ export class AuctionService {
             });
 
             return creative;
-
         } catch (error) {
             this.logger.error('Failed to select creative', {
                 campaignId: campaign.id,

@@ -2,6 +2,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
+import { RTB_REDIS_KEYS } from 'src/redis/constants/rtb-keys';
 
 /**
  * Bid Evaluation Service - Phase 3 Complete Implementation
@@ -59,6 +60,8 @@ export class BidEvaluationService {
             // 1. Get base bid amount from campaign
             const baseBid = await this.getBaseBidAmount(campaign);
 
+            // Adjustments Critria
+
             // 2. Apply bid strategy logic
             const strategicBid = await this.applyBidStrategy(campaign, baseBid, context);
 
@@ -81,7 +84,6 @@ export class BidEvaluationService {
             });
 
             return finalBid;
-
         } catch (error) {
             this.logger.error('Bid calculation failed', {
                 error: error.message,
@@ -434,7 +436,7 @@ export class BidEvaluationService {
         deviceType: string
     ): Promise<number> {
         try {
-            const cacheKey = `multiplier:device:${campaignId}:${deviceType}`;
+            const cacheKey = RTB_REDIS_KEYS.BID_CALCULATION_DEVICE_MULTIPLIER(deviceType, campaignId);
             const cached = await this.redis.get<string>(cacheKey);
 
             if (cached) {
@@ -527,7 +529,7 @@ export class BidEvaluationService {
         region: string
     ): Promise<number> {
         try {
-            const cacheKey = `multiplier:geo:${campaignId}:${country}`;
+            const cacheKey = RTB_REDIS_KEYS.BID_CALCULATION_GEO_MULTIPLIER(country, campaignId);
             const cached = await this.redis.get<string>(cacheKey);
 
             if (cached) {
@@ -638,7 +640,7 @@ export class BidEvaluationService {
      */
     private async getInventoryQualityMultiplier(inventoryId: string): Promise<number> {
         try {
-            const cacheKey = `multiplier:inventory:${inventoryId}`;
+            const cacheKey = RTB_REDIS_KEYS.BID_CALCULATION_INVENTORY_QUALITY_MULTIPLIER(inventoryId);
             const cached = await this.redis.get<string>(cacheKey);
 
             if (cached) {

@@ -323,7 +323,7 @@ export class RTBService {
      */
     private async publishBidRequestForProcessing(bidRequest: any): Promise<void> {
         try {
-            await this.kafka.publish(kafkaTopics.BID_REQUESTS, {
+            await this.kafka.publish(kafkaTopics.AUCTION_PROCESSING, {       // changed topic to AUCTION_PROCESSING
                 key: bidRequest.id,
                 value: {
                     bidRequest,

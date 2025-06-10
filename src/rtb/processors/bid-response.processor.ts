@@ -58,6 +58,7 @@ export class BidResponseProcessor {
      * - Losers get notification of loss for reporting
      * - All responses stored for audit trail
      */
+    // SDK Specific
     async generateBidResponses(auctionResult: any): Promise<any[]> {
         this.logger.debug('Generating bid responses', {
             auctionId: auctionResult.auctionId,

@@ -102,6 +102,12 @@ export const RTB_REDIS_KEYS = {
     BID_ADJUSTMENT_INVENTORY: (inventoryId: string) =>
         `bid:adj:inventory:${inventoryId}`,
 
+
+    // Changesss
+    BID_CALCULATION_DEVICE_MULTIPLIER: (deviceType: string, campaignId: string) => `bid:adj:multiplier:device:${campaignId}:${deviceType}`,
+    BID_CALCULATION_GEO_MULTIPLIER: (country: string, campaignId: string) => `bid:adj:multiplier:geo:${campaignId}:${country}`,
+    BID_CALCULATION_INVENTORY_QUALITY_MULTIPLIER: (inventoryId: string) => `bid:adj:multiplier:inventory:${inventoryId}`,
+
     // Real-time Auction Statistics
     AUCTION_STATS_HOURLY: (hour: string) =>
         `stats:auction:hourly:${hour}`,

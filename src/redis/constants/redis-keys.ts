@@ -5,8 +5,8 @@ export const REDIS_KEYS = {
   BID_CACHE: (inventoryId, deviceType) =>
     `bid-cache:${inventoryId}:${deviceType}`,
   // Campaign Eligibility Cache
-  ELIGIBLE_CAMPAIGNS: (inventoryId: string) =>
-    `campaigns:eligible:${inventoryId}`,
+  ELIGIBLE_CAMPAIGNS: (inventoryId: string, deviceType: string) =>
+    `campaigns:eligible:${inventoryId}:${deviceType}`,
   CAMPAIGN_BUDGET: (campaignId: string, date: string) =>
     `budget:${campaignId}:${date}`,
 

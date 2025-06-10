@@ -150,14 +150,15 @@ export class RTBKafkaConsumer implements OnModuleInit {
      * 3. Publish results or handle failures appropriately
      */
     private async processAuctionRequest(payload: {
-        key: string;
-        value: any;
+        key: string;  // id
+        value: any;   // bid request data
         topic: string;
         partition: number;
         offset: string;
     }): Promise<void> {
         const startTime = Date.now();
         let auctionId: string | undefined;
+
 
         try {
             this.logger.debug('Processing auction request', {
