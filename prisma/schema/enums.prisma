@@ -72,7 +72,6 @@ enum CampaignStatus {
 }
 
 enum Currency {
-  USD
   INR
 }
 

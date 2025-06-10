@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { faker } from '@faker-js/faker';
-import { FloorPriceCurrency } from '@prisma/client';
+import { Currency } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ISeeder } from '../interfaces/seeder.interface';
 
@@ -41,13 +41,11 @@ export class FloorPriceSeeder implements ISeeder {
       for (const inventory of inventories) {
         // 80% of inventory gets a basic floor price
         if (faker.datatype.boolean(0.8)) {
-          const currency = faker.helpers.arrayElement(
-            Object.values(FloorPriceCurrency),
-          );
+          const currency = faker.helpers.arrayElement(Object.values(Currency));
 
           // Generate price based on currency
           let basePrice: number;
-          if (currency === FloorPriceCurrency.USD) {
+          if (currency === Currency.USD) {
             basePrice = faker.number.float({
               min: 0.5,
               max: 8.0,
@@ -80,12 +78,10 @@ export class FloorPriceSeeder implements ISeeder {
 
         // 30% of inventory gets an additional premium floor price (for peak hours/better targeting)
         if (faker.datatype.boolean(0.3)) {
-          const currency = faker.helpers.arrayElement(
-            Object.values(FloorPriceCurrency),
-          );
+          const currency = faker.helpers.arrayElement(Object.values(Currency));
 
           let premiumPrice: number;
-          if (currency === FloorPriceCurrency.USD) {
+          if (currency === Currency.USD) {
             premiumPrice = faker.number.float({
               min: 5.0,
               max: 20.0,
@@ -125,7 +121,7 @@ export class FloorPriceSeeder implements ISeeder {
         floorPriceData.push({
           inventoryId: testInventory.id,
           basePrice: 1.5,
-          currency: FloorPriceCurrency.USD,
+          currency: Currency.USD,
           startDate: new Date(),
           endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days from now
           createdAt: new Date(),
@@ -136,7 +132,7 @@ export class FloorPriceSeeder implements ISeeder {
         floorPriceData.push({
           inventoryId: testInventory.id,
           basePrice: 100.0,
-          currency: FloorPriceCurrency.INR,
+          currency: Currency.INR,
           startDate: new Date(),
           endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days from now
           createdAt: new Date(),

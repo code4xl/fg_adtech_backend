@@ -258,7 +258,7 @@ export class NotificationSeeder implements ISeeder {
       return {
         ...baseData,
         amount: faker.number.float({ min: 100, max: 10000, fractionDigits: 2 }),
-        currency: faker.helpers.arrayElement(['USD', 'INR']),
+        currency: faker.helpers.arrayElement(['INR']),
       };
     }
 
