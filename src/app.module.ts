@@ -14,9 +14,6 @@ import { SuccessInterceptor } from './common/interceptors/success.interceptor';
 import { AllExceptionsFilter } from './common/filters/global.exception';
 import { ExceptionsModule } from './common/exceptions/exceptions.module';
 import { AdminModule } from './admin/admin.module';
-// import { ClientModule } from './client/client.module';
-// import { InventoryModule } from './inventory/inventory.module';
-// import { CampaignModule } from './campaign/campaign.module';
 
 import { RedisModule } from './redis/redis.module';
 import { ClientsModule, Transport } from '@nestjs/microservices';
@@ -72,10 +69,6 @@ import { RTBModule } from './rtb/rtb.module';
     AdvertiserModule,
     ExceptionsModule,
     AdminModule,
-    // ClientModule,
-    // InventoryModule,
-    // CampaignModule,
-    // CreativeModule,
     RedisModule,
     KafkaModule,
     ResilienceModule,
@@ -101,4 +94,4 @@ import { RTBModule } from './rtb/rtb.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

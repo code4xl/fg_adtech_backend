@@ -14,17 +14,6 @@ import {
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-/**
- * Phase 7 DTOs - Caching & Performance Optimization
- *
- * **Why specific DTOs for caching operations:**
- * - Ensures type safety for cache operations
- * - Provides validation for cache parameters
- * - Standardizes cache response formats
- * - Enables proper API documentation
- * - Supports performance monitoring and debugging
- */
-
 // ==========================================
 // CAMPAIGN ELIGIBILITY CACHE DTOs
 // ==========================================
@@ -526,17 +515,6 @@ export class CacheWarmupResponseDto {
   @IsString({ each: true })
   warnings?: string[];
 }
-
-// ==========================================
-// TIMESCALE DB CACHE DTOs (Phase 7 Specific)
-// ==========================================
-
-/**
- * **Why TimescaleDB-specific DTOs:**
- * - Requires different data structures for optimal performance
- * - Supports real-time and batch synchronization patterns
- * - Enables advanced time-series queries and aggregations
- */
 
 export class TimescaleCacheMetricsDto {
   @ApiProperty({ description: 'Entity ID (campaign, creative, etc.)' })

@@ -5,30 +5,6 @@ import { RedisService } from '../../redis/redis.service';
 import { KafkaService } from '../../kafka/kafka.service';
 import { kafkaTopics } from '../../kafka/constants/kafka.config';
 
-/**
- * Auction Processor - Phase 4 Implementation
- *
- * **Core Responsibility: Handle specialized auction workflows and optimizations**
- *
- * **Why this processor exists:**
- * - Manages complex auction scenarios (timeouts, errors, special cases)
- * - Handles auction result aggregation and analytics
- * - Processes auction logs for performance monitoring
- * - Manages auction state transitions and cleanup
- *
- * **Key Responsibilities:**
- * 1. Process auction timeout scenarios
- * 2. Handle auction result aggregation
- * 3. Manage auction analytics and reporting
- * 4. Clean up expired auction state
- * 5. Generate auction performance metrics
- *
- * **Integration Points:**
- * - Consumes from auction-processing and auction-results topics
- * - Publishes to analytics and timescale-sync topics
- * - Updates real-time metrics in Redis
- * - Stores auction logs in PostgreSQL
- */
 @Injectable()
 export class AuctionProcessor {
   private readonly logger = new Logger(AuctionProcessor.name);

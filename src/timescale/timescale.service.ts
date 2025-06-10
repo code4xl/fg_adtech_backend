@@ -1,4 +1,3 @@
-// src/timescale/timescale.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { TimescaleDBConnection } from './timescale-connection.service';
 import { KafkaService } from '../kafka/kafka.service';
@@ -11,14 +10,7 @@ import {
   BatchTimescaleBidMetricDto,
 } from '../rtb/dto/tracking-events.dto';
 import { from as copyFrom } from 'pg-copy-streams';
-/**
- * TimescaleDB Service - Phase 6 Implementation
- * **Key capabilities:**
- * 1. High-performance time-series data ingestion
- * 2. Real-time and batch data synchronization
- * 3. Optimized queries for RTB analytics
- * 4. Automated data retention and compression
- */
+
 @Injectable()
 export class TimescaleService {
   private readonly logger = new Logger(TimescaleService.name);

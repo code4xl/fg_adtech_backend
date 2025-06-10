@@ -1,4 +1,3 @@
-// src/rtb/controllers/rtb.controller.ts
 import {
   Controller,
   Post,

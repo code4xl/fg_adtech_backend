@@ -1,4 +1,3 @@
-// src/rtb/controllers/tracking.controller.ts
 import {
   Controller,
   Get,
@@ -23,34 +22,9 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { Request, Response } from 'express';
-
 import { ImpressionTrackingService } from '../services/impression-tracking.service';
 import { ClickTrackingService } from '../services/click-tracking.service';
 
-/**
- * Tracking Controller - Phase 5 Implementation
- *
- * **Core Responsibility: Handle impression and click tracking for RTB ads**
- *
- * **Why this controller is essential:**
- * - Provides industry-standard tracking endpoints (/track/impression, /track/click)
- * - Enables real-time performance measurement for campaigns
- * - Supports both individual and batch tracking for efficiency
- * - Handles tracking pixel delivery and click redirects
- *
- * **Key Features:**
- * 1. Impression tracking with 1x1 pixel response
- * 2. Click tracking with seamless redirect
- * 3. Batch processing for high-volume scenarios
- * 4. Comprehensive user context extraction
- * 5. Fraud detection and duplicate prevention
- *
- * **Performance Considerations:**
- * - Sub-50ms response times for tracking requests
- * - Async processing to prevent blocking
- * - Efficient context extraction from HTTP headers
- * - Proper HTTP status codes for different scenarios
- */
 @ApiTags('Tracking')
 @Controller('track')
 export class TrackingController {

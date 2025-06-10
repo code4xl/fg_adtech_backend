@@ -1,4 +1,3 @@
-// src/timescale/timescale-connection.service.ts
 import {
   Injectable,
   Logger,
@@ -23,14 +22,6 @@ export class TimescaleDBConnection implements OnModuleInit, OnModuleDestroy {
     await this.closePool();
   }
 
-  /**
-   * Initialize connection pool with TimescaleDB-optimized settings
-   *
-   * **Why these specific settings:**
-   * - Larger pool for analytical workloads
-   * - Longer connection timeouts for complex queries
-   * - Optimized for bulk insert operations
-   */
   private async initializePool() {
     try {
       // Get configuration from the nested timescale object

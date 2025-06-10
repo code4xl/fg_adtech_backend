@@ -1,4 +1,3 @@
-// src/rtb/services/auction.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
@@ -8,31 +7,6 @@ import { REDIS_KEYS } from '../../redis/constants/redis-keys';
 import { BidEvaluationService } from './bid-evalutation.service';
 import { ConfigService } from '@nestjs/config';
 
-/**
- * Auction Service - Phase 3 Complete Implementation
- *
- * **Core responsibility: Orchestrate the entire auction process**
- *
- * **Why this architecture:**
- * - Separates auction logic from bid request handling
- * - Implements both first-price and second-price auctions
- * - Handles real-time budget tracking and campaign eligibility
- * - Provides detailed auction metrics for performance monitoring
- *
- * **Auction flow:**
- * 1. Find eligible campaigns based on targeting rules
- * 2. Generate bid prices for each eligible campaign
- * 3. Run auction algorithm (first/second price)
- * 4. Determine winner and final price
- * 5. Store comprehensive auction log
- * 6. Generate bid responses for all participants
- *
- * **Performance optimizations:**
- * - Redis caching for campaign eligibility (5min TTL)
- * - Atomic budget operations to prevent overspend
- * - Parallel bid evaluation for multiple campaigns
- * - Efficient database writes with batch operations
- */
 @Injectable()
 export class AuctionService {
   private readonly logger = new Logger(AuctionService.name);

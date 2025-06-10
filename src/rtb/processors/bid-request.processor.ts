@@ -1,4 +1,3 @@
-// src/rtb/processors/bid-request.processor.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { AuctionService } from '../services/auction.service';
 import { KafkaService } from '../../kafka/kafka.service';
@@ -8,533 +7,524 @@ import { kafkaTopics } from '../../kafka/constants/kafka.config';
 import { REDIS_KEYS } from '../../redis/constants/redis-keys';
 import { RTB_REDIS_KEYS } from 'src/redis/constants/rtb-keys';
 
-/**
- * Bid Request Processor - Phase 4 Implementation
- * 
- * **Core Responsibility: Execute the complete auction pipeline asynchronously**
- * 
- * **Why this processor is essential:**
- * - Separates auction logic from HTTP request handling for better performance
- * - Enables complex auction algorithms without blocking SDK responses
- * - Provides foundation for sophisticated bid evaluation and optimization
- * - Handles high-volume processing with proper resource management
- * 
- * **Processing Pipeline:**
- * 1. Set processing locks to prevent duplicate processing
- * 2. Find eligible campaigns using cached targeting evaluation
- * 3. Generate bid responses with performance-optimized pricing
- * 4. Execute auction algorithm (first-price/second-price)
- * 5. Update real-time counters and publish results
- * 6. Handle errors gracefully with comprehensive logging
- * 
- * **Performance Optimizations:**
- * - Redis locks prevent race conditions
- * - Parallel bid generation for multiple campaigns
- * - Cached eligibility results reduce database load
- * - Atomic operations for budget updates
- */
 @Injectable()
 export class BidRequestProcessor {
-    private readonly logger = new Logger(BidRequestProcessor.name);
+  private readonly logger = new Logger(BidRequestProcessor.name);
 
-    constructor(
-        private readonly auctionService: AuctionService,
-        private readonly kafka: KafkaService,
-        private readonly redis: RedisService,
-        private readonly rtbRedis: RTBRedisService,
-    ) {
-        this.logger.log('Bid Request Processor initialized - Phase 4');
+  constructor(
+    private readonly auctionService: AuctionService,
+    private readonly kafka: KafkaService,
+    private readonly redis: RedisService,
+    private readonly rtbRedis: RTBRedisService,
+  ) {
+    this.logger.log('Bid Request Processor initialized - Phase 4');
+  }
+
+  /**
+   * Main bid request processing method
+   *
+   * **Why comprehensive processing:**
+   * - RTB auctions involve multiple complex steps that must complete atomically
+   * - Error handling at each step prevents partial state corruption
+   * - Metrics collection enables performance optimization
+   * - Locking prevents duplicate processing of same request
+   */
+  async processBidRequest(bidRequest: any): Promise<{
+    auctionId: string;
+    winner: any | null;
+    totalBids: number;
+    validBids: number;
+    processingTime: number;
+    auctionType: string;
+    floorPrice?: number;
+  }> {
+    const startTime = Date.now();
+    const auctionId = this.generateAuctionId(bidRequest.id);
+
+    this.logger.debug('Starting bid request processing', {
+      auctionId,
+      requestId: bidRequest.id,
+      inventoryId: bidRequest.inventoryId,
+    });
+
+    try {
+      // 1. Set processing lock to prevent duplicate processing
+      // if two time request comes for same request id
+      const lockAcquired = await this.setProcessingLock(bidRequest.id);
+      if (!lockAcquired) {
+        throw new Error('Request already being processed');
+      }
+
+      // 2. Find eligible campaigns with caching optimization
+      const eligibleCampaigns = await this.findEligibleCampaigns(bidRequest);
+
+      this.logger.debug('Found eligible campaigns', {
+        auctionId,
+        campaignCount: eligibleCampaigns.length,
+      });
+
+      if (eligibleCampaigns.length === 0) {
+        return await this.handleNoBidsAuction(auctionId, bidRequest, startTime);
+      }
+
+      // 3. Generate bid responses for all eligible campaigns
+      const bidResponses = await this.auctionService.generateBidResponses(
+        bidRequest,
+        eligibleCampaigns,
+        auctionId,
+      );
+
+      this.logger.debug('Generated bid responses', {
+        auctionId,
+        totalCampaigns: eligibleCampaigns.length,
+        validBids: bidResponses.length,
+      });
+
+      if (bidResponses.length === 0) {
+        return await this.handleNoBidsAuction(auctionId, bidRequest, startTime);
+      }
+
+      // 4. Execute auction algorithm to determine winner
+      const auctionResult = await this.executeAuction(bidResponses, bidRequest);
+
+      // 5. Update performance metrics and counters
+      await this.updateMetrics(bidRequest, auctionResult, startTime);
+
+      // 6. Publish results for response generation
+      await this.publishAuctionResult(auctionResult, auctionId);
+
+      const processingTime = Date.now() - startTime;
+
+      this.logger.log('✅ Bid request processed successfully', {
+        auctionId,
+        winnerId: auctionResult.winner?.id,
+        finalPrice: auctionResult.finalPrice,
+        totalBids: bidResponses.length,
+        processingTime: `${processingTime}ms`,
+      });
+
+      return {
+        auctionId,
+        winner: auctionResult.winner,
+        totalBids: bidResponses.length,
+        validBids: bidResponses.length,
+        processingTime,
+        auctionType: bidRequest.auctionType || 'SECOND_PRICE',
+        floorPrice: bidRequest.floorPrice,
+      };
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+
+      this.logger.error('❌ Bid request processing failed', {
+        auctionId,
+        error: error.message,
+        processingTime: `${processingTime}ms`,
+      });
+
+      // Handle processing error appropriately
+      await this.handleProcessingError(bidRequest, auctionId, error, startTime);
+
+      throw error;
+    } finally {
+      // Always clear processing lock
+      await this.clearProcessingLock(bidRequest.id);
     }
+  }
 
-    /**
-     * Main bid request processing method
-     * 
-     * **Why comprehensive processing:**
-     * - RTB auctions involve multiple complex steps that must complete atomically
-     * - Error handling at each step prevents partial state corruption
-     * - Metrics collection enables performance optimization
-     * - Locking prevents duplicate processing of same request
-     */
-    async processBidRequest(bidRequest: any): Promise<{
-        auctionId: string;
-        winner: any | null;
-        totalBids: number;
-        validBids: number;
-        processingTime: number;
-        auctionType: string;
-        floorPrice?: number;
-    }> {
-        const startTime = Date.now();
-        const auctionId = this.generateAuctionId(bidRequest.id);
+  // ==========================================
+  // AUCTION PROCESSING STEPS
+  // ==========================================
 
-        this.logger.debug('Starting bid request processing', {
-            auctionId,
-            requestId: bidRequest.id,
-            inventoryId: bidRequest.inventoryId
+  /**
+   * Set processing lock to prevent duplicate processing
+   *
+   * **Why locking is critical:**
+   * - Kafka can deliver messages multiple times (at-least-once delivery)
+   * - Prevents wasted compute resources on duplicate processing
+   * - Ensures auction integrity and prevents double-billing
+   * - TTL prevents deadlocks from failed processes
+   */
+  private async setProcessingLock(requestId: string): Promise<boolean> {
+    try {
+      const lockKey = RTB_REDIS_KEYS.BID_REQUEST_LOCK(requestId);
+      const lockValue = `${Date.now()}_${Math.random()}`;
+      const lockTTL = 30; // 30 seconds TTL
+
+      // Use Redis SET with NX (only if not exists) and EX (expiration)
+      await this.redis.set(lockKey, lockValue, lockTTL);
+
+      const res = await this.redis.get(lockKey);
+
+      if (res) {
+        this.logger.debug('Processing lock acquired', { requestId });
+        return true;
+      } else {
+        this.logger.warn('Processing lock already exists', { requestId });
+        return false;
+      }
+    } catch (error) {
+      this.logger.error('Failed to set processing lock', {
+        error: error.message,
+        requestId,
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Clear processing lock after completion
+   */
+  private async clearProcessingLock(requestId: string): Promise<void> {
+    try {
+      const lockKey = RTB_REDIS_KEYS.BID_REQUEST_LOCK(requestId);
+      await this.redis.del(lockKey);
+
+      this.logger.debug('Processing lock cleared', { requestId });
+    } catch (error) {
+      this.logger.warn('Failed to clear processing lock', {
+        error: error.message,
+        requestId,
+      });
+    }
+  }
+
+  /**
+   * Find eligible campaigns using auction service
+   *
+   * **Why delegate to auction service:**
+   * - Campaign eligibility is complex business logic
+   * - Auction service handles caching and optimization
+   * - Separates concerns for better maintainability
+   */
+  private async findEligibleCampaigns(bidRequest: any): Promise<any[]> {
+    return await this.auctionService.findEligibleCampaigns(bidRequest);
+  }
+
+  /**
+   * Execute auction algorithm to determine winner
+   *
+   * **Why delegate to auction service:**
+   * - Auction algorithms are complex business logic
+   * - Different auction types require different implementations
+   * - Centralized auction logic ensures consistency
+   */
+  private async executeAuction(
+    bidResponses: any[],
+    bidRequest: any,
+  ): Promise<any> {
+    return await this.auctionService.runAuction(bidResponses, bidRequest);
+  }
+
+  // ==========================================
+  // SUPPORT METHODS
+  // ==========================================
+
+  /**
+   * Calculate bid price for campaign and context
+   */
+  private async calculateBidPrice(
+    campaign: any,
+    bidRequest: any,
+  ): Promise<number> {
+    try {
+      // This would integrate with your BidEvaluationService
+      // For now, using simplified calculation
+      const baseBid = Number(campaign.bidAmount || 1.0);
+
+      // Apply basic adjustments
+      let adjustedBid = baseBid;
+
+      // Device type adjustment
+      if (bidRequest.userContext.deviceType === 'mobile') {
+        adjustedBid *= 1.2; // 20% premium for mobile
+      }
+
+      // Geographic adjustment
+      if (bidRequest.userContext.country === 'US') {
+        adjustedBid *= 1.5; // 50% premium for US traffic
+      }
+
+      // Time-based adjustment
+      const hour = new Date().getHours();
+      if (hour >= 18 && hour <= 22) {
+        adjustedBid *= 1.1; // 10% premium for prime time
+      }
+
+      return Math.round(adjustedBid * 100) / 100; // Round to 2 decimals
+    } catch (error) {
+      this.logger.warn('Bid calculation failed, using base bid', {
+        error: error.message,
+        campaignId: campaign.id,
+      });
+      return Number(campaign.bidAmount || 1.0);
+    }
+  }
+
+  /**
+   * Select appropriate creative for campaign and ad slot
+   *
+   * **Why creative selection matters:**
+   * - Creative must match ad slot dimensions exactly
+   * - Only approved creatives can be served
+   * - Creative performance affects bid optimization
+   */
+  private async selectCreative(
+    campaign: any,
+    adSlotContext: any,
+  ): Promise<any> {
+    try {
+      // Find creative that matches requirements
+      const matchingCreative = campaign.creatives?.find(
+        (creative) =>
+          creative.status === 'APPROVED' &&
+          creative.adSlotTemplate.width === adSlotContext.width &&
+          creative.adSlotTemplate.height === adSlotContext.height &&
+          creative.adSlotTemplate.format === adSlotContext.format,
+      );
+
+      if (matchingCreative) {
+        this.logger.debug('Creative selected', {
+          campaignId: campaign.id,
+          creativeId: matchingCreative.id,
+          dimensions: `${adSlotContext.width}x${adSlotContext.height}`,
         });
+      }
 
-        try {
-            // 1. Set processing lock to prevent duplicate processing 
-            // if two time request comes for same request id
-            const lockAcquired = await this.setProcessingLock(bidRequest.id);
-            if (!lockAcquired) {
-                throw new Error('Request already being processed');
-            }
+      return matchingCreative || null;
+    } catch (error) {
+      this.logger.warn('Creative selection failed', {
+        error: error.message,
+        campaignId: campaign.id,
+      });
+      return null;
+    }
+  }
 
-            // 2. Find eligible campaigns with caching optimization
-            const eligibleCampaigns = await this.findEligibleCampaigns(bidRequest);
+  /**
+   * Create bid response object
+   *
+   * **Why structured bid response:**
+   * - Contains all data needed for auction evaluation
+   * - Includes tracking URLs for impression/click measurement
+   * - Standardized format enables consistent processing
+   */
+  private createBidResponse(
+    bidRequest: any,
+    campaign: any,
+    creative: any,
+    bidPrice: number,
+    auctionId: string,
+  ): any {
+    return {
+      id: this.generateBidResponseId(),
+      campaignId: campaign.id,
+      creativeId: creative.id,
+      advertiserId: campaign.advertiserId,
+      bidPrice,
+      currency: 'INR',
+      auctionId,
+      bidRequest: {
+        id: bidRequest.id,
+        inventoryId: bidRequest.inventoryId,
+      },
+      creative: {
+        id: creative.id,
+        name: creative.name,
+        fileUrl: creative.fileUrl,
+        landingUrl: creative.landingUrl,
+        adSlotTemplate: creative.adSlotTemplate,
+      },
+      campaign: {
+        id: campaign.id,
+        name: campaign.name,
+        bidStrategy: campaign.bidStrategy,
+      },
+      createdAt: new Date().toISOString(),
+    };
+  }
 
-            this.logger.debug('Found eligible campaigns', {
-                auctionId,
-                campaignCount: eligibleCampaigns.length
-            });
+  /**
+   * Handle auction with no valid bids
+   */
+  private async handleNoBidsAuction(
+    auctionId: string,
+    bidRequest: any,
+    startTime: number,
+  ): Promise<any> {
+    const processingTime = Date.now() - startTime;
 
-            if (eligibleCampaigns.length === 0) {
-                return await this.handleNoBidsAuction(auctionId, bidRequest, startTime);
-            }
+    this.logger.log('Auction completed with no bids', {
+      auctionId,
+      requestId: bidRequest.id,
+      processingTime: `${processingTime}ms`,
+    });
 
-            // 3. Generate bid responses for all eligible campaigns
-            const bidResponses = await this.auctionService.generateBidResponses(
-                bidRequest,
-                eligibleCampaigns,
-                auctionId
-            );
+    // Publish no-bids result
+    await this.publishAuctionResult(
+      {
+        status: 'NO_BIDS',
+        winner: null,
+        totalBids: 0,
+        message: 'No eligible campaigns found',
+      },
+      auctionId,
+    );
 
-            this.logger.debug('Generated bid responses', {
-                auctionId,
-                totalCampaigns: eligibleCampaigns.length,
-                validBids: bidResponses.length
-            });
+    return {
+      auctionId,
+      winner: null,
+      totalBids: 0,
+      validBids: 0,
+      processingTime,
+      auctionType: bidRequest.auctionType || 'SECOND_PRICE',
+    };
+  }
 
-            if (bidResponses.length === 0) {
-                return await this.handleNoBidsAuction(auctionId, bidRequest, startTime);
-            }
+  /**
+   * Update performance metrics after auction
+   *
+   * **Why metrics are crucial:**
+   * - Enable real-time monitoring of auction performance
+   * - Feed into bid optimization algorithms
+   * - Provide data for advertiser reporting
+   * - Help identify performance bottlenecks
+   */
+  private async updateMetrics(
+    bidRequest: any,
+    auctionResult: any,
+    startTime: number,
+  ): Promise<void> {
+    try {
+      const processingTime = Date.now() - startTime;
 
-            // 4. Execute auction algorithm to determine winner
-            const auctionResult = await this.executeAuction(bidResponses, bidRequest);
+      // Update Redis counters for real-time metrics
+      const hour = new Date().getHours();
+      const dateHour = `${new Date().toISOString().split('T')[0]}_${hour}`;
 
-            // 5. Update performance metrics and counters
-            await this.updateMetrics(bidRequest, auctionResult, startTime);
+      await Promise.all([
+        // Auction count metrics
+        this.redis.incr(`metrics:auctions:total:${dateHour}`),
+        this.redis.incr(
+          `metrics:auctions:${auctionResult.winner ? 'filled' : 'unfilled'}:${dateHour}`,
+        ),
 
-            // 6. Publish results for response generation
-            await this.publishAuctionResult(auctionResult, auctionId);
+        // Performance metrics
+        this.redis.incrby(
+          `metrics:processing_time:${dateHour}`,
+          processingTime,
+        ),
 
-            const processingTime = Date.now() - startTime;
+        // Inventory metrics
+        this.redis.incr(
+          `metrics:inventory:${bidRequest.inventoryId}:requests:${dateHour}`,
+        ),
 
-            this.logger.log('✅ Bid request processed successfully', {
-                auctionId,
-                winnerId: auctionResult.winner?.id,
-                finalPrice: auctionResult.finalPrice,
-                totalBids: bidResponses.length,
-                processingTime: `${processingTime}ms`
-            });
+        // Set expiration for metrics (keep for 7 days)
+        this.redis.expire(`metrics:auctions:total:${dateHour}`, 7 * 24 * 3600),
+        this.redis.expire(`metrics:processing_time:${dateHour}`, 7 * 24 * 3600),
+      ]);
 
-            return {
-                auctionId,
-                winner: auctionResult.winner,
-                totalBids: bidResponses.length,
-                validBids: bidResponses.length,
-                processingTime,
-                auctionType: bidRequest.auctionType || 'SECOND_PRICE',
-                floorPrice: bidRequest.floorPrice
-            };
+      this.logger.debug('Metrics updated', {
+        auctionId: auctionResult.auctionId || 'unknown',
+        processingTime,
+        hasWinner: !!auctionResult.winner,
+      });
+    } catch (error) {
+      this.logger.warn('Failed to update metrics', {
+        error: error.message,
+      });
+    }
+  }
 
-        } catch (error) {
-            const processingTime = Date.now() - startTime;
+  /**
+   * Publish auction result to results topic
+   */
+  private async publishAuctionResult(
+    auctionResult: any,
+    auctionId: string,
+  ): Promise<void> {
+    try {
+      await this.kafka.publish(kafkaTopics.AUCTION_RESULTS, {
+        key: auctionId,
+        value: {
+          ...auctionResult,
+          auctionId,
+          publishedAt: new Date().toISOString(),
+        },
+      });
 
-            this.logger.error('❌ Bid request processing failed', {
-                auctionId,
-                error: error.message,
-                processingTime: `${processingTime}ms`
-            });
+      this.logger.debug('Auction result published', { auctionId });
+    } catch (error) {
+      this.logger.error('Failed to publish auction result', {
+        error: error.message,
+        auctionId,
+      });
+      throw error;
+    }
+  }
 
-            // Handle processing error appropriately
-            await this.handleProcessingError(bidRequest, auctionId, error, startTime);
+  /**
+   * Handle processing errors with appropriate logging and cleanup
+   */
+  private async handleProcessingError(
+    bidRequest: any,
+    auctionId: string,
+    error: Error,
+    startTime: number,
+  ): Promise<void> {
+    const processingTime = Date.now() - startTime;
 
-            throw error;
-
-        } finally {
-            // Always clear processing lock
-            await this.clearProcessingLock(bidRequest.id);
-        }
+    // Publish error result for tracking
+    try {
+      await this.publishAuctionResult(
+        {
+          status: 'ERROR',
+          winner: null,
+          totalBids: 0,
+          error: error.message,
+          processingTime,
+        },
+        auctionId,
+      );
+    } catch (publishError) {
+      this.logger.error('Failed to publish error result', {
+        error: publishError.message,
+        originalError: error.message,
+        auctionId,
+      });
     }
 
-    // ==========================================
-    // AUCTION PROCESSING STEPS
-    // ==========================================
-
-    /**
-     * Set processing lock to prevent duplicate processing
-     * 
-     * **Why locking is critical:**
-     * - Kafka can deliver messages multiple times (at-least-once delivery)
-     * - Prevents wasted compute resources on duplicate processing
-     * - Ensures auction integrity and prevents double-billing
-     * - TTL prevents deadlocks from failed processes
-     */
-    private async setProcessingLock(requestId: string): Promise<boolean> {
-        try {
-            const lockKey = RTB_REDIS_KEYS.BID_REQUEST_LOCK(requestId);
-            const lockValue = `${Date.now()}_${Math.random()}`;
-            const lockTTL = 30; // 30 seconds TTL
-
-            // Use Redis SET with NX (only if not exists) and EX (expiration)
-            await this.redis.set(lockKey, lockValue, lockTTL);
-
-            const res = await this.redis.get(lockKey);
-
-            if (res) {
-                this.logger.debug('Processing lock acquired', { requestId });
-                return true;
-            } else {
-                this.logger.warn('Processing lock already exists', { requestId });
-                return false;
-            }
-
-        } catch (error) {
-            this.logger.error('Failed to set processing lock', {
-                error: error.message,
-                requestId
-            });
-            return false;
-        }
+    // Update error metrics
+    try {
+      const hour = new Date().getHours();
+      const dateHour = `${new Date().toISOString().split('T')[0]}_${hour}`;
+      await this.redis.incr(`metrics:auctions:error:${dateHour}`);
+    } catch (metricsError) {
+      this.logger.warn('Failed to update error metrics', {
+        error: metricsError.message,
+      });
     }
+  }
 
-    /**
-     * Clear processing lock after completion
-     */
-    private async clearProcessingLock(requestId: string): Promise<void> {
-        try {
-            const lockKey = RTB_REDIS_KEYS.BID_REQUEST_LOCK(requestId);
-            await this.redis.del(lockKey);
+  // ==========================================
+  // UTILITY METHODS
+  // ==========================================
 
-            this.logger.debug('Processing lock cleared', { requestId });
+  /**
+   * Generate unique auction ID
+   */
+  private generateAuctionId(requestId: string): string {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8);
+    return `auction_${timestamp}_${random}_${requestId.substring(0, 8)}`;
+  }
 
-        } catch (error) {
-            this.logger.warn('Failed to clear processing lock', {
-                error: error.message,
-                requestId
-            });
-        }
-    }
-
-    /**
-     * Find eligible campaigns using auction service
-     * 
-     * **Why delegate to auction service:**
-     * - Campaign eligibility is complex business logic
-     * - Auction service handles caching and optimization
-     * - Separates concerns for better maintainability
-     */
-    private async findEligibleCampaigns(bidRequest: any): Promise<any[]> {
-        return await this.auctionService.findEligibleCampaigns(bidRequest);
-    }
-
-    /**
-     * Execute auction algorithm to determine winner
-     * 
-     * **Why delegate to auction service:**
-     * - Auction algorithms are complex business logic
-     * - Different auction types require different implementations
-     * - Centralized auction logic ensures consistency
-     */
-    private async executeAuction(bidResponses: any[], bidRequest: any): Promise<any> {
-        return await this.auctionService.runAuction(bidResponses, bidRequest);
-    }
-
-    // ==========================================
-    // SUPPORT METHODS
-    // ==========================================
-
-    /**
-     * Calculate bid price for campaign and context
-     */
-    private async calculateBidPrice(campaign: any, bidRequest: any): Promise<number> {
-        try {
-            // This would integrate with your BidEvaluationService
-            // For now, using simplified calculation
-            const baseBid = Number(campaign.bidAmount || 1.0);
-
-            // Apply basic adjustments
-            let adjustedBid = baseBid;
-
-            // Device type adjustment
-            if (bidRequest.userContext.deviceType === 'mobile') {
-                adjustedBid *= 1.2; // 20% premium for mobile
-            }
-
-            // Geographic adjustment
-            if (bidRequest.userContext.country === 'US') {
-                adjustedBid *= 1.5; // 50% premium for US traffic
-            }
-
-            // Time-based adjustment
-            const hour = new Date().getHours();
-            if (hour >= 18 && hour <= 22) {
-                adjustedBid *= 1.1; // 10% premium for prime time
-            }
-
-            return Math.round(adjustedBid * 100) / 100; // Round to 2 decimals
-
-        } catch (error) {
-            this.logger.warn('Bid calculation failed, using base bid', {
-                error: error.message,
-                campaignId: campaign.id
-            });
-            return Number(campaign.bidAmount || 1.0);
-        }
-    }
-
-    /**
-     * Select appropriate creative for campaign and ad slot
-     * 
-     * **Why creative selection matters:**
-     * - Creative must match ad slot dimensions exactly
-     * - Only approved creatives can be served
-     * - Creative performance affects bid optimization
-     */
-    private async selectCreative(campaign: any, adSlotContext: any): Promise<any> {
-        try {
-            // Find creative that matches requirements
-            const matchingCreative = campaign.creatives?.find(creative =>
-                creative.status === 'APPROVED' &&
-                creative.adSlotTemplate.width === adSlotContext.width &&
-                creative.adSlotTemplate.height === adSlotContext.height &&
-                creative.adSlotTemplate.format === adSlotContext.format
-            );
-
-            if (matchingCreative) {
-                this.logger.debug('Creative selected', {
-                    campaignId: campaign.id,
-                    creativeId: matchingCreative.id,
-                    dimensions: `${adSlotContext.width}x${adSlotContext.height}`
-                });
-            }
-
-            return matchingCreative || null;
-
-        } catch (error) {
-            this.logger.warn('Creative selection failed', {
-                error: error.message,
-                campaignId: campaign.id
-            });
-            return null;
-        }
-    }
-
-    /**
-     * Create bid response object
-     * 
-     * **Why structured bid response:**
-     * - Contains all data needed for auction evaluation
-     * - Includes tracking URLs for impression/click measurement
-     * - Standardized format enables consistent processing
-     */
-    private createBidResponse(
-        bidRequest: any,
-        campaign: any,
-        creative: any,
-        bidPrice: number,
-        auctionId: string
-    ): any {
-        return {
-            id: this.generateBidResponseId(),
-            campaignId: campaign.id,
-            creativeId: creative.id,
-            advertiserId: campaign.advertiserId,
-            bidPrice,
-            currency: 'INR',
-            auctionId,
-            bidRequest: {
-                id: bidRequest.id,
-                inventoryId: bidRequest.inventoryId
-            },
-            creative: {
-                id: creative.id,
-                name: creative.name,
-                fileUrl: creative.fileUrl,
-                landingUrl: creative.landingUrl,
-                adSlotTemplate: creative.adSlotTemplate
-            },
-            campaign: {
-                id: campaign.id,
-                name: campaign.name,
-                bidStrategy: campaign.bidStrategy
-            },
-            createdAt: new Date().toISOString()
-        };
-    }
-
-    /**
-     * Handle auction with no valid bids
-     */
-    private async handleNoBidsAuction(
-        auctionId: string,
-        bidRequest: any,
-        startTime: number
-    ): Promise<any> {
-        const processingTime = Date.now() - startTime;
-
-        this.logger.log('Auction completed with no bids', {
-            auctionId,
-            requestId: bidRequest.id,
-            processingTime: `${processingTime}ms`
-        });
-
-        // Publish no-bids result
-        await this.publishAuctionResult({
-            status: 'NO_BIDS',
-            winner: null,
-            totalBids: 0,
-            message: 'No eligible campaigns found'
-        }, auctionId);
-
-        return {
-            auctionId,
-            winner: null,
-            totalBids: 0,
-            validBids: 0,
-            processingTime,
-            auctionType: bidRequest.auctionType || 'SECOND_PRICE'
-        };
-    }
-
-    /**
-     * Update performance metrics after auction
-     * 
-     * **Why metrics are crucial:**
-     * - Enable real-time monitoring of auction performance
-     * - Feed into bid optimization algorithms
-     * - Provide data for advertiser reporting
-     * - Help identify performance bottlenecks
-     */
-    private async updateMetrics(
-        bidRequest: any,
-        auctionResult: any,
-        startTime: number
-    ): Promise<void> {
-        try {
-            const processingTime = Date.now() - startTime;
-
-            // Update Redis counters for real-time metrics
-            const hour = new Date().getHours();
-            const dateHour = `${new Date().toISOString().split('T')[0]}_${hour}`;
-
-            await Promise.all([
-                // Auction count metrics
-                this.redis.incr(`metrics:auctions:total:${dateHour}`),
-                this.redis.incr(`metrics:auctions:${auctionResult.winner ? 'filled' : 'unfilled'}:${dateHour}`),
-
-                // Performance metrics
-                this.redis.incrby(`metrics:processing_time:${dateHour}`, processingTime),
-
-                // Inventory metrics
-                this.redis.incr(`metrics:inventory:${bidRequest.inventoryId}:requests:${dateHour}`),
-
-                // Set expiration for metrics (keep for 7 days)
-                this.redis.expire(`metrics:auctions:total:${dateHour}`, 7 * 24 * 3600),
-                this.redis.expire(`metrics:processing_time:${dateHour}`, 7 * 24 * 3600)
-            ]);
-
-            this.logger.debug('Metrics updated', {
-                auctionId: auctionResult.auctionId || 'unknown',
-                processingTime,
-                hasWinner: !!auctionResult.winner
-            });
-
-        } catch (error) {
-            this.logger.warn('Failed to update metrics', {
-                error: error.message
-            });
-        }
-    }
-
-    /**
-     * Publish auction result to results topic
-     */
-    private async publishAuctionResult(auctionResult: any, auctionId: string): Promise<void> {
-        try {
-            await this.kafka.publish(kafkaTopics.AUCTION_RESULTS, {
-                key: auctionId,
-                value: {
-                    ...auctionResult,
-                    auctionId,
-                    publishedAt: new Date().toISOString()
-                }
-            });
-
-            this.logger.debug('Auction result published', { auctionId });
-
-        } catch (error) {
-            this.logger.error('Failed to publish auction result', {
-                error: error.message,
-                auctionId
-            });
-            throw error;
-        }
-    }
-
-    /**
-     * Handle processing errors with appropriate logging and cleanup
-     */
-    private async handleProcessingError(
-        bidRequest: any,
-        auctionId: string,
-        error: Error,
-        startTime: number
-    ): Promise<void> {
-        const processingTime = Date.now() - startTime;
-
-        // Publish error result for tracking
-        try {
-            await this.publishAuctionResult({
-                status: 'ERROR',
-                winner: null,
-                totalBids: 0,
-                error: error.message,
-                processingTime
-            }, auctionId);
-
-        } catch (publishError) {
-            this.logger.error('Failed to publish error result', {
-                error: publishError.message,
-                originalError: error.message,
-                auctionId
-            });
-        }
-
-        // Update error metrics
-        try {
-            const hour = new Date().getHours();
-            const dateHour = `${new Date().toISOString().split('T')[0]}_${hour}`;
-            await this.redis.incr(`metrics:auctions:error:${dateHour}`);
-
-        } catch (metricsError) {
-            this.logger.warn('Failed to update error metrics', {
-                error: metricsError.message
-            });
-        }
-    }
-
-    // ==========================================
-    // UTILITY METHODS
-    // ==========================================
-
-    /**
-     * Generate unique auction ID
-     */
-    private generateAuctionId(requestId: string): string {
-        const timestamp = Date.now();
-        const random = Math.random().toString(36).substring(2, 8);
-        return `auction_${timestamp}_${random}_${requestId.substring(0, 8)}`;
-    }
-
-    /**
-     * Generate unique bid response ID
-     */
-    private generateBidResponseId(): string {
-        const timestamp = Date.now();
-        const random = Math.random().toString(36).substring(2, 8);
-        return `bid_${timestamp}_${random}`;
-    }
+  /**
+   * Generate unique bid response ID
+   */
+  private generateBidResponseId(): string {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8);
+    return `bid_${timestamp}_${random}`;
+  }
 }

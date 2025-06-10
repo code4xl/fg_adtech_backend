@@ -1,4 +1,3 @@
-// src/rtb/services/impression-tracking.service.ts
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { KafkaService } from '../../kafka/kafka.service';
@@ -11,30 +10,6 @@ import { WithRetry } from '../../common/resilience/retry.decorator';
 import { ImpressionEventDto } from '../dto/';
 import { RTB_REDIS_KEYS } from 'src/redis/constants/rtb-keys';
 
-/**
- * Impression Tracking Service - Phase 5 Implementation
- *
- * **Core Responsibility: Process ad impression events and maintain real-time analytics**
- *
- * **Why this service is critical:**
- * - Enables accurate billing for impressions served
- * - Provides real-time campaign performance data
- * - Supports viewability measurement for quality assurance
- * - Feeds machine learning models for bid optimization
- *
- * **Key Functions:**
- * 1. Track individual impression events
- * 2. Update real-time performance counters
- * 3. Manage campaign budget consumption
- * 4. Detect and prevent fraud/duplicate impressions
- * 5. Publish analytics data for downstream processing
- *
- * **Performance Optimizations:**
- * - Async database writes to maintain response speed
- * - Redis counters for real-time metrics
- * - Batch processing for high-volume scenarios
- * - Kafka integration for scalable analytics pipeline
- */
 @Injectable()
 export class ImpressionTrackingService {
   private readonly logger = new Logger(ImpressionTrackingService.name);

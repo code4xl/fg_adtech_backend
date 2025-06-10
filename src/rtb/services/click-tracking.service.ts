@@ -1,4 +1,3 @@
-// src/rtb/services/click-tracking.service.ts
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { KafkaService } from '../../kafka/kafka.service';
@@ -9,30 +8,6 @@ import { WithRetry } from '../../common/resilience/retry.decorator';
 import { v4 as uuidv4 } from 'uuid';
 import { ClickEventDto } from '../dto';
 
-/**
- * Click Tracking Service - Phase 5 Implementation
- *
- * **Core Responsibility: Process ad click events and calculate conversion metrics**
- *
- * **Why this service is critical:**
- * - Enables accurate click-through rate (CTR) calculation
- * - Supports conversion tracking and attribution
- * - Provides data for campaign optimization
- * - Required for cost-per-click (CPC) billing models
- *
- * **Key Functions:**
- * 1. Track individual click events with impression linkage
- * 2. Update real-time CTR and performance metrics
- * 3. Detect and prevent click fraud
- * 4. Support conversion tracking through landing page analysis
- * 5. Provide data for bid optimization algorithms
- *
- * **Performance Optimizations:**
- * - Async processing to maintain redirect speed
- * - Redis counters for real-time CTR calculation
- * - Efficient impression-to-click linking
- * - Fraud detection without blocking legitimate clicks
- */
 @Injectable()
 export class ClickTrackingService {
   private readonly logger = new Logger(ClickTrackingService.name);

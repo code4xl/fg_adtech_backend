@@ -13,11 +13,6 @@ import {
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-/**
- * System Components DTO
- *
- * Status of various system components.
- */
 export class SystemComponentsDto {
   @ApiProperty({
     description: 'Database connection status',
@@ -53,11 +48,6 @@ export class SystemComponentsDto {
   timescale?: string;
 }
 
-/**
- * System Metrics DTO
- *
- * Real-time performance metrics.
- */
 export class SystemMetricsDto {
   @ApiProperty({
     description: 'Current requests per second',
@@ -96,11 +86,6 @@ export class SystemMetricsDto {
   activeAuctions?: number;
 }
 
-/**
- * Health Check DTO
- *
- * Overall system health information.
- */
 export class HealthCheckDto {
   @ApiProperty({
     description: 'Overall system status',

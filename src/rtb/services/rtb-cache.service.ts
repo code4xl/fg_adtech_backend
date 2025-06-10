@@ -1,5 +1,3 @@
-// src/rtb/services/rtb-cache.service.ts
-
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from '../../redis/redis.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -7,33 +5,6 @@ import { REDIS_KEYS } from '../../redis/constants/redis-keys';
 import { RTB_REDIS_KEYS } from '../../redis/constants/rtb-keys';
 import { WithRetry } from '../../common/resilience/retry.decorator';
 
-/**
- * RTB Cache Service - Phase 7 Complete Implementation
- *
- * **Core Responsibility: Implement sophisticated caching layer for RTB performance optimization**
- *
- * **Why this service is critical for Phase 7:**
- * - RTB auctions must complete in <100ms, caching reduces latency by 60-80%
- * - Campaign eligibility checking involves 10+ database queries, caching saves 40-80ms
- * - Budget tracking needs real-time atomic operations, Redis provides sub-millisecond access
- * - Performance metrics collection requires high-frequency updates without database overhead
- * - Cache warming strategies prevent cold start penalties during peak traffic
- *
- * **Performance Optimization Features:**
- * 1. Multi-level caching: L1 (memory) + L2 (Redis) for maximum speed
- * 2. Intelligent TTL management: Different cache durations based on data volatility
- * 3. Cache warming: Proactive population of frequently accessed data
- * 4. Atomic operations: Budget tracking with race condition prevention
- * 5. Batch operations: Reduce network round trips for bulk operations
- * 6. Circuit breaker: Graceful degradation when cache is unavailable
- *
- * **Cache Strategy:**
- * - Campaign eligibility: 5 minutes (balances freshness vs performance)
- * - Budget status: Real-time counters with daily reset
- * - Performance metrics: 1-minute sliding windows for real-time dashboards
- * - Floor prices: 10 minutes (updated infrequently but critical for bidding)
- * - Targeting rules: 15 minutes (stable data, high access frequency)
- */
 @Injectable()
 export class RTBCacheService {
   private readonly logger = new Logger(RTBCacheService.name);

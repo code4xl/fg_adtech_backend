@@ -1,34 +1,9 @@
-// src/rtb/consumers/tracking-kafka.consumer.ts
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { KafkaService } from '../../kafka/kafka.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { kafkaTopics } from '../../kafka/constants/kafka.config';
 
-/**
- * Tracking Kafka Consumer - Phase 5 Implementation
- *
- * **Core Responsibility: Process tracking events for analytics and data pipeline**
- *
- * **Why this consumer is essential:**
- * - Processes high-volume tracking events asynchronously
- * - Aggregates data for analytics and reporting
- * - Manages data flow to Timescale for long-term storage
- * - Handles batch processing for efficiency
- *
- * **Key Functions:**
- * 1. Consume impression and click events from Kafka
- * 2. Aggregate data for real-time analytics
- * 3. Prepare data for Timescale synchronization
- * 4. Handle error scenarios and dead letter queues
- * 5. Generate performance alerts and notifications
- *
- * **Performance Optimizations:**
- * - Batch processing for database operations
- * - Parallel processing of different event types
- * - Efficient data transformation for downstream systems
- * - Circuit breaker patterns for external dependencies
- */
 @Injectable()
 export class TrackingKafkaConsumer implements OnModuleInit {
   private readonly logger = new Logger(TrackingKafkaConsumer.name);
