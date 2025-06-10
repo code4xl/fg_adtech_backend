@@ -118,7 +118,7 @@ export class RTBController {
   @ApiParam({
     name: 'requestId',
     description: 'Request ID returned from bid-request endpoint',
-    example: 'req_abc123_def456',
+    example: '',
   })
   @ApiResponse({
     status: 200,
@@ -314,20 +314,6 @@ export class RTBController {
       !bidRequestDto.adSlotContext?.height
     ) {
       throw new BadRequestException('Ad slot dimensions are required');
-    }
-
-    // Validate dimensions are reasonable
-    const { width, height } = bidRequestDto.adSlotContext;
-    if (width < 1 || height < 1 || width > 2000 || height > 2000) {
-      throw new BadRequestException('Invalid ad slot dimensions');
-    }
-
-    // Validate timeout if provided
-    if (
-      bidRequestDto.timeout &&
-      (bidRequestDto.timeout < 50 || bidRequestDto.timeout > 1000)
-    ) {
-      throw new BadRequestException('Timeout must be between 50-1000ms');
     }
   }
 }

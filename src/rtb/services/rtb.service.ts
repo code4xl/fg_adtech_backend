@@ -7,6 +7,7 @@ import { CampaignEligibilityService } from './campaign-eligibility.service';
 import { CreateBidRequestDto, BidResponseDto, HealthCheckDto } from '../dto';
 import { kafkaTopics } from '../../kafka/constants/kafka.config';
 import { REDIS_KEYS } from '../../redis/constants/redis-keys';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class RTBService {
@@ -36,9 +37,7 @@ export class RTBService {
       });
 
       // 1. Generate internal request ID and auction ID
-      const requestId = this.generateRequestId(
-        bidRequestData.externalRequestId,
-      );
+      const requestId = uuidv4();
       const auctionId = this.generateAuctionId(requestId);
 
       // 2. Enrich bid request with additional context
@@ -70,7 +69,7 @@ export class RTBService {
       });
 
       return {
-        requestId,
+        requestId: bidRequest.id,
         auctionId,
         status: 'processing',
       };
@@ -170,12 +169,6 @@ export class RTBService {
       this.logger.error('Health check failed', { error: error.message });
       throw error;
     }
-  }
-
-  private generateRequestId(externalRequestId: string): string {
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 8);
-    return `req_${timestamp}_${random}_${externalRequestId.substring(0, 8)}`;
   }
 
   /**

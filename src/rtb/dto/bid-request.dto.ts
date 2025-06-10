@@ -12,6 +12,12 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  AuctionType,
+  DeviceType,
+  InventoryFormat,
+  InventoryPosition,
+} from '@prisma/client';
 
 export class UserContextDto {
   @ApiPropertyOptional({
@@ -46,11 +52,11 @@ export class UserContextDto {
 
   @ApiPropertyOptional({
     description: 'Device type',
-    example: 'mobile',
-    enum: ['mobile', 'desktop', 'tablet', 'tv', 'unknown'],
+    example: DeviceType.MOBILE,
+    enum: DeviceType,
   })
   @IsOptional()
-  @IsEnum(['mobile', 'desktop', 'tablet', 'tv', 'unknown'])
+  @IsEnum(DeviceType)
   deviceType?: string;
 
   @ApiPropertyOptional({
@@ -123,32 +129,18 @@ export class AdSlotContextDto {
 
   @ApiProperty({
     description: 'Ad format type',
-    example: 'banner',
-    enum: ['banner', 'native', 'video', 'interstitial', 'rewarded'],
+    example: InventoryFormat.BANNER,
+    enum: InventoryFormat,
   })
-  @IsEnum(['banner', 'native', 'video', 'interstitial', 'rewarded'])
+  @IsEnum(InventoryFormat)
   format: string;
 
   @ApiProperty({
     description: 'Ad position on page',
-    example: 'above_fold',
-    enum: [
-      'above_fold',
-      'below_fold',
-      'sidebar',
-      'header',
-      'footer',
-      'in_content',
-    ],
+    example: InventoryPosition.ABOVE_FOLD,
+    enum: InventoryPosition,
   })
-  @IsEnum([
-    'above_fold',
-    'below_fold',
-    'sidebar',
-    'header',
-    'footer',
-    'in_content',
-  ])
+  @IsEnum(InventoryPosition)
   position: string;
 
   @ApiPropertyOptional({
@@ -248,12 +240,12 @@ export class CreateBidRequestDto {
 
   @ApiPropertyOptional({
     description: 'Auction type preference',
-    example: 'second_price',
-    enum: ['first_price', 'second_price'],
-    default: 'second_price',
+    example: AuctionType.SECOND_PRICE,
+    enum: AuctionType,
+    default: AuctionType.SECOND_PRICE,
   })
   @IsOptional()
-  @IsEnum(['first_price', 'second_price'])
+  @IsEnum(AuctionType)
   auctionType?: string;
 
   @ApiPropertyOptional({

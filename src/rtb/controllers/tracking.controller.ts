@@ -24,7 +24,7 @@ import {
 import { Request, Response } from 'express';
 import { ImpressionTrackingService } from '../services/impression-tracking.service';
 import { ClickTrackingService } from '../services/click-tracking.service';
-
+import { v4 as uuidv4 } from 'uuid';
 @ApiTags('Tracking')
 @Controller('track')
 export class TrackingController {
@@ -752,8 +752,6 @@ export class TrackingController {
    * Generate unique request ID for tracking
    */
   private generateRequestId(): string {
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 8);
-    return `req_${timestamp}_${random}`;
+    return uuidv4();
   }
 }

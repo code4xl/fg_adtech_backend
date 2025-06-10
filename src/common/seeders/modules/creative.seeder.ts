@@ -51,7 +51,7 @@ export class CreativeSeeder implements ISeeder {
 
       const creativeData: any = [];
       const creativeTypes = Object.values(CreativeType);
-      const statuses = Object.values(CreativeStatus);
+      const statuses = 'APPROVED';
 
       // Create creatives for campaigns
       for (const campaign of campaigns) {
@@ -99,7 +99,7 @@ export class CreativeSeeder implements ISeeder {
             ]),
             s3Key: this.generateS3Key(creativeType, template),
             landingUrl: faker.internet.url(),
-            status: faker.helpers.arrayElement(statuses),
+            status: CreativeStatus.APPROVED, // All creatives are approved for simplicity
             contentSafetyThreshold: faker.number.float({
               min: 0.1,
               max: 0.9,
