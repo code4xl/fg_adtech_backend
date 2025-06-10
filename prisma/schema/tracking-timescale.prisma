@@ -1,5 +1,5 @@
-// Models for Timestream sync metadata
-model TimestreamSyncLog {
+// Models for Timescale sync metadata
+model TimescaleSyncLog {
     id           String   @id @default(uuid()) @db.Uuid
     tableName    String // impressions, clicks, bids
     lastSyncTime DateTime
@@ -11,7 +11,7 @@ model TimestreamSyncLog {
     @@index([tableName, lastSyncTime])
 }
 
-// Enhanced tracking for PostgreSQL (before Timestream sync)
+// Enhanced tracking for PostgreSQL (before Timescale sync)
 model ImpressionEvent {
     id String @id @default(uuid()) @db.Uuid
 
@@ -138,8 +138,8 @@ model ClickEvent {
     timeFromImpression Int? // Milliseconds from impression to click
 
     // SYNC STATUS
-    syncedToTimestream Boolean   @default(false)
-    syncedAt           DateTime?
+    syncedToTimescale Boolean   @default(false)
+    syncedAt          DateTime?
 
     // RELATIONS
     impression ImpressionEvent? @relation(fields: [impressionId], references: [id])
@@ -154,6 +154,6 @@ model ClickEvent {
     @@index([publisherId, timestamp]) // Publisher earnings
     @@index([impressionId]) // Link to impression
     @@index([timestamp]) // Time-based queries
-    @@index([syncedToTimestream]) // Sync management
+    @@index([syncedToTimescale]) // Sync management
     @@index([userId, campaignId]) // User behavior analysis
 }

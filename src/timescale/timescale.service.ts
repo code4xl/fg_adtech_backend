@@ -13,13 +13,6 @@ import {
 import { from as copyFrom } from 'pg-copy-streams';
 /**
  * TimescaleDB Service - Phase 6 Implementation
- *
- * **Replaces AWS Timestream with TimescaleDB for:**
- * - Better cost efficiency (no per-query pricing)
- * - Full SQL compatibility with existing PostgreSQL knowledge
- * - Easier local development and testing
- * - Better integration with existing infrastructure
- *
  * **Key capabilities:**
  * 1. High-performance time-series data ingestion
  * 2. Real-time and batch data synchronization

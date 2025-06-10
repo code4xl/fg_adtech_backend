@@ -11,8 +11,7 @@ import { TimescaleImpressionDto, TimescaleClickDto } from 'src/rtb/dto';
 /**
  * TimescaleDB Sync Consumer - Phase 6 Complete Implementation
  *
- * **Replaces AWS Timestream sync with TimescaleDB sync**
- *
+
  * **Why this consumer is essential:**
  * - Provides real-time data synchronization from PostgreSQL to TimescaleDB
  * - Enables immediate analytics on freshly created impression/click data
@@ -76,17 +75,17 @@ export class TimescaleSyncConsumer implements OnModuleInit {
    * Initialize Kafka subscriptions for TimescaleDB sync
    *
    * **Why multiple sync topics:**
-   * - TIMESTREAM_SYNC: General sync events (replaces original Timestream topic)
+   * - TIMESCALE_SYNC: General sync events (replaces original TIMESCALE topic)
    * - IMPRESSIONS: Real-time impression sync
    * - CLICKS: Real-time click sync
-   * - TIMESTREAM_BATCH_*: Bulk sync operations
+   * - TIMESCALE_BATCH_*: Bulk sync operations
    * - Health check and monitoring topics
    */
   async onModuleInit() {
     try {
       this.logger.log('Initializing TimescaleDB sync subscriptions...');
 
-      // Primary sync topic (replaces Timestream sync)
+      // Primary sync topic
       await this.kafka.subscribe(
         kafkaTopics.TIMESCALE_SYNC,
         'timescale-sync-consumer',
@@ -122,7 +121,7 @@ export class TimescaleSyncConsumer implements OnModuleInit {
 
       // Batch processing topics
       await this.kafka.subscribe(
-        kafkaTopics.TIMESTREAM_BATCH_IMPRESSIONS,
+        kafkaTopics.TIMESCALE_BATCH_IMPRESSIONS,
         'timescale-batch-impressions',
         this.processBatchImpressions.bind(this),
         // {
@@ -132,7 +131,7 @@ export class TimescaleSyncConsumer implements OnModuleInit {
       );
 
       await this.kafka.subscribe(
-        kafkaTopics.TIMESTREAM_BATCH_CLICKS,
+        kafkaTopics.TIMESCALE_BATCH_CLICKS,
         'timescale-batch-clicks',
         this.processBatchClicks.bind(this),
         // {
@@ -309,7 +308,7 @@ export class TimescaleSyncConsumer implements OnModuleInit {
       }
 
       // Check if already synced to avoid duplicates
-      if (impression.syncedToTimestream) {
+      if (impression.syncedToTimescale) {
         this.logger.debug(
           `Impression ${impression.id} already synced, skipping`,
         );
@@ -330,7 +329,7 @@ export class TimescaleSyncConsumer implements OnModuleInit {
         await this.prisma.impressionEvent.update({
           where: { id: impression.id },
           data: {
-            syncedToTimestream: true,
+            syncedToTimescale: true,
             syncedAt: new Date(),
           },
         });
@@ -418,7 +417,7 @@ export class TimescaleSyncConsumer implements OnModuleInit {
       }
 
       // Check if already synced
-      if (click.syncedToTimestream) {
+      if (click.syncedToTimescale) {
         this.logger.debug(`Click ${click.id} already synced, skipping`);
         if (context?.commitOffsets) {
           await context.commitOffsets();
@@ -437,7 +436,7 @@ export class TimescaleSyncConsumer implements OnModuleInit {
         await this.prisma.clickEvent.update({
           where: { id: click.id },
           data: {
-            syncedToTimestream: true,
+            syncedToTimescale: true,
             syncedAt: new Date(),
           },
         });
@@ -511,7 +510,7 @@ export class TimescaleSyncConsumer implements OnModuleInit {
       const impressions = await this.prisma.impressionEvent.findMany({
         where: {
           id: { in: impressionIds },
-          syncedToTimestream: false,
+          syncedToTimescale: false,
         },
         include: {
           creative: {
@@ -561,7 +560,7 @@ export class TimescaleSyncConsumer implements OnModuleInit {
             await this.prisma.impressionEvent.updateMany({
               where: { id: { in: chunk.map((i) => i.id) } },
               data: {
-                syncedToTimestream: true,
+                syncedToTimescale: true,
                 syncedAt: new Date(),
               },
             });
@@ -659,7 +658,7 @@ export class TimescaleSyncConsumer implements OnModuleInit {
       const clicks = await this.prisma.clickEvent.findMany({
         where: {
           id: { in: clickIds },
-          syncedToTimestream: false,
+          syncedToTimescale: false,
         },
         include: {
           impression: {
@@ -709,7 +708,7 @@ export class TimescaleSyncConsumer implements OnModuleInit {
             await this.prisma.clickEvent.updateMany({
               where: { id: { in: chunk.map((c) => c.id) } },
               data: {
-                syncedToTimestream: true,
+                syncedToTimescale: true,
                 syncedAt: new Date(),
               },
             });
@@ -914,11 +913,11 @@ export class TimescaleSyncConsumer implements OnModuleInit {
       // Reset sync status for all records
       if (tableName === 'impressions') {
         await this.prisma.impressionEvent.updateMany({
-          data: { syncedToTimestream: false, syncedAt: null },
+          data: { syncedToTimescale: false, syncedAt: null },
         });
       } else if (tableName === 'clicks') {
         await this.prisma.clickEvent.updateMany({
-          data: { syncedToTimestream: false, syncedAt: null },
+          data: { syncedToTimescale: false, syncedAt: null },
         });
       }
 
@@ -958,7 +957,7 @@ export class TimescaleSyncConsumer implements OnModuleInit {
       const incrementalFilters = {
         ...filters,
         updatedAt: { gte: since },
-        syncedToTimestream: false,
+        syncedToTimescale: false,
       };
 
       // Use moderate batch size for incremental sync
@@ -990,27 +989,27 @@ export class TimescaleSyncConsumer implements OnModuleInit {
 
       if (tableName === 'impressions') {
         pgCount = await this.prisma.impressionEvent.count({
-          where: { syncedToTimestream: true, ...filters },
+          where: { syncedToTimescale: true, ...filters },
         });
 
         const tsResult = await this.timescale.query(
           'SELECT COUNT(*) as count FROM rtb_impressions WHERE timestamp >= $1',
           [
             filters.timestamp?.gte ||
-            new Date(Date.now() - 24 * 60 * 60 * 1000),
+              new Date(Date.now() - 24 * 60 * 60 * 1000),
           ],
         );
         tsCount = parseInt(tsResult.rows[0].count);
       } else if (tableName === 'clicks') {
         pgCount = await this.prisma.clickEvent.count({
-          where: { syncedToTimestream: true, ...filters },
+          where: { syncedToTimescale: true, ...filters },
         });
 
         const tsResult = await this.timescale.query(
           'SELECT COUNT(*) as count FROM rtb_clicks WHERE timestamp >= $1',
           [
             filters.timestamp?.gte ||
-            new Date(Date.now() - 24 * 60 * 60 * 1000),
+              new Date(Date.now() - 24 * 60 * 60 * 1000),
           ],
         );
         tsCount = parseInt(tsResult.rows[0].count);
@@ -1096,7 +1095,7 @@ export class TimescaleSyncConsumer implements OnModuleInit {
             };
 
             // Re-publish to the appropriate topic for retry
-            await this.kafka.publish(kafkaTopics.TIMESTREAM_SYNC, retryPayload);
+            await this.kafka.publish(kafkaTopics.TIMESCALE_SYNC, retryPayload);
 
             this.logger.debug(
               `Scheduled retry ${errorEvent.retryCount + 1}/${maxRetries} for sync error`,
@@ -1475,9 +1474,9 @@ export class TimescaleSyncConsumer implements OnModuleInit {
             averageBatchSize:
               this.syncMetrics.batchSizes.length > 0
                 ? (
-                  this.syncMetrics.batchSizes.reduce((a, b) => a + b, 0) /
-                  this.syncMetrics.batchSizes.length
-                ).toFixed(0)
+                    this.syncMetrics.batchSizes.reduce((a, b) => a + b, 0) /
+                    this.syncMetrics.batchSizes.length
+                  ).toFixed(0)
                 : 0,
             circuitBreakerStatus: this.circuitBreaker.isOpen
               ? 'OPEN'
@@ -1557,8 +1556,8 @@ export class TimescaleSyncConsumer implements OnModuleInit {
         timestamp: new Date().toISOString(),
       };
 
-      // await this.kafka.publish(kafkaTopics.TIMESTREAM_SYNC, payload);
-      await this.kafka.publish(kafkaTopics.TIMESTREAM_SYNC, {
+      // await this.kafka.publish(kafkaTopics.TIMESCALE_SYNC, payload);
+      await this.kafka.publish(kafkaTopics.TIMESCALE_SYNC, {
         key: `sync-${tableName}-${Date.now()}`,
         value: payload,
       });

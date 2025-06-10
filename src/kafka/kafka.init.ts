@@ -10,14 +10,14 @@ import { kafkaTopics } from './constants/kafka.config';
 
 /**
  * Enhanced Kafka Initialization Service
- * 
+ *
  * This service creates all necessary Kafka topics during application startup.
- * 
+ *
  * Why we need this:
  * - Ensures all required topics exist before consumers try to subscribe
  * - Creates topics with optimal partition/replication settings
  * - Handles both existing and new RTB-specific topics
- * 
+ *
  * Changes from original:
  * - Added new RTB processing topics
  * - Added enhanced tracking topics
@@ -28,7 +28,7 @@ import { kafkaTopics } from './constants/kafka.config';
 export class KafkaInitService implements OnModuleInit {
   private readonly logger = new Logger(KafkaInitService.name);
 
-  constructor(private readonly kafkaService: KafkaService) { }
+  constructor(private readonly kafkaService: KafkaService) {}
 
   async onModuleInit() {
     try {
@@ -41,17 +41,17 @@ export class KafkaInitService implements OnModuleInit {
         // =============================================
         {
           topic: kafkaTopics.BID_REQUESTS,
-          numPartitions: 6,    // Higher partitions for high throughput
+          numPartitions: 6, // Higher partitions for high throughput
           replicationFactor: 1, // Single replica for development
         },
         {
           topic: kafkaTopics.BID_RESPONSES,
-          numPartitions: 6,    // Match bid requests partitioning
+          numPartitions: 6, // Match bid requests partitioning
           replicationFactor: 1,
         },
         {
           topic: kafkaTopics.AUCTION_RESULTS,
-          numPartitions: 3,    // Lower volume, fewer partitions needed
+          numPartitions: 3, // Lower volume, fewer partitions needed
           replicationFactor: 1,
         },
 
@@ -60,12 +60,12 @@ export class KafkaInitService implements OnModuleInit {
         // =============================================
         {
           topic: kafkaTopics.IMPRESSIONS,
-          numPartitions: 8,    // High volume tracking events
+          numPartitions: 8, // High volume tracking events
           replicationFactor: 1,
         },
         {
           topic: kafkaTopics.CLICKS,
-          numPartitions: 4,    // Lower volume than impressions
+          numPartitions: 4, // Lower volume than impressions
           replicationFactor: 1,
         },
 
@@ -74,12 +74,12 @@ export class KafkaInitService implements OnModuleInit {
         // =============================================
         {
           topic: kafkaTopics.CAMPAIGN_METRICS,
-          numPartitions: 3,    // Aggregated data, lower volume
+          numPartitions: 3, // Aggregated data, lower volume
           replicationFactor: 1,
         },
         {
-          topic: kafkaTopics.TIMESTREAM_SYNC,
-          numPartitions: 2,    // Batch processing, lower throughput
+          topic: kafkaTopics.TIMESCALE_SYNC,
+          numPartitions: 2, // Batch processing, lower throughput
           replicationFactor: 1,
         },
 
@@ -88,12 +88,12 @@ export class KafkaInitService implements OnModuleInit {
         // =============================================
         {
           topic: kafkaTopics.DLQ_BID_REQUESTS,
-          numPartitions: 1,    // Error handling, single partition sufficient
+          numPartitions: 1, // Error handling, single partition sufficient
           replicationFactor: 1,
         },
         {
           topic: kafkaTopics.DLQ_TRACKING,
-          numPartitions: 1,    // Error handling, single partition sufficient
+          numPartitions: 1, // Error handling, single partition sufficient
           replicationFactor: 1,
         },
 
@@ -102,17 +102,17 @@ export class KafkaInitService implements OnModuleInit {
         // =============================================
         {
           topic: kafkaTopics.RTB_OPTIMIZATION,
-          numPartitions: 2,    // Lower volume optimization data
+          numPartitions: 2, // Lower volume optimization data
           replicationFactor: 1,
         },
         {
           topic: kafkaTopics.CAMPAIGN_BUDGET_ALERTS,
-          numPartitions: 1,    // Alert system, single partition
+          numPartitions: 1, // Alert system, single partition
           replicationFactor: 1,
         },
         {
           topic: kafkaTopics.PERFORMANCE_UPDATES,
-          numPartitions: 3,    // Performance metrics updates
+          numPartitions: 3, // Performance metrics updates
           replicationFactor: 1,
         },
 
@@ -121,41 +121,27 @@ export class KafkaInitService implements OnModuleInit {
         // =============================================
         {
           topic: kafkaTopics.BID_ELIGIBILITY_CHECK,
-          numPartitions: 4,    // Campaign eligibility processing
+          numPartitions: 4, // Campaign eligibility processing
           replicationFactor: 1,
         },
         {
           topic: kafkaTopics.AUCTION_PREPROCESSING,
-          numPartitions: 3,    // Pre-auction data preparation
+          numPartitions: 3, // Pre-auction data preparation
           replicationFactor: 1,
         },
         {
           topic: kafkaTopics.CREATIVE_PERFORMANCE_UPDATE,
-          numPartitions: 2,    // Creative performance metrics
+          numPartitions: 2, // Creative performance metrics
           replicationFactor: 1,
         },
         {
           topic: kafkaTopics.BUDGET_EXHAUSTION_ALERT,
-          numPartitions: 1,    // Budget alerts, single partition
+          numPartitions: 1, // Budget alerts, single partition
           replicationFactor: 1,
         },
         {
           topic: kafkaTopics.FRAUD_DETECTION,
-          numPartitions: 2,    // Fraud detection events
-          replicationFactor: 1,
-        },
-
-        // =============================================
-        // BATCH PROCESSING TOPICS
-        // =============================================
-        {
-          topic: kafkaTopics.TIMESTREAM_BATCH_IMPRESSIONS,
-          numPartitions: 2,    // Batch processing, fewer partitions
-          replicationFactor: 1,
-        },
-        {
-          topic: kafkaTopics.TIMESTREAM_BATCH_CLICKS,
-          numPartitions: 2,    // Batch processing, fewer partitions
+          numPartitions: 2, // Fraud detection events
           replicationFactor: 1,
         },
 
@@ -164,32 +150,32 @@ export class KafkaInitService implements OnModuleInit {
         // =============================================
         {
           topic: kafkaTopics.GOOGLE_BID_REQUESTS,
-          numPartitions: 3,    // External integration
+          numPartitions: 3, // External integration
           replicationFactor: 1,
         },
         {
           topic: kafkaTopics.GOOGLE_BID_RESPONSES,
-          numPartitions: 3,    // External integration
+          numPartitions: 3, // External integration
           replicationFactor: 1,
         },
 
         /**
- * Phase 5: Tracking & Analytics Topics
- * 
- * Add these to your existing kafkaService.createTopics() call:
- */
+         * Phase 5: Tracking & Analytics Topics
+         *
+         * Add these to your existing kafkaService.createTopics() call:
+         */
 
         // =============================================
         // PHASE 5: NEW - TRACKING EVENTS TOPICS
         // =============================================
         {
           topic: kafkaTopics.IMPRESSIONS,
-          numPartitions: 8,    // High volume tracking events
+          numPartitions: 8, // High volume tracking events
           replicationFactor: 1,
         },
         {
           topic: kafkaTopics.CLICKS,
-          numPartitions: 4,    // Lower volume than impressions
+          numPartitions: 4, // Lower volume than impressions
           replicationFactor: 1,
         },
 
@@ -198,12 +184,7 @@ export class KafkaInitService implements OnModuleInit {
         // =============================================
         {
           topic: kafkaTopics.CAMPAIGN_METRICS,
-          numPartitions: 3,    // Aggregated data, lower volume
-          replicationFactor: 1,
-        },
-        {
-          topic: kafkaTopics.TIMESTREAM_SYNC,
-          numPartitions: 2,    // Batch processing, lower throughput
+          numPartitions: 3, // Aggregated data, lower volume
           replicationFactor: 1,
         },
 
@@ -212,7 +193,7 @@ export class KafkaInitService implements OnModuleInit {
         // =============================================
         {
           topic: kafkaTopics.DLQ_TRACKING,
-          numPartitions: 1,    // Error handling, single partition sufficient
+          numPartitions: 1, // Error handling, single partition sufficient
           replicationFactor: 1,
         },
 
@@ -221,26 +202,12 @@ export class KafkaInitService implements OnModuleInit {
         // =============================================
         {
           topic: kafkaTopics.FRAUD_ALERTS,
-          numPartitions: 1,    // Alert system, single partition
+          numPartitions: 1, // Alert system, single partition
           replicationFactor: 1,
         },
         {
           topic: kafkaTopics.PERFORMANCE_ALERTS,
-          numPartitions: 1,    // Alert system, single partition
-          replicationFactor: 1,
-        },
-
-        // =============================================
-        // PHASE 5: NEW - TIMESTREAM BATCH TOPICS
-        // =============================================
-        {
-          topic: kafkaTopics.TIMESTREAM_BATCH_IMPRESSIONS,
-          numPartitions: 2,    // Batch processing, fewer partitions
-          replicationFactor: 1,
-        },
-        {
-          topic: kafkaTopics.TIMESTREAM_BATCH_CLICKS,
-          numPartitions: 2,    // Batch processing, fewer partitions
+          numPartitions: 1, // Alert system, single partition
           replicationFactor: 1,
         },
       ]);
@@ -249,7 +216,6 @@ export class KafkaInitService implements OnModuleInit {
 
       // Log topic configuration for debugging
       this.logTopicConfiguration();
-
     } catch (error) {
       this.logger.error('❌ Failed to create Kafka topics:', error);
 
@@ -258,7 +224,9 @@ export class KafkaInitService implements OnModuleInit {
       if (process.env.NODE_ENV === 'production') {
         throw error;
       } else {
-        this.logger.warn('⚠️  Continuing in development mode despite Kafka topic creation failure');
+        this.logger.warn(
+          '⚠️  Continuing in development mode despite Kafka topic creation failure',
+        );
       }
     }
   }
@@ -275,19 +243,13 @@ export class KafkaInitService implements OnModuleInit {
         kafkaTopics.BID_RESPONSES,
         kafkaTopics.AUCTION_RESULTS,
       ],
-      'Tracking Events': [
-        kafkaTopics.IMPRESSIONS,
-        kafkaTopics.CLICKS,
-      ],
-      'Analytics': [
-        kafkaTopics.CAMPAIGN_METRICS,
-        kafkaTopics.TIMESTREAM_SYNC,
-      ],
+      'Tracking Events': [kafkaTopics.IMPRESSIONS, kafkaTopics.CLICKS],
+      Analytics: [kafkaTopics.CAMPAIGN_METRICS, kafkaTopics.TIMESCALE_SYNC],
       'Error Handling': [
         kafkaTopics.DLQ_BID_REQUESTS,
         kafkaTopics.DLQ_TRACKING,
       ],
-      'Optimization': [
+      Optimization: [
         kafkaTopics.RTB_OPTIMIZATION,
         kafkaTopics.CAMPAIGN_BUDGET_ALERTS,
         kafkaTopics.PERFORMANCE_UPDATES,
@@ -296,7 +258,7 @@ export class KafkaInitService implements OnModuleInit {
 
     Object.entries(topicGroups).forEach(([group, topics]) => {
       this.logger.debug(`  ${group}:`);
-      topics.forEach(topic => {
+      topics.forEach((topic) => {
         this.logger.debug(`    - ${topic}`);
       });
     });
@@ -305,7 +267,10 @@ export class KafkaInitService implements OnModuleInit {
   /**
    * Health check method to verify topics exist
    */
-  async verifyTopicsExist(): Promise<{ success: boolean; missingTopics: string[] }> {
+  async verifyTopicsExist(): Promise<{
+    success: boolean;
+    missingTopics: string[];
+  }> {
     try {
       const allTopics = Object.values(kafkaTopics);
       const missingTopics: string[] = [];
@@ -325,7 +290,6 @@ export class KafkaInitService implements OnModuleInit {
 
       this.logger.log('✅ All required topics verified');
       return { success: true, missingTopics: [] };
-
     } catch (error) {
       this.logger.error('❌ Failed to verify topics:', error);
       return { success: false, missingTopics: [] };
@@ -345,7 +309,7 @@ export class KafkaInitService implements OnModuleInit {
       totalTopics: Object.keys(kafkaTopics).length,
       coreRTBTopics: 3, // BID_REQUESTS, BID_RESPONSES, AUCTION_RESULTS
       trackingTopics: 2, // IMPRESSIONS, CLICKS
-      analyticsTopics: 2, // CAMPAIGN_METRICS, TIMESTREAM_SYNC
+      analyticsTopics: 2, // CAMPAIGN_METRICS, TIMESCALE_SYNC
     };
   }
 }

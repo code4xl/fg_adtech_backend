@@ -294,14 +294,19 @@ export class ImpressionTrackingService {
 
       // Check by bid response ID + user ID (if available)
       if (userId) {
-
-        const userKey = RTB_REDIS_KEYS.IMPRESSION_DUP_USER_KEY(bidResponseId, userId);
+        const userKey = RTB_REDIS_KEYS.IMPRESSION_DUP_USER_KEY(
+          bidResponseId,
+          userId,
+        );
         duplicateChecks.push(this.redis.get(userKey));
       }
 
       // Check by bid response ID + session ID (if available)
       if (sessionId) {
-        const sessionKey = RTB_REDIS_KEYS.IMPRESSION_DUP_SESSION_KEY(bidResponseId, sessionId);
+        const sessionKey = RTB_REDIS_KEYS.IMPRESSION_DUP_SESSION_KEY(
+          bidResponseId,
+          sessionId,
+        );
         duplicateChecks.push(this.redis.get(sessionKey));
       }
 
@@ -320,12 +325,23 @@ export class ImpressionTrackingService {
 
         if (userId) {
           promises.push(
-            this.redis.set(RTB_REDIS_KEYS.IMPRESSION_DUP_USER_KEY(bidResponseId, userId), '1', ttl),
+            this.redis.set(
+              RTB_REDIS_KEYS.IMPRESSION_DUP_USER_KEY(bidResponseId, userId),
+              '1',
+              ttl,
+            ),
           );
         }
         if (sessionId) {
           promises.push(
-            this.redis.set(RTB_REDIS_KEYS.IMPRESSION_DUP_SESSION_KEY(bidResponseId, sessionId), '1', ttl),
+            this.redis.set(
+              RTB_REDIS_KEYS.IMPRESSION_DUP_SESSION_KEY(
+                bidResponseId,
+                sessionId,
+              ),
+              '1',
+              ttl,
+            ),
           );
         }
         promises.push(this.redis.set(bidKey, '1', ttl));
@@ -407,7 +423,7 @@ export class ImpressionTrackingService {
         pageUrl: requestContext.pageUrl,
         pageCategory: requestContext.pageCategory,
 
-        // Sync status for Timestream
+        // Sync status for Timescale
         syncedToTimescale: false,
       };
 
@@ -458,9 +474,14 @@ export class ImpressionTrackingService {
       await Promise.all([
         // Performance metrics
 
-        this.redis.incr(RTB_REDIS_KEYS.METRICS_HOURLY_TOTAL_IMPRESSIONS(dateHour)),
         this.redis.incr(
-          RTB_REDIS_KEYS.METRICS_HOURLY_TOTAL_IMPRESSIONS_DEVICE_TYPE(impression.deviceType, dateHour),
+          RTB_REDIS_KEYS.METRICS_HOURLY_TOTAL_IMPRESSIONS(dateHour),
+        ),
+        this.redis.incr(
+          RTB_REDIS_KEYS.METRICS_HOURLY_TOTAL_IMPRESSIONS_DEVICE_TYPE(
+            impression.deviceType,
+            dateHour,
+          ),
         ),
         this.redis.incrbyfloat(
           RTB_REDIS_KEYS.METRICS_TOTAL_HOURLY_REVENUE(dateHour),
@@ -470,10 +491,13 @@ export class ImpressionTrackingService {
         // Viewability metrics (if available)
         ...(impression.viewable !== null
           ? [
-            this.redis.incr(
-              RTB_REDIS_KEYS.METRICS_TOTAL_HOURLY_VIEWABLE_IMPRESSIONS(dateHour, impression.viewable),
-            ),
-          ]
+              this.redis.incr(
+                RTB_REDIS_KEYS.METRICS_TOTAL_HOURLY_VIEWABLE_IMPRESSIONS(
+                  dateHour,
+                  impression.viewable,
+                ),
+              ),
+            ]
           : []),
 
         // Set expiration for metrics (7 days)
