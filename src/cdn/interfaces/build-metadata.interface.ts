@@ -1,3 +1,5 @@
+import { ICdnFileMetadata } from './cdn-config.interface';
+
 /**
  * SDK build information
  */

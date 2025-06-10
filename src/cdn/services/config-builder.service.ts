@@ -56,7 +56,7 @@ export class ConfigBuilderService {
     this.validatePublisherStatus(publisherData);
     
     // Get website from publisher data
-    const website = publisherData.websites[0];
+    const website = publisherData.website;
     if (!website) {
       throw new NotFoundException(
         `Website ${websiteId} not found for publisher ${publisherId}`,
@@ -64,21 +64,23 @@ export class ConfigBuilderService {
       );
     }
 
-    // Map inventory to SDK configuration format
+    // Map inventory to SDK configuration format  
+    // For now, we'll use a default tier since Publisher model doesn't have tier field
+    const defaultTier = PublisherTier.BASIC;
     const inventoryConfigs = await this.inventoryMapper.mapInventoryToConfig(
-      website.adInventory,
-      publisherData.tier as PublisherTier,
+      website.inventories,
+      defaultTier,
     );
 
     // Generate selectors for inventory
     const inventoryWithSelectors = this.selectorGenerator.generateSelectors(
       inventoryConfigs,
-      website.domain,
+      website.domain || website.url || '',
     );
 
     // Build settings based on tier
     const settings = this.buildSettings(
-      publisherData.tier as PublisherTier,
+      defaultTier,
       options?.includeDebug || false,
     );
 
@@ -86,11 +88,11 @@ export class ConfigBuilderService {
     const config: IOceanConfig = {
       publisher: {
         id: publisherData.id,
-        tier: publisherData.tier as PublisherTier,
+        tier: defaultTier,
       },
       website: {
         id: website.id,
-        domain: website.domain,
+        domain: website.domain || website.url || '',
       },
       inventory: inventoryWithSelectors,
       settings,
@@ -112,31 +114,9 @@ export class ConfigBuilderService {
   ): Promise<Map<string, IOceanConfig>> {
     this.logger.log(`Building all configurations for publisher: ${publisherId}`);
 
+    // First verify publisher exists
     const publisher = await this.prisma.publisher.findUnique({
       where: { id: publisherId },
-      include: {
-        websites: {
-          where: { status: 'VERIFIED' },
-          include: {
-            adInventory: {
-              where: { isActive: true },
-              include: {
-                adSlotTemplate: true,
-                floorPrice: {
-                  where: {
-                    OR: [
-                      { endDate: null },
-                      { endDate: { gte: new Date() } },
-                    ],
-                  },
-                  orderBy: { createdAt: 'desc' },
-                  take: 1,
-                },
-              },
-            },
-          },
-        },
-      },
     });
 
     if (!publisher) {
@@ -146,9 +126,35 @@ export class ConfigBuilderService {
       );
     }
 
+    // Get all active websites for the publisher
+    const websites = await this.prisma.website.findMany({
+      where: { 
+        publisherId: publisherId,
+        isActive: true 
+      },
+      include: {
+        inventories: {
+          where: { isActive: true },
+          include: {
+            adSlotTemplate: true,
+            floorPrices: {
+              where: {
+                OR: [
+                  { endDate: null },
+                  { endDate: { gte: new Date() } },
+                ],
+              },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+
     const configurations = new Map<string, IOceanConfig>();
 
-    for (const website of publisher.websites) {
+    for (const website of websites) {
       const config = await this.buildConfiguration(
         publisherId,
         website.id,
@@ -207,41 +213,9 @@ export class ConfigBuilderService {
    * Fetch publisher data with all necessary relations
    */
   private async fetchPublisherData(publisherId: string, websiteId: string) {
+    // First verify publisher exists
     const publisher = await this.prisma.publisher.findUnique({
       where: { id: publisherId },
-      include: {
-        websites: {
-          where: { id: websiteId },
-          include: {
-            adInventory: {
-              where: { isActive: true },
-              include: {
-                adSlotTemplate: true,
-                floorPrice: {
-                  where: {
-                    OR: [
-                      { endDate: null },
-                      { endDate: { gte: new Date() } },
-                    ],
-                  },
-                  orderBy: { createdAt: 'desc' },
-                  take: 1,
-                },
-                campaign: {
-                  where: {
-                    status: 'ACTIVE',
-                    startDate: { lte: new Date() },
-                    OR: [
-                      { endDate: null },
-                      { endDate: { gte: new Date() } },
-                    ],
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
     });
 
     if (!publisher) {
@@ -251,7 +225,44 @@ export class ConfigBuilderService {
       );
     }
 
-    return publisher;
+    // Get the specific website with its inventories
+    const website = await this.prisma.website.findUnique({
+      where: { 
+        id: websiteId,
+        publisherId: publisherId 
+      },
+      include: {
+        inventories: {
+          where: { isActive: true },
+          include: {
+            adSlotTemplate: true,
+            floorPrices: {
+              where: {
+                OR: [
+                  { endDate: null },
+                  { endDate: { gte: new Date() } },
+                ],
+              },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+
+    if (!website) {
+      throw new NotFoundException(
+        `Website ${websiteId} not found for publisher ${publisherId}`,
+        CDN_ERROR_CODES.WEBSITE_NOT_FOUND,
+      );
+    }
+
+    // Return combined data
+    return {
+      ...publisher,
+      website,
+    };
   }
 
   /**
@@ -265,10 +276,10 @@ export class ConfigBuilderService {
       );
     }
 
-    const website = publisher.websites[0];
-    if (website && website.status !== 'VERIFIED') {
+    const website = publisher.website;
+    if (website && !website.isActive) {
       throw new BadRequestException(
-        `Website is not verified. Current status: ${website.status}`,
+        `Website is not active. Current status: ${website.isActive ? 'active' : 'inactive'}`,
         CDN_ERROR_CODES.PERMISSION_DENIED,
       );
     }
@@ -309,12 +320,12 @@ export class ConfigBuilderService {
     
     return {
       tier,
-      features: features.features as any[],
+      features: [...features.features] as any[], // Create a copy to avoid readonly issues
       maxInventorySlots: features.maxInventorySlots,
       refreshInterval: features.refreshInterval,
-      analyticsEnabled: features.features.includes('performanceAnalytics'),
+      analyticsEnabled: features.features.includes('performanceAnalytics' as any),
       customTargetingEnabled: tier !== PublisherTier.BASIC,
-      headerBiddingEnabled: features.features.includes('headerBidding'),
+      headerBiddingEnabled: features.features.includes('headerBidding' as any),
     };
   }
 }
