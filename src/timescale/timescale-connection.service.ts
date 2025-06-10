@@ -136,9 +136,6 @@ export class TimescaleDBConnection implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /**
-   * Health check method
-   */
   async healthCheck(): Promise<{ status: string; details: any }> {
     try {
       const result = await this.query(

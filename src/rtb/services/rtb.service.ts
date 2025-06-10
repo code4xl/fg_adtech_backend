@@ -22,20 +22,6 @@ export class RTBService {
     this.logger.log('RTB Service initialized - Phase 3 Complete');
   }
 
-  /**
-   * Process incoming bid request
-   *
-   * **Why this flow:**
-   * 1. Store immediately in database for reliability
-   * 2. Cache in Redis for fast access during processing
-   * 3. Publish to Kafka for async auction processing
-   * 4. Return tracking info immediately (sub-50ms response)
-   *
-   * **Error handling:**
-   * - Database failures are caught and logged
-   * - Kafka failures don't block the response
-   * - Redis failures are non-blocking
-   */
   async processBidRequest(bidRequestData: CreateBidRequestDto): Promise<{
     requestId: string;
     auctionId: string;
@@ -107,15 +93,6 @@ export class RTBService {
     }
   }
 
-  /**
-   * Retrieve bid response for SDK polling
-   *
-   * **Why this caching strategy:**
-   * 1. Check Redis cache first (sub-5ms response)
-   * 2. Fall back to database if not cached
-   * 3. Cache database results for future requests
-   * 4. Handle different auction states appropriately
-   */
   async getBidResponse(requestId: string): Promise<BidResponseDto | null> {
     this.logger.debug('Getting bid response', { requestId });
 
@@ -149,15 +126,6 @@ export class RTBService {
     }
   }
 
-  /**
-   * Get comprehensive system health status
-   *
-   * **Why comprehensive health checks:**
-   * - Load balancers need reliable health endpoints
-   * - Monitoring systems need detailed component status
-   * - Performance metrics help with capacity planning
-   * - Early warning for system degradation
-   */
   async getSystemHealth(): Promise<HealthCheckDto> {
     this.logger.debug('Performing system health check');
 
@@ -204,13 +172,6 @@ export class RTBService {
     }
   }
 
-  // ==========================================
-  // PRIVATE HELPER METHODS
-  // ==========================================
-
-  /**
-   * Generate unique request ID with timestamp and randomness
-   */
   private generateRequestId(externalRequestId: string): string {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
@@ -245,9 +206,6 @@ export class RTBService {
     };
   }
 
-  /**
-   * Store bid request in PostgreSQL
-   */
   private async createBidRequest(
     enrichedRequest: any,
     auctionId: string,
@@ -283,9 +241,6 @@ export class RTBService {
     }
   }
 
-  /**
-   * Cache bid request in Redis for fast access
-   */
   private async cacheBidRequest(bidRequest: any): Promise<void> {
     try {
       const cacheKey = REDIS_KEYS.BID_REQUEST(bidRequest.id);
@@ -301,9 +256,6 @@ export class RTBService {
     }
   }
 
-  /**
-   * Publish bid request to Kafka for async processing
-   */
   private async publishBidRequestForProcessing(bidRequest: any): Promise<void> {
     try {
       await this.kafka.publish(kafkaTopics.AUCTION_PROCESSING, {
@@ -331,9 +283,6 @@ export class RTBService {
     }
   }
 
-  /**
-   * Calculate processing priority based on bid request characteristics
-   */
   private calculateProcessingPriority(
     bidRequest: any,
   ): 'high' | 'normal' | 'low' {
@@ -350,9 +299,6 @@ export class RTBService {
     return 'normal';
   }
 
-  /**
-   * Get cached bid response from Redis
-   */
   private async getCachedBidResponse(
     requestId: string,
   ): Promise<BidResponseDto | null> {
@@ -374,9 +320,6 @@ export class RTBService {
     }
   }
 
-  /**
-   * Get bid response from database
-   */
   private async getBidResponseFromDatabase(
     requestId: string,
   ): Promise<BidResponseDto | null> {
@@ -465,9 +408,6 @@ export class RTBService {
     }
   }
 
-  /**
-   * Cache bid response in Redis
-   */
   private async cacheBidResponse(
     requestId: string,
     bidResponse: BidResponseDto,
@@ -483,9 +423,6 @@ export class RTBService {
     }
   }
 
-  /**
-   * Record processing metrics
-   */
   private async recordProcessingMetrics(
     requestId: string,
     processingTime: number,
@@ -508,9 +445,6 @@ export class RTBService {
     }
   }
 
-  /**
-   * Record error metrics
-   */
   private async recordErrorMetrics(
     requestId: string,
     errorMessage: string,
@@ -528,13 +462,6 @@ export class RTBService {
     }
   }
 
-  // ==========================================
-  // HEALTH CHECK METHODS
-  // ==========================================
-
-  /**
-   * Check database connectivity
-   */
   private async checkDatabaseHealth(): Promise<string> {
     try {
       await this.prisma.$queryRaw`SELECT 1`;
@@ -547,9 +474,6 @@ export class RTBService {
     }
   }
 
-  /**
-   * Check Redis connectivity
-   */
   private async checkRedisHealth(): Promise<string> {
     try {
       await this.redis.set('health:check', 'ok', 10);
@@ -561,9 +485,6 @@ export class RTBService {
     }
   }
 
-  /**
-   * Check Kafka connectivity
-   */
   private async checkKafkaHealth(): Promise<string> {
     try {
       // Simple topic existence check
@@ -577,9 +498,6 @@ export class RTBService {
     }
   }
 
-  /**
-   * Get real-time performance metrics
-   */
   private async getPerformanceMetrics(): Promise<{
     requestsPerSecond: number;
     averageLatency: string;
@@ -634,9 +552,6 @@ export class RTBService {
     }
   }
 
-  /**
-   * Get health status from Promise result
-   */
   private getHealthStatus(result: PromiseSettledResult<string>): string {
     if (result.status === 'fulfilled') {
       return result.value;

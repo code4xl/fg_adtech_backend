@@ -16,15 +16,6 @@ export class CampaignEligibilityService {
     );
   }
 
-  /**
-   * Get all eligible campaigns for a bid request
-   *
-   * **Why this caching strategy:**
-   * - Campaign eligibility calculation involves 10+ database queries
-   * - Results are stable for 5-minute periods
-   * - Cache key includes device type for targeting accuracy
-   * - Memory usage is reasonable (few KB per cache entry)
-   */
   async getEligibleCampaigns(
     inventoryId: string,
     userContext: any,
@@ -38,7 +29,6 @@ export class CampaignEligibilityService {
 
     try {
       // 1. Check Redis cache first
-      // const cacheKey = this.buildCacheKey(inventoryId, userContext, adSlotContext);
       const cacheKey = REDIS_KEYS.ELIGIBLE_CAMPAIGNS(
         inventoryId,
         userContext.deviceType,
@@ -90,15 +80,6 @@ export class CampaignEligibilityService {
     }
   }
 
-  /**
-   * Check if a specific campaign has budget available
-   *
-   * **Why real-time budget checking:**
-   * - Campaign budgets are updated constantly with each impression
-   * - Redis counters provide atomic increment operations
-   * - Prevents overspend in high-traffic scenarios
-   * - Sub-millisecond response time
-   */
   async checkBudgetAvailability(campaignId: string): Promise<boolean> {
     try {
       const today = new Date().toISOString().split('T')[0];
@@ -137,15 +118,6 @@ export class CampaignEligibilityService {
     }
   }
 
-  /**
-   * Evaluate targeting rules for a campaign
-   *
-   * **Why comprehensive targeting:**
-   * - Advertisers need precise audience targeting
-   * - Each rule type serves different marketing objectives
-   * - Boolean logic allows complex targeting combinations
-   * - Performance impact is minimized through smart ordering
-   */
   async checkTargetingRules(
     campaign: any,
     userContext: any,
@@ -202,19 +174,6 @@ export class CampaignEligibilityService {
     }
   }
 
-  // ==========================================
-  // PRIVATE HELPER METHODS
-  // ==========================================
-
-  private buildCacheKey(
-    inventoryId: string,
-    userContext: any,
-    adSlotContext: any,
-  ): string {
-    // Include key targeting dimensions in cache key
-    return `eligible:${inventoryId}:${userContext.deviceType}:${userContext.country}:${adSlotContext.format}`;
-  }
-
   private async getCachedEligibility(cacheKey: string): Promise<any[] | null> {
     try {
       const cached = await this.redis.get<string>(cacheKey);
@@ -243,14 +202,6 @@ export class CampaignEligibilityService {
     }
   }
 
-  /**
-   * Get basic campaign pool with essential filters
-   *
-   * **Why this initial filter:**
-   * - Eliminates obviously ineligible campaigns early
-   * - Reduces targeting evaluation workload by 80%+
-   * - Database indexed queries for fast response
-   */
   private async getBasicCampaignPool(
     inventoryId: string,
     adSlotContext: any,
@@ -402,19 +353,6 @@ export class CampaignEligibilityService {
     );
   }
 
-  // ==========================================
-  // TARGETING RULE EVALUATORS
-  // ==========================================
-
-  /**
-   * Geographic targeting evaluation
-   *
-   * **Why geographic targeting:**
-   * - Location-specific campaigns (local businesses)
-   * - Regulatory compliance (GDPR, local laws)
-   * - Language and cultural relevance
-   * - Time zone considerations
-   */
   private async checkGeographicTargeting(
     rules: any[],
     userContext: any,
@@ -477,15 +415,6 @@ export class CampaignEligibilityService {
     return true;
   }
 
-  /**
-   * Device targeting evaluation
-   *
-   * **Why device targeting:**
-   * - Mobile-first vs desktop campaigns
-   * - App-specific targeting
-   * - Performance optimization (slow connections)
-   * - User experience considerations
-   */
   private async checkDeviceTargeting(
     rules: any[],
     userContext: any,
@@ -740,15 +669,6 @@ export class CampaignEligibilityService {
     return true;
   }
 
-  /**
-   * Frequency targeting evaluation
-   *
-   * **Why frequency capping:**
-   * - Prevents ad fatigue
-   * - Optimizes budget allocation
-   * - Improves user experience
-   * - Industry best practice
-   */
   private async checkFrequencyTargeting(
     rules: any[],
     userContext: any,

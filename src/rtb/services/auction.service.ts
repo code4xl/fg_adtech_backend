@@ -17,7 +17,7 @@ export class AuctionService {
     private readonly redis: RedisService,
     private readonly campaignEligibility: CampaignEligibilityService,
     private readonly bidEvaluation: BidEvaluationService,
-    private readonly config: ConfigService, // Assuming ConfigService is injected for configuration access
+    private readonly config: ConfigService,
   ) {
     this.trackingBaseUrl =
       this.config.get<string>('template.url') ||
@@ -25,15 +25,6 @@ export class AuctionService {
     this.logger.log('Auction Service initialized - Phase 3 Complete');
   }
 
-  /**
-   * Main auction processing method
-   *
-   * **Why this flow:**
-   * 1. Time-boxed processing to meet RTB response time requirements
-   * 2. Comprehensive error handling to ensure auction completes
-   * 3. Detailed metrics collection for performance monitoring
-   * 4. Atomic operations to maintain data consistency
-   */
   async processAuction(bidRequest: any): Promise<{
     auctionId: string;
     winner?: any;
@@ -134,15 +125,6 @@ export class AuctionService {
     }
   }
 
-  /**
-   * Find campaigns eligible for the auction
-   *
-   * **Why this caching strategy:**
-   * - Campaign eligibility is expensive to calculate (multiple DB queries)
-   * - Results are relatively stable for short periods (5 minutes)
-   * - Cache key includes device type for targeting accuracy
-   * - Falls back to database if cache miss
-   */
   async findEligibleCampaigns(bidRequest: any): Promise<any[]> {
     // const cacheKey = `eligible:${bidRequest.inventoryId}:${bidRequest.userContext.deviceType}`;
     const cacheKey = REDIS_KEYS.ELIGIBLE_CAMPAIGNS(
@@ -185,15 +167,6 @@ export class AuctionService {
     }
   }
 
-  /**
-   * Generate bid responses for eligible campaigns
-   *
-   * **Why parallel processing:**
-   * - Bid evaluation can be done independently for each campaign
-   * - Reduces total processing time significantly
-   * - Includes budget validation to prevent overspend
-   * - Handles errors gracefully (failed bids are excluded)
-   */
   async generateBidResponses(
     bidRequest: any,
     eligibleCampaigns: any[],
@@ -260,15 +233,6 @@ export class AuctionService {
     return bidResults.filter((bid) => bid !== null);
   }
 
-  /**
-   * Run auction algorithm
-   *
-   * **Why support both auction types:**
-   * - First-price: Winner pays their bid (more revenue for publisher)
-   * - Second-price: Winner pays second-highest bid + $0.01 (more fair)
-   * - Configurable per inventory or bid request
-   * - Industry standard implementations
-   */
   async runAuction(
     bidResponses: any[],
     bidRequest: any,
@@ -318,15 +282,6 @@ export class AuctionService {
     };
   }
 
-  /**
-   * Get detailed auction status for monitoring
-   *
-   * **Why this method:**
-   * - Provides real-time auction tracking
-   * - Essential for debugging RTB issues
-   * - Shows performance metrics and stages
-   * - Used by monitoring dashboards
-   */
   async getAuctionStatus(requestId: string): Promise<AuctionStatusDto | null> {
     try {
       // Get bid request with auction log
@@ -414,10 +369,6 @@ export class AuctionService {
     }
   }
 
-  // ==========================================
-  // PRIVATE HELPER METHODS
-  // ==========================================
-
   private generateAuctionId(requestId: string): string {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 6);
@@ -488,12 +439,6 @@ export class AuctionService {
     });
   }
 
-  /**
-   * ENHANCED: Generate comprehensive tracking URLs
-   *
-   * **Moved from bid-response.processor.ts**
-   * Now supports both simple and detailed tracking URL generation
-   */
   generateTrackingUrls(
     auctionId: string,
     bidResponseId?: string,
@@ -522,12 +467,6 @@ export class AuctionService {
     }
   }
 
-  /**
-   * ENHANCED: Generate comprehensive ad markup
-   *
-   * **Moved from bid-response.processor.ts**
-   * Now supports multiple creative formats with embedded tracking
-   */
   generateAdMarkup(
     creative: any,
     trackingUrls: { impression: string[]; click: string[] },
@@ -579,9 +518,6 @@ export class AuctionService {
     }
   }
 
-  /**
-   * Generate banner ad markup
-   */
   private generateBannerMarkup(
     creative: any,
     width: number,
@@ -601,9 +537,6 @@ export class AuctionService {
         `.trim();
   }
 
-  /**
-   * Generate native ad markup
-   */
   private generateNativeMarkup(
     creative: any,
     impressionUrl: string,
@@ -623,9 +556,6 @@ export class AuctionService {
         `.trim();
   }
 
-  /**
-   * Generate video ad markup
-   */
   private generateVideoMarkup(
     creative: any,
     width: number,
@@ -650,9 +580,6 @@ export class AuctionService {
         `.trim();
   }
 
-  /**
-   * Generate default ad markup (fallback)
-   */
   private generateDefaultMarkup(
     creative: any,
     width: number,

@@ -33,18 +33,6 @@ export interface CacheStats {
   lastUpdated: Date;
 }
 
-/**
- * Advanced Cache Manager for RTB Operations
- *
- * **Core Features:**
- * 1. Multi-level caching (Memory + Redis)
- * 2. Circuit breaker pattern for fault tolerance
- * 3. Automatic cache warming and preloading
- * 4. Dependency-based invalidation
- * 5. Performance monitoring and analytics
- * 6. Compression for large cache entries
- * 7. Batch operations for efficiency
- */
 export class RTBCacheManager {
   private readonly logger = new Logger(RTBCacheManager.name);
 
@@ -84,16 +72,6 @@ export class RTBCacheManager {
     this.initializeHealthCheck();
   }
 
-  /**
-   * Get cached data with fallback strategy
-   *
-   * **Why sophisticated get strategy:**
-   * - Checks memory cache first for fastest access
-   * - Falls back to Redis if not in memory
-   * - Implements circuit breaker to handle Redis failures
-   * - Provides detailed metrics for monitoring
-   * - Supports automatic cache promotion (Redis -> Memory)
-   */
   async get<T>(
     key: string,
     options: CacheOptions = {},
@@ -173,16 +151,6 @@ export class RTBCacheManager {
     }
   }
 
-  /**
-   * Set cached data with intelligent storage strategy
-   *
-   * **Why intelligent set strategy:**
-   * - Stores in both memory and Redis based on data characteristics
-   * - Implements compression for large objects
-   * - Manages memory usage with LRU eviction
-   * - Supports cache tagging for dependency management
-   * - Provides TTL optimization based on access patterns
-   */
   async set<T>(
     key: string,
     data: T,
@@ -225,15 +193,6 @@ export class RTBCacheManager {
     }
   }
 
-  /**
-   * Batch cache operations for efficiency
-   *
-   * **Why batch operations:**
-   * - Reduces network round trips to Redis
-   * - Improves performance for bulk cache operations
-   * - Enables atomic multi-key operations
-   * - Supports efficient cache warming strategies
-   */
   async multiGet<T>(keys: string[]): Promise<Map<string, CacheResult<T>>> {
     const results = new Map<string, CacheResult<T>>();
     const redisKeys: string[] = [];
@@ -329,15 +288,6 @@ export class RTBCacheManager {
     return results;
   }
 
-  /**
-   * Invalidate cache by pattern or tags
-   *
-   * **Why sophisticated invalidation:**
-   * - Supports pattern-based bulk invalidation
-   * - Enables tag-based dependency invalidation
-   * - Maintains invalidation logs for debugging
-   * - Handles both memory and Redis cache layers
-   */
   async invalidate(pattern: string, tags?: string[]): Promise<number> {
     let invalidatedCount = 0;
 
@@ -410,15 +360,6 @@ export class RTBCacheManager {
     }
   }
 
-  /**
-   * Warm cache with precomputed data
-   *
-   * **Why cache warming:**
-   * - Prevents cold start penalties during peak traffic
-   * - Improves user experience with faster response times
-   * - Enables proactive data loading based on predicted usage
-   * - Supports scheduled cache refresh operations
-   */
   async warmCache(
     warmupData: Array<{
       key: string;
@@ -479,9 +420,6 @@ export class RTBCacheManager {
     }
   }
 
-  /**
-   * Get comprehensive cache statistics
-   */
   async getStats(): Promise<CacheStats> {
     const hitRate =
       this.stats.totalOperations > 0
@@ -511,10 +449,6 @@ export class RTBCacheManager {
       lastUpdated: new Date(),
     };
   }
-
-  // ==========================================
-  // PRIVATE HELPER METHODS
-  // ==========================================
 
   private getFromMemory<T>(key: string): CacheResult<T> {
     const entry = this.memoryCache.get(key);
@@ -875,15 +809,6 @@ export class RTBCacheManager {
   }
 }
 
-/**
- * Cache Warming Service for Proactive Data Loading
- *
- * **Why dedicated warming service:**
- * - Prevents cache misses during peak traffic periods
- * - Enables scheduled cache refresh operations
- * - Supports intelligent preloading based on usage patterns
- * - Improves overall system performance and user experience
- */
 export class CacheWarmingService {
   private readonly logger = new Logger(CacheWarmingService.name);
 
@@ -892,9 +817,6 @@ export class CacheWarmingService {
     private readonly redis: RedisService,
   ) {}
 
-  /**
-   * Warm campaign eligibility cache for high-traffic inventories
-   */
   async warmCampaignEligibilityCache(
     inventoryIds: string[],
     deviceTypes: string[] = ['MOBILE', 'DESKTOP', 'TABLET'],
@@ -956,9 +878,6 @@ export class CacheWarmingService {
     }
   }
 
-  /**
-   * Warm performance metrics cache for active campaigns
-   */
   async warmPerformanceMetricsCache(
     campaignIds: string[],
     timeRanges: string[] = ['hour', 'day', 'week'],
@@ -1031,9 +950,6 @@ export class CacheWarmingService {
     }
   }
 
-  /**
-   * Schedule periodic cache warming
-   */
   initializeScheduledWarming(): void {
     // Warm cache every hour during business hours
     setInterval(async () => {

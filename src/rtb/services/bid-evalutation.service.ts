@@ -14,15 +14,6 @@ export class BidEvaluationService {
     this.logger.log('Bid Evaluation Service initialized - Phase 3 Complete');
   }
 
-  /**
-   * Calculate bid price for a campaign and context
-   *
-   * **Why context-aware bidding:**
-   * - Same campaign may have different values in different contexts
-   * - Geographic targeting affects competition levels
-   * - Device performance varies by campaign type
-   * - Time patterns influence conversion likelihood
-   */
   async calculateBidPrice(campaign: any, context: any): Promise<number> {
     this.logger.debug('Calculating bid price', {
       campaignId: campaign.id,
@@ -81,14 +72,6 @@ export class BidEvaluationService {
     }
   }
 
-  /**
-   * Get performance-based bid adjustments
-   *
-   * **Why performance-based bidding:**
-   * - Historical data predicts future performance
-   * - Automatic optimization without manual intervention
-   * - Competitive advantage through data-driven decisions
-   */
   async getPerformanceAdjustment(
     campaignId: string,
     context: any,
@@ -126,13 +109,6 @@ export class BidEvaluationService {
     }
   }
 
-  // ==========================================
-  // PRIVATE BID CALCULATION METHODS
-  // ==========================================
-
-  /**
-   * Get base bid amount from campaign settings
-   */
   private async getBaseBidAmount(campaign: any): Promise<number> {
     // Use campaign's bid amount or derive from budget
     if (campaign.bidAmount && campaign.bidAmount > 0) {

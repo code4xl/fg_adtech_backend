@@ -1,4 +1,3 @@
-// src/rtb/processors/bid-response.processor.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
@@ -27,16 +26,6 @@ export class BidResponseProcessor {
     this.logger.log('Bid Response Processor initialized - Phase 4');
   }
 
-  /**
-   * Generate bid responses from auction results
-   *
-   * **Why structured response generation:**
-   * - SDK expects standardized response format
-   * - Winner gets ad markup and tracking URLs
-   * - Losers get notification of loss for reporting
-   * - All responses stored for audit trail
-   */
-  // SDK Specific
   async generateBidResponses(auctionResult: any): Promise<any[]> {
     this.logger.debug('Generating bid responses', {
       auctionId: auctionResult.auctionId,
@@ -65,15 +54,6 @@ export class BidResponseProcessor {
     }
   }
 
-  /**
-   * Store bid responses in cache for SDK polling
-   *
-   * **Why Redis caching:**
-   * - SDK polls for responses every 50-100ms
-   * - Database queries would be too slow for polling frequency
-   * - Redis provides sub-millisecond response times
-   * - TTL prevents cache pollution
-   */
   async storeBidResponses(bidResponses: any[]): Promise<void> {
     try {
       if (bidResponses.length === 0) {
@@ -108,15 +88,6 @@ export class BidResponseProcessor {
     }
   }
 
-  /**
-   * Send win notifications to advertisers
-   *
-   * **Why win notifications matter:**
-   * - Advertisers need confirmation of winning bids
-   * - Enables tracking and attribution on advertiser side
-   * - Required for proper billing and reporting
-   * - Industry standard practice in RTB
-   */
   async sendWinNotifications(auctionResult: any): Promise<void> {
     if (!auctionResult.winner) {
       this.logger.debug('No winner to notify', {
@@ -190,15 +161,6 @@ export class BidResponseProcessor {
     return responses;
   }
 
-  /**
-   * Generate winning bid response with ad markup
-   *
-   * **Why detailed winning response:**
-   * - SDK needs complete ad markup to display
-   * - Tracking URLs enable impression/click measurement
-   * - Landing URL provides user destination
-   * - Auction metadata helps with debugging
-   */
   private async generateWinningBidResponse(auctionResult: any): Promise<any> {
     const winner = auctionResult.winner;
     const creative = winner.creative;
@@ -345,19 +307,6 @@ export class BidResponseProcessor {
     }
   }
 
-  // ==========================================
-  // CAMPAIGN SPEND MANAGEMENT
-  // ==========================================
-
-  /**
-   * Update campaign spend atomically
-   *
-   * **Why atomic spend updates:**
-   * - Prevents race conditions in high-traffic scenarios
-   * - Ensures accurate budget tracking
-   * - Prevents overspend beyond daily limits
-   * - Maintains financial accuracy
-   */
   private async updateCampaignSpend(
     campaignId: string,
     amount: number,

@@ -6,6 +6,5 @@ model ContentCategory {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Only keep website relationship for basic categorization
   websites Website[]
 }

@@ -21,15 +21,6 @@ export class ClickTrackingService {
     this.logger.log('Click Tracking Service initialized - Phase 5');
   }
 
-  /**
-   * Track click from HTTP request context
-   *
-   * **Why this method exists:**
-   * - Primary entry point for click tracking
-   * - Handles bid response validation and impression linking
-   * - Coordinates all click processing steps
-   * - Provides comprehensive error handling
-   */
   async trackClick(
     bidResponseId: string,
     userContext: any,
@@ -139,15 +130,6 @@ export class ClickTrackingService {
     }
   }
 
-  // Add this new method to the existing service:
-  /**
-   * Publish TimescaleDB sync event
-   *
-   * **Why async sync:**
-   * - Maintains fast HTTP response times
-   * - Enables reliable data synchronization
-   * - Provides retry mechanisms for failed syncs
-   */
   private async publishTimescaleSyncEvent(
     eventType: 'impression' | 'click',
     eventId: string,
@@ -176,14 +158,6 @@ export class ClickTrackingService {
     }
   }
 
-  /**
-   * Track click from DTO (for batch processing)
-   *
-   * **Why separate DTO method:**
-   * - Enables batch processing with different validation
-   * - Supports API-based click reporting
-   * - Allows for different context sources
-   */
   async trackClickFromDTO(clickDto: ClickEventDto): Promise<any> {
     const userContext = {
       userId: clickDto.userId,
@@ -211,18 +185,6 @@ export class ClickTrackingService {
     );
   }
 
-  // ==========================================
-  // PRIVATE PROCESSING METHODS
-  // ==========================================
-
-  /**
-   * Get bid response details from database
-   *
-   * **Why comprehensive bid response data:**
-   * - Need campaign and creative IDs for tracking
-   * - Creative data for click area analysis
-   * - Campaign data for performance attribution
-   */
   private async getBidResponse(bidResponseId: string): Promise<any> {
     try {
       const bidResponse = await this.prisma.bidResponse.findUnique({
@@ -271,15 +233,6 @@ export class ClickTrackingService {
     }
   }
 
-  /**
-   * Find associated impression event
-   *
-   * **Why impression linking matters:**
-   * - Enables time-to-click analysis
-   * - Supports conversion attribution
-   * - Provides context for fraud detection
-   * - Required for accurate CTR calculation
-   */
   private async findAssociatedImpression(
     bidResponseId: string,
     userId?: string,
@@ -334,15 +287,6 @@ export class ClickTrackingService {
     }
   }
 
-  /**
-   * Check for duplicate clicks
-   *
-   * **Why duplicate detection matters:**
-   * - Prevents click fraud and accidental double-clicks
-   * - Maintains accurate CTR metrics
-   * - Protects advertiser budgets
-   * - Industry standard practice
-   */
   private async checkDuplicateClick(
     bidResponseId: string,
     userId?: string,
@@ -401,15 +345,6 @@ export class ClickTrackingService {
     }
   }
 
-  /**
-   * Calculate click fraud score
-   *
-   * **Why click fraud detection:**
-   * - Protects advertisers from fraudulent charges
-   * - Maintains platform credibility
-   * - Required for quality traffic metrics
-   * - Industry standard practice
-   */
   private async calculateClickFraudScore(
     userContext: any,
     requestContext: any,
@@ -470,15 +405,6 @@ export class ClickTrackingService {
     }
   }
 
-  /**
-   * Create comprehensive click event record
-   *
-   * **Why comprehensive data collection:**
-   * - Enables detailed click analysis
-   * - Supports conversion attribution
-   * - Provides data for fraud detection
-   * - Required for performance optimization
-   */
   private async createClickEvent(
     eventID: string,
     bidResponse: any,
@@ -573,15 +499,6 @@ export class ClickTrackingService {
     }
   }
 
-  /**
-   * Update real-time performance counters
-   *
-   * **Why Redis counters are essential:**
-   * - Provide sub-second CTR metrics
-   * - Enable real-time campaign optimization
-   * - Support bid adjustment algorithms
-   * - Feed into performance dashboards
-   */
   @WithRetry(3, 100, 2, [Error])
   private async updateCounters(click: any): Promise<void> {
     try {
@@ -624,15 +541,6 @@ export class ClickTrackingService {
     }
   }
 
-  /**
-   * Publish click to Kafka for analytics
-   *
-   * **Why Kafka publishing:**
-   * - Enables real-time analytics processing
-   * - Supports conversion tracking pipeline
-   * - Provides audit trail for billing
-   * - Enables integration with external systems
-   */
   @WithRetry(3, 200, 2, [Error])
   private async publishToKafka(click: any): Promise<void> {
     try {
@@ -709,13 +617,6 @@ export class ClickTrackingService {
     }
   }
 
-  // ==========================================
-  // UTILITY METHODS
-  // ==========================================
-
-  /**
-   * Detect if user agent indicates bot traffic
-   */
   private detectBot(userAgent: string): boolean {
     if (!userAgent) {
       return true; // Missing user agent is suspicious

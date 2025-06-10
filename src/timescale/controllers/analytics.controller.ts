@@ -9,9 +9,6 @@ export class TimescaleAnalyticsController {
 
   constructor(private readonly timescale: TimescaleService) {}
 
-  /**
-   * Get campaign performance metrics
-   */
   @Get('campaigns/:campaignId/metrics')
   @ApiOperation({
     summary: 'Get campaign performance metrics from TimescaleDB',
@@ -52,9 +49,6 @@ export class TimescaleAnalyticsController {
     }
   }
 
-  /**
-   * Get real-time system metrics
-   */
   @Get('realtime')
   @ApiOperation({
     summary: 'Get real-time system metrics',
@@ -84,10 +78,6 @@ export class TimescaleAnalyticsController {
       };
     }
   }
-
-  /**
-   * Health check endpoint
-   */
   @Get('health')
   @ApiOperation({
     summary: 'TimescaleDB health check',

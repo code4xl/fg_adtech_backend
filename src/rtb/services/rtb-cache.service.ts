@@ -35,23 +35,6 @@ export class RTBCacheService {
     this.initializeMemoryCacheCleaner();
   }
 
-  // ==========================================
-  // CAMPAIGN ELIGIBILITY CACHING
-  // ==========================================
-
-  /**
-   * Get cached eligible campaigns for an inventory and device type
-   *
-   * **Why this specific caching strategy:**
-   * - Campaign eligibility is the most expensive RTB operation (10+ DB queries)
-   * - Results are stable for 5-minute periods (campaigns don't change frequently)
-   * - Device type significantly affects eligibility, so it's part of the cache key
-   * - Geographic data is included for precise targeting
-   *
-   * **Cache key structure: eligible:campaigns:{inventoryId}:{deviceType}:{country}**
-   * - Ensures geographic and device-specific targeting accuracy
-   * - Prevents cache pollution from different targeting contexts
-   */
   @WithRetry(3, 100, 2, [Error])
   async getCachedEligibleCampaigns(
     inventoryId: string,
@@ -123,15 +106,6 @@ export class RTBCacheService {
     }
   }
 
-  /**
-   * Cache eligible campaigns with intelligent expiration
-   *
-   * **Why specific TTL and data structure:**
-   * - 5-minute TTL balances data freshness with performance
-   * - Include metadata for cache validation and debugging
-   * - Store creation timestamp for cache analysis
-   * - Include campaign count for monitoring cache effectiveness
-   */
   @WithRetry(3, 100, 2, [Error])
   async setCachedEligibleCampaigns(
     inventoryId: string,
@@ -176,20 +150,6 @@ export class RTBCacheService {
     }
   }
 
-  // ==========================================
-  // BUDGET TRACKING & MANAGEMENT
-  // ==========================================
-
-  /**
-   * Get comprehensive campaign budget status with real-time spend tracking
-   *
-   * **Why this approach for budget tracking:**
-   * - Redis atomic operations prevent budget overspend race conditions
-   * - Daily spend counters reset automatically at midnight
-   * - Combines real-time spend (Redis) with configured budgets (database)
-   * - Supports both daily and total budget limits
-   * - Provides percentage calculations for pacing algorithms
-   */
   async getCampaignBudgetStatus(campaignId: string): Promise<{
     totalBudget: number;
     dailyBudget: number;
@@ -278,16 +238,6 @@ export class RTBCacheService {
     }
   }
 
-  /**
-   * Update campaign spend with atomic operations and budget validation
-   *
-   * **Why atomic spend updates are critical:**
-   * - Multiple bid requests can process simultaneously for the same campaign
-   * - Non-atomic updates can cause budget overspend
-   * - Redis MULTI/EXEC ensures either all operations succeed or none do
-   * - Immediate budget exhaustion detection prevents continued overspend
-   * - Automatic campaign pausing when budgets are exceeded
-   */
   @WithRetry(3, 50, 2, [Error])
   async updateCampaignSpend(
     campaignId: string,
@@ -414,20 +364,6 @@ export class RTBCacheService {
     }
   }
 
-  // ==========================================
-  // PERFORMANCE METRICS CACHING
-  // ==========================================
-
-  /**
-   * Get real-time performance metrics with multi-timeframe aggregation
-   *
-   * **Why sophisticated metrics caching:**
-   * - Performance metrics are accessed frequently by dashboards and bid algorithms
-   * - Real-time metrics require sub-second access times
-   * - Multiple timeframes (hourly, daily, weekly) need different calculation approaches
-   * - Redis provides high-frequency counter operations with minimal latency
-   * - Sliding windows enable trend analysis for bid optimization
-   */
   async getPerformanceMetrics(
     entityId: string,
     entityType: 'campaign' | 'creative' | 'inventory' | 'publisher',
@@ -523,15 +459,6 @@ export class RTBCacheService {
     }
   }
 
-  /**
-   * Update performance metrics with atomic increments
-   *
-   * **Why atomic metric updates:**
-   * - High-frequency updates from multiple auction processes
-   * - Race conditions can cause metric inconsistencies
-   * - Redis atomic operations ensure data integrity
-   * - TTL management for automatic cleanup of old data
-   */
   @WithRetry(3, 50, 2, [Error])
   async incrementPerformanceMetric(
     entityId: string,
@@ -595,13 +522,6 @@ export class RTBCacheService {
     }
   }
 
-  // ==========================================
-  // HELPER METHODS
-  // ==========================================
-
-  /**
-   * Get cached campaign budget configuration
-   */
   private async getCachedCampaignBudgetConfig(campaignId: string): Promise<{
     dailyBudget: number;
     totalBudget: number;

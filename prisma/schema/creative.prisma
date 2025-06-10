@@ -1,4 +1,3 @@
-// Creative model for ads
 model Creative {
     id                     String         @id @default(uuid()) @db.Uuid
     campaignId             String         @db.Uuid

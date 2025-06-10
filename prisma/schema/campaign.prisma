@@ -1,4 +1,3 @@
-// Campaign model
 model Campaign {
     id               String             @id @default(uuid()) @db.Uuid
     name             String
@@ -39,7 +38,6 @@ model Campaign {
     ClientCampaign  ClientCampaign[]
 }
 
-// Campaign statistics for reporting
 model CampaignStatistics {
     id          String   @id @default(uuid()) @db.Uuid
     campaignId  String   @db.Uuid

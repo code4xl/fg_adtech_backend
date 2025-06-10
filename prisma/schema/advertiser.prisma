@@ -1,6 +1,3 @@
-// This is your updated Prisma schema file,
-// showing the additions needed for authentication
-
 model Advertiser {
   id                   String           @id @default(uuid()) @db.Uuid
   name                 String

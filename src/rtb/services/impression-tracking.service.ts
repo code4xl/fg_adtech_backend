@@ -23,15 +23,6 @@ export class ImpressionTrackingService {
     this.logger.log('Impression Tracking Service initialized - Phase 5');
   }
 
-  /**
-   * Track impression from HTTP request context
-   *
-   * **Why this method exists:**
-   * - Primary entry point for impression tracking
-   * - Handles bid response validation and context enrichment
-   * - Coordinates all impression processing steps
-   * - Provides comprehensive error handling
-   */
   async trackImpression(
     bidResponseId: string,
     userContext: any,
@@ -111,15 +102,6 @@ export class ImpressionTrackingService {
     }
   }
 
-  // Add this new method to the existing service:
-  /**
-   * Publish TimescaleDB sync event
-   *
-   * **Why async sync:**
-   * - Maintains fast HTTP response times
-   * - Enables reliable data synchronization
-   * - Provides retry mechanisms for failed syncs
-   */
   private async publishTimescaleSyncEvent(
     eventType: 'impression' | 'click',
     eventId: string,
@@ -148,14 +130,6 @@ export class ImpressionTrackingService {
     }
   }
 
-  /**
-   * Track impression from DTO (for batch processing)
-   *
-   * **Why separate DTO method:**
-   * - Enables batch processing with different validation
-   * - Supports API-based impression reporting
-   * - Allows for different context sources
-   */
   async trackImpressionFromDTO(
     impressionDto: ImpressionEventDto,
   ): Promise<any> {
@@ -189,19 +163,6 @@ export class ImpressionTrackingService {
     );
   }
 
-  // ==========================================
-  // PRIVATE PROCESSING METHODS
-  // ==========================================
-
-  /**
-   * Get bid response details from database
-   *
-   * **Why comprehensive bid response data:**
-   * - Need campaign and creative IDs for tracking
-   * - Price information for budget management
-   * - Advertiser data for revenue attribution
-   * - Creative data for performance analysis
-   */
   private async getBidResponse(bidResponseId: string): Promise<any> {
     try {
       const bidResponse = await this.prisma.bidResponse.findUnique({
@@ -249,15 +210,6 @@ export class ImpressionTrackingService {
     }
   }
 
-  /**
-   * Check for duplicate impressions
-   *
-   * **Why duplicate detection matters:**
-   * - Prevents double billing for same impression
-   * - Maintains accurate performance metrics
-   * - Detects potential fraud or technical issues
-   * - Industry standard practice
-   */
   private async checkDuplicateImpression(
     bidResponseId: string,
     userId?: string,
@@ -334,15 +286,6 @@ export class ImpressionTrackingService {
     }
   }
 
-  /**
-   * Create comprehensive impression event record
-   *
-   * **Why comprehensive data collection:**
-   * - Enables detailed performance analysis
-   * - Supports fraud detection algorithms
-   * - Provides data for ML-based optimizations
-   * - Required for viewability measurement
-   */
   private async createImpressionEvent(
     bidResponse: any,
     userContext: any,
@@ -422,15 +365,6 @@ export class ImpressionTrackingService {
     }
   }
 
-  /**
-   * Update real-time performance counters
-   *
-   * **Why Redis counters are essential:**
-   * - Provide sub-second performance metrics
-   * - Enable real-time campaign optimization
-   * - Support budget pacing decisions
-   * - Feed into bid adjustment algorithms
-   */
   @WithRetry(3, 100, 2, [Error])
   private async updateCounters(impression: any): Promise<void> {
     try {
@@ -495,15 +429,6 @@ export class ImpressionTrackingService {
     }
   }
 
-  /**
-   * Update campaign spend atomically
-   *
-   * **Why atomic spend updates:**
-   * - Prevents budget overspend in high-traffic scenarios
-   * - Maintains accurate financial tracking
-   * - Enables real-time budget alerts
-   * - Required for campaign pacing
-   */
   private async updateCampaignSpend(impression: any): Promise<void> {
     try {
       const spendAmount = Number(impression.price);
@@ -543,15 +468,6 @@ export class ImpressionTrackingService {
     }
   }
 
-  /**
-   * Publish impression to Kafka for analytics
-   *
-   * **Why Kafka publishing:**
-   * - Enables real-time analytics processing
-   * - Supports data pipeline for ML models
-   * - Provides audit trail for billing
-   * - Enables integration with external systems
-   */
   @WithRetry(3, 200, 2, [Error])
   private async publishToKafka(impression: any): Promise<void> {
     try {
@@ -578,15 +494,6 @@ export class ImpressionTrackingService {
     }
   }
 
-  /**
-   * Update frequency capping counters
-   *
-   * **Why frequency capping matters:**
-   * - Prevents ad fatigue for users
-   * - Optimizes budget allocation
-   * - Improves user experience
-   * - Industry best practice
-   */
   private async updateFrequencyCapping(impression: any): Promise<void> {
     try {
       if (!impression.userId) {
@@ -622,18 +529,6 @@ export class ImpressionTrackingService {
     }
   }
 
-  // ==========================================
-  // UTILITY METHODS
-  // ==========================================
-
-  /**
-   * Calculate publisher revenue from impression price
-   *
-   * **Why revenue calculation:**
-   * - Publishers need to see their earnings in real-time
-   * - Revenue share typically 70-80% to publisher
-   * - Required for accurate financial reporting
-   */
   private calculatePublisherRevenue(impressionPrice: number): number {
     const PUBLISHER_REVENUE_SHARE = 0.75; // 75% to publisher
     return Number((impressionPrice * PUBLISHER_REVENUE_SHARE).toFixed(4));
@@ -650,15 +545,6 @@ export class ImpressionTrackingService {
     return `${creative.adSlotTemplate.width}x${creative.adSlotTemplate.height}`;
   }
 
-  /**
-   * Detect if user agent indicates bot traffic
-   *
-   * **Why bot detection matters:**
-   * - Prevents fraudulent impression billing
-   * - Maintains traffic quality metrics
-   * - Required for viewability measurement
-   * - Protects advertiser ROI
-   */
   private detectBot(userAgent: string): boolean {
     if (!userAgent) {
       return true; // Missing user agent is suspicious
@@ -685,15 +571,6 @@ export class ImpressionTrackingService {
     return botIndicators.some((indicator) => ua.includes(indicator));
   }
 
-  /**
-   * Calculate fraud score based on user context
-   *
-   * **Why fraud scoring:**
-   * - Identifies potentially fraudulent impressions
-   * - Enables quality filtering
-   * - Protects advertiser investment
-   * - Industry standard practice
-   */
   private async calculateFraudScore(userContext: any): Promise<number> {
     try {
       let fraudScore = 0;
@@ -726,9 +603,6 @@ export class ImpressionTrackingService {
     }
   }
 
-  /**
-   * Publish budget exhaustion alert
-   */
   private async publishBudgetAlert(
     campaignId: string,
     remainingBudget: number,

@@ -5,9 +5,6 @@ import {
   TimescaleImpressionDto,
   TimescaleClickDto,
   TimescaleBidMetricDto,
-  BatchTimescaleImpressionDto,
-  BatchTimescaleClickDto,
-  BatchTimescaleBidMetricDto,
 } from '../rtb/dto/tracking-events.dto';
 import { from as copyFrom } from 'pg-copy-streams';
 
@@ -135,14 +132,6 @@ export class TimescaleService {
     }
   }
 
-  /**
-   * Write click events to TimescaleDB
-   *
-   * **Why separate from impressions:**
-   * - Different data structure and volume patterns
-   * - Enables independent scaling and optimization
-   * - Supports different retention policies
-   */
   async writeClicks(clicks: TimescaleClickDto[]): Promise<{
     success: boolean;
     processedCount: number;
@@ -230,14 +219,6 @@ export class TimescaleService {
     }
   }
 
-  /**
-   * Write bid metrics to TimescaleDB
-   *
-   * **Why bid metrics are important:**
-   * - Enables bid optimization algorithms
-   * - Supports real-time performance monitoring
-   * - Provides data for machine learning models
-   */
   async writeBidMetrics(metrics: TimescaleBidMetricDto[]): Promise<{
     success: boolean;
     processedCount: number;
@@ -322,14 +303,6 @@ export class TimescaleService {
     }
   }
 
-  /**
-   * Convert PostgreSQL impression to TimescaleDB format
-   *
-   * **Why format conversion:**
-   * - PostgreSQL stores normalized relational data
-   * - TimescaleDB optimizes for denormalized time-series data
-   * - Conversion enables efficient time-series queries
-   */
   private formatImpressionForTimescale(
     impression: any,
   ): TimescaleImpressionDto {
@@ -370,9 +343,6 @@ export class TimescaleService {
     };
   }
 
-  /**
-   * Format click for TimescaleDB
-   */
   private formatClickForTimescale(click: any) {
     return {
       timestamp: click.timestamp?.toISOString() || new Date().toISOString(),

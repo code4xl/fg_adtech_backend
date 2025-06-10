@@ -20,15 +20,6 @@ export class BidRequestProcessor {
     this.logger.log('Bid Request Processor initialized - Phase 4');
   }
 
-  /**
-   * Main bid request processing method
-   *
-   * **Why comprehensive processing:**
-   * - RTB auctions involve multiple complex steps that must complete atomically
-   * - Error handling at each step prevents partial state corruption
-   * - Metrics collection enables performance optimization
-   * - Locking prevents duplicate processing of same request
-   */
   async processBidRequest(bidRequest: any): Promise<{
     auctionId: string;
     winner: any | null;
@@ -135,15 +126,6 @@ export class BidRequestProcessor {
   // AUCTION PROCESSING STEPS
   // ==========================================
 
-  /**
-   * Set processing lock to prevent duplicate processing
-   *
-   * **Why locking is critical:**
-   * - Kafka can deliver messages multiple times (at-least-once delivery)
-   * - Prevents wasted compute resources on duplicate processing
-   * - Ensures auction integrity and prevents double-billing
-   * - TTL prevents deadlocks from failed processes
-   */
   private async setProcessingLock(requestId: string): Promise<boolean> {
     try {
       const lockKey = RTB_REDIS_KEYS.BID_REQUEST_LOCK(requestId);
@@ -188,26 +170,10 @@ export class BidRequestProcessor {
     }
   }
 
-  /**
-   * Find eligible campaigns using auction service
-   *
-   * **Why delegate to auction service:**
-   * - Campaign eligibility is complex business logic
-   * - Auction service handles caching and optimization
-   * - Separates concerns for better maintainability
-   */
   private async findEligibleCampaigns(bidRequest: any): Promise<any[]> {
     return await this.auctionService.findEligibleCampaigns(bidRequest);
   }
 
-  /**
-   * Execute auction algorithm to determine winner
-   *
-   * **Why delegate to auction service:**
-   * - Auction algorithms are complex business logic
-   * - Different auction types require different implementations
-   * - Centralized auction logic ensures consistency
-   */
   private async executeAuction(
     bidResponses: any[],
     bidRequest: any,
@@ -300,14 +266,6 @@ export class BidRequestProcessor {
     }
   }
 
-  /**
-   * Create bid response object
-   *
-   * **Why structured bid response:**
-   * - Contains all data needed for auction evaluation
-   * - Includes tracking URLs for impression/click measurement
-   * - Standardized format enables consistent processing
-   */
   private createBidResponse(
     bidRequest: any,
     campaign: any,
@@ -380,15 +338,6 @@ export class BidRequestProcessor {
     };
   }
 
-  /**
-   * Update performance metrics after auction
-   *
-   * **Why metrics are crucial:**
-   * - Enable real-time monitoring of auction performance
-   * - Feed into bid optimization algorithms
-   * - Provide data for advertiser reporting
-   * - Help identify performance bottlenecks
-   */
   private async updateMetrics(
     bidRequest: any,
     auctionResult: any,

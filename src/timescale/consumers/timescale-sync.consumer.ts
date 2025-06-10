@@ -71,16 +71,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     this.logger.log('TimescaleDB Sync Consumer initialized - Phase 6 Complete');
   }
 
-  /**
-   * Initialize Kafka subscriptions for TimescaleDB sync
-   *
-   * **Why multiple sync topics:**
-   * - TIMESCALE_SYNC: General sync events (replaces original TIMESCALE topic)
-   * - IMPRESSIONS: Real-time impression sync
-   * - CLICKS: Real-time click sync
-   * - TIMESCALE_BATCH_*: Bulk sync operations
-   * - Health check and monitoring topics
-   */
   async onModuleInit() {
     try {
       this.logger.log('Initializing TimescaleDB sync subscriptions...');
@@ -162,15 +152,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     }
   }
 
-  /**
-   * Process general sync events
-   *
-   * **Why this method:**
-   * - Handles scheduled batch sync operations
-   * - Processes recovery sync requests
-   * - Manages large-scale data migrations
-   * - Supports various sync strategies
-   */
   private async processSyncEvent(payload: any, context?: any) {
     const startTime = Date.now();
 
@@ -253,15 +234,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     }
   }
 
-  /**
-   * Process real-time impression events
-   *
-   * **Why real-time sync:**
-   * - Enables immediate analytics on fresh impression data
-   * - Supports real-time campaign optimization
-   * - Provides instant feedback for fraud detection
-   * - Maintains low-latency data pipeline
-   */
   private async processImpressionEvent(payload: any, context?: any) {
     const startTime = Date.now();
 
@@ -368,9 +340,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     }
   }
 
-  /**
-   * Process real-time click events
-   */
   private async processClickEvent(payload: any, context?: any) {
     const startTime = Date.now();
 
@@ -475,15 +444,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     }
   }
 
-  /**
-   * Process batch impression sync
-   *
-   * **Why batch processing:**
-   * - Improved throughput for large datasets
-   * - Reduced connection overhead
-   * - Better resource utilization
-   * - Efficient error handling at scale
-   */
   private async processBatchImpressions(payload: any, context?: any) {
     const startTime = Date.now();
 
@@ -777,9 +737,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     }
   }
 
-  /**
-   * Process health check requests
-   */
   private async processHealthCheck(payload: any) {
     try {
       const healthStatus = {
@@ -810,9 +767,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     }
   }
 
-  /**
-   * Process batch synchronization
-   */
   private async processBatchSync(
     tableName: string,
     batchSize: number,
@@ -866,9 +820,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     }
   }
 
-  /**
-   * Process recovery synchronization
-   */
   private async processRecoverySync(tableName: string, filters: any) {
     this.logger.log(`Starting recovery sync for ${tableName}`, { filters });
 
@@ -903,9 +854,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     }
   }
 
-  /**
-   * Process full synchronization
-   */
   private async processFullSync(tableName: string) {
     this.logger.log(`Starting full sync for ${tableName}`);
 
@@ -937,9 +885,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     }
   }
 
-  /**
-   * Process incremental synchronization
-   */
   private async processIncrementalSync(tableName: string, filters: any) {
     this.logger.debug(`Starting incremental sync for ${tableName}`, {
       filters,
@@ -976,9 +921,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     }
   }
 
-  /**
-   * Process validation synchronization
-   */
   private async processValidationSync(tableName: string, filters: any) {
     this.logger.debug(`Starting validation sync for ${tableName}`, { filters });
 
@@ -1130,9 +1072,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     }
   }
 
-  /**
-   * Circuit breaker management
-   */
   private isCircuitBreakerOpen(): boolean {
     if (!this.circuitBreaker.isOpen) {
       return false;
@@ -1189,9 +1128,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     );
   }
 
-  /**
-   * Update performance metrics
-   */
   private updateMetrics(
     processingTime: number,
     processedCount: number,
@@ -1221,9 +1157,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     }
   }
 
-  /**
-   * Update real-time metrics in Redis
-   */
   private async updateRealtimeMetrics(
     eventType: 'impression' | 'click',
     event: any,
@@ -1287,9 +1220,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     }
   }
 
-  /**
-   * Update batch processing metrics
-   */
   private async updateBatchMetrics(
     tableName: string,
     batchSize: number,
@@ -1315,9 +1245,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     }
   }
 
-  /**
-   * Update error metrics
-   */
   private async updateErrorMetrics(error: Error) {
     try {
       const errorKey = REDIS_KEYS.TIMESCALE_SYNC_STATUS('errors');
@@ -1339,9 +1266,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     }
   }
 
-  /**
-   * Format impression for TimescaleDB with comprehensive data mapping
-   */
   private formatImpressionForTimescale(
     impression: any,
   ): TimescaleImpressionDto {
@@ -1397,9 +1321,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     };
   }
 
-  /**
-   * Format click for TimescaleDB with comprehensive data mapping
-   */
   private formatClickForTimescale(click: any): TimescaleClickDto {
     return {
       timestamp: click.timestamp?.toISOString() || new Date().toISOString(),
@@ -1434,9 +1355,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     };
   }
 
-  /**
-   * Start periodic health monitoring
-   */
   private startHealthMonitoring() {
     setInterval(async () => {
       try {
@@ -1501,9 +1419,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     }, 30000); // Every 30 seconds
   }
 
-  /**
-   * Get current sync status and metrics
-   */
   async getSyncStatus(): Promise<{
     status: string;
     metrics: any;
@@ -1537,9 +1452,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     }
   }
 
-  /**
-   * Manual trigger for sync operations (useful for admin operations)
-   */
   async triggerManualSync(
     tableName: 'impressions' | 'clicks',
     syncType: string = 'BATCH_SYNC',
@@ -1575,9 +1487,6 @@ export class TimescaleSyncConsumer implements OnModuleInit {
     }
   }
 
-  /**
-   * Cleanup method for graceful shutdown
-   */
   async cleanup() {
     try {
       this.logger.log('Cleaning up TimescaleDB Sync Consumer...');
