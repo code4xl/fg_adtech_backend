@@ -81,7 +81,7 @@ export class WebsiteSeeder implements ISeeder {
           url: url,
           name: siteName,
           description: faker.lorem.sentences(2),
-          isActive: faker.datatype.boolean(0.85), // 85% chance of being active
+          isActive: true, // 85% chance of being active
           initScript: this.generateInitScript(domain),
           createdAt: faker.date.past(),
           updatedAt: faker.date.recent(),

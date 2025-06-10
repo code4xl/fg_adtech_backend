@@ -53,8 +53,7 @@ export class CampaignSeeder implements ISeeder {
 
       const campaignData: any = [];
 
-      // All possible values for enums
-      const statuses = Object.values(CampaignStatus);
+      // All possible values for enums (excluding status since we only want ACTIVE)
       const objectives = Object.values(CampaignObjective);
       const bidStrategies = Object.values(BidStrategy);
       const pacingOptions = Object.values(CampaignPacing);
@@ -121,7 +120,7 @@ export class CampaignSeeder implements ISeeder {
           clientId: selectedClient.id, // Always assign a valid client
           startDate: startDate,
           endDate: endDate,
-          status: faker.helpers.arrayElement(statuses),
+          status: CampaignStatus.ACTIVE, // Fixed: Always ACTIVE
           objective: faker.helpers.arrayElement(objectives),
           bidStrategy: bidStrategy,
           bidAmount: bidAmount,
@@ -159,7 +158,7 @@ export class CampaignSeeder implements ISeeder {
           clientId: defaultClient.id, // Guaranteed to be non-null
           startDate: new Date(),
           endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-          status: CampaignStatus.ACTIVE,
+          status: CampaignStatus.ACTIVE, // Fixed: Always ACTIVE
           objective: CampaignObjective.AWARENESS,
           bidStrategy: BidStrategy.LOWEST_COST,
           bidAmount: null,
@@ -186,6 +185,9 @@ export class CampaignSeeder implements ISeeder {
 
       // Seed related campaign statistics
       await this.seedCampaignStatistics();
+
+      // Fixed: Seed campaign budget tracking
+      await this.seedCampaignBudgetTracking();
     } catch (error) {
       this.logger.error('Error seeding campaigns');
       this.logger.error(error);
@@ -278,6 +280,73 @@ export class CampaignSeeder implements ISeeder {
       this.logger.log(`Seeded ${statisticsData.length} campaign statistics`);
     } catch (error) {
       this.logger.warn('Error seeding campaign statistics, but continuing...');
+    }
+  }
+
+  /**
+   * Fixed: Added method to seed campaign budget tracking data
+   */
+  private async seedCampaignBudgetTracking(): Promise<void> {
+    try {
+      const campaigns = await this.prisma.campaign.findMany({
+        select: { id: true },
+      });
+
+      const budgetData: any = [];
+
+      for (const campaign of campaigns) {
+        // Create budget tracking for the last 30 days
+        for (let i = 0; i < 30; i++) {
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+
+          const totalBudget = faker.number.float({
+            min: 1000,
+            max: 10000,
+            fractionDigits: 2,
+          });
+          const dailyBudget = faker.number.float({
+            min: totalBudget * 0.01, // 1% of total budget per day minimum
+            max: totalBudget * 0.1, // 10% of total budget per day maximum
+            fractionDigits: 2,
+          });
+          const spentToday = faker.number.float({
+            min: 0,
+            max: dailyBudget * 1.2, // Can slightly exceed daily budget
+            fractionDigits: 2,
+          });
+          const remainingBudget = Math.max(
+            0,
+            totalBudget - spentToday * (i + 1),
+          );
+          const isExhausted = remainingBudget <= 0 || spentToday >= dailyBudget;
+
+          budgetData.push({
+            campaignId: campaign.id,
+            date: date,
+            totalBudget: totalBudget,
+            dailyBudget: dailyBudget,
+            spentToday: spentToday,
+            remainingBudget: remainingBudget,
+            isExhausted: isExhausted,
+            lastUpdated: faker.date.recent(),
+          });
+        }
+      }
+
+      await this.prisma.campaignBudgetTracker.createMany({
+        data: budgetData,
+        skipDuplicates: true,
+      });
+
+      this.logger.log(
+        `Seeded ${budgetData.length} campaign budget tracking records`,
+      );
+    } catch (error) {
+      this.logger.warn(
+        'Error seeding campaign budget tracking, but continuing...',
+      );
+      this.logger.error(error);
     }
   }
 }
