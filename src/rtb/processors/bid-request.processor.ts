@@ -30,10 +30,10 @@ export class BidRequestProcessor {
     floorPrice?: number;
   }> {
     const startTime = Date.now();
-    const auctionId = this.generateAuctionId(bidRequest.id);
+    // const auctionId = this.generateAuctionId(bidRequest.id);
 
     this.logger.debug('Starting bid request processing', {
-      auctionId,
+      auctionId: bidRequest.auctionId,
       requestId: bidRequest.id,
       inventoryId: bidRequest.inventoryId,
     });
@@ -50,29 +50,29 @@ export class BidRequestProcessor {
       const eligibleCampaigns = await this.findEligibleCampaigns(bidRequest);
 
       this.logger.debug('Found eligible campaigns', {
-        auctionId,
+        auctionId: bidRequest.auctionId,
         campaignCount: eligibleCampaigns.length,
       });
 
       if (eligibleCampaigns.length === 0) {
-        return await this.handleNoBidsAuction(auctionId, bidRequest, startTime);
+        return await this.handleNoBidsAuction(bidRequest.auctionId, bidRequest, startTime);
       }
 
       // 3. Generate bid responses for all eligible campaigns
       const bidResponses = await this.auctionService.generateBidResponses(
         bidRequest,
         eligibleCampaigns,
-        auctionId,
+        bidRequest.auctionId,
       );
 
       this.logger.debug('Generated bid responses', {
-        auctionId,
+        auctionId: bidRequest.auctionId,
         totalCampaigns: eligibleCampaigns.length,
         validBids: bidResponses.length,
       });
 
       if (bidResponses.length === 0) {
-        return await this.handleNoBidsAuction(auctionId, bidRequest, startTime);
+        return await this.handleNoBidsAuction(bidRequest.auctionId, bidRequest, startTime);
       }
 
       // 4. Execute auction algorithm to determine winner
@@ -82,12 +82,12 @@ export class BidRequestProcessor {
       await this.updateMetrics(bidRequest, auctionResult, startTime);
 
       // 6. Publish results for response generation
-      await this.publishAuctionResult(auctionResult, auctionId);
+      await this.publishAuctionResult(auctionResult, bidRequest.auctionId);
 
       const processingTime = Date.now() - startTime;
 
       this.logger.log('✅ Bid request processed successfully', {
-        auctionId,
+        auctionId: bidRequest.auctionId,
         winnerId: auctionResult.winner?.id,
         finalPrice: auctionResult.finalPrice,
         totalBids: bidResponses.length,
@@ -95,7 +95,7 @@ export class BidRequestProcessor {
       });
 
       return {
-        auctionId,
+        auctionId: bidRequest.auctionId,
         winner: auctionResult.winner,
         totalBids: bidResponses.length,
         validBids: bidResponses.length,
@@ -107,13 +107,13 @@ export class BidRequestProcessor {
       const processingTime = Date.now() - startTime;
 
       this.logger.error('❌ Bid request processing failed', {
-        auctionId,
+        auctionId: bidRequest.auctionId,
         error: error.message,
         processingTime: `${processingTime}ms`,
       });
 
       // Handle processing error appropriately
-      await this.handleProcessingError(bidRequest, auctionId, error, startTime);
+      await this.handleProcessingError(bidRequest, bidRequest.auctionId, error, startTime);
 
       throw error;
     } finally {

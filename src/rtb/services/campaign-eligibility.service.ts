@@ -52,14 +52,14 @@ export class CampaignEligibilityService {
       }
 
       // 3. Apply targeting filters in order of selectivity
-      const eligibleCampaigns = await this.applyTargetingFilters(
-        campaignPool,
-        userContext,
-        adSlotContext,
-      );
+      // const eligibleCampaigns = await this.applyTargetingFilters(
+      //   campaignPool,
+      //   userContext,
+      //   adSlotContext,
+      // );
 
       // 4. Final budget validation (real-time check)
-      const budgetValidated = await this.validateBudgets(eligibleCampaigns);
+      const budgetValidated = await this.validateBudgets(campaignPool);
 
       // 5. Cache results for 5 minutes
       await this.cacheEligibility(cacheKey, budgetValidated, 300);
@@ -744,9 +744,9 @@ export class CampaignEligibilityService {
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(this.toRadians(lat1)) *
-        Math.cos(this.toRadians(lat2)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
+      Math.cos(this.toRadians(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
 
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
