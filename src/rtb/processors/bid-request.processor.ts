@@ -85,7 +85,9 @@ export class BidRequestProcessor {
 
       // 4. Execute auction algorithm to determine winner
       const auctionResult = await this.executeAuction(bidResponses, bidRequest);
-
+      this.logger.debug('Auction executed', {
+        auctionResult,
+      });
       // 5. Update performance metrics and counters
       await this.updateMetrics(bidRequest, auctionResult, startTime);
 

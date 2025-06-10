@@ -706,7 +706,7 @@ export class BidEvaluationService {
 
   private async getDailyBudget(campaignId: string): Promise<number> {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString();
 
       const budgetTracker = await this.prisma.campaignBudgetTracker.findUnique({
         where: {
@@ -802,7 +802,7 @@ export class BidEvaluationService {
 
   private async getCurrentSpendPace(campaignId: string): Promise<number> {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString();
 
       const budgetTracker = await this.prisma.campaignBudgetTracker.findUnique({
         where: {
