@@ -175,14 +175,14 @@ export class AuctionService {
     const bidPromises = eligibleCampaigns.map(async (campaign) => {
       try {
         // 1. Check budget availability
-        // const hasBudget =
-        //   await this.campaignEligibility.checkBudgetAvailability(campaign.id);
-        // if (!hasBudget) {
-        //   this.logger.debug('Campaign excluded due to budget exhaustion', {
-        //     campaignId: campaign.id,
-        //   });
-        //   return null;
-        // }
+        const hasBudget =
+          await this.campaignEligibility.checkBudgetAvailability(campaign.id);
+        if (!hasBudget) {
+          this.logger.debug('Campaign excluded due to budget exhaustion', {
+            campaignId: campaign.id,
+          });
+          return null;
+        }
 
         // 2. Calculate bid price
         const bidPrice = await this.bidEvaluation.calculateBidPrice(
