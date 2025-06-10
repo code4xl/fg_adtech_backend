@@ -210,11 +210,15 @@ export class RTBKafkaConsumer implements OnModuleInit {
 
       // 1. Deserialize auction result
       const auctionResult = this.deserializeAuctionResult(payload.value);
-
+      this.logger.debug('Auction result deserialized Line 213', {
+        auction: auctionResult,
+      });
       // 2. Generate bid responses and ad markup
       const bidResponses =
         await this.bidResponseProcessor.generateBidResponses(auctionResult);
-
+      this.logger.debug('Bid Response generated 219', {
+        auction: bidResponses,
+      });
       // 3. Store responses in cache for SDK polling
       await this.bidResponseProcessor.storeBidResponses(bidResponses);
 
