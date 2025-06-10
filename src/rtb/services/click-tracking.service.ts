@@ -215,14 +215,14 @@ export class ClickTrackingService {
       sessionId: clickDto.sessionId,
       userAgent: clickDto.userAgent,
       ipAddress: clickDto.ipAddress,
-      deviceType: clickDto.deviceType,
-      country: clickDto.country,
+      // deviceType: clickDto.deviceType,
+      // country: clickDto.country,
     };
 
     const requestContext = {
       pageUrl: clickDto.pageUrl,
       referrerUrl: clickDto.referrerUrl,
-      timestamp: clickDto.timestamp || new Date().toISOString(),
+      // timestamp: clickDto.timestamp || new Date().toISOString(),
       clickX: clickDto.clickX,
       clickY: clickDto.clickY,
       clickArea: clickDto.clickArea,

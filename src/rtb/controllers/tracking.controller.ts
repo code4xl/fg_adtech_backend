@@ -26,12 +26,6 @@ import { Request, Response } from 'express';
 
 import { ImpressionTrackingService } from '../services/impression-tracking.service';
 import { ClickTrackingService } from '../services/click-tracking.service';
-import {
-  BatchClickEventsDto,
-  BatchImpressionEventsDto,
-  BatchTrackingResponseDto,
-  TrackingResponseDto,
-} from '../dto';
 
 /**
  * Tracking Controller - Phase 5 Implementation
@@ -312,246 +306,246 @@ export class TrackingController {
    * - Supports SDK batching for performance optimization
    * - Provides detailed response for each event
    */
-  @Post('batch/impressions')
-  @ApiOperation({
-    summary: 'Track multiple impressions in batch',
-    description:
-      'Processes multiple impression events in a single API call for efficiency',
-  })
-  @ApiBody({
-    type: BatchImpressionEventsDto,
-    description: 'Array of impression events to process',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Batch processing completed',
-    type: BatchTrackingResponseDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid batch data',
-  })
-  async batchTrackImpressions(
-    @Body() batchData: BatchImpressionEventsDto,
-  ): Promise<BatchTrackingResponseDto> {
-    const startTime = Date.now();
+  // @Post('batch/impressions')
+  // @ApiOperation({
+  //   summary: 'Track multiple impressions in batch',
+  //   description:
+  //     'Processes multiple impression events in a single API call for efficiency',
+  // })
+  // @ApiBody({
+  //   // type: BatchImpressionEventsDto,
+  //   description: 'Array of impression events to process',
+  // })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'Batch processing completed',
+  //   // type: BatchTrackingResponseDto,
+  // })
+  // @ApiResponse({
+  //   status: 400,
+  //   description: 'Invalid batch data',
+  // })
+  // async batchTrackImpressions(
+  //   @Body() batchData: BatchImpressionEventsDto,
+  // ): Promise<BatchTrackingResponseDto> {
+  //   const startTime = Date.now();
 
-    this.logger.debug('Batch impression tracking started', {
-      eventCount: batchData.events.length,
-      metadata: batchData.metadata,
-    });
+  //   this.logger.debug('Batch impression tracking started', {
+  //     eventCount: batchData.events.length,
+  //     metadata: batchData.metadata,
+  //   });
 
-    try {
-      // 1. Validate batch size
-      if (batchData.events.length === 0) {
-        throw new BadRequestException('No events provided');
-      }
+  //   try {
+  //     // 1. Validate batch size
+  //     if (batchData.events.length === 0) {
+  //       throw new BadRequestException('No events provided');
+  //     }
 
-      if (batchData.events.length > 100) {
-        throw new BadRequestException('Batch size cannot exceed 100 events');
-      }
+  //     if (batchData.events.length > 100) {
+  //       throw new BadRequestException('Batch size cannot exceed 100 events');
+  //     }
 
-      // 2. Process events in parallel with error isolation
-      const results = await Promise.allSettled(
-        batchData.events.map(async (event, index) => {
-          try {
-            const result =
-              await this.impressionService.trackImpressionFromDTO(event);
-            return {
-              status: 'success' as const,
-              eventId: result.id,
-              message: 'Impression tracked successfully',
-              timestamp: new Date().toISOString(),
-            };
-          } catch (error) {
-            this.logger.warn('Batch impression event failed', {
-              index,
-              error: error.message,
-              bidResponseId: event.bidResponseId,
-            });
-            return {
-              status: 'error' as const,
-              eventId: `error_${index}`,
-              message: error.message,
-              timestamp: new Date().toISOString(),
-            };
-          }
-        }),
-      );
+  //     // 2. Process events in parallel with error isolation
+  //     const results = await Promise.allSettled(
+  //       batchData.events.map(async (event, index) => {
+  //         try {
+  //           const result =
+  //             await this.impressionService.trackImpressionFromDTO(event);
+  //           return {
+  //             status: 'success' as const,
+  //             eventId: result.id,
+  //             message: 'Impression tracked successfully',
+  //             timestamp: new Date().toISOString(),
+  //           };
+  //         } catch (error) {
+  //           this.logger.warn('Batch impression event failed', {
+  //             index,
+  //             error: error.message,
+  //             bidResponseId: event.bidResponseId,
+  //           });
+  //           return {
+  //             status: 'error' as const,
+  //             eventId: `error_${index}`,
+  //             message: error.message,
+  //             timestamp: new Date().toISOString(),
+  //           };
+  //         }
+  //       }),
+  //     );
 
-      // 3. Compile batch response
-      const responses: TrackingResponseDto[] = results.map((result) =>
-        result.status === 'fulfilled' ? result.value : result.reason,
-      );
+  //     // 3. Compile batch response
+  //     const responses: TrackingResponseDto[] = results.map((result) =>
+  //       result.status === 'fulfilled' ? result.value : result.reason,
+  //     );
 
-      const successCount = responses.filter(
-        (r) => r.status === 'success',
-      ).length;
-      const failedCount = responses.length - successCount;
-      const processingTime = Date.now() - startTime;
+  //     const successCount = responses.filter(
+  //       (r) => r.status === 'success',
+  //     ).length;
+  //     const failedCount = responses.length - successCount;
+  //     const processingTime = Date.now() - startTime;
 
-      const batchResponse: BatchTrackingResponseDto = {
-        status:
-          failedCount === 0
-            ? 'success'
-            : successCount > 0
-              ? 'partial_success'
-              : 'error',
-        processedCount: successCount,
-        failedCount,
-        results: responses,
-        summary: {
-          totalTime: `${processingTime}ms`,
-          avgProcessingTime: `${(processingTime / batchData.events.length).toFixed(2)}ms`,
-          throughput: `${(batchData.events.length / (processingTime / 1000)).toFixed(0)} events/sec`,
-        },
-        timestamp: new Date().toISOString(),
-      };
+  //     const batchResponse: BatchTrackingResponseDto = {
+  //       status:
+  //         failedCount === 0
+  //           ? 'success'
+  //           : successCount > 0
+  //             ? 'partial_success'
+  //             : 'error',
+  //       processedCount: successCount,
+  //       failedCount,
+  //       results: responses,
+  //       summary: {
+  //         totalTime: `${processingTime}ms`,
+  //         avgProcessingTime: `${(processingTime / batchData.events.length).toFixed(2)}ms`,
+  //         throughput: `${(batchData.events.length / (processingTime / 1000)).toFixed(0)} events/sec`,
+  //       },
+  //       timestamp: new Date().toISOString(),
+  //     };
 
-      this.logger.log('Batch impression tracking completed', {
-        totalEvents: batchData.events.length,
-        successCount,
-        failedCount,
-        processingTime: `${processingTime}ms`,
-      });
+  //     this.logger.log('Batch impression tracking completed', {
+  //       totalEvents: batchData.events.length,
+  //       successCount,
+  //       failedCount,
+  //       processingTime: `${processingTime}ms`,
+  //     });
 
-      return batchResponse;
-    } catch (error) {
-      const processingTime = Date.now() - startTime;
+  //     return batchResponse;
+  //   } catch (error) {
+  //     const processingTime = Date.now() - startTime;
 
-      this.logger.error('Batch impression tracking failed', {
-        error: error.message,
-        eventCount: batchData.events?.length || 0,
-        processingTime: `${processingTime}ms`,
-      });
+  //     this.logger.error('Batch impression tracking failed', {
+  //       error: error.message,
+  //       eventCount: batchData.events?.length || 0,
+  //       processingTime: `${processingTime}ms`,
+  //     });
 
-      throw error;
-    }
-  }
+  //     throw error;
+  //   }
+  // }
 
-  /**
-   * Batch click tracking
-   *
-   * **Why separate from impression batch:**
-   * - Clicks have different validation requirements
-   * - Landing URL processing is click-specific
-   * - Different error handling strategies needed
-   */
-  @Post('batch/clicks')
-  @ApiOperation({
-    summary: 'Track multiple clicks in batch',
-    description:
-      'Processes multiple click events in a single API call for efficiency',
-  })
-  @ApiBody({
-    type: BatchClickEventsDto,
-    description: 'Array of click events to process',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Batch processing completed',
-    type: BatchTrackingResponseDto,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid batch data',
-  })
-  async batchTrackClicks(
-    @Body() batchData: BatchClickEventsDto,
-  ): Promise<BatchTrackingResponseDto> {
-    const startTime = Date.now();
+  // /**
+  //  * Batch click tracking
+  //  *
+  //  * **Why separate from impression batch:**
+  //  * - Clicks have different validation requirements
+  //  * - Landing URL processing is click-specific
+  //  * - Different error handling strategies needed
+  //  */
+  // @Post('batch/clicks')
+  // @ApiOperation({
+  //   summary: 'Track multiple clicks in batch',
+  //   description:
+  //     'Processes multiple click events in a single API call for efficiency',
+  // })
+  // @ApiBody({
+  //   type: BatchClickEventsDto,
+  //   description: 'Array of click events to process',
+  // })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'Batch processing completed',
+  //   type: BatchTrackingResponseDto,
+  // })
+  // @ApiResponse({
+  //   status: 400,
+  //   description: 'Invalid batch data',
+  // })
+  // async batchTrackClicks(
+  //   @Body() batchData: BatchClickEventsDto,
+  // ): Promise<BatchTrackingResponseDto> {
+  //   const startTime = Date.now();
 
-    this.logger.debug('Batch click tracking started', {
-      eventCount: batchData.events.length,
-      metadata: batchData.metadata,
-    });
+  //   this.logger.debug('Batch click tracking started', {
+  //     eventCount: batchData.events.length,
+  //     metadata: batchData.metadata,
+  //   });
 
-    try {
-      // 1. Validate batch size
-      if (batchData.events.length === 0) {
-        throw new BadRequestException('No events provided');
-      }
+  //   try {
+  //     // 1. Validate batch size
+  //     if (batchData.events.length === 0) {
+  //       throw new BadRequestException('No events provided');
+  //     }
 
-      if (batchData.events.length > 100) {
-        throw new BadRequestException('Batch size cannot exceed 100 events');
-      }
+  //     if (batchData.events.length > 100) {
+  //       throw new BadRequestException('Batch size cannot exceed 100 events');
+  //     }
 
-      // 2. Process events in parallel with error isolation
-      const results = await Promise.allSettled(
-        batchData.events.map(async (event, index) => {
-          try {
-            const result = await this.clickService.trackClickFromDTO(event);
-            return {
-              status: 'success' as const,
-              eventId: result.id,
-              message: 'Click tracked successfully',
-              timestamp: new Date().toISOString(),
-            };
-          } catch (error) {
-            this.logger.warn('Batch click event failed', {
-              index,
-              error: error.message,
-              bidResponseId: event.bidResponseId,
-            });
-            return {
-              status: 'error' as const,
-              eventId: `error_${index}`,
-              message: error.message,
-              timestamp: new Date().toISOString(),
-            };
-          }
-        }),
-      );
+  //     // 2. Process events in parallel with error isolation
+  //     const results = await Promise.allSettled(
+  //       batchData.events.map(async (event, index) => {
+  //         try {
+  //           const result = await this.clickService.trackClickFromDTO(event);
+  //           return {
+  //             status: 'success' as const,
+  //             eventId: result.id,
+  //             message: 'Click tracked successfully',
+  //             timestamp: new Date().toISOString(),
+  //           };
+  //         } catch (error) {
+  //           this.logger.warn('Batch click event failed', {
+  //             index,
+  //             error: error.message,
+  //             bidResponseId: event.bidResponseId,
+  //           });
+  //           return {
+  //             status: 'error' as const,
+  //             eventId: `error_${index}`,
+  //             message: error.message,
+  //             timestamp: new Date().toISOString(),
+  //           };
+  //         }
+  //       }),
+  //     );
 
-      // 3. Compile batch response
-      const responses: TrackingResponseDto[] = results.map((result) =>
-        result.status === 'fulfilled' ? result.value : result.reason,
-      );
+  //     // 3. Compile batch response
+  //     const responses: TrackingResponseDto[] = results.map((result) =>
+  //       result.status === 'fulfilled' ? result.value : result.reason,
+  //     );
 
-      const successCount = responses.filter(
-        (r) => r.status === 'success',
-      ).length;
-      const failedCount = responses.length - successCount;
-      const processingTime = Date.now() - startTime;
+  //     const successCount = responses.filter(
+  //       (r) => r.status === 'success',
+  //     ).length;
+  //     const failedCount = responses.length - successCount;
+  //     const processingTime = Date.now() - startTime;
 
-      const batchResponse: BatchTrackingResponseDto = {
-        status:
-          failedCount === 0
-            ? 'success'
-            : successCount > 0
-              ? 'partial_success'
-              : 'error',
-        processedCount: successCount,
-        failedCount,
-        results: responses,
-        summary: {
-          totalTime: `${processingTime}ms`,
-          avgProcessingTime: `${(processingTime / batchData.events.length).toFixed(2)}ms`,
-          throughput: `${(batchData.events.length / (processingTime / 1000)).toFixed(0)} events/sec`,
-        },
-        timestamp: new Date().toISOString(),
-      };
+  //     const batchResponse: BatchTrackingResponseDto = {
+  //       status:
+  //         failedCount === 0
+  //           ? 'success'
+  //           : successCount > 0
+  //             ? 'partial_success'
+  //             : 'error',
+  //       processedCount: successCount,
+  //       failedCount,
+  //       results: responses,
+  //       summary: {
+  //         totalTime: `${processingTime}ms`,
+  //         avgProcessingTime: `${(processingTime / batchData.events.length).toFixed(2)}ms`,
+  //         throughput: `${(batchData.events.length / (processingTime / 1000)).toFixed(0)} events/sec`,
+  //       },
+  //       timestamp: new Date().toISOString(),
+  //     };
 
-      this.logger.log('Batch click tracking completed', {
-        totalEvents: batchData.events.length,
-        successCount,
-        failedCount,
-        processingTime: `${processingTime}ms`,
-      });
+  //     this.logger.log('Batch click tracking completed', {
+  //       totalEvents: batchData.events.length,
+  //       successCount,
+  //       failedCount,
+  //       processingTime: `${processingTime}ms`,
+  //     });
 
-      return batchResponse;
-    } catch (error) {
-      const processingTime = Date.now() - startTime;
+  //     return batchResponse;
+  //   } catch (error) {
+  //     const processingTime = Date.now() - startTime;
 
-      this.logger.error('Batch click tracking failed', {
-        error: error.message,
-        eventCount: batchData.events?.length || 0,
-        processingTime: `${processingTime}ms`,
-      });
+  //     this.logger.error('Batch click tracking failed', {
+  //       error: error.message,
+  //       eventCount: batchData.events?.length || 0,
+  //       processingTime: `${processingTime}ms`,
+  //     });
 
-      throw error;
-    }
-  }
+  //     throw error;
+  //   }
+  // }
 
   // ==========================================
   // PRIVATE HELPER METHODS

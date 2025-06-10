@@ -15,7 +15,7 @@ import {
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { Decimal } from '@prisma/client/runtime/library';
-import { FloorPriceCurrency } from '@prisma/client';
+import { Currency } from '@prisma/client';
 
 export class CreateFloorPriceDto {
   @ApiProperty({
@@ -33,8 +33,8 @@ export class CreateFloorPriceDto {
     default: 'USD',
   })
   @IsOptional()
-  @IsEnum(FloorPriceCurrency)
-  currency?: string = FloorPriceCurrency.USD;
+  @IsEnum(Currency)
+  currency?: string = Currency.INR;
   @ApiProperty({
     description: 'Inventory ID/Slot Id to which the floor price rule applies',
     example: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',

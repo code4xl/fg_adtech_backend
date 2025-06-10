@@ -490,7 +490,7 @@ export class PublisherService {
       data: {
         inventoryId: createFloorPriceDto.inventoryId,
         basePrice: createFloorPriceDto.basePrice,
-        currency: 'USD',
+        currency: 'INR',
         startDate: createFloorPriceDto.startDate
           ? new Date(createFloorPriceDto.startDate)
           : new Date(),
@@ -576,7 +576,7 @@ export class PublisherService {
       where: { id: updateFloorPriceDto.id },
       data: {
         basePrice: updateFloorPriceDto.basePrice,
-        currency: 'USD',
+        currency: 'INR',
         startDate: updateFloorPriceDto.startDate
           ? new Date(updateFloorPriceDto.startDate)
           : new Date(),

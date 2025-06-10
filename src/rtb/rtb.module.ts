@@ -27,6 +27,7 @@ import { RTBCacheService } from './services/rtb-cache.service';
 import { RTBMetricsService } from './services/rtb-metrics.service';
 import { TimescaleModule } from 'src/timescale/timescale.module';
 import { TimescaleSyncConsumer } from 'src/timescale/consumers/timescale-sync.consumer';
+import { RTBRedisService } from 'src/redis/services/rtb-redis.service';
 
 /**
  * RTB Module - Phase 5 Complete Implementation
@@ -61,6 +62,7 @@ import { TimescaleSyncConsumer } from 'src/timescale/consumers/timescale-sync.co
     // TrackingController
   ],
   providers: [
+    RTBRedisService,
     RTBService,
     AuctionService,
     BidEvaluationService,
@@ -77,6 +79,7 @@ import { TimescaleSyncConsumer } from 'src/timescale/consumers/timescale-sync.co
     // TimescaleSyncConsumer,
   ],
   exports: [
+    RTBRedisService,
     RTBService,
     AuctionService,
     CampaignEligibilityService,

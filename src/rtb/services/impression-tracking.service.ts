@@ -190,21 +190,21 @@ export class ImpressionTrackingService {
       userAgent: impressionDto.userAgent,
       ipAddress: impressionDto.ipAddress,
       deviceType: impressionDto.deviceType,
-      browserType: impressionDto.browserType,
-      osType: impressionDto.osType,
+      // browserType: impressionDto.browserType,
+      // osType: impressionDto.osType,
       country: impressionDto.country,
-      region: impressionDto.region,
-      city: impressionDto.city,
+      // region: impressionDto.region,
+      // city: impressionDto.city,
     };
 
     const requestContext = {
       pageUrl: impressionDto.pageUrl,
       referrerUrl: impressionDto.referrerUrl,
-      pageCategory: impressionDto.pageCategory,
-      timestamp: impressionDto.timestamp || new Date().toISOString(),
+      // pageCategory: impressionDto.pageCategory,
+      // timestamp: impressionDto.timestamp || new Date().toISOString(),
       viewable: impressionDto.viewable,
       viewTime: impressionDto.viewTime,
-      viewablePixels: impressionDto.viewablePixels,
+      // viewablePixels: impressionDto.viewablePixels,
     };
 
     return await this.trackImpression(
