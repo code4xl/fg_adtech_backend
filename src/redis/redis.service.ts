@@ -112,6 +112,15 @@ export class RedisService {
     return this.pubClient.setnx(key, value);
   }
 
+  async smembers(key: string): Promise<string[]> {
+    return this.pubClient.smembers(key);
+  }
+
+  async keys(pattern: string): Promise<string[]> {
+    return this.pubClient.keys(pattern);
+  }
+
+
   pipeline() {
     return this.pubClient.pipeline();
   }
