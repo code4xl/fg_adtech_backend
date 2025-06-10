@@ -24,7 +24,7 @@ export const kafkaTopics = {
 
   // Phase 5: NEW - Analytics Topics
   CAMPAIGN_METRICS: 'analytics.campaign-metrics.v2',
-  TIMESTREAM_SYNC: 'analytics.timestream-sync.v2',
+  TIMESCALE_SYNC: 'analytics.timescale-sync.v2',
 
   // Existing error handling topics (keep these)
   DLQ_BID_REQUESTS: 'dlq.bid-requests',

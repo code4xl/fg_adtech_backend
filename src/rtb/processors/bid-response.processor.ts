@@ -7,6 +7,7 @@ import { KafkaService } from '../../kafka/kafka.service';
 import { ConfigService } from '@nestjs/config';
 import { REDIS_KEYS } from '../../redis/constants/redis-keys';
 import { kafkaTopics } from '../../kafka/constants/kafka.config';
+import { AuctionService } from '../services/auction.service';
 
 /**
  * Bid Response Processor - Phase 4 Implementation
@@ -44,6 +45,7 @@ export class BidResponseProcessor {
         private readonly rtbRedis: RTBRedisService,
         private readonly kafka: KafkaService,
         private readonly config: ConfigService,
+        private readonly auctionService: AuctionService,
     ) {
         this.trackingBaseUrl = this.config.get<string>('APP_URL') || 'https://track.oceanadtech.com';
         this.logger.log('Bid Response Processor initialized - Phase 4');
@@ -224,17 +226,21 @@ export class BidResponseProcessor {
         const winner = auctionResult.winner;
         const creative = winner.creative;
 
-        // Generate tracking URLs
-        const trackingUrls = await this.generateTrackingUrls(
+        // Use auction service for tracking URLs
+        const trackingUrls = this.auctionService.generateTrackingUrls(
             auctionResult.auctionId,
             winner.id
         );
 
-        // Generate ad markup with tracking
-        const adMarkup = await this.generateAdMarkup(
+        // Use auction service for ad markup
+        const adMarkup = this.auctionService.generateAdMarkup(
             creative,
             trackingUrls,
-            auctionResult.originalRequest
+            {
+                width: auctionResult.originalRequest.adSlotContext.width,
+                height: auctionResult.originalRequest.adSlotContext.height,
+                format: auctionResult.originalRequest.adSlotContext.format
+            }
         );
 
         return {
@@ -305,167 +311,6 @@ export class BidResponseProcessor {
                 timestamp: new Date().toISOString()
             }
         }];
-    }
-
-    // ==========================================
-    // AD MARKUP AND TRACKING GENERATION
-    // ==========================================
-
-    /**
-     * Generate tracking URLs for impression and click tracking
-     * 
-     * **Why tracking URLs are essential:**
-     * - Enable measurement of ad performance
-     * - Required for billing verification
-     * - Provide data for campaign optimization
-     * - Industry standard for RTB transactions
-     */
-    private async generateTrackingUrls(
-        auctionId: string,
-        bidResponseId: string
-    ): Promise<{
-        impression: string[];
-        click: string[];
-    }> {
-        const baseUrl = this.trackingBaseUrl;
-
-        return {
-            impression: [
-                `${baseUrl}/track/impression/${bidResponseId}?auction=${auctionId}&t=${Date.now()}`
-            ],
-            click: [
-                `${baseUrl}/track/click/${bidResponseId}?auction=${auctionId}&t=${Date.now()}`
-            ]
-        };
-    }
-
-    /**
-     * Generate ad markup with embedded tracking
-     * 
-     * **Why dynamic markup generation:**
-     * - Ensures tracking pixels are properly embedded
-     * - Handles different creative formats consistently
-     * - Adds viewability measurement capabilities
-     * - Provides fallback for display issues
-     */
-    private async generateAdMarkup(
-        creative: any,
-        trackingUrls: any,
-        originalRequest: any
-    ): Promise<string> {
-        const width = originalRequest.adSlotContext.width;
-        const height = originalRequest.adSlotContext.height;
-        const impressionUrl = trackingUrls.impression[0];
-        const clickUrl = trackingUrls.click[0];
-
-        // Generate markup based on creative type
-        switch (creative.adSlotTemplate.format) {
-            case 'BANNER':
-                return this.generateBannerMarkup(creative, width, height, impressionUrl, clickUrl);
-
-            case 'NATIVE':
-                return this.generateNativeMarkup(creative, impressionUrl, clickUrl);
-
-            case 'VIDEO':
-                return this.generateVideoMarkup(creative, width, height, impressionUrl, clickUrl);
-
-            default:
-                return this.generateDefaultMarkup(creative, width, height, impressionUrl, clickUrl);
-        }
-    }
-
-    /**
-     * Generate banner ad markup
-     */
-    private generateBannerMarkup(
-        creative: any,
-        width: number,
-        height: number,
-        impressionUrl: string,
-        clickUrl: string
-    ): string {
-        return `
-        <div class="ocean-ad-container" style="width: ${width}px; height: ${height}px; position: relative; overflow: hidden;">
-            <a href="${clickUrl}&url=${encodeURIComponent(creative.landingUrl)}" 
-               target="_blank" 
-               style="display: block; width: 100%; height: 100%;">
-                <img src="${creative.fileUrl}" 
-                     alt="${creative.name}"
-                     style="width: 100%; height: 100%; object-fit: cover; border: none;"
-                     onload="if(this.complete) { var img = new Image(); img.src = '${impressionUrl}'; }" />
-            </a>
-            <img src="${impressionUrl}" 
-                 style="position: absolute; width: 1px; height: 1px; top: -1px; left: -1px;" 
-                 alt="" />
-        </div>
-        `.trim();
-    }
-
-    /**
-     * Generate native ad markup
-     */
-    private generateNativeMarkup(
-        creative: any,
-        impressionUrl: string,
-        clickUrl: string
-    ): string {
-        return `
-        <div class="ocean-native-ad" data-creative-id="${creative.id}">
-            <div class="native-content">
-                <a href="${clickUrl}&url=${encodeURIComponent(creative.landingUrl)}" target="_blank">
-                    <img src="${creative.fileUrl}" alt="${creative.name}" class="native-image" />
-                    <div class="native-text">
-                        <h3 class="native-title">${creative.name}</h3>
-                        <p class="native-description">Sponsored Content</p>
-                    </div>
-                </a>
-            </div>
-            <img src="${impressionUrl}" style="display: none;" alt="" />
-        </div>
-        `.trim();
-    }
-
-    /**
-     * Generate video ad markup
-     */
-    private generateVideoMarkup(
-        creative: any,
-        width: number,
-        height: number,
-        impressionUrl: string,
-        clickUrl: string
-    ): string {
-        return `
-        <div class="ocean-video-ad" style="width: ${width}px; height: ${height}px;">
-            <video width="${width}" height="${height}" controls onclick="window.open('${clickUrl}&url=${encodeURIComponent(creative.landingUrl)}', '_blank')">
-                <source src="${creative.fileUrl}" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
-            <img src="${impressionUrl}" style="display: none;" alt="" />
-        </div>
-        `.trim();
-    }
-
-    /**
-     * Generate default ad markup
-     */
-    private generateDefaultMarkup(
-        creative: any,
-        width: number,
-        height: number,
-        impressionUrl: string,
-        clickUrl: string
-    ): string {
-        return `
-        <div class="ocean-ad" style="width: ${width}px; height: ${height}px;">
-            <a href="${clickUrl}&url=${encodeURIComponent(creative.landingUrl)}" target="_blank">
-                <img src="${creative.fileUrl}" 
-                     alt="${creative.name}"
-                     style="width: 100%; height: 100%;" />
-            </a>
-            <img src="${impressionUrl}" style="display: none;" alt="" />
-        </div>
-        `.trim();
     }
 
     // ==========================================

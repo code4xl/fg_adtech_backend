@@ -246,10 +246,10 @@ export class RTBKafkaConsumer implements OnModuleInit {
             // 3. Store responses in cache for SDK polling
             await this.bidResponseProcessor.storeBidResponses(bidResponses);
 
-            // 4. Send win notifications if applicable
-            if (auctionResult.winner) {
-                await this.bidResponseProcessor.sendWinNotifications(auctionResult);
-            }
+            // 4. Send win notifications if applicable   -- Later phase
+            // if (auctionResult.winner) {
+            //     await this.bidResponseProcessor.sendWinNotifications(auctionResult);
+            // }
 
             const processingTime = Date.now() - startTime;
             this.logger.log('✅ Auction result processed', {

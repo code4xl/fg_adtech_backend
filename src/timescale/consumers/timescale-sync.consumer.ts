@@ -88,7 +88,7 @@ export class TimescaleSyncConsumer implements OnModuleInit {
 
       // Primary sync topic (replaces Timestream sync)
       await this.kafka.subscribe(
-        kafkaTopics.TIMESTREAM_SYNC,
+        kafkaTopics.TIMESCALE_SYNC,
         'timescale-sync-consumer',
         this.processSyncEvent.bind(this),
         // {
@@ -997,7 +997,7 @@ export class TimescaleSyncConsumer implements OnModuleInit {
           'SELECT COUNT(*) as count FROM rtb_impressions WHERE timestamp >= $1',
           [
             filters.timestamp?.gte ||
-              new Date(Date.now() - 24 * 60 * 60 * 1000),
+            new Date(Date.now() - 24 * 60 * 60 * 1000),
           ],
         );
         tsCount = parseInt(tsResult.rows[0].count);
@@ -1010,7 +1010,7 @@ export class TimescaleSyncConsumer implements OnModuleInit {
           'SELECT COUNT(*) as count FROM rtb_clicks WHERE timestamp >= $1',
           [
             filters.timestamp?.gte ||
-              new Date(Date.now() - 24 * 60 * 60 * 1000),
+            new Date(Date.now() - 24 * 60 * 60 * 1000),
           ],
         );
         tsCount = parseInt(tsResult.rows[0].count);
@@ -1475,9 +1475,9 @@ export class TimescaleSyncConsumer implements OnModuleInit {
             averageBatchSize:
               this.syncMetrics.batchSizes.length > 0
                 ? (
-                    this.syncMetrics.batchSizes.reduce((a, b) => a + b, 0) /
-                    this.syncMetrics.batchSizes.length
-                  ).toFixed(0)
+                  this.syncMetrics.batchSizes.reduce((a, b) => a + b, 0) /
+                  this.syncMetrics.batchSizes.length
+                ).toFixed(0)
                 : 0,
             circuitBreakerStatus: this.circuitBreaker.isOpen
               ? 'OPEN'

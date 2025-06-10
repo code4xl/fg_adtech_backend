@@ -9,6 +9,7 @@ import { REDIS_KEYS } from '../../redis/constants/redis-keys';
 
 import { WithRetry } from '../../common/resilience/retry.decorator';
 import { ImpressionEventDto } from '../dto/';
+import { RTB_REDIS_KEYS } from 'src/redis/constants/rtb-keys';
 
 /**
  * Impression Tracking Service - Phase 5 Implementation
@@ -149,7 +150,7 @@ export class ImpressionTrackingService {
     eventId: string,
   ) {
     try {
-      await this.kafka.publish(kafkaTopics.TIMESTREAM_SYNC, {
+      await this.kafka.publish(kafkaTopics.TIMESCALE_SYNC, {
         key: eventId,
         value: {
           eventType: 'REAL_TIME_SYNC',
@@ -293,18 +294,20 @@ export class ImpressionTrackingService {
 
       // Check by bid response ID + user ID (if available)
       if (userId) {
-        const userKey = `dup:imp:${bidResponseId}:${userId}`;
+
+        const userKey = RTB_REDIS_KEYS.IMPRESSION_DUP_USER_KEY(bidResponseId, userId);
         duplicateChecks.push(this.redis.get(userKey));
       }
 
       // Check by bid response ID + session ID (if available)
       if (sessionId) {
-        const sessionKey = `dup:imp:${bidResponseId}:${sessionId}`;
+        const sessionKey = RTB_REDIS_KEYS.IMPRESSION_DUP_SESSION_KEY(bidResponseId, sessionId);
         duplicateChecks.push(this.redis.get(sessionKey));
       }
 
       // Check by bid response ID only (as fallback)
-      const bidKey = `dup:imp:${bidResponseId}`;
+
+      const bidKey = RTB_REDIS_KEYS.IMPRESSION_DUP_BID_KEY(bidResponseId);
       duplicateChecks.push(this.redis.get(bidKey));
 
       const results = await Promise.all(duplicateChecks);
@@ -317,15 +320,15 @@ export class ImpressionTrackingService {
 
         if (userId) {
           promises.push(
-            this.redis.set(`dup:imp:${bidResponseId}:${userId}`, '1', ttl),
+            this.redis.set(RTB_REDIS_KEYS.IMPRESSION_DUP_USER_KEY(bidResponseId, userId), '1', ttl),
           );
         }
         if (sessionId) {
           promises.push(
-            this.redis.set(`dup:imp:${bidResponseId}:${sessionId}`, '1', ttl),
+            this.redis.set(RTB_REDIS_KEYS.IMPRESSION_DUP_SESSION_KEY(bidResponseId, sessionId), '1', ttl),
           );
         }
-        promises.push(this.redis.set(`dup:imp:${bidResponseId}`, '1', ttl));
+        promises.push(this.redis.set(bidKey, '1', ttl));
 
         await Promise.all(promises);
       }
@@ -405,7 +408,7 @@ export class ImpressionTrackingService {
         pageCategory: requestContext.pageCategory,
 
         // Sync status for Timestream
-        syncedToTimestream: false,
+        syncedToTimescale: false,
       };
 
       const impression = await this.prisma.impressionEvent.create({
@@ -454,27 +457,28 @@ export class ImpressionTrackingService {
 
       await Promise.all([
         // Performance metrics
-        this.redis.incr(`metrics:impressions:total:${dateHour}`),
+
+        this.redis.incr(RTB_REDIS_KEYS.METRICS_HOURLY_TOTAL_IMPRESSIONS(dateHour)),
         this.redis.incr(
-          `metrics:impressions:${impression.deviceType}:${dateHour}`,
+          RTB_REDIS_KEYS.METRICS_HOURLY_TOTAL_IMPRESSIONS_DEVICE_TYPE(impression.deviceType, dateHour),
         ),
         this.redis.incrbyfloat(
-          `metrics:revenue:total:${dateHour}`,
+          RTB_REDIS_KEYS.METRICS_TOTAL_HOURLY_REVENUE(dateHour),
           Number(impression.price),
         ),
 
         // Viewability metrics (if available)
         ...(impression.viewable !== null
           ? [
-              this.redis.incr(
-                `metrics:impressions:${impression.viewable ? 'viewable' : 'nonviewable'}:${dateHour}`,
-              ),
-            ]
+            this.redis.incr(
+              RTB_REDIS_KEYS.METRICS_TOTAL_HOURLY_VIEWABLE_IMPRESSIONS(dateHour, impression.viewable),
+            ),
+          ]
           : []),
 
         // Set expiration for metrics (7 days)
         this.redis.expire(
-          `metrics:impressions:total:${dateHour}`,
+          RTB_REDIS_KEYS.METRICS_HOURLY_TOTAL_IMPRESSIONS(dateHour),
           7 * 24 * 3600,
         ),
       ]);
@@ -707,11 +711,6 @@ export class ImpressionTrackingService {
         userContext.ipAddress.startsWith('192.168.')
       ) {
         fraudScore += 0.3; // Private/local IPs are suspicious
-      }
-
-      // Check for missing context
-      if (!userContext.country) {
-        fraudScore += 0.1;
       }
 
       if (!userContext.deviceType || userContext.deviceType === 'unknown') {

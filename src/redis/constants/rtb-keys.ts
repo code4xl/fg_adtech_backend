@@ -108,6 +108,15 @@ export const RTB_REDIS_KEYS = {
     BID_CALCULATION_GEO_MULTIPLIER: (country: string, campaignId: string) => `bid:adj:multiplier:geo:${campaignId}:${country}`,
     BID_CALCULATION_INVENTORY_QUALITY_MULTIPLIER: (inventoryId: string) => `bid:adj:multiplier:inventory:${inventoryId}`,
 
+    IMPRESSION_DUP_USER_KEY: (bidResponseId: string, userId: string) => `dup:imp:${bidResponseId}:${userId}`,
+    IMPRESSION_DUP_SESSION_KEY: (bidResponseId: string, sessionId: string) => `dup:imp:${bidResponseId}:${sessionId}`,
+    IMPRESSION_DUP_BID_KEY: (bidResponseId: string) => `dup:imp:${bidResponseId}`,
+
+    METRICS_HOURLY_TOTAL_IMPRESSIONS: (hour: string) => `metrics:impressions:total:${hour}`,
+    METRICS_HOURLY_TOTAL_IMPRESSIONS_DEVICE_TYPE: (deviceType: string, dateHour: string) => `metrics:impressions:${deviceType}:${dateHour}`,
+    METRICS_TOTAL_HOURLY_REVENUE: (hour: string) => `metrics:revenue:total:${hour}`,
+    METRICS_TOTAL_HOURLY_VIEWABLE_IMPRESSIONS: (hour: string, viewable: any) => `metrics:impressions:${viewable ? 'viewable' : 'nonviewable'}:${hour}`,
+
     // Real-time Auction Statistics
     AUCTION_STATS_HOURLY: (hour: string) =>
         `stats:auction:hourly:${hour}`,

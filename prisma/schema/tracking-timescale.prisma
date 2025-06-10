@@ -64,8 +64,8 @@ model ImpressionEvent {
     pageCategory String?
 
     // SYNC STATUS
-    syncedToTimestream Boolean   @default(false)
-    syncedAt           DateTime?
+    syncedToTimescale Boolean   @default(false)
+    syncedAt          DateTime?
 
     // RELATIONS
     creative   Creative     @relation(fields: [creativeId], references: [id])
@@ -79,7 +79,7 @@ model ImpressionEvent {
     @@index([inventoryId, timestamp]) // Inventory performance
     @@index([publisherId, timestamp]) // Publisher earnings
     @@index([timestamp]) // Time-based queries
-    @@index([syncedToTimestream]) // Sync management
+    @@index([syncedToTimescale]) // Sync management
     @@index([userId, campaignId]) // Frequency capping
 }
 

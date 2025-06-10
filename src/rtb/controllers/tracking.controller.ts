@@ -578,11 +578,7 @@ export class TrackingController {
       deviceType: this.detectDeviceType(userAgent),
       browserType: this.detectBrowserType(userAgent),
       osType: this.detectOSType(userAgent),
-      country: this.extractCountry(request),
-      region: this.extractRegion(request),
-      city: this.extractCity(request),
       language: request.headers['accept-language']?.split(',')[0] || 'en',
-      timezone: this.extractTimezone(request),
     };
   }
 

@@ -6,6 +6,7 @@ import { CampaignEligibilityService } from './campaign-eligibility.service';
 import { AuctionStatusDto } from '../dto';
 import { REDIS_KEYS } from '../../redis/constants/redis-keys';
 import { BidEvaluationService } from './bid-evalutation.service';
+import { ConfigService } from '@nestjs/config';
 
 /**
  * Auction Service - Phase 3 Complete Implementation
@@ -35,13 +36,17 @@ import { BidEvaluationService } from './bid-evalutation.service';
 @Injectable()
 export class AuctionService {
     private readonly logger = new Logger(AuctionService.name);
+    private readonly trackingBaseUrl: string;
+
 
     constructor(
         private readonly prisma: PrismaService,
         private readonly redis: RedisService,
         private readonly campaignEligibility: CampaignEligibilityService,
         private readonly bidEvaluation: BidEvaluationService,
+        private readonly config: ConfigService // Assuming ConfigService is injected for configuration access
     ) {
+        this.trackingBaseUrl = this.config.get<string>('template.url') || 'https://track.oceanadtech.com';
         this.logger.log('Auction Service initialized - Phase 3 Complete');
     }
 
@@ -462,6 +467,21 @@ export class AuctionService {
         bidPrice: number,
         auctionId: string
     ): Promise<any> {
+        // Generate comprehensive tracking URLs
+        const trackingUrls = this.generateTrackingUrls(auctionId);
+
+        // Generate comprehensive ad markup
+        const adMarkup = this.generateAdMarkup(
+            creative,
+            trackingUrls,
+            {
+                width: bidRequest.adSlotContext.width,
+                height: bidRequest.adSlotContext.height,
+                format: bidRequest.adSlotContext.format
+            }
+        );
+
+
         return await this.prisma.bidResponse.create({
             data: {
                 bidRequestId: bidRequest.id,
@@ -471,33 +491,176 @@ export class AuctionService {
                 bidPrice,
                 currency: 'INR',
                 status: 'PENDING',
-                adMarkup: this.generateAdMarkup(creative, bidRequest),
-                impressionUrls: this.generateImpressionUrls(auctionId),
-                clickUrls: this.generateClickUrls(creative.landingUrl, auctionId),
+                adMarkup,
+                impressionUrls: trackingUrls.impression,
+                clickUrls: trackingUrls.click,
             }
         });
     }
 
-    private generateAdMarkup(creative: any, bidRequest: any): string {
-        // Generate HTML ad markup with tracking
+    /**
+     * ENHANCED: Generate comprehensive tracking URLs
+     * 
+     * **Moved from bid-response.processor.ts**
+     * Now supports both simple and detailed tracking URL generation
+     */
+    generateTrackingUrls(
+        auctionId: string,
+        bidResponseId?: string
+    ): {
+        impression: string[];
+        click: string[];
+    } {
+        const baseUrl = this.trackingBaseUrl;
+
+        if (bidResponseId) {
+            // Detailed tracking with bidResponseId and timestamp
+            return {
+                impression: [
+                    `${baseUrl}/track/impression/${bidResponseId}?auction=${auctionId}&t=${Date.now()}`
+                ],
+                click: [
+                    `${baseUrl}/track/click/${bidResponseId}?auction=${auctionId}&t=${Date.now()}`
+                ]
+            };
+        } else {
+            // Simple tracking for backward compatibility
+            return {
+                impression: [`${baseUrl}/track/impression/${auctionId}`],
+                click: [`${baseUrl}/track/click/${auctionId}`]
+            };
+        }
+    }
+
+    /**
+     * ENHANCED: Generate comprehensive ad markup
+     * 
+     * **Moved from bid-response.processor.ts**
+     * Now supports multiple creative formats with embedded tracking
+     */
+    generateAdMarkup(
+        creative: any,
+        trackingUrls: { impression: string[], click: string[] },
+        context: {
+            width: number;
+            height: number;
+            format?: string;
+        }
+    ): string {
+        const { width, height, format } = context;
+        const impressionUrl = trackingUrls.impression[0];
+        const clickUrl = trackingUrls.click[0];
+
+        // Determine format from creative or context
+        const creativeFormat = format || creative.adSlotTemplate?.format || 'BANNER';
+
+        // Generate markup based on creative type
+        switch (creativeFormat) {
+            case 'BANNER':
+                return this.generateBannerMarkup(creative, width, height, impressionUrl, clickUrl);
+
+            case 'NATIVE':
+                return this.generateNativeMarkup(creative, impressionUrl, clickUrl);
+
+            case 'VIDEO':
+                return this.generateVideoMarkup(creative, width, height, impressionUrl, clickUrl);
+
+            default:
+                return this.generateDefaultMarkup(creative, width, height, impressionUrl, clickUrl);
+        }
+    }
+
+    /**
+     * Generate banner ad markup
+     */
+    private generateBannerMarkup(
+        creative: any,
+        width: number,
+        height: number,
+        impressionUrl: string,
+        clickUrl: string
+    ): string {
         return `
-            <div class="ocean-ad" data-creative-id="${creative.id}">
+        <div class="ocean-ad-container" style="width: ${width}px; height: ${height}px; position: relative; overflow: hidden;">
+            <a href="${clickUrl}&url=${encodeURIComponent(creative.landingUrl)}" target="_blank" style="display: block; width: 100%; height: 100%;">
                 <img src="${creative.fileUrl}" 
                      alt="${creative.name}"
-                     width="${bidRequest.adSlotContext.width}"
-                     height="${bidRequest.adSlotContext.height}"
-                     style="max-width: 100%; height: auto;" />
+                     style="width: 100%; height: 100%; object-fit: cover;" />
+            </a>
+            <img src="${impressionUrl}" style="position: absolute; width: 1px; height: 1px; opacity: 0;" alt="" />
+        </div>
+        `.trim();
+    }
+
+    /**
+     * Generate native ad markup
+     */
+    private generateNativeMarkup(
+        creative: any,
+        impressionUrl: string,
+        clickUrl: string
+    ): string {
+        return `
+        <div class="ocean-native-ad">
+            <div class="ocean-native-content">
+                <h3 class="ocean-native-title">${creative.title || creative.name}</h3>
+                <p class="ocean-native-description">${creative.description || ''}</p>
+                <a href="${clickUrl}&url=${encodeURIComponent(creative.landingUrl)}" target="_blank" class="ocean-native-cta">
+                    Learn More
+                </a>
             </div>
-        `;
+            <img src="${impressionUrl}" style="display: none;" alt="" />
+        </div>
+        `.trim();
     }
 
-    private generateImpressionUrls(auctionId: string): string[] {
-        return [`https://track.oceanadtech.com/impression/${auctionId}`];
+    /**
+     * Generate video ad markup
+     */
+    private generateVideoMarkup(
+        creative: any,
+        width: number,
+        height: number,
+        impressionUrl: string,
+        clickUrl: string
+    ): string {
+        return `
+        <div class="ocean-video-ad" style="width: ${width}px; height: ${height}px; position: relative;">
+            <video width="${width}" height="${height}" controls autoplay muted>
+                <source src="${creative.fileUrl}" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            <div class="ocean-video-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;">
+                <a href="${clickUrl}&url=${encodeURIComponent(creative.landingUrl)}" target="_blank" 
+                   style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; text-decoration: none; pointer-events: auto;">
+                    Learn More
+                </a>
+            </div>
+            <img src="${impressionUrl}" style="display: none;" alt="" />
+        </div>
+        `.trim();
     }
 
-    private generateClickUrls(landingUrl: string, auctionId: string): string[] {
-        const encodedUrl = encodeURIComponent(landingUrl);
-        return [`https://track.oceanadtech.com/click/${auctionId}?url=${encodedUrl}`];
+    /**
+     * Generate default ad markup (fallback)
+     */
+    private generateDefaultMarkup(
+        creative: any,
+        width: number,
+        height: number,
+        impressionUrl: string,
+        clickUrl: string
+    ): string {
+        return `
+        <div class="ocean-ad" style="width: ${width}px; height: ${height}px;">
+            <a href="${clickUrl}&url=${encodeURIComponent(creative.landingUrl)}" target="_blank">
+                <img src="${creative.fileUrl}" 
+                     alt="${creative.name}"
+                     style="width: 100%; height: 100%;" />
+            </a>
+            <img src="${impressionUrl}" style="display: none;" alt="" />
+        </div>
+        `.trim();
     }
 
     private async handleNoBidsAuction(
