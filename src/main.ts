@@ -24,7 +24,7 @@ async function bootstrap() {
     logger: new ConsoleLogger({
       json: false,
       colors: true,
-      logLevels: ['error', 'warn', 'debug', 'verbose', 'log'],
+      logLevels: ['error', 'warn', 'debug'],
       prefix: 'OceanAdTech',
     }),
   });
@@ -38,7 +38,7 @@ async function bootstrap() {
     helmet({
       contentSecurityPolicy: {
         directives: {
-          defaultSrc: ["'self'"],  // Note the quotes around 'self'
+          defaultSrc: ["'self'"], // Note the quotes around 'self'
           scriptSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
           styleSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
           imgSrc: ["'self'", 'data:', 'cdn.jsdelivr.net'],
@@ -95,6 +95,10 @@ async function bootstrap() {
       .setDescription('Documentation for OceanAdTech API')
       .setVersion('1.0')
       .setOpenAPIVersion('3.0.0')
+      .addServer(
+        'https://5x2p27zf-3000.inc1.devtunnels.ms/',
+        'Development Tunnel',
+      )
       .addServer('http://localhost:3000', 'Development Server')
       .addServer(
         'https://programmatic.api.oceanadnetwork.com',

@@ -143,7 +143,7 @@ export class RTBKafkaConsumer implements OnModuleInit {
 
       // 1. Deserialize bid request with validation
       const bidRequestData = this.deserializeBidRequest(payload.value);
-      auctionId = bidRequestData.auctionId;
+      auctionId = bidRequestData.bidRequest.auctionId;
 
       // 2. Validate message structure and required fields
       this.validateBidRequest(bidRequestData);
@@ -151,7 +151,7 @@ export class RTBKafkaConsumer implements OnModuleInit {
       // 3. Process auction with timeout protection (max 150ms)
       const auctionResult = await Promise.race([
         this.bidRequestProcessor.processBidRequest(bidRequestData.bidRequest),
-        this.createTimeoutPromise(150, auctionId),
+        // this.createTimeoutPromise(150, auctionId),
       ]);
 
       // 4. Publish auction results for response generation
@@ -171,7 +171,7 @@ export class RTBKafkaConsumer implements OnModuleInit {
 
       this.logger.error('❌ Auction processing failed', {
         auctionId,
-        error: error.message,
+        error: error,
         processingTime: `${processingTime}ms`,
         partition: payload.partition,
         offset: payload.offset,
@@ -306,6 +306,10 @@ export class RTBKafkaConsumer implements OnModuleInit {
    */
   private deserializeBidRequest(data: any): any {
     try {
+      this.logger.debug(
+        'Deserializing bid request while consumption' +
+          ` - : ${JSON.stringify(data)}`,
+      );
       if (typeof data === 'string') {
         return JSON.parse(data);
       }
@@ -337,7 +341,7 @@ export class RTBKafkaConsumer implements OnModuleInit {
       throw new Error('Missing bidRequest in message');
     }
 
-    if (!bidRequest.auctionId) {
+    if (!bidRequest.bidRequest.auctionId) {
       throw new Error('Missing auctionId in message');
     }
 

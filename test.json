@@ -1,0 +1,40 @@
+{
+  "bidRequest": {
+    "id": "fabe9f8a-72b1-4933-82db-9b36c75c0416",
+    "externalRequestId": "req_12345_mit",
+    "inventoryId": "23ed95a7-b546-4f1c-a0e5-2751a9d20c51",
+    "publisherId": "12031eb6-c669-42a6-b118-18dd6f03d50b",
+    "websiteId": "a5a8a90d-6502-4228-b5da-da504ed29c1c",
+    "userContext": {
+      "city": "Mumbai",
+      "osType": "windows",
+      "region": "Maharashtra",
+      "userId": "user_12345_device_abc",
+      "country": "IN",
+      "ipAddress": "192.168.1.100",
+      "sessionId": "session_789xyz",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      "deviceType": "MOBILE",
+      "browserType": "chrome",
+      "additionalData": { "ageGroup": "25-34", "interests": ["tech", "sports"] }
+    },
+    "adSlotContext": {
+      "width": 320,
+      "format": "BANNER",
+      "height": 50,
+      "pageUrl": "https://example.com/article/tech-news",
+      "position": "HEADER",
+      "referrerUrl": "https://google.com/search",
+      "pageCategory": "technology",
+      "pageKeywords": ["technology", "innovation", "AI"]
+    },
+    "floorPrice": "0.5",
+    "auctionType": "SECOND_PRICE",
+    "timeout": 200,
+    "requestTimestamp": "2025-06-10T20:03:10.156Z",
+    "processedAt": null,
+    "auctionId": "600cef12-3680-4b33-b2c5-93cc69c6f918"
+  },
+  "publishedAt": "2025-06-10T20:03:10.623Z",
+  "priority": "normal"
+}

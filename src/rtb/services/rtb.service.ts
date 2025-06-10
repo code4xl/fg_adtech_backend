@@ -38,7 +38,7 @@ export class RTBService {
 
       // 1. Generate internal request ID and auction ID
       const requestId = uuidv4();
-      const auctionId = this.generateAuctionId(requestId);
+      const auctionId = uuidv4();
 
       // 2. Enrich bid request with additional context
       const enrichedRequest = await this.enrichBidRequest(
@@ -171,13 +171,13 @@ export class RTBService {
     }
   }
 
-  /**
-   * Generate auction ID for tracking
-   */
-  private generateAuctionId(requestId: string): string {
-    const random = Math.random().toString(36).substring(2, 6);
-    return `auction_${requestId.split('_')[1]}_${random}`;
-  }
+  // /**
+  //  * Generate auction ID for tracking
+  //  */
+  // private generateAuctionId(requestId: string): string {
+  //   const random = Math.random().toString(36).substring(2, 6);
+  //   return `auction_${requestId.split('_')[1]}_${random}`;
+  // }
 
   /**
    * Enrich bid request with server-side context
