@@ -90,7 +90,13 @@ export class CreativeSeeder implements ISeeder {
             templateId: template.id,
             name: `${faker.company.buzzPhrase()} ${creativeType} Creative`,
             type: creativeType,
-            fileUrl: this.generateCreativeUrl(creativeType, template),
+            fileUrl: faker.helpers.arrayElement([
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-1.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-2.webp',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/object-promise-1749052140905-jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/Black+and+White+Bold+Modern+Simple+Geometric+New+Collection+Fashion+Mobile+Banner+Ad.png',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/burger.jpg',
+            ]),
             s3Key: this.generateS3Key(creativeType, template),
             landingUrl: faker.internet.url(),
             status: faker.helpers.arrayElement(statuses),
@@ -126,7 +132,7 @@ export class CreativeSeeder implements ISeeder {
           name: 'Test Banner Creative',
           type: CreativeType.IMAGE,
           fileUrl:
-            'https://storage.oceanadtech.com/creatives/test-banner-300x250.jpg',
+            'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/object-promise-1749052140905-jpg',
           s3Key: 'creatives/test/test-banner-300x250.jpg',
           landingUrl: 'https://example.com/landing',
           status: CreativeStatus.APPROVED,

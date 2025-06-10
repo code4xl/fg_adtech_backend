@@ -45,7 +45,7 @@ export class FloorPriceSeeder implements ISeeder {
 
           // Generate price based on currency
           let basePrice: number;
-          if (currency === Currency.USD) {
+          if (currency === Currency.INR) {
             basePrice = faker.number.float({
               min: 0.5,
               max: 8.0,
@@ -81,7 +81,7 @@ export class FloorPriceSeeder implements ISeeder {
           const currency = faker.helpers.arrayElement(Object.values(Currency));
 
           let premiumPrice: number;
-          if (currency === Currency.USD) {
+          if (currency === Currency.INR) {
             premiumPrice = faker.number.float({
               min: 5.0,
               max: 20.0,
@@ -117,11 +117,11 @@ export class FloorPriceSeeder implements ISeeder {
       });
 
       if (testInventory) {
-        // USD floor price
+        // INR floor price
         floorPriceData.push({
           inventoryId: testInventory.id,
           basePrice: 1.5,
-          currency: Currency.USD,
+          currency: Currency.INR,
           startDate: new Date(),
           endDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days from now
           createdAt: new Date(),

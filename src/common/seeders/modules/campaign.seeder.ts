@@ -7,6 +7,7 @@ import {
   CampaignPacing,
   BusinessCategory,
   CampaignInterest,
+  Currency,
 } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ISeeder } from '../interfaces/seeder.interface';
@@ -53,6 +54,7 @@ export class CampaignSeeder implements ISeeder {
       const pacingOptions = Object.values(CampaignPacing);
       const businessCategories = Object.values(BusinessCategory);
       const interests = Object.values(CampaignInterest);
+      const currencies = Object.values(Currency);
 
       // Generate fake campaigns
       for (let i = 0; i < count; i++) {
@@ -90,9 +92,10 @@ export class CampaignSeeder implements ISeeder {
         });
 
         // Generate budget values
+        const currency = faker.helpers.arrayElement(currencies);
         const budget = faker.number.float({
-          min: 1000,
-          max: 100000,
+          min: currency === Currency.INR ? 1000 : 50000,
+          max: currency === Currency.INR ? 100000 : 5000000,
           fractionDigits: 2,
         });
         const dailyBudget = faker.datatype.boolean(0.8)
@@ -107,7 +110,11 @@ export class CampaignSeeder implements ISeeder {
         const bidAmount =
           bidStrategy === BidStrategy.BID_CAP ||
           bidStrategy === BidStrategy.TARGET_COST
-            ? faker.number.float({ min: 0.5, max: 50.0, fractionDigits: 2 })
+            ? faker.number.float({
+                min: currency === Currency.INR ? 0.5 : 30,
+                max: currency === Currency.INR ? 50.0 : 2500,
+                fractionDigits: 2,
+              })
             : null;
 
         // Generate targeting arrays
@@ -131,9 +138,10 @@ export class CampaignSeeder implements ISeeder {
         campaignData.push({
           name: `${faker.company.catchPhrase()} Campaign`,
           advertiserId: advertiser.id,
-          clientId: client?.id || null, // Now properly handles null values
+          clientId: client?.id || null,
           budget: budget,
           dailyBudget: dailyBudget,
+          currency: currency,
           startDate: startDate,
           endDate: endDate,
           status: faker.helpers.arrayElement(statuses),
@@ -167,9 +175,10 @@ export class CampaignSeeder implements ISeeder {
         campaignData.push({
           name: 'Test Campaign',
           advertiserId: defaultAdvertiser.id,
-          clientId: defaultClient?.id || null, // Handle case where default client doesn't exist
+          clientId: defaultClient?.id || null,
           budget: 5000.0,
           dailyBudget: 250.0,
+          currency: Currency.INR,
           startDate: new Date(),
           endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
           status: CampaignStatus.ACTIVE,

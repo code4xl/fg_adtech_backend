@@ -12,7 +12,7 @@ export interface ISeeder {
   /**
    * Execute the seeding logic for this module
    */
-  seed(): Promise<void>;
+  seed(count?: number): Promise<void>;
 
   /**
    * Clean data for this module
@@ -23,5 +23,4 @@ export interface ISeeder {
    * Check if module has been seeded
    */
   isSeeded(): Promise<boolean>;
-  seed(count?: number): Promise<void>; // Add this to the interface
 }

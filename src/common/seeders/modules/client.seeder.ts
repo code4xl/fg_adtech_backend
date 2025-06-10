@@ -1,7 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { faker } from '@faker-js/faker';
-import * as bcrypt from 'bcryptjs';
-import { CompanySize } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ISeeder } from '../interfaces/seeder.interface';
 
@@ -16,15 +14,15 @@ export class ClientSeeder implements ISeeder {
   }
 
   getDependencies(): string[] {
-    // Depends on Advertiser
+    // Client depends on Advertiser
     return ['Advertiser'];
   }
 
-  async seed(count: number = 10): Promise<void> {
+  async seed(count: number = 15): Promise<void> {
     this.logger.log(`Seeding ${count} clients...`);
 
     try {
-      // Get advertisers to link clients to
+      // Get all advertisers to assign clients to
       const advertisers = await this.prisma.advertiser.findMany({
         select: { id: true },
       });
@@ -37,55 +35,58 @@ export class ClientSeeder implements ISeeder {
 
       // Generate fake clients
       for (let i = 0; i < count; i++) {
-        // Only some clients should be linked to advertisers
-        const advertiser = faker.datatype.boolean(0.7)
-          ? faker.helpers.arrayElement(advertisers)
-          : null;
+        // Randomly assign to an advertiser
+        const advertiser = faker.helpers.arrayElement(advertisers);
 
-        const password = faker.internet.password();
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Get random company size
-        const companySizes = Object.values(CompanySize);
-        const companySize = faker.helpers.arrayElement(companySizes);
+        const companyName = faker.company.name();
+        const firstName = faker.person.firstName();
+        const lastName = faker.person.lastName();
 
         clientData.push({
-          name: faker.person.fullName(),
-          email: faker.internet.email().toLowerCase(),
-          password: hashedPassword,
-          mobile: faker.phone.number(),
-          companyName: faker.company.name(),
-          hqLocation: `${faker.location.city()}, ${faker.location.state()}`,
-          companySize: companySize,
-          registeredAddress: faker.location.streetAddress(true),
-          companyGSTIN: `${faker.string.alphanumeric(10).toUpperCase()}${faker.string.numeric(5)}`,
-          PAN: `${faker.string.alpha(5).toUpperCase()}${faker.string.numeric(4)}${faker.string.alpha(1).toUpperCase()}`,
-          CIN: `U${faker.string.numeric(5)}${faker.string.alpha(2).toUpperCase()}${faker.string.numeric(4)}${faker.string.alpha(3).toUpperCase()}${faker.string.numeric(6)}`,
+          advertiserId: advertiser.id, // Required field
+          companyName: companyName,
+          firstName: firstName,
+          lastName: lastName,
+          email: faker.internet.email({
+            firstName: firstName.toLowerCase(),
+            lastName: lastName.toLowerCase(),
+            provider: 'example.com',
+          }),
+          phone: faker.phone.number(),
+          address: faker.location.streetAddress(),
+          city: faker.location.city(),
+          state: faker.location.state(),
+          country: faker.location.countryCode(),
+          zipCode: faker.location.zipCode(),
           website: faker.internet.url(),
-          advertiserId: advertiser?.id,
+          isActive: faker.datatype.boolean(0.9), // 90% chance of being active
+          createdAt: faker.date.past(),
+          updatedAt: faker.date.recent(),
         });
       }
 
-      // Add a default client for testing
-      const defaultAdvertiser = await this.prisma.advertiser.findFirst({
+      // Add a default test client
+      const testAdvertiser = await this.prisma.advertiser.findFirst({
         where: { email: 'advertiser@example.com' },
       });
 
-      if (defaultAdvertiser) {
+      if (testAdvertiser) {
         clientData.push({
-          name: 'Test Client',
-          email: 'client@example.com',
-          password: await bcrypt.hash('clientpass123', 10),
-          mobile: '+919876543210',
+          advertiserId: testAdvertiser.id, // Required field
           companyName: 'Test Client Company',
-          hqLocation: 'New Delhi, Delhi',
-          companySize: CompanySize.FIFTY_ONE_TO_TWO_HUNDRED,
-          registeredAddress: '123 Test Street, New Delhi, Delhi 110001',
-          companyGSTIN: 'TESTGST123456',
-          PAN: 'TESTPAN123T',
-          CIN: 'U12345TC2022ABC123456',
-          website: 'https://testclient.example.com',
-          advertiserId: defaultAdvertiser.id,
+          firstName: 'Test',
+          lastName: 'Client',
+          email: 'client@example.com',
+          phone: '+1-555-0123',
+          address: '123 Test Street',
+          city: 'Test City',
+          state: 'CA',
+          country: 'US',
+          zipCode: '12345',
+          website: 'https://testclient.com',
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         });
       }
 
@@ -108,9 +109,10 @@ export class ClientSeeder implements ISeeder {
     this.logger.log('Cleaning clients table...');
 
     try {
-      // Clean related data first
+      // Clean related tables first (respecting foreign key constraints)
       await this.prisma.campaign.deleteMany({});
 
+      // Clean main table
       const deleted = await this.prisma.client.deleteMany({});
       this.logger.log(`Deleted ${deleted.count} clients`);
     } catch (error) {
