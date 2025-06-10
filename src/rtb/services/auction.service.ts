@@ -274,6 +274,10 @@ export class AuctionService {
       totalBids: bidResponses.length,
     });
 
+    winningBid.finalPrice = finalPrice;
+    winningBid.status = 'WON';
+    winningBid.responseLatency = Date.now() - bidRequest.requestTimestamp;
+
     return {
       winner: winningBid,
       winnerId: winningBid.id,
