@@ -374,7 +374,7 @@ export class BidRequestProcessor {
       ]);
 
       this.logger.debug('Metrics updated', {
-        auctionId: auctionResult.auctionId || 'unknown',
+        auctionId: bidRequest.auctionId || 'unknown',
         processingTime,
         hasWinner: !!auctionResult.winner,
       });
