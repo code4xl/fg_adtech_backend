@@ -112,7 +112,7 @@ export class RedisService {
     return this.pubClient.setnx(key, value);
   }
 
-  async pipeline() {
+  pipeline() {
     return this.pubClient.pipeline();
   }
   // Pub/Sub methods

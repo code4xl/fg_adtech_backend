@@ -101,7 +101,7 @@ export class ImpressionTrackingService {
       // 4. Update real-time performance counters
       await this.updateCounters(impression);
 
-      await this.publishTimescaleSyncEvent('impression', impressionEvent.id);
+      await this.publishTimescaleSyncEvent('impression', impression.id);
 
       // 5. Update campaign budget spend
       await this.updateCampaignSpend(impression);
@@ -150,11 +150,14 @@ export class ImpressionTrackingService {
   ) {
     try {
       await this.kafka.publish(kafkaTopics.TIMESTREAM_SYNC, {
-        eventType: 'REAL_TIME_SYNC',
-        tableName: eventType === 'impression' ? 'impressions' : 'clicks',
-        eventId,
-        [`${eventType}Id`]: eventId,
-        timestamp: new Date().toISOString(),
+        key: eventId,
+        value: {
+          eventType: 'REAL_TIME_SYNC',
+          tableName: eventType === 'impression' ? 'impressions' : 'clicks',
+          eventId,
+          [`${eventType}Id`]: eventId,
+          timestamp: new Date().toISOString(),
+        },
       });
 
       this.logger.debug(

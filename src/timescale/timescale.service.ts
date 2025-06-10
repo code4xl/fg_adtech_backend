@@ -10,7 +10,7 @@ import {
   BatchTimescaleClickDto,
   BatchTimescaleBidMetricDto,
 } from '../rtb/dto/tracking-events.dto';
-
+import { from as copyFrom } from 'pg-copy-streams';
 /**
  * TimescaleDB Service - Phase 6 Implementation
  *
@@ -72,7 +72,7 @@ export class TimescaleService {
                     ) FROM STDIN WITH CSV
                 `;
 
-        const stream = client.query(copyQuery);
+        const stream = client.query(copyFrom(copyQuery));
 
         for (const impression of impressions) {
           try {
@@ -119,7 +119,12 @@ export class TimescaleService {
           }
         }
 
-        await stream.end();
+        await new Promise((resolve, reject) => {
+          stream.end((err) => {
+            if (err) reject(err);
+            else resolve(undefined);
+          });
+        });
       });
 
       const processingTime = Date.now() - startTime;
@@ -176,7 +181,7 @@ export class TimescaleService {
                     ) FROM STDIN WITH CSV
                 `;
 
-        const stream = client.query(copyQuery);
+        const stream = client.query(copyFrom(copyQuery));
 
         for (const click of clicks) {
           try {
@@ -212,7 +217,12 @@ export class TimescaleService {
           }
         }
 
-        await stream.end();
+        await new Promise((resolve, reject) => {
+          stream.end((err) => {
+            if (err) reject(err);
+            else resolve(undefined);
+          });
+        });
       });
 
       const processingTime = Date.now() - startTime;
@@ -265,7 +275,7 @@ export class TimescaleService {
                     ) FROM STDIN WITH CSV
                 `;
 
-        const stream = client.query(copyQuery);
+        const stream = client.query(copyFrom(copyQuery));
 
         for (const metric of metrics) {
           try {
@@ -296,7 +306,12 @@ export class TimescaleService {
           }
         }
 
-        await stream.end();
+        await new Promise((resolve, reject) => {
+          stream.end((err) => {
+            if (err) reject(err);
+            else resolve(undefined);
+          });
+        });
       });
 
       const processingTime = Date.now() - startTime;
@@ -403,7 +418,7 @@ export class TimescaleService {
   async query(sql: string, params?: any[]): Promise<any> {
     // Implementation depends on your database setup
     // Example for node-postgres:
-    const client = await this.pool.connect();
+    const client = await this.timescaleDb.getClient();
     try {
       const result = await client.query(sql, params);
       return result;
@@ -412,20 +427,30 @@ export class TimescaleService {
     }
   }
 
-  async healthCheck(): Promise<boolean> {
+  async healthCheck(): Promise<{ status: string; details?: any }> {
     try {
       await this.query('SELECT 1');
-      return true;
+      return { status: 'healthy' };
     } catch (error) {
       this.logger.error('TimescaleDB health check failed:', error);
-      return false;
+      return { status: 'unhealthy', details: { error: error.message } };
     }
   }
 
+  async insertRecord(tableName: string, record: any): Promise<any> {
+    const columns = Object.keys(record).join(', ');
+    const values = Object.values(record);
+    const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
+
+    const sql = `INSERT INTO ${tableName} (${columns}) VALUES (${placeholders}) RETURNING *`;
+
+    const result = await this.timescaleDb.query(sql, values);
+    return result.rows[0];
+  }
   async syncUnsyncedRecords(
-    tableName: string,
-    lastSyncTime: Date,
-  ): Promise<void> {
+    tableName: 'impressions' | 'clicks',
+    batchSize: number,
+  ): Promise<{ syncedCount: number; errors?: any[] }> {
     // Implementation for syncing unsynced records
     const sql = `
     SELECT * FROM ${tableName} 
@@ -433,12 +458,14 @@ export class TimescaleService {
     ORDER BY created_at ASC
   `;
 
-    const records = await this.query(sql, [lastSyncTime]);
-
+    const records = await this.query(sql, [batchSize]);
+    let processedCount = 0;
     // Process records...
     for (const record of records.rows) {
       await this.insertRecord(tableName, record);
+      processedCount++;
     }
+    return { syncedCount: processedCount };
   }
 
   async getCampaignMetrics(

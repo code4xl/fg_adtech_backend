@@ -91,10 +91,10 @@ export class TimescaleSyncConsumer implements OnModuleInit {
         kafkaTopics.TIMESTREAM_SYNC,
         'timescale-sync-consumer',
         this.processSyncEvent.bind(this),
-        {
-          partitionsConsumedConcurrently: 3,
-          autoCommit: false, // Manual commit for better error handling
-        },
+        // {
+        //   partitionsConsumedConcurrently: 3,
+        //   autoCommit: false, // Manual commit for better error handling
+        // },
       );
 
       // Real-time impression sync
@@ -102,10 +102,11 @@ export class TimescaleSyncConsumer implements OnModuleInit {
         kafkaTopics.IMPRESSIONS,
         'timescale-impression-sync',
         this.processImpressionEvent.bind(this),
-        {
-          partitionsConsumedConcurrently: 2,
-          autoCommit: false,
-        },
+        // {
+        //   eventType: 'impression'
+        //   partitionsConsumedConcurrently: 2,
+        //   autoCommit: false,
+        // },
       );
 
       // Real-time click sync
@@ -113,10 +114,10 @@ export class TimescaleSyncConsumer implements OnModuleInit {
         kafkaTopics.CLICKS,
         'timescale-click-sync',
         this.processClickEvent.bind(this),
-        {
-          partitionsConsumedConcurrently: 2,
-          autoCommit: false,
-        },
+        // {
+        //   partitionsConsumedConcurrently: 2,
+        //   autoCommit: false,
+        // },
       );
 
       // Batch processing topics
@@ -124,20 +125,20 @@ export class TimescaleSyncConsumer implements OnModuleInit {
         kafkaTopics.TIMESTREAM_BATCH_IMPRESSIONS,
         'timescale-batch-impressions',
         this.processBatchImpressions.bind(this),
-        {
-          partitionsConsumedConcurrently: 1,
-          autoCommit: false,
-        },
+        // {
+        //   partitionsConsumedConcurrently: 1,
+        //   autoCommit: false,
+        // },
       );
 
       await this.kafka.subscribe(
         kafkaTopics.TIMESTREAM_BATCH_CLICKS,
         'timescale-batch-clicks',
         this.processBatchClicks.bind(this),
-        {
-          partitionsConsumedConcurrently: 1,
-          autoCommit: false,
-        },
+        // {
+        //   partitionsConsumedConcurrently: 1,
+        //   autoCommit: false,
+        // },
       );
 
       // Health check topic
@@ -882,7 +883,7 @@ export class TimescaleSyncConsumer implements OnModuleInit {
         ...filters,
         timestamp: {
           gte: lastSyncTime
-            ? new Date(lastSyncTime)
+            ? new Date(lastSyncTime as string | number | Date)
             : new Date(Date.now() - 24 * 60 * 60 * 1000), // Last 24 hours default
         },
       };
@@ -951,7 +952,7 @@ export class TimescaleSyncConsumer implements OnModuleInit {
         REDIS_KEYS.TIMESCALE_LAST_SYNC(tableName),
       );
       const since = lastSyncTime
-        ? new Date(lastSyncTime)
+        ? new Date(lastSyncTime as string | number | Date)
         : new Date(Date.now() - 60 * 60 * 1000); // Last hour default
 
       const incrementalFilters = {
@@ -1106,7 +1107,10 @@ export class TimescaleSyncConsumer implements OnModuleInit {
         }, delay);
       } else {
         // Send to dead letter queue
-        await this.kafka.publish('dlq.timestream-sync', errorEvent);
+        await this.kafka.publish(kafkaTopics.DLQ_TRACKING, {
+          key: `error-${payload.key || Date.now()}`,
+          value: errorEvent,
+        });
         this.logger.error('Sent sync error to dead letter queue', {
           retryCount: errorEvent.retryCount,
           maxRetries,
@@ -1230,7 +1234,7 @@ export class TimescaleSyncConsumer implements OnModuleInit {
       const hour = now.toISOString().substring(0, 13); // YYYY-MM-DDTHH
 
       // Update hourly counters
-      const pipeline = this.redis.pipeline();
+      const pipeline = await this.redis.pipeline();
 
       if (eventType === 'impression') {
         pipeline.incr(REDIS_KEYS.CREATIVE_IMPRESSIONS(event.creativeId));
@@ -1252,10 +1256,10 @@ export class TimescaleSyncConsumer implements OnModuleInit {
         pipeline.incr(REDIS_KEYS.CAMPAIGN_CLICKS(event.campaignId));
 
         // Update CTR calculation
-        const impressions = await this.redis.get(
+        const impressions: any = await this.redis.get(
           REDIS_KEYS.CREATIVE_IMPRESSIONS(event.creativeId),
         );
-        const clicks = await this.redis.get(
+        const clicks: any = await this.redis.get(
           REDIS_KEYS.CREATIVE_CLICKS(event.creativeId),
         );
 
@@ -1553,8 +1557,11 @@ export class TimescaleSyncConsumer implements OnModuleInit {
         timestamp: new Date().toISOString(),
       };
 
-      await this.kafka.publish(kafkaTopics.TIMESTREAM_SYNC, payload);
-
+      // await this.kafka.publish(kafkaTopics.TIMESTREAM_SYNC, payload);
+      await this.kafka.publish(kafkaTopics.TIMESTREAM_SYNC, {
+        key: `sync-${tableName}-${Date.now()}`,
+        value: payload,
+      });
       this.logger.log(`✅ Manual sync triggered for ${tableName}`);
       return {
         success: true,
