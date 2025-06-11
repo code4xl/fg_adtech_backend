@@ -411,6 +411,9 @@ export class BidRequestProcessor {
     auctionId: string,
   ): Promise<void> {
     try {
+      this.logger.debug('aaa Publishing auction result', {
+        auctionId,
+      });
       await this.kafka.publish(kafkaTopics.AUCTION_RESULTS, {
         key: auctionId,
         value: {
