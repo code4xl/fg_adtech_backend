@@ -166,6 +166,8 @@ export class RTBKafkaConsumer implements OnModuleInit {
       this.logger.debug('Auction result deserialized Line 213', {
         auction: auctionResult,
       });
+
+      auctionResult.auctionId = payload.key;
       // 2. Generate bid responses and ad markup
       const bidResponses =
         await this.bidResponseProcessor.generateBidResponses(auctionResult);
@@ -182,7 +184,7 @@ export class RTBKafkaConsumer implements OnModuleInit {
 
       const processingTime = Date.now() - startTime;
       this.logger.log('✅ Auction result processed', {
-        auctionId: auctionResult.auctionId,
+        auctionId: auctionResult.winner.auctionId,
         processingTime: `${processingTime}ms`,
         responseCount: bidResponses.length,
       });
@@ -257,7 +259,7 @@ export class RTBKafkaConsumer implements OnModuleInit {
     try {
       this.logger.debug(
         'Deserializing bid request while consumption' +
-          ` - : ${JSON.stringify(data)}`,
+        ` - : ${JSON.stringify(data)}`,
       );
       if (typeof data === 'string') {
         return JSON.parse(data);

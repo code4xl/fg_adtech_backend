@@ -28,16 +28,16 @@ export class BidResponseProcessor {
 
   async generateBidResponses(auctionResult: any): Promise<any[]> {
     // Extract auction metadata with fallback handling
-    const auctionId = auctionResult.auctionId || auctionResult.id;
-    const requestId = auctionResult.requestId || auctionResult.bidRequestId;
+
 
     this.logger.debug(
-      'Generating bid responses' +
-        JSON.stringify({
-          auctionId: auctionResult.originalRequest.auctionId,
-          hasWinner: !!auctionResult.winner,
-          // status: auctionResult.auctionStatus,
-        }),
+      'Generating bid responses mitt' +
+      JSON.stringify({
+        auctionResult: auctionResult,
+        auctionId: auctionResult.auctionId,
+        hasWinner: !!auctionResult.winner,
+        // status: auctionResult.auctionStatus,
+      }),
     );
 
     try {
