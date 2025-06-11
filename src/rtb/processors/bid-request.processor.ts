@@ -203,13 +203,6 @@ export class BidRequestProcessor {
     return await this.auctionService.runAuction(bidResponses, bidRequest);
   }
 
-  // ==========================================
-  // SUPPORT METHODS
-  // ==========================================
-
-  /**
-   * Calculate bid price for campaign and context
-   */
   private async calculateBidPrice(
     campaign: any,
     bidRequest: any,
@@ -475,3 +468,12 @@ export class BidRequestProcessor {
     return `bid_${timestamp}_${random}`;
   }
 }
+
+// <div class="ocean-ad" style="width: 320px; height: 480px;">
+//             <a href="http://localhost:3000/track/click/0aec0e38-5363-4436-83f6-09b94d9e4be9&url=https%3A%2F%2Fregal-illusion.name" target="_blank">
+//                 <img src="https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-1.jpg"
+//                      alt="mesh value-added convergence IMAGE Creative"
+//                      style="width: 100%; height: 100%;" />
+//             </a>
+//             <img src="http://localhost:3000/track/impression/0aec0e38-5363-4436-83f6-09b94d9e4be9" style="display: none;" alt="" />
+//         </div>

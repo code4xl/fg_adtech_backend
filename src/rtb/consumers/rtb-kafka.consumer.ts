@@ -105,9 +105,8 @@ export class RTBKafkaConsumer implements OnModuleInit {
       this.logger.debug(
         'Auction processed successfully and Sending to publush auction result',
         {
-          auctionResult,
-          bidRequestData,
-          auctionId,
+          bidRequest: bidRequestData,
+          aucRes: auctionResult,
         },
       );
       // 4. Publish auction results for response generation
@@ -260,7 +259,7 @@ export class RTBKafkaConsumer implements OnModuleInit {
     try {
       this.logger.debug(
         'Deserializing bid request while consumption' +
-        ` - : ${JSON.stringify(data)}`,
+          ` - : ${JSON.stringify(data)}`,
       );
       if (typeof data === 'string') {
         return JSON.parse(data);

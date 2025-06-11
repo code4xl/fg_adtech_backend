@@ -169,12 +169,17 @@ export class BidResponseProcessor {
     const creativeId = winner.creativeId;
     const auctionId =
       auctionResult.auctionId ||
+      auctionResult.originalBidRequest.auctionId ||
       auctionResult.originalBidRequest.bidRequest.auctionId;
     this.logger.debug('Generating winning bid response', {
       auctionId,
       winnerId: winner.id,
       finalPrice: winner.finalPrice,
       creativeId,
+      auctionResult: auctionResult,
+      adSlotContext:
+        auctionResult.originalRequest.externalRequestId ||
+        auctionResult.originalBidRequest.bidRequest?.adSlotContext,
     });
     // Use auction service for tracking URLs
     const trackingUrls = this.auctionService.generateTrackingUrls(
@@ -187,16 +192,22 @@ export class BidResponseProcessor {
       creativeId,
       trackingUrls,
       {
-        width: auctionResult.originalBidRequest.bidRequest.adSlotContext.width,
+        width:
+          auctionResult.originalBidRequest.adSlotContext.width ||
+          auctionResult.originalBidRequest.bidRequest?.adSlotContext.width,
         height:
-          auctionResult.originalBidRequest.bidRequest.adSlotContext.height,
+          auctionResult.originalBidRequest.adSlotContext.height ||
+          auctionResult.originalBidRequest.bidRequest?.adSlotContext.height,
         format:
-          auctionResult.originalBidRequest.bidRequest.adSlotContext.format,
+          auctionResult.originalBidRequest.adSlotContext.format ||
+          auctionResult.originalBidRequest.bidRequest?.adSlotContext.format,
       },
     );
 
     return {
-      requestId: auctionResult.originalBidRequest.bidRequest.externalRequestId,
+      requestId:
+        auctionResult.originalBidRequest.externalRequestId ||
+        auctionResult.originalBidRequest.bidRequest.externalRequestId,
       status: 'COMPLETED',
       winningBid: {
         price: winner.finalPrice,
@@ -220,7 +231,9 @@ export class BidResponseProcessor {
 
   private async generateLosingBidResponses(auctionResult: any): Promise<any[]> {
     return auctionResult.losingBids.map((losingBid) => ({
-      requestId: auctionResult.originalRequest.bidRequest.externalRequestId,
+      requestId:
+        auctionResult.originalRequest.externalRequestId ||
+        auctionResult.originalRequest.bidRequest.externalRequestId,
       status: 'lost',
       bidId: losingBid.id,
       bidPrice: losingBid.bidPrice,
@@ -232,7 +245,9 @@ export class BidResponseProcessor {
     return [
       {
         requestId:
-          auctionResult.originalRequest?.externalRequestId || 'unknown',
+          auctionResult.originalRequest?.externalRequestId ||
+          auctionResult.originalRequest.bidRequest.externalRequestId ||
+          'unknown',
         status: 'no_bids',
         message: auctionResult.message || 'No eligible campaigns found',
         auctionData: {
@@ -249,7 +264,9 @@ export class BidResponseProcessor {
     return [
       {
         requestId:
-          auctionResult.originalRequest?.externalRequestId || 'unknown',
+          auctionResult.originalRequest?.externalRequestId ||
+          auctionResult.originalRequest.bidRequest.externalRequestId ||
+          'unknown',
         status: 'error',
         errorMessage: auctionResult.error || 'Auction processing failed',
         auctionData: {
