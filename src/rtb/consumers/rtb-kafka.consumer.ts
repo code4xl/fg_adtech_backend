@@ -153,7 +153,14 @@ export class RTBKafkaConsumer implements OnModuleInit {
         this.bidRequestProcessor.processBidRequest(bidRequestData.bidRequest),
         // this.createTimeoutPromise(150, auctionId),
       ]);
-
+      this.logger.debug(
+        'Auction processed successfully and Sending to publush auction result',
+        {
+          auctionResult,
+          bidRequestData,
+          auctionId,
+        },
+      );
       // 4. Publish auction results for response generation
       await this.publishAuctionResult(auctionResult, bidRequestData);
 
@@ -381,12 +388,17 @@ export class RTBKafkaConsumer implements OnModuleInit {
     originalData: any,
   ): Promise<void> {
     try {
+      this.logger.debug('Publishing auction result', {
+        auctionId: originalData.bidRequest.auctionId,
+        result: auctionResult,
+      });
       await this.kafka.publish(kafkaTopics.AUCTION_RESULTS, {
         key: originalData.auctionId,
         value: {
           ...auctionResult,
           auctionId: originalData.auctionId,
           originalRequest: originalData.bidRequest,
+          auctionStatus: 'COMPLETED',
           processedAt: new Date().toISOString(),
         },
       });

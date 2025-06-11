@@ -25,105 +25,106 @@ export class AuctionService {
     this.logger.log('Auction Service initialized - Phase 3 Complete');
   }
 
-  async processAuction(bidRequest: any): Promise<{
-    auctionId: string;
-    winner?: any;
-    totalBids: number;
-    processingTime: number;
-  }> {
-    const startTime = Date.now();
-    const auctionId = this.generateAuctionId(bidRequest.id);
+  // async processAuction(bidRequest: any): Promise<{
+  //   auctionId: string;
+  //   winner?: any;
+  //   totalBids: number;
+  //   processingTime: number;
+  // }> {
+  //   const startTime = Date.now();
+  //   const auctionId = this.generateAuctionId(bidRequest.id);
 
-    this.logger.debug('Starting auction processing', {
-      auctionId,
-      requestId: bidRequest.id,
-      inventoryId: bidRequest.inventoryId,
-    });
+  //   this.logger.debug('Starting auction processing', {
+  //     auctionId,
+  //     requestId: bidRequest.id,
+  //     inventoryId: bidRequest.inventoryId,
+  //   });
 
-    try {
-      // 1. Find eligible campaigns (cached for performance)
-      const eligibleCampaigns = await this.findEligibleCampaigns(bidRequest);
+  //   try {
+  //     // 1. Find eligible campaigns (cached for performance)
+  //     const eligibleCampaigns = await this.findEligibleCampaigns(bidRequest);
 
-      this.logger.debug('Found eligible campaigns', {
-        auctionId,
-        count: eligibleCampaigns.length,
-      });
+  //     this.logger.debug('Found eligible campaigns', {
+  //       auctionId,
+  //       count: eligibleCampaigns.length,
+  //     });
 
-      if (eligibleCampaigns.length === 0) {
-        return await this.handleNoBidsAuction(bidRequest, auctionId, startTime);
-      }
+  //     if (eligibleCampaigns.length === 0) {
+  //       return await this.handleNoBidsAuction(bidRequest, auctionId, startTime);
+  //     }
 
-      // 2. Generate bid responses for eligible campaigns
-      const bidResponses = await this.generateBidResponses(
-        bidRequest,
-        eligibleCampaigns,
-        auctionId,
-      );
+  //     // 2. Generate bid responses for eligible campaigns
+  //     const bidResponses = await this.generateBidResponses(
+  //       bidRequest,
+  //       eligibleCampaigns,
+  //       auctionId,
+  //     );
 
-      this.logger.debug('Generated bid responses', {
-        auctionId,
-        validBids: bidResponses.length,
-      });
+  //     this.logger.debug('Generated bid responses', {
+  //       auctionId,
+  //       validBids: bidResponses.length,
+  //     });
 
-      if (bidResponses.length === 0) {
-        return await this.handleNoBidsAuction(bidRequest, auctionId, startTime);
-      }
+  //     if (bidResponses.length === 0) {
+  //       return await this.handleNoBidsAuction(bidRequest, auctionId, startTime);
+  //     }
 
-      // 3. Run auction algorithm
-      const auctionResult = await this.runAuction(bidResponses, bidRequest);
+  //     // 3. Run auction algorithm
 
-      // 4. Store auction log
-      await this.storeAuctionLog(bidRequest, auctionResult, startTime);
+  //     const auctionResult = await this.runAuction(bidResponses, bidRequest);
 
-      // 5. Update bid response statuses
-      await this.updateBidResponseStatuses(
-        bidResponses,
-        auctionResult.winnerId,
-      );
+  //     // 4. Store auction log
+  //     await this.storeAuctionLog(bidRequest, auctionResult, startTime);
 
-      // 6. Update campaign spend for winner
-      if (auctionResult.winner) {
-        await this.updateCampaignSpend(
-          auctionResult.winner.campaignId,
-          auctionResult.finalPrice,
-        );
-      }
+  //     // 5. Update bid response statuses
+  //     await this.updateBidResponseStatuses(
+  //       bidResponses,
+  //       auctionResult.winnerId,
+  //     );
 
-      const processingTime = Date.now() - startTime;
+  //     // 6. Update campaign spend for winner
+  //     if (auctionResult.winner) {
+  //       await this.updateCampaignSpend(
+  //         auctionResult.winner.campaignId,
+  //         auctionResult.finalPrice,
+  //       );
+  //     }
 
-      this.logger.log('Auction completed successfully', {
-        auctionId,
-        winnerId: auctionResult.winnerId,
-        finalPrice: auctionResult.finalPrice,
-        processingTime: `${processingTime}ms`,
-      });
+  //     const processingTime = Date.now() - startTime;
 
-      return {
-        auctionId,
-        winner: auctionResult.winner,
-        totalBids: bidResponses.length,
-        processingTime,
-      };
-    } catch (error) {
-      const processingTime = Date.now() - startTime;
+  //     this.logger.log('Auction completed successfully', {
+  //       auctionId,
+  //       winnerId: auctionResult.winnerId,
+  //       finalPrice: auctionResult.finalPrice,
+  //       processingTime: `${processingTime}ms`,
+  //     });
 
-      this.logger.error('Auction processing failed', {
-        auctionId,
-        error: error.message,
-        processingTime: `${processingTime}ms`,
-      });
+  //     return {
+  //       auctionId,
+  //       winner: auctionResult.winner,
+  //       totalBids: bidResponses.length,
+  //       processingTime,
+  //     };
+  //   } catch (error) {
+  //     const processingTime = Date.now() - startTime;
 
-      // Store failed auction log
-      await this.storeFailedAuctionLog(
-        bidRequest,
-        auctionId,
-        error.message,
-        startTime,
-      );
+  //     this.logger.error('Auction processing failed', {
+  //       auctionId,
+  //       error: error.message,
+  //       processingTime: `${processingTime}ms`,
+  //     });
 
-      throw error;
-    }
-  }
+  //     // Store failed auction log
+  //     await this.storeFailedAuctionLog(
+  //       bidRequest,
+  //       auctionId,
+  //       error.message,
+  //       startTime,
+  //     );
+
+  //     throw error;
+  //   }
+  // }
 
   async findEligibleCampaigns(bidRequest: any): Promise<any[]> {
     // const cacheKey = `eligible:${bidRequest.inventoryId}:${bidRequest.userContext.deviceType}`;
@@ -175,14 +176,14 @@ export class AuctionService {
     const bidPromises = eligibleCampaigns.map(async (campaign) => {
       try {
         // 1. Check budget availability
-        const hasBudget =
-          await this.campaignEligibility.checkBudgetAvailability(campaign.id);
-        if (!hasBudget) {
-          this.logger.debug('Campaign excluded due to budget exhaustion', {
-            campaignId: campaign.id,
-          });
-          return null;
-        }
+        // const hasBudget =
+        //   await this.campaignEligibility.checkBudgetAvailability(campaign.id);
+        // if (!hasBudget) {
+        //   this.logger.debug('Campaign excluded due to budget exhaustion', {
+        //     campaignId: campaign.id,
+        //   });
+        //   return null;
+        // }
 
         // 2. Calculate bid price
         const bidPrice = await this.bidEvaluation.calculateBidPrice(
@@ -241,6 +242,8 @@ export class AuctionService {
     winnerId: string;
     finalPrice: number;
     auctionType: string;
+    auctionId: string;
+    auctionStatus: string;
   }> {
     // Sort bids by price (descending)
     const sortedBids = bidResponses.sort(
@@ -276,13 +279,22 @@ export class AuctionService {
 
     winningBid.finalPrice = finalPrice;
     winningBid.status = 'WON';
-    winningBid.responseLatency = Date.now() - bidRequest.requestTimestamp;
-
+    this.logger.debug('Bid Request Timestamp', {
+      requestTimestamp: bidRequest.requestTimestamp,
+      responseTimestamp: Date.now(),
+      requestTimestampType: typeof bidRequest.requestTimestamp,
+      converted: new Date(bidRequest.requestTimestamp).getTime(),
+    });
+    winningBid.responseLatency =
+      Date.now() - new Date(bidRequest.requestTimestamp).getTime();
+    winningBid.processedAt = Date.now();
     return {
       winner: winningBid,
       winnerId: winningBid.id,
       finalPrice,
       auctionType,
+      auctionId: bidRequest.auctionId,
+      auctionStatus: 'COMPLETED',
     };
   }
 

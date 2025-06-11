@@ -31,16 +31,18 @@ export class BidResponseProcessor {
     const auctionId = auctionResult.auctionId || auctionResult.id;
     const requestId = auctionResult.requestId || auctionResult.bidRequestId;
 
-
-    this.logger.debug('Generating bid responses', {
-      auctionId: auctionResult.auctionId,
-      hasWinner: !!auctionResult.winner,
-      status: auctionResult.status,
-    });
+    this.logger.debug(
+      'Generating bid responses' +
+        JSON.stringify({
+          auctionId: auctionResult.originalRequest.auctionId,
+          hasWinner: !!auctionResult.winner,
+          // status: auctionResult.auctionStatus,
+        }),
+    );
 
     try {
       // Handle different auction outcomes
-      switch (auctionResult.status) {
+      switch (auctionResult.auctionStatus) {
         case 'NO_BIDS':
           return await this.generateNoBidsResponse(auctionResult);
 
@@ -52,7 +54,7 @@ export class BidResponseProcessor {
       }
     } catch (error) {
       this.logger.error('Failed to generate bid responses', {
-        error: error.message,
+        error: error,
         auctionId: auctionResult.auctionId,
       });
       throw error;
@@ -169,7 +171,12 @@ export class BidResponseProcessor {
   private async generateWinningBidResponse(auctionResult: any): Promise<any> {
     const winner = auctionResult.winner;
     const creative = winner.creative;
-
+    this.logger.debug('Generating winning bid response', {
+      auctionId: auctionResult.auctionId,
+      winnerId: winner.id,
+      finalPrice: auctionResult.finalPrice,
+      creativeId: creative.id,
+    });
     // Use auction service for tracking URLs
     const trackingUrls = this.auctionService.generateTrackingUrls(
       auctionResult.auctionId,
@@ -189,7 +196,7 @@ export class BidResponseProcessor {
 
     return {
       requestId: auctionResult.originalRequest.externalRequestId,
-      status: 'completed',
+      status: 'COMPLETED',
       winningBid: {
         price: auctionResult.finalPrice,
         currency: winner.currency || 'INR',

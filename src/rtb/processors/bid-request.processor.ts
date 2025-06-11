@@ -28,6 +28,7 @@ export class BidRequestProcessor {
     processingTime: number;
     auctionType: string;
     floorPrice?: number;
+    auctionStatus: string;
   }> {
     const startTime = Date.now();
     // const auctionId = this.generateAuctionId(bidRequest.id);
@@ -101,6 +102,7 @@ export class BidRequestProcessor {
         winnerId: auctionResult.winner?.id,
         finalPrice: auctionResult.finalPrice,
         totalBids: bidResponses.length,
+        res: auctionResult,
         processingTime: `${processingTime}ms`,
       });
 
@@ -112,6 +114,7 @@ export class BidRequestProcessor {
         processingTime,
         auctionType: bidRequest.auctionType || 'SECOND_PRICE',
         floorPrice: bidRequest.floorPrice,
+        auctionStatus: auctionResult.status || 'COMPLETED',
       };
     } catch (error) {
       const processingTime = Date.now() - startTime;
