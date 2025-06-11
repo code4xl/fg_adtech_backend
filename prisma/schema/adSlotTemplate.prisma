@@ -1,10 +1,11 @@
 model AdSlotTemplate {
   id            String            @id @default(uuid()) @db.Uuid
-  name          String // e.g., "Leaderboard", "Rectangle", "Skyscraper"
+  name          String            @unique // e.g., "Leaderboard", "Rectangle", "Skyscraper"
   width         Int
   height        Int
   format        InventoryFormat //  BANNER NATIVE VIDEO INTERSTITIAL REWARDED
   position      InventoryPosition // ABOVE_FOLD BELOW_FOLD SIDEBAR FOOTER HEADER IN_CONTENT
+  isActive      Boolean           @default(true)
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   // This can be used to validate creative sizes and inventory creation
