@@ -134,13 +134,6 @@ export class BidResponseProcessor {
     }
   }
 
-  // ==========================================
-  // RESPONSE GENERATION METHODS
-  // ==========================================
-
-  /**
-   * Generate responses for completed auctions
-   */
   private async generateCompletedAuctionResponses(
     auctionResult: any,
   ): Promise<any[]> {
@@ -225,9 +218,6 @@ export class BidResponseProcessor {
     };
   }
 
-  /**
-   * Generate responses for losing bids
-   */
   private async generateLosingBidResponses(auctionResult: any): Promise<any[]> {
     return auctionResult.losingBids.map((losingBid) => ({
       requestId: auctionResult.originalRequest.bidRequest.externalRequestId,
@@ -238,9 +228,6 @@ export class BidResponseProcessor {
     }));
   }
 
-  /**
-   * Generate no-bids response
-   */
   private async generateNoBidsResponse(auctionResult: any): Promise<any[]> {
     return [
       {
@@ -258,9 +245,6 @@ export class BidResponseProcessor {
     ];
   }
 
-  /**
-   * Generate error response
-   */
   private async generateErrorResponse(auctionResult: any): Promise<any[]> {
     return [
       {
@@ -278,13 +262,6 @@ export class BidResponseProcessor {
     ];
   }
 
-  // ==========================================
-  // WIN NOTIFICATION METHODS
-  // ==========================================
-
-  /**
-   * Generate win notification payload
-   */
   private async generateWinNotification(auctionResult: any): Promise<any> {
     return {
       bidId: auctionResult.winner.id,
@@ -301,9 +278,6 @@ export class BidResponseProcessor {
     };
   }
 
-  /**
-   * Update bid response notification status
-   */
   private async updateBidResponseNotificationStatus(
     bidResponseId: string,
     notificationSent: boolean,

@@ -43,10 +43,6 @@ export class RTBKafkaConsumer implements OnModuleInit {
     }
   }
 
-  // ==========================================
-  // PRIMARY PROCESSING SUBSCRIPTIONS
-  // ==========================================
-
   private async subscribeToAuctionProcessing(): Promise<void> {
     await this.kafka.subscribe(
       kafkaTopics.AUCTION_PROCESSING,
@@ -76,10 +72,6 @@ export class RTBKafkaConsumer implements OnModuleInit {
 
     this.logger.log('🚨 Subscribed to dead letter queue');
   }
-
-  // ==========================================
-  // MESSAGE PROCESSING HANDLERS
-  // ==========================================
 
   private async processAuctionRequest(payload: {
     key: string; // id

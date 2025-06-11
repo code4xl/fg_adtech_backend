@@ -75,15 +75,6 @@ export class AuctionProcessor {
     }
   }
 
-  /**
-   * Process auction timeout scenarios
-   *
-   * **Why timeout processing matters:**
-   * - Timeouts represent lost revenue opportunities
-   * - Pattern analysis helps optimize processing pipeline
-   * - Enables alerting for system performance issues
-   * - Provides data for capacity planning
-   */
   async processAuctionTimeout(timeoutData: {
     auctionId: string;
     requestId: string;
@@ -122,15 +113,6 @@ export class AuctionProcessor {
     }
   }
 
-  /**
-   * Process hourly auction aggregations
-   *
-   * **Why hourly aggregations:**
-   * - Provides near real-time performance insights
-   * - Enables trend analysis and alerting
-   * - Feeds into ML models for optimization
-   * - Supports advertiser and publisher dashboards
-   */
   async processHourlyAggregation(): Promise<void> {
     const currentHour = new Date();
     currentHour.setMinutes(0, 0, 0);
@@ -184,13 +166,6 @@ export class AuctionProcessor {
     }
   }
 
-  // ==========================================
-  // AUCTION LOG STORAGE
-  // ==========================================
-
-  /**
-   * Store auction log in database
-   */
   private async storeAuctionLog(auctionData: any): Promise<void> {
     try {
       await this.prisma.auctionLog.create({
@@ -228,9 +203,6 @@ export class AuctionProcessor {
     }
   }
 
-  /**
-   * Store timeout record for analysis
-   */
   private async storeTimeoutRecord(timeoutData: any): Promise<void> {
     try {
       await this.prisma.auctionLog.create({
@@ -261,13 +233,6 @@ export class AuctionProcessor {
     }
   }
 
-  // ==========================================
-  // REAL-TIME METRICS
-  // ==========================================
-
-  /**
-   * Update real-time metrics in Redis
-   */
   private async updateRealTimeMetrics(auctionData: any): Promise<void> {
     try {
       const hour = new Date().getHours();
@@ -361,13 +326,6 @@ export class AuctionProcessor {
     }
   }
 
-  // ==========================================
-  // PERFORMANCE ANALYTICS
-  // ==========================================
-
-  /**
-   * Generate performance analytics
-   */
   private async generatePerformanceAnalytics(auctionData: any): Promise<void> {
     try {
       // Calculate performance ratios
