@@ -3,9 +3,8 @@ import { AuctionService } from '../services/auction.service';
 import { KafkaService } from '../../kafka/kafka.service';
 import { RedisService } from '../../redis/redis.service';
 import { RTBRedisService } from '../../redis/services/rtb-redis.service';
-import { kafkaTopics } from '../../kafka/constants/kafka.config';
-import { REDIS_KEYS } from '../../redis/constants/redis-keys';
 import { RTB_REDIS_KEYS } from 'src/redis/constants/rtb-keys';
+import RTBProducer from '../producer/rtb.producer';
 
 @Injectable()
 export class BidRequestProcessor {
@@ -16,6 +15,7 @@ export class BidRequestProcessor {
     private readonly kafka: KafkaService,
     private readonly redis: RedisService,
     private readonly rtbRedis: RTBRedisService,
+    private readonly rtbProducer: RTBProducer,
   ) {
     this.logger.log('Bid Request Processor initialized - Phase 4');
   }
@@ -85,36 +85,40 @@ export class BidRequestProcessor {
       }
 
       // 4. Execute auction algorithm to determine winner
-      const auctionResult = await this.executeAuction(bidResponses, bidRequest);
+      const aucRes = await this.executeAuction(bidResponses, bidRequest);
       this.logger.debug('Auction executed', {
-        auctionResult,
+        aucRes,
       });
-      // 5. Update performance metrics and counters
-      await this.updateMetrics(bidRequest, auctionResult, startTime);
 
+      // 5. Update performance metrics and counters
+      await this.updateMetrics(bidRequest, aucRes, startTime);
+      this.logger.debug('Metrics update done', {
+        bidRequest,
+        aucRes,
+      });
       // 6. Publish results for response generation
-      await this.publishAuctionResult(auctionResult, bidRequest.auctionId);
+      await this.rtbProducer.publishAuctionResult(aucRes, bidRequest);
 
       const processingTime = Date.now() - startTime;
 
       this.logger.log('✅ Bid request processed successfully', {
         auctionId: bidRequest.auctionId,
-        winnerId: auctionResult.winner?.id,
-        finalPrice: auctionResult.finalPrice,
+        winnerId: aucRes.winner?.id,
+        finalPrice: aucRes.finalPrice,
         totalBids: bidResponses.length,
-        res: auctionResult,
+        res: aucRes,
         processingTime: `${processingTime}ms`,
       });
 
       return {
         auctionId: bidRequest.auctionId,
-        winner: auctionResult.winner,
+        winner: aucRes.winner,
         totalBids: bidResponses.length,
         validBids: bidResponses.length,
         processingTime,
         auctionType: bidRequest.auctionType || 'SECOND_PRICE',
         floorPrice: bidRequest.floorPrice,
-        auctionStatus: auctionResult.status || 'COMPLETED',
+        auctionStatus: aucRes.auctionStatus || 'COMPLETED',
       };
     } catch (error) {
       const processingTime = Date.now() - startTime;
@@ -336,14 +340,14 @@ export class BidRequestProcessor {
     });
 
     // Publish no-bids result
-    await this.publishAuctionResult(
+    await this.rtbProducer.publishAuctionResult(
       {
-        status: 'NO_BIDS',
+        auctionStatus: 'NO_BIDS',
         winner: null,
         totalBids: 0,
         message: 'No eligible campaigns found',
       },
-      auctionId,
+      bidRequest,
     );
 
     return {
@@ -404,36 +408,6 @@ export class BidRequestProcessor {
   }
 
   /**
-   * Publish auction result to results topic
-   */
-  private async publishAuctionResult(
-    auctionResult: any,
-    auctionId: string,
-  ): Promise<void> {
-    try {
-      this.logger.debug('aaa Publishing auction result', {
-        auctionId,
-      });
-      await this.kafka.publish(kafkaTopics.AUCTION_RESULTS, {
-        key: auctionId,
-        value: {
-          ...auctionResult,
-          auctionId,
-          publishedAt: new Date().toISOString(),
-        },
-      });
-
-      this.logger.debug('Auction result published', { auctionId });
-    } catch (error) {
-      this.logger.error('Failed to publish auction result', {
-        error: error.message,
-        auctionId,
-      });
-      throw error;
-    }
-  }
-
-  /**
    * Handle processing errors with appropriate logging and cleanup
    */
   private async handleProcessingError(
@@ -446,15 +420,18 @@ export class BidRequestProcessor {
 
     // Publish error result for tracking
     try {
-      await this.publishAuctionResult(
+      this.logger.error('Processing error in publushing auction result', {
+        bidRequest,
+      });
+      await this.rtbProducer.publishAuctionResult(
         {
-          status: 'ERROR',
+          auctionStatus: 'ERROR',
           winner: null,
           totalBids: 0,
           error: error.message,
           processingTime,
         },
-        auctionId,
+        bidRequest,
       );
     } catch (publishError) {
       this.logger.error('Failed to publish error result', {

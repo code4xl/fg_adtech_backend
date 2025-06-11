@@ -385,12 +385,6 @@ export class AuctionService {
     }
   }
 
-  private generateAuctionId(requestId: string): string {
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 6);
-    return `auction_${timestamp}_${random}`;
-  }
-
   private async selectCreative(
     campaign: any,
     adSlotContext: any,

@@ -5,6 +5,8 @@ import { kafkaTopics } from '../../kafka/constants/kafka.config';
 import { BidRequestProcessor } from '../processors/bid-request.processor';
 import { BidResponseProcessor } from '../processors/bid-response.processor';
 
+import RTBProducer from '../producer/rtb.producer';
+
 @Injectable()
 export class RTBKafkaConsumer implements OnModuleInit {
   private readonly logger = new Logger(RTBKafkaConsumer.name);
@@ -14,6 +16,7 @@ export class RTBKafkaConsumer implements OnModuleInit {
     private readonly auctionService: AuctionService,
     private readonly bidRequestProcessor: BidRequestProcessor,
     private readonly bidResponseProcessor: BidResponseProcessor,
+    private readonly rtbProducer: RTBProducer,
   ) {
     this.logger.log('RTB Kafka Consumer initialized - Phase 4');
   }
@@ -116,7 +119,10 @@ export class RTBKafkaConsumer implements OnModuleInit {
         },
       );
       // 4. Publish auction results for response generation
-      await this.publishAuctionResult(auctionResult, bidRequestData);
+      await this.rtbProducer.publishAuctionResult(
+        auctionResult,
+        bidRequestData,
+      );
 
       // 5. Record processing metrics
       const processingTime = Date.now() - startTime;
@@ -167,7 +173,7 @@ export class RTBKafkaConsumer implements OnModuleInit {
         auction: auctionResult,
       });
 
-      auctionResult.auctionId = payload.key;
+      // auctionResult.auctionId = payload.key;
       // 2. Generate bid responses and ad markup
       const bidResponses =
         await this.bidResponseProcessor.generateBidResponses(auctionResult);
@@ -181,11 +187,13 @@ export class RTBKafkaConsumer implements OnModuleInit {
       // if (auctionResult.winner) {
       //     await this.bidResponseProcessor.sendWinNotifications(auctionResult);
       // }
-
-      const processingTime = Date.now() - startTime;
+      this.logger.debug('Bid responses stored in cache', {
+        done: true,
+      });
+      // const processingTime = Date.now() - startTime;
       this.logger.log('✅ Auction result processed', {
         auctionId: auctionResult.winner.auctionId,
-        processingTime: `${processingTime}ms`,
+        processingTime: `10000ms`,
         responseCount: bidResponses.length,
       });
     } catch (error) {
@@ -259,7 +267,7 @@ export class RTBKafkaConsumer implements OnModuleInit {
     try {
       this.logger.debug(
         'Deserializing bid request while consumption' +
-        ` - : ${JSON.stringify(data)}`,
+          ` - : ${JSON.stringify(data)}`,
       );
       if (typeof data === 'string') {
         return JSON.parse(data);
@@ -315,37 +323,6 @@ export class RTBKafkaConsumer implements OnModuleInit {
   /**
    * Publish auction result to results topic
    */
-  private async publishAuctionResult(
-    auctionResult: any,
-    originalData: any,
-  ): Promise<void> {
-    try {
-      this.logger.debug('Publishing auction result', {
-        auctionId: originalData.bidRequest.auctionId,
-        result: auctionResult,
-      });
-      await this.kafka.publish(kafkaTopics.AUCTION_RESULTS, {
-        key: originalData.auctionId,
-        value: {
-          ...auctionResult,
-          auctionId: originalData.auctionId,
-          originalRequest: originalData.bidRequest,
-          auctionStatus: 'COMPLETED',
-          processedAt: new Date().toISOString(),
-        },
-      });
-
-      this.logger.debug('Auction result published', {
-        auctionId: originalData.auctionId,
-      });
-    } catch (error) {
-      this.logger.error('Failed to publish auction result', {
-        error: error.message,
-        auctionId: originalData.auctionId,
-      });
-      throw error;
-    }
-  }
 
   private async handleProcessingError(
     payload: any,

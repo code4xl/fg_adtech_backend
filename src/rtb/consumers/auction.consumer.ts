@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { KafkaService } from '../../kafka/kafka.service';
 import { kafkaTopics } from '../../kafka/constants/kafka.config';
+import RTBProducer from '../producer/rtb.producer';
 
 @Injectable()
 export class AuctionProcessor {
@@ -13,19 +14,11 @@ export class AuctionProcessor {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly kafka: KafkaService,
+    private readonly rtbProducer: RTBProducer,
   ) {
     this.logger.log('Auction Processor initialized - Phase 4');
   }
 
-  /**
-   * Process auction completion and generate analytics
-   *
-   * **Why auction analytics processing:**
-   * - Enables real-time performance monitoring
-   * - Feeds machine learning models for bid optimization
-   * - Provides data for advertiser and publisher reporting
-   * - Helps identify system bottlenecks and optimization opportunities
-   */
   async processAuctionCompletion(auctionData: {
     auctionId: string;
     requestId: string;
@@ -66,7 +59,7 @@ export class AuctionProcessor {
       await this.updateInventoryMetrics(auctionData);
 
       // 6. Publish to analytics pipeline for further processing
-      await this.publishToAnalyticsPipeline(auctionData);
+      await this.rtbProducer.publishToAnalyticsPipeline(auctionData);
 
       this.logger.log('✅ Auction analytics processed', {
         auctionId: auctionData.auctionId,
@@ -581,35 +574,6 @@ export class AuctionProcessor {
     // This would query Redis for all inventory metrics and aggregate them
     // For now, returning empty array as placeholder
     return [];
-  }
-
-  // ==========================================
-  // PUBLISHING AND ALERTS
-  // ==========================================
-
-  /**
-   * Publish to analytics pipeline
-   */
-  private async publishToAnalyticsPipeline(auctionData: any): Promise<void> {
-    try {
-      await this.kafka.publish(kafkaTopics.HOURLY_AGGREGATION, {
-        key: auctionData.auctionId,
-        value: {
-          type: 'auction_completed',
-          data: auctionData,
-          timestamp: new Date().toISOString(),
-        },
-      });
-
-      this.logger.debug('Published to analytics pipeline', {
-        auctionId: auctionData.auctionId,
-      });
-    } catch (error) {
-      this.logger.warn('Failed to publish to analytics pipeline', {
-        error: error.message,
-        auctionId: auctionData.auctionId,
-      });
-    }
   }
 
   /**
