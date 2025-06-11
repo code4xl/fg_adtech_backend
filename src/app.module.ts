@@ -22,6 +22,7 @@ import { ResilienceModule } from './common/resilience/resilience.module';
 import { NotificationModule } from './notification/notification.module';
 import { TimescaleModule } from './timescale/timescale.module';
 import { RTBModule } from './rtb/rtb.module';
+import { CdnModule } from './cdn/cdn.module'; 
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -75,6 +76,7 @@ import { RTBModule } from './rtb/rtb.module';
     NotificationModule,
     RTBModule,
     TimescaleModule,
+    CdnModule,
   ],
   controllers: [AppController],
   providers: [
