@@ -38,7 +38,7 @@ export class PublisherSeeder implements ISeeder {
           email: faker.internet.email().toLowerCase(),
           password: hashedPassword,
           emailVerifiedAt: verificationStatus ? faker.date.past() : null,
-          status: faker.helpers.arrayElement(Object.values(PublisherStatus)),
+          status: PublisherStatus.ACTIVE,
           mfaEnabled: faker.datatype.boolean(0.25), // 25% chance of MFA enabled
           createdAt: faker.date.past(),
           updatedAt: faker.date.recent(),
