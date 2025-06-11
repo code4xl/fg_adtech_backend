@@ -169,31 +169,32 @@ export class RTBKafkaConsumer implements OnModuleInit {
 
       // 1. Deserialize auction result
       const auctionResult = this.deserializeAuctionResult(payload.value);
-      this.logger.debug('Auction result deserialized Line 213', {
-        auction: auctionResult,
+      this.logger.debug('Auction result deserialized', {
+        auctionId: auctionResult.auctionId,
       });
 
-      // auctionResult.auctionId = payload.key;
       // 2. Generate bid responses and ad markup
       const bidResponses =
         await this.bidResponseProcessor.generateBidResponses(auctionResult);
-      this.logger.debug('Bid Response generated 219', {
-        auction: bidResponses,
+      this.logger.debug('Bid responses generated', {
+        responseCount: bidResponses.length,
       });
+
       // 3. Store responses in cache for SDK polling
       await this.bidResponseProcessor.storeBidResponses(bidResponses);
 
-      // 4. Send win notifications if applicable   -- Later phase
+      // 4. *** NEW *** Publish auction completion for log storage and analytics
+      await this.rtbProducer.publishAuctionCompletion(auctionResult);
+
+      // 5. Send win notifications if applicable (later phase)
       // if (auctionResult.winner) {
-      //     await this.bidResponseProcessor.sendWinNotifications(auctionResult);
+      //   await this.bidResponseProcessor.sendWinNotifications(auctionResult);
       // }
-      this.logger.debug('Bid responses stored in cache', {
-        done: true,
-      });
-      // const processingTime = Date.now() - startTime;
+
+      const processingTime = Date.now() - startTime;
       this.logger.log('✅ Auction result processed', {
-        auctionId: auctionResult.winner.auctionId,
-        processingTime: `10000ms`,
+        auctionId: auctionResult.auctionId,
+        processingTime: `${processingTime}ms`,
         responseCount: bidResponses.length,
       });
     } catch (error) {
@@ -267,7 +268,7 @@ export class RTBKafkaConsumer implements OnModuleInit {
     try {
       this.logger.debug(
         'Deserializing bid request while consumption' +
-          ` - : ${JSON.stringify(data)}`,
+        ` - : ${JSON.stringify(data)}`,
       );
       if (typeof data === 'string') {
         return JSON.parse(data);

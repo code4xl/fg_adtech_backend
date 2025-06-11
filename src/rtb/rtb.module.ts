@@ -15,6 +15,7 @@ import { RTBCacheService } from './services/rtb-cache.service';
 import { RTBMetricsService } from './services/rtb-metrics.service';
 import { RTBRedisService } from 'src/redis/services/rtb-redis.service';
 import RTBProducer from './producer/rtb.producer';
+import { AuctionCompletionConsumer } from './consumers/auction-completion.consumer';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import RTBProducer from './producer/rtb.producer';
     RTBCacheService,
     RTBMetricsService,
     RTBProducer,
+    AuctionCompletionConsumer,
     // TimescaleSyncConsumer,
   ],
   exports: [
@@ -58,4 +60,4 @@ import RTBProducer from './producer/rtb.producer';
     RTBProducer,
   ],
 })
-export class RTBModule {}
+export class RTBModule { }

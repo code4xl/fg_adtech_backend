@@ -16,6 +16,7 @@ export const kafkaTopics = {
   BID_RESPONSES: 'rtb.bid-responses.v2',
   AUCTION_RESULTS: 'rtb.auction-results.v2',
   AUCTION_PROCESSING: 'rtb.auction-processing.v2',
+  AUCTION_COMPLETION: 'auction.completion',
 
   IMPRESSIONS: 'tracking.impressions.v2',
   CLICKS: 'tracking.clicks.v2',

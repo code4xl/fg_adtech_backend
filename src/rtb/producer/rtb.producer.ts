@@ -4,7 +4,7 @@ import { KafkaService } from 'src/kafka/kafka.service';
 @Injectable()
 export default class RTBProducer {
   private readonly logger: Logger = new Logger(RTBProducer.name);
-  constructor(private readonly kafka: KafkaService) {}
+  constructor(private readonly kafka: KafkaService) { }
 
   public async publishAuctionResult(
     auctionResult: any,
@@ -136,5 +136,53 @@ export default class RTBProducer {
     }
 
     return 'normal';
+  }
+
+  public async publishAuctionCompletion(auctionResult: any): Promise<void> {
+    try {
+      // Extract bidRequest from auctionResult
+      const bidRequest = auctionResult.originalBidRequest?.bidRequest || {};
+
+      this.logger.debug("Bid Request Data", {
+        bidRequest,
+      });
+
+      // Prepare auction completion data
+      const auctionCompletionData = {
+        auctionId: bidRequest.auctionId,
+        requestId: bidRequest.id || bidRequest.externalRequestId,
+        inventoryId: bidRequest.inventoryId,
+        campaignIds: auctionResult.winner ? [auctionResult.winner.campaignId] : [],
+        winner: auctionResult.winner,
+        totalBids: auctionResult.totalBids || 1,
+        validBids: auctionResult.validBids || 1,
+        processingTime: auctionResult.processingTime || 0,
+        auctionType: auctionResult.auctionType || 'SECOND_PRICE',
+        floorPrice: auctionResult.floorPrice,
+        finalPrice: auctionResult.winner?.finalPrice,
+        timestamp: new Date().toISOString(),
+        auctionStatus: auctionResult.auctionStatus || 'COMPLETED',
+      };
+
+      this.logger.debug("Publishing auction completion", {
+        auctionCompletionData,
+      });
+
+      await this.kafka.publish(kafkaTopics.AUCTION_COMPLETION, {
+        key: bidRequest.auctionId,
+        value: auctionCompletionData,
+      });
+
+      this.logger.debug('Auction completion published', {
+        auctionId: bidRequest.auctionId,
+        hasWinner: !!auctionResult.winner,
+      });
+    } catch (error) {
+      this.logger.error('Failed to publish auction completion', {
+        error: error.message,
+        auctionId: auctionResult.auctionId,
+      });
+      // Don't throw - this shouldn't break the main flow
+    }
   }
 }
