@@ -25,106 +25,6 @@ export class AuctionService {
     this.logger.log('Auction Service initialized - Phase 3 Complete');
   }
 
-  async processAuction(bidRequest: any): Promise<{
-    auctionId: string;
-    winner?: any;
-    totalBids: number;
-    processingTime: number;
-  }> {
-    const startTime = Date.now();
-    const auctionId = this.generateAuctionId(bidRequest.id);
-
-    this.logger.debug('Starting auction processing', {
-      auctionId,
-      requestId: bidRequest.id,
-      inventoryId: bidRequest.inventoryId,
-    });
-
-    try {
-      // 1. Find eligible campaigns (cached for performance)
-      const eligibleCampaigns = await this.findEligibleCampaigns(bidRequest);
-
-      this.logger.debug('Found eligible campaigns', {
-        auctionId,
-        count: eligibleCampaigns.length,
-      });
-
-      if (eligibleCampaigns.length === 0) {
-        return await this.handleNoBidsAuction(bidRequest, auctionId, startTime);
-      }
-
-      // 2. Generate bid responses for eligible campaigns
-      const bidResponses = await this.generateBidResponses(
-        bidRequest,
-        eligibleCampaigns,
-        auctionId,
-      );
-
-      this.logger.debug('Generated bid responses', {
-        auctionId,
-        validBids: bidResponses.length,
-      });
-
-      if (bidResponses.length === 0) {
-        return await this.handleNoBidsAuction(bidRequest, auctionId, startTime);
-      }
-
-      // 3. Run auction algorithm
-      const auctionResult = await this.runAuction(bidResponses, bidRequest);
-
-      // 4. Store auction log
-      await this.storeAuctionLog(bidRequest, auctionResult, startTime);
-
-      // 5. Update bid response statuses
-      await this.updateBidResponseStatuses(
-        bidResponses,
-        auctionResult.winnerId,
-      );
-
-      // 6. Update campaign spend for winner
-      if (auctionResult.winner) {
-        await this.updateCampaignSpend(
-          auctionResult.winner.campaignId,
-          auctionResult.finalPrice,
-        );
-      }
-
-      const processingTime = Date.now() - startTime;
-
-      this.logger.log('Auction completed successfully', {
-        auctionId,
-        winnerId: auctionResult.winnerId,
-        finalPrice: auctionResult.finalPrice,
-        processingTime: `${processingTime}ms`,
-      });
-
-      return {
-        auctionId,
-        winner: auctionResult.winner,
-        totalBids: bidResponses.length,
-        processingTime,
-      };
-    } catch (error) {
-      const processingTime = Date.now() - startTime;
-
-      this.logger.error('Auction processing failed', {
-        auctionId,
-        error: error.message,
-        processingTime: `${processingTime}ms`,
-      });
-
-      // Store failed auction log
-      await this.storeFailedAuctionLog(
-        bidRequest,
-        auctionId,
-        error.message,
-        startTime,
-      );
-
-      throw error;
-    }
-  }
-
   async findEligibleCampaigns(bidRequest: any): Promise<any[]> {
     // const cacheKey = `eligible:${bidRequest.inventoryId}:${bidRequest.userContext.deviceType}`;
     const cacheKey = REDIS_KEYS.ELIGIBLE_CAMPAIGNS(
@@ -175,14 +75,14 @@ export class AuctionService {
     const bidPromises = eligibleCampaigns.map(async (campaign) => {
       try {
         // 1. Check budget availability
-        const hasBudget =
-          await this.campaignEligibility.checkBudgetAvailability(campaign.id);
-        if (!hasBudget) {
-          this.logger.debug('Campaign excluded due to budget exhaustion', {
-            campaignId: campaign.id,
-          });
-          return null;
-        }
+        // const hasBudget =
+        //   await this.campaignEligibility.checkBudgetAvailability(campaign.id);
+        // if (!hasBudget) {
+        //   this.logger.debug('Campaign excluded due to budget exhaustion', {
+        //     campaignId: campaign.id,
+        //   });
+        //   return null;
+        // }
 
         // 2. Calculate bid price
         const bidPrice = await this.bidEvaluation.calculateBidPrice(
@@ -241,6 +141,8 @@ export class AuctionService {
     winnerId: string;
     finalPrice: number;
     auctionType: string;
+    auctionId: string;
+    auctionStatus: string;
   }> {
     // Sort bids by price (descending)
     const sortedBids = bidResponses.sort(
@@ -276,13 +178,22 @@ export class AuctionService {
 
     winningBid.finalPrice = finalPrice;
     winningBid.status = 'WON';
-    winningBid.responseLatency = Date.now() - bidRequest.requestTimestamp;
-
+    this.logger.debug('Bid Request Timestamp', {
+      requestTimestamp: bidRequest.requestTimestamp,
+      responseTimestamp: Date.now(),
+      requestTimestampType: typeof bidRequest.requestTimestamp,
+      converted: new Date(bidRequest.requestTimestamp).getTime(),
+    });
+    winningBid.responseLatency =
+      Date.now() - new Date(bidRequest.requestTimestamp).getTime();
+    winningBid.processedAt = Date.now();
     return {
       winner: winningBid,
       winnerId: winningBid.id,
       finalPrice,
       auctionType,
+      auctionId: bidRequest.auctionId,
+      auctionStatus: 'COMPLETED',
     };
   }
 
@@ -371,12 +282,6 @@ export class AuctionService {
       });
       throw error;
     }
-  }
-
-  private generateAuctionId(requestId: string): string {
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 6);
-    return `auction_${timestamp}_${random}`;
   }
 
   private async selectCreative(

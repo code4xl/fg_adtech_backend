@@ -28,7 +28,7 @@ import { kafkaTopics } from './constants/kafka.config';
 export class KafkaInitService implements OnModuleInit {
   private readonly logger = new Logger(KafkaInitService.name);
 
-  constructor(private readonly kafkaService: KafkaService) {}
+  constructor(private readonly kafkaService: KafkaService) { }
 
   async onModuleInit() {
     try {
@@ -156,6 +156,11 @@ export class KafkaInitService implements OnModuleInit {
         {
           topic: kafkaTopics.PERFORMANCE_ALERTS,
           numPartitions: 1, // Alert system, single partition
+          replicationFactor: 1,
+        },
+        {
+          topic: kafkaTopics.AUCTION_COMPLETION,
+          numPartitions: 3, // Moderate volume for auction completions
           replicationFactor: 1,
         },
       ]);

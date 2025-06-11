@@ -5,6 +5,8 @@ import { kafkaTopics } from '../../kafka/constants/kafka.config';
 import { BidRequestProcessor } from '../processors/bid-request.processor';
 import { BidResponseProcessor } from '../processors/bid-response.processor';
 
+import RTBProducer from '../producer/rtb.producer';
+
 @Injectable()
 export class RTBKafkaConsumer implements OnModuleInit {
   private readonly logger = new Logger(RTBKafkaConsumer.name);
@@ -14,19 +16,11 @@ export class RTBKafkaConsumer implements OnModuleInit {
     private readonly auctionService: AuctionService,
     private readonly bidRequestProcessor: BidRequestProcessor,
     private readonly bidResponseProcessor: BidResponseProcessor,
+    private readonly rtbProducer: RTBProducer,
   ) {
     this.logger.log('RTB Kafka Consumer initialized - Phase 4');
   }
 
-  /**
-   * Initialize Kafka subscriptions on module startup
-   *
-   * **Why multiple subscriptions:**
-   * - Bid requests need immediate processing for latency requirements
-   * - Auction results require different processing logic
-   * - Separate consumer groups allow independent scaling
-   * - Dead letter queues handle failed messages without blocking pipeline
-   */
   async onModuleInit() {
     try {
       this.logger.log('Initializing RTB Kafka subscriptions...');
@@ -49,18 +43,6 @@ export class RTBKafkaConsumer implements OnModuleInit {
     }
   }
 
-  // ==========================================
-  // PRIMARY PROCESSING SUBSCRIPTIONS
-  // ==========================================
-
-  /**
-   * Subscribe to auction processing queue
-   *
-   * **Why dedicated consumer group:**
-   * - Enables multiple instances to process auctions in parallel
-   * - Consumer group rebalancing provides fault tolerance
-   * - Kafka handles offset management and exactly-once processing
-   */
   private async subscribeToAuctionProcessing(): Promise<void> {
     await this.kafka.subscribe(
       kafkaTopics.AUCTION_PROCESSING,
@@ -71,14 +53,6 @@ export class RTBKafkaConsumer implements OnModuleInit {
     this.logger.log('🎯 Subscribed to auction processing topic');
   }
 
-  /**
-   * Subscribe to auction results for response generation
-   *
-   * **Why separate from auction processing:**
-   * - Response generation is lighter weight than auction processing
-   * - Can scale response generation independently
-   * - Separates auction logic from response formatting
-   */
   private async subscribeToAuctionResults(): Promise<void> {
     await this.kafka.subscribe(
       kafkaTopics.AUCTION_RESULTS,
@@ -89,14 +63,6 @@ export class RTBKafkaConsumer implements OnModuleInit {
     this.logger.log('📤 Subscribed to auction results topic');
   }
 
-  /**
-   * Subscribe to dead letter queues for error recovery
-   *
-   * **Why DLQ processing:**
-   * - Prevents poison messages from blocking pipeline
-   * - Allows manual review and reprocessing of failed messages
-   * - Maintains audit trail of processing failures
-   */
   private async subscribeToDeadLetterQueues(): Promise<void> {
     await this.kafka.subscribe(
       kafkaTopics.DLQ_AUCTIONS,
@@ -107,23 +73,6 @@ export class RTBKafkaConsumer implements OnModuleInit {
     this.logger.log('🚨 Subscribed to dead letter queue');
   }
 
-  // ==========================================
-  // MESSAGE PROCESSING HANDLERS
-  // ==========================================
-
-  /**
-   * Process auction request from Kafka
-   *
-   * **Why comprehensive error handling:**
-   * - RTB processing must be reliable to maintain advertiser trust
-   * - Failed auctions represent lost revenue opportunities
-   * - Proper error categorization enables targeted fixes
-   *
-   * **Processing steps:**
-   * 1. Deserialize and validate bid request
-   * 2. Execute auction logic with timeout protection
-   * 3. Publish results or handle failures appropriately
-   */
   private async processAuctionRequest(payload: {
     key: string; // id
     value: any; // bid request data
@@ -153,9 +102,19 @@ export class RTBKafkaConsumer implements OnModuleInit {
         this.bidRequestProcessor.processBidRequest(bidRequestData.bidRequest),
         // this.createTimeoutPromise(150, auctionId),
       ]);
-
+      this.logger.debug(
+        'Auction processed successfully and Sending to publush auction result',
+        {
+          auctionResult,
+          bidRequestData,
+          auctionId,
+        },
+      );
       // 4. Publish auction results for response generation
-      await this.publishAuctionResult(auctionResult, bidRequestData);
+      await this.rtbProducer.publishAuctionResult(
+        auctionResult,
+        bidRequestData,
+      );
 
       // 5. Record processing metrics
       const processingTime = Date.now() - startTime;
@@ -185,14 +144,6 @@ export class RTBKafkaConsumer implements OnModuleInit {
     }
   }
 
-  /**
-   * Process auction result to generate bid responses
-   *
-   * **Why separate result processing:**
-   * - Auction logic and response generation have different scaling needs
-   * - Response generation involves external API calls (tracking URLs)
-   * - Separation allows optimization of each stage independently
-   */
   private async processAuctionResult(payload: {
     key: string;
     value: any;
@@ -210,21 +161,26 @@ export class RTBKafkaConsumer implements OnModuleInit {
 
       // 1. Deserialize auction result
       const auctionResult = this.deserializeAuctionResult(payload.value);
-      this.logger.debug('Auction result deserialized Line 213', {
-        auction: auctionResult,
+      this.logger.debug('Auction result deserialized', {
+        auctionId: auctionResult.auctionId,
       });
+
       // 2. Generate bid responses and ad markup
       const bidResponses =
         await this.bidResponseProcessor.generateBidResponses(auctionResult);
-      this.logger.debug('Bid Response generated 219', {
-        auction: bidResponses,
+      this.logger.debug('Bid responses generated', {
+        responseCount: bidResponses.length,
       });
+
       // 3. Store responses in cache for SDK polling
       await this.bidResponseProcessor.storeBidResponses(bidResponses);
 
-      // 4. Send win notifications if applicable   -- Later phase
+      // 4. *** NEW *** Publish auction completion for log storage and analytics
+      await this.rtbProducer.publishAuctionCompletion(auctionResult);
+
+      // 5. Send win notifications if applicable (later phase)
       // if (auctionResult.winner) {
-      //     await this.bidResponseProcessor.sendWinNotifications(auctionResult);
+      //   await this.bidResponseProcessor.sendWinNotifications(auctionResult);
       // }
 
       const processingTime = Date.now() - startTime;
@@ -245,14 +201,6 @@ export class RTBKafkaConsumer implements OnModuleInit {
     }
   }
 
-  /**
-   * Process messages from dead letter queue
-   *
-   * **Why DLQ processing:**
-   * - Allows recovery from transient failures
-   * - Provides audit trail for debugging
-   * - Enables manual intervention for complex cases
-   */
   private async processDLQMessage(payload: {
     key: string;
     value: any;
@@ -312,7 +260,7 @@ export class RTBKafkaConsumer implements OnModuleInit {
     try {
       this.logger.debug(
         'Deserializing bid request while consumption' +
-          ` - : ${JSON.stringify(data)}`,
+        ` - : ${JSON.stringify(data)}`,
       );
       if (typeof data === 'string') {
         return JSON.parse(data);
@@ -354,14 +302,6 @@ export class RTBKafkaConsumer implements OnModuleInit {
     }
   }
 
-  /**
-   * Create timeout promise for auction processing
-   *
-   * **Why timeout protection:**
-   * - RTB requires responses within 100-200ms timeouts
-   * - Prevents hanging auctions from blocking pipeline
-   * - Ensures consistent response times under load
-   */
   private createTimeoutPromise(
     timeoutMs: number,
     auctionId?: string,
@@ -376,42 +316,7 @@ export class RTBKafkaConsumer implements OnModuleInit {
   /**
    * Publish auction result to results topic
    */
-  private async publishAuctionResult(
-    auctionResult: any,
-    originalData: any,
-  ): Promise<void> {
-    try {
-      await this.kafka.publish(kafkaTopics.AUCTION_RESULTS, {
-        key: originalData.auctionId,
-        value: {
-          ...auctionResult,
-          auctionId: originalData.auctionId,
-          originalRequest: originalData.bidRequest,
-          processedAt: new Date().toISOString(),
-        },
-      });
 
-      this.logger.debug('Auction result published', {
-        auctionId: originalData.auctionId,
-      });
-    } catch (error) {
-      this.logger.error('Failed to publish auction result', {
-        error: error.message,
-        auctionId: originalData.auctionId,
-      });
-      throw error;
-    }
-  }
-
-  /**
-   * Handle processing errors with appropriate routing
-   *
-   * **Why categorized error handling:**
-   * - Different error types require different recovery strategies
-   * - Validation errors shouldn't be retried
-   * - Transient errors can be retried with backoff
-   * - Critical errors need immediate attention
-   */
   private async handleProcessingError(
     payload: any,
     error: Error,

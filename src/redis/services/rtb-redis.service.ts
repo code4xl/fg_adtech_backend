@@ -128,6 +128,7 @@ export class RTBRedisService {
 
     if (budgetData) {
       const parsed = JSON.parse(budgetData);
+
       totalBudget = parsed.totalBudget || 0;
       dailyBudget = parsed.dailyBudget || 0;
     }

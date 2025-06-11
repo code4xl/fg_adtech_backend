@@ -8,6 +8,7 @@ import { CreateBidRequestDto, BidResponseDto, HealthCheckDto } from '../dto';
 import { kafkaTopics } from '../../kafka/constants/kafka.config';
 import { REDIS_KEYS } from '../../redis/constants/redis-keys';
 import { v4 as uuidv4 } from 'uuid';
+import RTBProducer from '../producer/rtb.producer';
 
 @Injectable()
 export class RTBService {
@@ -19,6 +20,7 @@ export class RTBService {
     private readonly redis: RedisService,
     private readonly rtbCache: RTBCacheService,
     private readonly campaignEligibility: CampaignEligibilityService,
+    private readonly rtbProducer: RTBProducer,
   ) {
     this.logger.log('RTB Service initialized - Phase 3 Complete');
   }
@@ -56,7 +58,7 @@ export class RTBService {
       await this.cacheBidRequest(bidRequest);
 
       // 5. Publish to Kafka for async auction processing
-      await this.publishBidRequestForProcessing(bidRequest);
+      await this.rtbProducer.publishBidRequestForProcessing(bidRequest);
 
       // 6. Record processing metrics
       const processingTime = Date.now() - startTime;
@@ -247,49 +249,6 @@ export class RTBService {
         requestId: bidRequest.id,
       });
     }
-  }
-
-  private async publishBidRequestForProcessing(bidRequest: any): Promise<void> {
-    try {
-      await this.kafka.publish(kafkaTopics.AUCTION_PROCESSING, {
-        // changed topic to AUCTION_PROCESSING
-        key: bidRequest.id,
-        value: {
-          bidRequest,
-          publishedAt: new Date().toISOString(),
-          priority: this.calculateProcessingPriority(bidRequest),
-        },
-      });
-
-      this.logger.debug('Bid request published to Kafka', {
-        requestId: bidRequest.id,
-        topic: kafkaTopics.BID_REQUESTS,
-      });
-    } catch (error) {
-      // Non-blocking error - auction can still proceed
-      this.logger.error('Failed to publish bid request to Kafka', {
-        error: error.message,
-        requestId: bidRequest.id,
-      });
-
-      // Could implement fallback processing here
-    }
-  }
-
-  private calculateProcessingPriority(
-    bidRequest: any,
-  ): 'high' | 'normal' | 'low' {
-    // High priority for premium inventory or high floor prices
-    if (bidRequest.floorPrice && bidRequest.floorPrice > 5.0) {
-      return 'high';
-    }
-
-    // High priority for above-the-fold inventory
-    if (bidRequest.adSlotContext?.position === 'above_fold') {
-      return 'high';
-    }
-
-    return 'normal';
   }
 
   private async getCachedBidResponse(
