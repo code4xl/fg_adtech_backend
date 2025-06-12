@@ -178,6 +178,29 @@ export class AuctionService {
 
     winningBid.finalPrice = finalPrice;
     winningBid.status = 'WON';
+
+    this.redis.set(
+      `auction:latest_winner:${this.getFormattedDate()}`,
+      {
+        winningBidId: winningBid.id,
+        campaignId: winningBid.campaignId,
+        creativeId: winningBid.creativeId,
+        bidPrice: winningBid.bidPrice,
+        winningPrice: finalPrice,
+        auctionType,
+        bidStatus: 'WON',
+        totalBids: bidResponses.length,
+        validBids: bidResponses.length,
+        auctionId: bidRequest.auctionId,
+      },
+      60 * 60 * 24,
+    );
+    // Update all other bids to LOST
+    await this.updateBidResponseStatuses(
+      bidResponses,
+      winningBid.id,
+      finalPrice,
+    );
     this.logger.debug('Bid Request Timestamp', {
       requestTimestamp: bidRequest.requestTimestamp,
       responseTimestamp: Date.now(),
@@ -196,13 +219,27 @@ export class AuctionService {
       auctionStatus: 'COMPLETED',
     };
   }
+  async getFormattedDate() {
+    const now = new Date();
+
+    const pad = (num) => String(num).padStart(2, '0');
+
+    const day = pad(now.getDate());
+    const month = pad(now.getMonth() + 1); // Months are 0-indexed
+    const year = now.getFullYear();
+    const hours = pad(now.getHours());
+    const minutes = pad(now.getMinutes());
+    const seconds = pad(now.getSeconds());
+
+    return `${day}/${month}/${year}_${hours}:${minutes}:${seconds}`;
+  }
 
   async getAuctionStatus(requestId: string): Promise<AuctionStatusDto | null> {
     try {
       // Get bid request with auction log
       const bidRequest = await this.prisma.bidRequest.findFirst({
         where: {
-          OR: [{ id: requestId }, { externalRequestId: requestId }],
+          id: requestId,
         },
         include: {
           auctionLog: true,
@@ -227,15 +264,25 @@ export class AuctionService {
       if (!bidRequest) {
         return null;
       }
-
+      this.logger.debug('Retrieved bid request for auction status', {
+        requestId,
+        bidRequest,
+      });
       // Determine current stage and status
       let stage: string;
       let status: string;
 
       if (!bidRequest.auctionLog) {
+        this.logger.debug('Auction log not found, checking eligibility', {
+          requestId,
+        });
         stage = 'eligibility_check';
         status = 'processing';
       } else {
+        this.logger.debug('Auction log found, determining stage', {
+          requestId,
+          auctionLog: bidRequest.auctionLog,
+        });
         stage = 'auction_complete';
         status = bidRequest.auctionLog.status.toLowerCase();
       }
@@ -331,7 +378,13 @@ export class AuctionService {
       height: bidRequest.adSlotContext.height,
       format: bidRequest.adSlotContext.format,
     });
-
+    this.logger.debug('Creating bid response', {
+      bidRequest,
+      campaign,
+      creative,
+      bidPrice,
+      auctionId,
+    });
     return await this.prisma.bidResponse.create({
       data: {
         bidRequestId: bidRequest.id,
@@ -342,6 +395,7 @@ export class AuctionService {
         currency: 'INR',
         status: 'PENDING',
         adMarkup,
+        // finalPrice:
         impressionUrls: trackingUrls.impression,
         clickUrls: trackingUrls.click,
       },
@@ -598,12 +652,14 @@ export class AuctionService {
   private async updateBidResponseStatuses(
     bidResponses: any[],
     winnerId: string,
+    finalPrice: number,
   ): Promise<void> {
     try {
       // Update winner
       await this.prisma.bidResponse.update({
         where: { id: winnerId },
         data: {
+          finalPrice,
           status: 'WON',
           processedAt: new Date(),
         },
