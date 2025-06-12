@@ -87,7 +87,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         //     throw new UnauthorizedException('Email not verified');
         // }
 
-        return publisher;
+        return {
+            ...publisher,
+            publisherId: publisher.id, // Add publisherId for compatibility with guards
+        };
     }
 
     async validateClient(payload: any) {
@@ -133,7 +136,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         //     throw new UnauthorizedException('Email not verified');
         // }
 
-        return admin;
+        return {
+            ...admin,
+            adminId: admin.id, // Add adminId for consistency
+        };
     }
 
 

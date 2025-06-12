@@ -29,16 +29,19 @@ import {
       }
   
       // Admins can access everything
-      if (user.role === 'ADMIN') {
+      if (user.role === 'admin') {
         return true;
       }
   
       // Publishers can only access their own resources
-      if (user.role === 'PUBLISHER') {
+      if (user.role === 'publisher') {
+        // Get the publisher ID from the user object (supports both id and publisherId fields)
+        const userPublisherId = user.publisherId || user.id;
+        
         // Check if the publisher ID matches
-        if (user.publisherId !== publisherId) {
+        if (userPublisherId !== publisherId) {
           this.logger.warn(
-            `Publisher ${user.publisherId} attempted to access resources of publisher ${publisherId}`,
+            `Publisher ${userPublisherId} attempted to access resources of publisher ${publisherId}`,
           );
           throw new ForbiddenException('Access denied to this publisher resource');
         }

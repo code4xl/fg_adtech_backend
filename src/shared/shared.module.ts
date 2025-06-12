@@ -1,15 +1,27 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
-import { AdSlotTemplatePublicController, AdSlotTemplateProtectedController } from './controllers/adslot-template-public.controller';
-import { ContentCategoryPublicController, ContentCategoryProtectedController } from './controllers/content-category-public.controller';
+import { 
+  AdSlotTemplatePublicController, 
+  AdSlotTemplatePublisherController, 
+  AdSlotTemplateAdvertiserController 
+} from './controllers/adslot-template-public.controller';
+import { 
+  ContentCategoryPublicController, 
+  ContentCategoryPublisherController, 
+  ContentCategoryAdvertiserController 
+} from './controllers/content-category-public.controller';
 
 @Module({
   imports: [PrismaModule],
   controllers: [
+    // Ad Slot Template Controllers
     AdSlotTemplatePublicController,
-    AdSlotTemplateProtectedController,
+    AdSlotTemplatePublisherController,
+    AdSlotTemplateAdvertiserController,
+    // Content Category Controllers
     ContentCategoryPublicController,
-    ContentCategoryProtectedController,
+    ContentCategoryPublisherController,
+    ContentCategoryAdvertiserController,
   ],
   providers: [],
   exports: [],

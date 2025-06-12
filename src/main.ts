@@ -116,13 +116,13 @@ async function bootstrap() {
       useGlobalPrefix: true,
     });
 
-    app.use(
-      '/api',
-      apiReference({
-        content: document,
-        theme: 'bluePlanet',
-      }),
-    );
+    // app.use(
+    //   '/api',
+    //   apiReference({
+    //     content: document,
+    //     theme: 'bluePlanet',
+    //   }),
+    // );
   }
 
   const port = configService.get<number>('port') || 3000;

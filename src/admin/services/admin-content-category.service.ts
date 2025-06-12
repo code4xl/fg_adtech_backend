@@ -10,7 +10,6 @@ export class AdminContentCategoryService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createDto: CreateContentCategoryDto) {
-    // Check if name already exists
     const existing = await this.prisma.contentCategory.findUnique({
       where: { name: createDto.name },
     });

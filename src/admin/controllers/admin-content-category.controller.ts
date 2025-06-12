@@ -26,7 +26,7 @@ import {
   @ApiTags('Admin - Content Categories')
   @ApiBearerAuth()
   @UseGuards(AdminGuard)
-  @Controller('admin/content-categories')
+  @Controller('api/admin/content-categories')
   export class AdminContentCategoryController {
     constructor(
       private readonly contentCategoryService: AdminContentCategoryService
