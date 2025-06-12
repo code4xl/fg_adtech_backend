@@ -120,7 +120,9 @@ export class RedisService {
     return this.pubClient.keys(pattern);
   }
 
-
+  async setWinner(key: string, value: string, ttl: any) {
+    return this.pubClient.set(key, value, 'EX', ttl);
+  }
 
   pipeline() {
     return this.pubClient.pipeline();

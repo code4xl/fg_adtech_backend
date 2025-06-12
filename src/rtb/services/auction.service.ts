@@ -178,10 +178,10 @@ export class AuctionService {
 
     winningBid.finalPrice = finalPrice;
     winningBid.status = 'WON';
-
-    this.redis.set(
-      `auction:latest_winner:${this.getFormattedDate()}`,
-      {
+    const d = await this.getFormattedDate();
+    this.redis.setWinner(
+      `auction:latest_winner:${d}`,
+      JSON.stringify({
         winningBidId: winningBid.id,
         campaignId: winningBid.campaignId,
         creativeId: winningBid.creativeId,
@@ -192,7 +192,7 @@ export class AuctionService {
         totalBids: bidResponses.length,
         validBids: bidResponses.length,
         auctionId: bidRequest.auctionId,
-      },
+      }),
       60 * 60 * 24,
     );
     // Update all other bids to LOST
@@ -379,11 +379,7 @@ export class AuctionService {
       format: bidRequest.adSlotContext.format,
     });
     this.logger.debug('Creating bid response', {
-      bidRequest,
-      campaign,
-      creative,
-      bidPrice,
-      auctionId,
+      id: bidRequest.id,
     });
     return await this.prisma.bidResponse.create({
       data: {

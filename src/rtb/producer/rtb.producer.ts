@@ -4,7 +4,7 @@ import { KafkaService } from 'src/kafka/kafka.service';
 @Injectable()
 export default class RTBProducer {
   private readonly logger: Logger = new Logger(RTBProducer.name);
-  constructor(private readonly kafka: KafkaService) { }
+  constructor(private readonly kafka: KafkaService) {}
 
   public async publishAuctionResult(
     auctionResult: any,
@@ -13,11 +13,11 @@ export default class RTBProducer {
     try {
       let auctionId1 = auctionResult.auctionId || 'bc';
       let auctionId2 = bidRequest.auctionId || 'bc';
-      this.logger.debug('Auction ID 1, 2', { auctionId1, auctionId2 });
-      this.logger.debug('Publishing auction result', {
-        auctionId: auctionResult.auctionId || bidRequest.auctionId,
-        result: auctionResult,
-      });
+      // this.logger.debug('Auction ID 1, 2', { auctionId1, auctionId2 });
+      // this.logger.debug('Publishing auction result', {
+      //   auctionId: auctionResult.auctionId || bidRequest.auctionId,
+      //   result: auctionResult,
+      // });
       await this.kafka.publish(kafkaTopics.AUCTION_RESULTS, {
         key: bidRequest.auctionId,
         value: {
@@ -28,11 +28,11 @@ export default class RTBProducer {
           processedAt: new Date().toISOString(),
         },
       });
-      this.logger.debug('AUction result topic ki mkb', {
-        topic: kafkaTopics.AUCTION_RESULTS,
-        bidRequest,
-        newBidKaBhosda: bidRequest.bidRequest,
-      });
+      // this.logger.debug('AUction result topic ki mkb', {
+      //   topic: kafkaTopics.AUCTION_RESULTS,
+      //   bidRequest,
+      //   newBidKaBhosda: bidRequest.bidRequest,
+      // });
       this.logger.debug('Auction result published', {
         auctionId: bidRequest.auctionId,
       });
@@ -141,18 +141,19 @@ export default class RTBProducer {
   public async publishAuctionCompletion(auctionResult: any): Promise<void> {
     try {
       // Extract bidRequest from auctionResult
-      const bidRequest = auctionResult.originalBidRequest?.bidRequest || {};
+      const bidRequest = auctionResult.originalBidRequest || {};
 
-      this.logger.debug("Bid Request Data", {
-        bidRequest,
-      });
+      this.logger.debug('Publishing Auction Completion');
 
       // Prepare auction completion data
       const auctionCompletionData = {
         auctionId: bidRequest.auctionId,
         requestId: bidRequest.id || bidRequest.externalRequestId,
         inventoryId: bidRequest.inventoryId,
-        campaignIds: auctionResult.winner ? [auctionResult.winner.campaignId] : [],
+        bidRequest,
+        campaignIds: auctionResult.winner
+          ? [auctionResult.winner.campaignId]
+          : [],
         winner: auctionResult.winner,
         totalBids: auctionResult.totalBids || 1,
         validBids: auctionResult.validBids || 1,
@@ -164,7 +165,7 @@ export default class RTBProducer {
         auctionStatus: auctionResult.auctionStatus || 'COMPLETED',
       };
 
-      this.logger.debug("Publishing auction completion", {
+      this.logger.debug('Publishing auction completion', {
         auctionCompletionData,
       });
 

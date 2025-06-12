@@ -105,15 +105,16 @@ export class RTBKafkaConsumer implements OnModuleInit {
       this.logger.debug(
         'Auction processed successfully and Sending to publush auction result',
         {
-          bidRequest: bidRequestData,
-          aucRes: auctionResult,
+          // bidRequest: bidRequestData,
+          auctionId: auctionResult.auctionId,
+          winnerId: auctionResult.winner.id,
         },
       );
       // 4. Publish auction results for response generation
-      await this.rtbProducer.publishAuctionResult(
-        auctionResult,
-        bidRequestData,
-      );
+      // await this.rtbProducer.publishAuctionResult(
+      //   auctionResult,
+      //   bidRequestData,
+      // );
 
       // 5. Record processing metrics
       const processingTime = Date.now() - startTime;
@@ -160,9 +161,9 @@ export class RTBKafkaConsumer implements OnModuleInit {
 
       // 1. Deserialize auction result
       const auctionResult = this.deserializeAuctionResult(payload.value);
-      this.logger.debug('Auction result deserialized', {
-        auctionId: auctionResult.auctionId,
-      });
+      // this.logger.debug('Auction result deserialized & now going to hell', {
+      //   auctionResult,
+      // });
 
       // 2. Generate bid responses and ad markup
       const bidResponses =
@@ -258,8 +259,8 @@ export class RTBKafkaConsumer implements OnModuleInit {
   private deserializeBidRequest(data: any): any {
     try {
       this.logger.debug(
-        'Deserializing bid request while consumption' +
-          ` - : ${JSON.stringify(data)}`,
+        'Deserializing bid request while consumption',
+        // ` - : ${JSON.stringify(data)}`,
       );
       if (typeof data === 'string') {
         return JSON.parse(data);

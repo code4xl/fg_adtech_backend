@@ -1,74 +1,125 @@
 {
-  "bidRequest": {
-    "id": "37504cef-7677-4c81-b349-0453c8a85515",
-    "externalRequestId": "req_884525594_4536cede",
-    "inventoryId": "4a354097-eb89-4e8e-bb9f-91ebb7393886",
-    "publisherId": "1b20357a-113b-4e4d-adc0-1c260b171cc3",
-    "websiteId": "b50bfc8c-7ed2-495f-bc50-8705d83071b5",
-    "userContext": {
-      "city": "Mumbai",
-      "osType": "windows",
-      "region": "Maharashtra",
-      "userId": "user_12345_device_abc",
-      "country": "IN",
-      "ipAddress": "192.168.1.100",
-      "sessionId": "session_789xyz",
-      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-      "deviceType": "MOBILE",
-      "browserType": "chrome",
-      "additionalData": {
-        "ageGroup": "25-34",
-        "interests": ["tech", "sports"]
-      }
-    },
-    "adSlotContext": {
-      "width": 320,
-      "height": 480,
-      "format": "REWARDED",
-      "pageUrl": "https://example.com/article/tech-news",
-      "position": "ABOVE_FOLD",
-      "referrerUrl": "https://google.com/search",
-      "pageCategory": "technology",
-      "pageKeywords": ["technology", "innovation", "AI"]
-    },
-    "floorPrice": "0.5",
-    "auctionType": "SECOND_PRICE",
-    "timeout": 200,
-    "requestTimestamp": "2025-06-11T11:48:12.526Z",
-    "processedAt": null,
-    "auctionId": "8436f33c-352b-489c-acbf-e754f7589311"
-  },
-  "publishedAt": "2025-06-11T11:48:12.985Z",
-  "priority": "normal",
-  "aucRes": {
-    "auctionId": "8436f33c-352b-489c-acbf-e754f7589311",
+  "auctionResult": {
     "winner": {
-      "id": "b87ba7d4-62f0-4436-8305-66fbe8055fc7",
-      "bidRequestId": "37504cef-7677-4c81-b349-0453c8a85515",
+      "id": "84256bb9-5e54-4415-aef4-9deb902f136d",
+      "bidRequestId": "df883a3e-2bf6-4539-aecb-8d406ab89918",
       "campaignId": "b4778261-dfa9-4a65-81c2-487bd4f616cf",
       "creativeId": "85fd44e2-9b26-44ab-8900-029dc6e69975",
       "advertiserId": "992e80e7-054c-4544-879b-68e860048b7d",
-      "bidPrice": 39.02,
+      "bidPrice": "39.02",
       "currency": "INR",
       "status": "WON",
-      "responseLatency": 24708,
-      "finalPrice": 25.110000000000003,
+      "responseLatency": 11916,
+      "finalPrice": 23.66,
       "winNotificationSent": false,
-      "adMarkup": "<div class=\"ocean-ad\" style=\"width: 320px; height: 480px;\">\n  <a href=\"http://localhost:3000/track/click/8436f33c-352b-489c-acbf-e754f7589311&url=https%3A%2F%2Fnocturnal-procurement.net%2F\" target=\"_blank\">\n    <img src=\"https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/object-promise-1749052140905-jpg\" alt=\"maximize proactive partnerships IMAGE Creative\" style=\"width: 100%; height: 100%;\" />\n  </a>\n  <img src=\"http://localhost:3000/track/impression/8436f33c-352b-489c-acbf-e754f7589311\" style=\"display: none;\" alt=\"\" />\n</div>",
+      "adMarkup": "<div class=\"ocean-ad\" style=\"width: 320px; height: 480px;\">\n            <a href=\"http://localhost:3000/track/click/e447dd91-30cf-4dfb-9f71-f88838ff8180&url=https%3A%2F%2Fnocturnal-procurement.net%2F\" target=\"_blank\">\n                <img src=\"https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/object-promise-1749052140905-jpg\" \n                     alt=\"maximize proactive partnerships IMAGE Creative\"\n                     style=\"width: 100%; height: 100%;\" />\n            </a>\n            <img src=\"http://localhost:3000/track/impression/e447dd91-30cf-4dfb-9f71-f88838ff8180\" style=\"display: none;\" alt=\"\" />\n        </div>",
       "impressionUrls": [
-        "http://localhost:3000/track/impression/8436f33c-352b-489c-acbf-e754f7589311"
+        "http://localhost:3000/track/impression/e447dd91-30cf-4dfb-9f71-f88838ff8180"
       ],
       "clickUrls": [
-        "http://localhost:3000/track/click/8436f33c-352b-489c-acbf-e754f7589311"
+        "http://localhost:3000/track/click/e447dd91-30cf-4dfb-9f71-f88838ff8180"
       ],
-      "createdAt": "2025-06-11T11:48:35.879Z",
-      "processedAt": 1749642517234
+      "createdAt": "2025-06-11T12:15:38.656Z",
+      "processedAt": 1749644140496
     },
-    "totalBids": 7,
-    "validBids": 7,
-    "processingTime": 11450,
+    "winnerId": "84256bb9-5e54-4415-aef4-9deb902f136d",
+    "finalPrice": 23.66,
     "auctionType": "SECOND_PRICE",
-    "floorPrice": "0.5",
+    "auctionId": "e447dd91-30cf-4dfb-9f71-f88838ff8180",
+    "auctionStatus": "COMPLETED",
+    "originalBidRequest": {
+      "id": "df883a3e-2bf6-4539-aecb-8d406ab89918",
+      "externalRequestId": "req_884525594_4536cede",
+      "inventoryId": "4a354097-eb89-4e8e-bb9f-91ebb7393886",
+      "publisherId": "1b20357a-113b-4e4d-adc0-1c260b171cc3",
+      "websiteId": "b50bfc8c-7ed2-495f-bc50-8705d83071b5",
+      "userContext": {
+        "city": "Mumbai",
+        "osType": "windows",
+        "region": "Maharashtra",
+        "userId": "user_12345_device_abc",
+        "country": "IN",
+        "ipAddress": "192.168.1.100",
+        "sessionId": "session_789xyz",
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "deviceType": "MOBILE",
+        "browserType": "chrome",
+        "additionalData": {
+          "ageGroup": "25-34",
+          "interests": [
+            "tech",
+            "sports"
+          ]
+        }
+      },
+      "adSlotContext": {
+        "width": 320,
+        "format": "REWARDED",
+        "height": 480,
+        "pageUrl": "https://example.com/article/tech-news",
+        "position": "ABOVE_FOLD",
+        "referrerUrl": "https://google.com/search",
+        "pageCategory": "technology",
+        "pageKeywords": [
+          "technology",
+          "innovation",
+          "AI"
+        ]
+      },
+      "floorPrice": "0.5",
+      "auctionType": "SECOND_PRICE",
+      "timeout": 200,
+      "requestTimestamp": "2025-06-11T12:15:28.580Z",
+      "processedAt": null,
+      "auctionId": "e447dd91-30cf-4dfb-9f71-f88838ff8180"
+    },
+    "processedAt": "2025-06-11T12:15:40.501Z"
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+{
+  "auctionData": {
+    "campaignIds": [
+      "b4778261-dfa9-4a65-81c2-487bd4f616cf"
+    ],
+    "winner": {
+      "id": "8c722e7d-5169-4eb8-b6d5-30a8e401d94b",
+      "bidRequestId": "025c533a-2a46-409c-b63e-20b3f6ee5794",
+      "campaignId": "b4778261-dfa9-4a65-81c2-487bd4f616cf",
+      "creativeId": "85fd44e2-9b26-44ab-8900-029dc6e69975",
+      "advertiserId": "992e80e7-054c-4544-879b-68e860048b7d",
+      "bidPrice": "39.02",
+      "currency": "INR",
+      "status": "WON",
+      "responseLatency": 8935,
+      "finalPrice": 23.66,
+      "winNotificationSent": false,
+      "adMarkup": "<div class=\"ocean-ad\" style=\"width: 320px; height: 480px;\">\n            <a href=\"http://localhost:3000/track/click/027e4a66-1f91-4983-9800-d537d4514d46&url=https%3A%2F%2Fnocturnal-procurement.net%2F\" target=\"_blank\">\n                <img src=\"https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/object-promise-1749052140905-jpg\" \n                     alt=\"maximize proactive partnerships IMAGE Creative\"\n                     style=\"width: 100%; height: 100%;\" />\n            </a>\n            <img src=\"http://localhost:3000/track/impression/027e4a66-1f91-4983-9800-d537d4514d46\" style=\"display: none;\" alt=\"\" />\n        </div>",
+      "impressionUrls": [
+        "http://localhost:3000/track/impression/027e4a66-1f91-4983-9800-d537d4514d46"
+      ],
+      "clickUrls": [
+        "http://localhost:3000/track/click/027e4a66-1f91-4983-9800-d537d4514d46"
+      ],
+      "createdAt": "2025-06-11T12:29:02.274Z",
+      "processedAt": 1749644944007
+    },
+    "totalBids": 1,
+    "validBids": 1,
+    "processingTime": 0,
+    "auctionType": "SECOND_PRICE",
+    "finalPrice": 23.66,
+    "timestamp": "2025-06-11T12:29:04.025Z",
     "auctionStatus": "COMPLETED"
   }
 }

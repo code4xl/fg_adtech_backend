@@ -85,40 +85,40 @@ export class BidRequestProcessor {
       }
 
       // 4. Execute auction algorithm to determine winner
-      const aucRes = await this.executeAuction(bidResponses, bidRequest);
+      const auctionResult = await this.executeAuction(bidResponses, bidRequest);
       this.logger.debug('Auction executed', {
-        aucRes,
+        auctionResult,
       });
 
       // 5. Update performance metrics and counters
-      await this.updateMetrics(bidRequest, aucRes, startTime);
-      this.logger.debug('Metrics update done', {
-        bidRequest,
-        aucRes,
-      });
+      await this.updateMetrics(bidRequest, auctionResult, startTime);
+      // this.logger.debug('Metrics update done', {
+      //   bidRequest,
+      //   auctionResult,
+      // });
       // 6. Publish results for response generation
-      await this.rtbProducer.publishAuctionResult(aucRes, bidRequest);
+      await this.rtbProducer.publishAuctionResult(auctionResult, bidRequest);
 
       const processingTime = Date.now() - startTime;
 
       this.logger.log('✅ Bid request processed successfully', {
         auctionId: bidRequest.auctionId,
-        winnerId: aucRes.winner?.id,
-        finalPrice: aucRes.finalPrice,
+        winnerId: auctionResult.winner?.id,
+        finalPrice: auctionResult.finalPrice,
         totalBids: bidResponses.length,
-        res: aucRes,
+        res: auctionResult,
         processingTime: `${processingTime}ms`,
       });
 
       return {
         auctionId: bidRequest.auctionId,
-        winner: aucRes.winner,
+        winner: auctionResult.winner,
         totalBids: bidResponses.length,
         validBids: bidResponses.length,
         processingTime,
         auctionType: bidRequest.auctionType || 'SECOND_PRICE',
         floorPrice: bidRequest.floorPrice,
-        auctionStatus: aucRes.auctionStatus || 'COMPLETED',
+        auctionStatus: auctionResult.auctionStatus || 'COMPLETED',
       };
     } catch (error) {
       const processingTime = Date.now() - startTime;

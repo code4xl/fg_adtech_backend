@@ -32,9 +32,9 @@ export class BidResponseProcessor {
     // Extract auction metadata with fallback handling
 
     this.logger.debug(
-      'Generating bid responses mitt' +
+      'Generating bid responses' +
         JSON.stringify({
-          auctionResult: auctionResult,
+          // auctionResult: auctionResult,
           auctionId: auctionResult.auctionId,
           hasWinner: !!auctionResult.winner,
           // status: auctionResult.auctionStatus,
@@ -138,9 +138,9 @@ export class BidResponseProcessor {
     auctionResult: any,
   ): Promise<any[]> {
     const responses = [];
-    this.logger.debug('Generating responses for completed auction', {
-      auctionResult,
-    });
+    // this.logger.debug('Generating responses for completed auction', {
+    //   auctionResult,
+    // });
     if (auctionResult.winner) {
       // Generate winning bid response
       const winningResponse =
@@ -167,47 +167,34 @@ export class BidResponseProcessor {
   private async generateWinningBidResponse(auctionResult: any): Promise<any> {
     const winner = auctionResult.winner;
     const creativeId = winner.creativeId;
-    const auctionId =
-      auctionResult.auctionId ||
-      auctionResult.originalBidRequest.auctionId ||
-      auctionResult.originalBidRequest.bidRequest.auctionId;
+    const auctionId = auctionResult.auctionId || 'Nahi Mila';
     this.logger.debug('Generating winning bid response', {
       auctionId,
       winnerId: winner.id,
       finalPrice: winner.finalPrice,
       creativeId,
-      auctionResult: auctionResult,
-      adSlotContext:
-        auctionResult.originalRequest.externalRequestId ||
-        auctionResult.originalBidRequest.bidRequest?.adSlotContext,
+      auctionResult,
+      adSlotContext: auctionResult.originalBidRequest.adSlotContext,
     });
     // Use auction service for tracking URLs
     const trackingUrls = this.auctionService.generateTrackingUrls(
       auctionId,
       winner.id,
     );
-
+    const adSlotContextData = auctionResult.originalBidRequest.adSlotContext;
     // Use auction service for ad markup
     const adMarkup = this.auctionService.generateAdMarkup(
       creativeId,
       trackingUrls,
       {
-        width:
-          auctionResult.originalBidRequest.adSlotContext.width ||
-          auctionResult.originalBidRequest.bidRequest?.adSlotContext.width,
-        height:
-          auctionResult.originalBidRequest.adSlotContext.height ||
-          auctionResult.originalBidRequest.bidRequest?.adSlotContext.height,
-        format:
-          auctionResult.originalBidRequest.adSlotContext.format ||
-          auctionResult.originalBidRequest.bidRequest?.adSlotContext.format,
+        width: adSlotContextData.width,
+        height: adSlotContextData.height,
+        format: adSlotContextData.format,
       },
     );
 
     return {
-      requestId:
-        auctionResult.originalBidRequest.externalRequestId ||
-        auctionResult.originalBidRequest.bidRequest.externalRequestId,
+      requestId: auctionResult.originalBidRequest.externalRequestId,
       status: 'COMPLETED',
       winningBid: {
         price: winner.finalPrice,
@@ -231,9 +218,7 @@ export class BidResponseProcessor {
 
   private async generateLosingBidResponses(auctionResult: any): Promise<any[]> {
     return auctionResult.losingBids.map((losingBid) => ({
-      requestId:
-        auctionResult.originalRequest.externalRequestId ||
-        auctionResult.originalRequest.bidRequest.externalRequestId,
+      requestId: auctionResult.originalRequest.externalRequestId,
       status: 'lost',
       bidId: losingBid.id,
       bidPrice: losingBid.bidPrice,
@@ -244,10 +229,7 @@ export class BidResponseProcessor {
   private async generateNoBidsResponse(auctionResult: any): Promise<any[]> {
     return [
       {
-        requestId:
-          auctionResult.originalRequest?.externalRequestId ||
-          auctionResult.originalRequest.bidRequest.externalRequestId ||
-          'unknown',
+        requestId: auctionResult.originalRequest.externalRequestId,
         status: 'no_bids',
         message: auctionResult.message || 'No eligible campaigns found',
         auctionData: {
@@ -263,10 +245,7 @@ export class BidResponseProcessor {
   private async generateErrorResponse(auctionResult: any): Promise<any[]> {
     return [
       {
-        requestId:
-          auctionResult.originalRequest?.externalRequestId ||
-          auctionResult.originalRequest.bidRequest.externalRequestId ||
-          'unknown',
+        requestId: auctionResult.originalRequest.externalRequestId,
         status: 'error',
         errorMessage: auctionResult.error || 'Auction processing failed',
         auctionData: {
@@ -289,9 +268,9 @@ export class BidResponseProcessor {
       winPrice: auctionResult.finalPrice,
       currency: auctionResult.winner.currency || 'INR',
       timestamp: new Date().toISOString(),
-      adMarkup: auctionResult.adMarkup || '',
-      impressionUrls: auctionResult.trackingUrls?.impression || [],
-      clickUrls: auctionResult.trackingUrls?.click || [],
+      adMarkup: auctionResult.winner.adMarkup || '',
+      impressionUrls: auctionResult.winner.impressionUrls || [],
+      clickUrls: auctionResult.winner.clickUrls || [],
     };
   }
 
