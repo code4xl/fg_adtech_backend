@@ -1,7 +1,5 @@
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Cache } from 'cache-manager';
-import { WithRetry } from '../common/resilience/retry.decorator';
+import { Injectable, Logger } from '@nestjs/common';
+
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
@@ -11,10 +9,7 @@ export class RedisService {
   private readonly pubClient: Redis;
   private readonly subClient: Redis;
 
-  constructor(
-    @Inject(CACHE_MANAGER) private readonly cache: Cache,
-    private readonly configService: ConfigService,
-  ) {
+  constructor(private readonly configService: ConfigService) {
     // Create Redis pub/sub clients
     const redisOptions = {
       host: this.configService.get<string>('redis.host', 'localhost'),
@@ -33,13 +28,10 @@ export class RedisService {
       this.logger.error(`Redis Sub Client Error: ${err.message}`, err.stack),
     );
   }
-
-  // Cache methods
-  @WithRetry(3, 100, 2, [Error])
   async get<T>(key: string): Promise<T | undefined> {
     try {
-      const result = await this.cache.get<T>(key);
-      return result === null ? undefined : result;
+      const result = await this.pubClient.get(key);
+      return result ? (JSON.parse(result) as T) : undefined;
     } catch (error) {
       this.logger.error(
         `Error getting value from Redis for key ${key}: ${error.message}`,
@@ -48,10 +40,15 @@ export class RedisService {
     }
   }
 
-  @WithRetry(3, 100, 2, [Error])
   async set<T>(key: string, value: T, ttl?: number): Promise<void> {
     try {
-      await this.cache.set(key, value, ttl);
+      const stringValue = JSON.stringify(value);
+      if (ttl) {
+        // TTL in seconds
+        await this.pubClient.set(key, stringValue, 'EX', ttl);
+      } else {
+        await this.pubClient.set(key, stringValue);
+      }
     } catch (error) {
       this.logger.error(
         `Error setting value in Redis for key ${key}: ${error.message}`,
@@ -61,11 +58,11 @@ export class RedisService {
   }
 
   async del(key: string): Promise<void> {
-    await this.cache.del(key);
+    await this.pubClient.del(key);
   }
 
   async reset(): Promise<void> {
-    await this.cache.clear();
+    await this.pubClient.reset();
   }
 
   async ttl(key: string): Promise<number> {
