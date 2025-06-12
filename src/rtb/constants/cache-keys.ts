@@ -9,6 +9,8 @@ export const RTB_KEYS = {
     `bid-cache:${inventoryId}:${deviceType}`,
   AD_MARKUP: (bidResponseId: string) => `markup:${bidResponseId}`,
   BID_HISTORY: (campaignId: string) => `bid-history:${campaignId}`,
+  WINNER_BID_REQUEST: (campaignId: string, date: string) =>
+    `auction:winner:campaign:${campaignId}:${date}`,
 } as const;
 
 // Campaign Management
@@ -35,6 +37,8 @@ export const CAMPAIGN_KEYS = {
     `targeting:compiled:${campaignId}`,
   TARGETING_EVALUATION_RESULT: (campaignId: string, contextHash: string) =>
     `targeting:result:${campaignId}:${contextHash}`,
+  USER_CAMPAIGN_FREQUENCY: (userId: string, campaignId: string) =>
+    `targeting:frequency:${userId}:${campaignId}`,
 
   // Performance & Metrics
   IMPRESSIONS: (campaignId: string) =>
@@ -45,6 +49,10 @@ export const CAMPAIGN_KEYS = {
 
   // Campaign State
   PAUSE_FLAG: (campaignId: string) => `campaign:paused:${campaignId}`,
+
+  // Campaign Budget
+  CAMPAIGN_BUDGET: (campaignId: string, date: string) =>
+    `budget:campaign:${campaignId}:${date}`,
 } as const;
 
 // Creative Management
@@ -116,6 +124,7 @@ export const PRICING_KEYS = {
     `bid:strategy:perf:${campaignId}:${strategy}`,
   OPTIMIZATION_FACTORS: (campaignId: string) =>
     `bid:optimization:factors:${campaignId}`,
+
 } as const;
 
 // Metrics & Analytics
@@ -161,6 +170,12 @@ export const METRICS_KEYS = {
   AUCTION_COUNT: (hour: string) => `metrics:auctions:${hour}`,
   BID_COUNT: (hour: string) => `metrics:bids:${hour}`,
   WIN_COUNT: (hour: string) => `metrics:wins:${hour}`,
+
+  // Metric
+  HOURLY_TOTAL_AUCTION_METRICS: (hour: number) => `metrics:auctions:total:${hour}`,
+  HOURLY_AUCTION_WINNER_METRICS: (winner: boolean, hour: number) => `metrics:auctions:${winner ? 'filled' : 'unfilled'}:${hour}`,
+  HOURLY_PROCESSING_TIME_METRICS: (hour: number) => `metrics:processing-time:${hour}`,
+  HOURLY_INVENTORY_REQUEST_METRICS: (inventoryId: string, hour: number) => `metrics:inventory:${inventoryId}:requests:${hour}`
 } as const;
 
 // Pattern Matching Keys (for bulk operations)
@@ -170,9 +185,12 @@ export const PATTERN_KEYS = {
   METRICS_BY_TIME: (timeKey: string) => `metrics:*:*:${timeKey}`,
   BUDGET_BY_DATE: (date: string) => `budget:*:*:${date}`,
 } as const;
+
 export const HEALTH_KEYS = {
   REDIS_HEALTH_CHECK: 'redis:health:check',
 };
+
+
 // Backward Compatibility - Legacy REDIS_KEYS export
 // @deprecated - Use specific key namespaces instead
 export const REDIS_KEYS = {
@@ -191,6 +209,12 @@ export const RTB_CACHE_TTL = {
   BID_REQUEST: 3600, // 1 hour
   HOURLY_BID_REQUEST_METRICS: 7200, // 2 hours
   HOURLY_BID_RESPONSE_ERRORS: 7200,
+  HOURLY_TOTAL_AUCTION_METRICS: 604800, // 7 days
+  HOURLY_PROCESSING_TIME_METRICS: 604800, // 7 days
+  BID_REQUEST_LOCK: 30, // 30 seconds
+  CAMPAIGN_BUDGET_INFO: 3600, // 1 hour
+  CAMPAIGN_ELIGIBILITY_BUDGET: 300, // 5 minutes
+  CAMPAIGN_ELIGIBILITY: 300, // 5 minutes
   BID_RESPONSE: 3600, // 1 hour
   AUCTION_RESULT: 3600, // 1 hour
   ELIGIBILITY_CACHE: 86400, // 24 hours

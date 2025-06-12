@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { CreateBidRequestDto } from '../dto';
+import { BidResponseDto, CreateBidRequestDto } from '../dto';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RtbCacheService } from '../cache/rtb-cache.service';
@@ -11,8 +11,6 @@ import {
   ServerContext,
 } from '../types/bid-request.types';
 
-// Define core types
-
 export class RtbService {
   private readonly logger = new Logger(RtbService.name);
 
@@ -20,7 +18,7 @@ export class RtbService {
     private readonly prisma: PrismaService,
     private readonly rtbCacheService: RtbCacheService,
     private readonly auctionProducer: AuctionProducer,
-  ) {}
+  ) { }
 
   async processBidRequest(
     bidRequestData: CreateBidRequestDto,
@@ -153,6 +151,127 @@ export class RtbService {
         externalRequestId: enrichedRequest.externalRequestId,
       });
 
+      throw error;
+    }
+  }
+
+  async getBidResponse(requestId: string): Promise<BidResponseDto | null> {
+    this.logger.debug('Getting bid response', { requestId });
+
+    try {
+      // 1. Check Redis cache first for fast response
+      const cachedResponse = await this.rtbCacheService.getCachedBidResponse(requestId);
+      if (cachedResponse) {
+        this.logger.debug('Bid response cache hit', { requestId });
+        return cachedResponse;
+      }
+
+      // 2. Get from database if not cached
+      const bidResponse = await this.getBidResponseFromDatabase(requestId);
+      if (!bidResponse) {
+        this.logger.warn('Bid response not found', { requestId });
+        return null;
+      }
+
+      // 3. Cache the response for future requests (if completed)
+      if (bidResponse.status === 'completed') {
+        await this.rtbCacheService.setCacheBidResponse(requestId, bidResponse);
+      }
+
+      return bidResponse;
+    } catch (error) {
+      this.logger.error('Failed to get bid response', {
+        error: error.message,
+        requestId,
+      });
+      throw error;
+    }
+  }
+
+  private async getBidResponseFromDatabase(
+    requestId: string,
+  ): Promise<BidResponseDto | null> {
+    try {
+      // Get bid request first
+      const bidRequest = await this.prisma.bidRequest.findFirst({
+        where: {
+          OR: [{ id: requestId }, { externalRequestId: requestId }],
+        },
+        include: {
+          bidResponses: {
+            include: {
+              creative: true,
+              campaign: true,
+            },
+          },
+          auctionLog: true,
+        },
+      });
+
+      if (!bidRequest) {
+        return null;
+      }
+
+      // Check auction status
+      if (!bidRequest.auctionLog) {
+        return {
+          requestId,
+          status: 'processing',
+          message: 'Auction in progress',
+        };
+      }
+
+      // Check if auction completed with no bids
+      if (bidRequest.auctionLog.status === 'NO_BIDS') {
+        return {
+          requestId,
+          status: 'no_bids',
+          message: 'No eligible campaigns found',
+        };
+      }
+
+      // Find winning bid
+      const winningBid = bidRequest.bidResponses.find(
+        (bid) => bid.status === 'WON',
+      );
+
+      if (!winningBid) {
+        return {
+          requestId,
+          status: 'no_bids',
+          message: 'Auction completed with no winner',
+        };
+      }
+
+      // Format winning bid response
+      return {
+        requestId,
+        status: 'completed',
+        winningBid: {
+          price: Number(winningBid.finalPrice || winningBid.bidPrice),
+          currency: winningBid.currency,
+          campaignId: winningBid.campaignId,
+          creativeId: winningBid.creativeId,
+          adMarkup: winningBid.adMarkup || '',
+          impressionUrls: winningBid.impressionUrls || [],
+          clickUrls: winningBid.clickUrls || [],
+          landingUrl: winningBid.creative?.landingUrl,
+        },
+        auctionData: {
+          totalBids: bidRequest.auctionLog.totalBids,
+          validBids: bidRequest.auctionLog.validBids,
+          auctionDuration: `${bidRequest.auctionLog.auctionDuration || 0}ms`,
+          timestamp:
+            bidRequest.auctionLog.completedAt?.toISOString() ||
+            new Date().toISOString(),
+          floorPrice: Number(bidRequest.floorPrice) || undefined,
+        },
+      };
+    } catch (error) {
+      this.logger.error('Failed to get bid response from database', {
+        error: error.message,
+        requestId,
+      });
       throw error;
     }
   }

@@ -1,5 +1,6 @@
 import { Decimal } from '@prisma/client/runtime/library';
 import { CreateBidRequestDto } from '../dto';
+import { AuctionBidResult, ErrorAuctionResult, HandleNoBidsResult } from './auction-result.types';
 
 export interface ProcessBidRequestResponse {
   requestId: string;
@@ -44,4 +45,34 @@ export interface ProcessingMetrics {
   processingTime: number;
   status: 'success' | 'error';
   timestamp: Date;
+}
+
+
+// Kafka Types
+
+export interface ProcessBidRequestPayload {
+  key: string;
+  value: {
+    bidRequest: BidRequestWithAuction;
+    publishedAt: string;
+    priority: string;
+  };
+  topic: string;
+  partition: number;
+  offset: string;
+}
+
+
+export interface ProcessAuctionResultPayload {
+  key: string;
+  value: AuctionBidResult | HandleNoBidsResult | ErrorAuctionResult;
+  topic: string;
+  partition: number;
+  offset: string;
+}
+
+export interface BidRequestPayload {
+  bidRequest: BidRequestWithAuction;
+  publishedAt: string;
+  priority: string;
 }

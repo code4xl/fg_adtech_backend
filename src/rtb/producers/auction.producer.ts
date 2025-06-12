@@ -3,28 +3,22 @@ import { Injectable, Logger } from '@nestjs/common';
 import { KafkaService } from 'src/kafka/kafka.service';
 import { kafkaTopics } from '../constants/kafka-topics';
 import { BidRequestWithAuction } from '../types/bid-request.types';
-import { Helper } from 'src/common/utils/helper';
 import { RtbHelper } from '../utils/helpers';
+import { AuctionBidResult, ErrorAuctionResult, HandleNoBidsResult, ProcessedAuctionResult } from '../types/auction-result.types';
+
 @Injectable()
 export default class AuctionProducer {
   private readonly logger: Logger = new Logger(AuctionProducer.name);
   constructor(
     private readonly kafka: KafkaService,
     private readonly rtbHelper: RtbHelper,
-  ) {}
+  ) { }
 
   public async publishAuctionResult(
-    auctionResult: any,
-    bidRequest: any,
+    auctionResult: AuctionBidResult | HandleNoBidsResult | ErrorAuctionResult,
+    bidRequest: BidRequestWithAuction,
   ): Promise<void> {
     try {
-      let auctionId1 = auctionResult.auctionId || 'bc';
-      let auctionId2 = bidRequest.auctionId || 'bc';
-      // this.logger.debug('Auction ID 1, 2', { auctionId1, auctionId2 });
-      // this.logger.debug('Publishing auction result', {
-      //   auctionId: auctionResult.auctionId || bidRequest.auctionId,
-      //   result: auctionResult,
-      // });
       await this.kafka.publish(kafkaTopics.AUCTION_RESULTS, {
         key: bidRequest.auctionId,
         value: {
@@ -35,11 +29,6 @@ export default class AuctionProducer {
           processedAt: new Date().toISOString(),
         },
       });
-      // this.logger.debug('AUction result topic ki mkb', {
-      //   topic: kafkaTopics.AUCTION_RESULTS,
-      //   bidRequest,
-      //   newBidKaBhosda: bidRequest.bidRequest,
-      // });
       this.logger.debug('Auction result published', {
         auctionId: bidRequest.auctionId,
       });
@@ -49,6 +38,55 @@ export default class AuctionProducer {
         auctionId: bidRequest.auctionId,
       });
       throw error;
+    }
+  }
+
+  public async publishAuctionCompletion(auctionResult: AuctionBidResult | HandleNoBidsResult | ErrorAuctionResult): Promise<void> {
+    try {
+      // Extract bidRequest from auctionResult
+      const bidRequest = auctionResult.originalBidRequest || {};
+
+      this.logger.debug('Publishing Auction Completion');
+
+      // Prepare auction completion data
+      const auctionCompletionData = {
+        auctionId: bidRequest.auctionId,
+        requestId: bidRequest.id || bidRequest.externalRequestId,
+        inventoryId: bidRequest.inventoryId,
+        bidRequest,
+        campaignIds: auctionResult.winner
+          ? [auctionResult.winner.campaignId]
+          : [],
+        winner: auctionResult.winner,
+        totalBids: auctionResult.totalBids || 1,
+        validBids: auctionResult.validBids || 1,
+        processingTime: auctionResult.processingTime || 0,
+        auctionType: auctionResult.auctionType || 'SECOND_PRICE',
+        floorPrice: 'floorPrice' in auctionResult && auctionResult.floorPrice !== undefined ? auctionResult.floorPrice : 0,
+        finalPrice: auctionResult.winner?.finalPrice,
+        timestamp: new Date().toISOString(),
+        auctionStatus: auctionResult.auctionStatus || 'COMPLETED',
+      };
+
+      this.logger.debug('Publishing auction completion', {
+        auctionCompletionData,
+      });
+
+      await this.kafka.publish(kafkaTopics.AUCTION_COMPLETION, {
+        key: bidRequest.auctionId,
+        value: auctionCompletionData,
+      });
+
+      this.logger.debug('Auction completion published', {
+        auctionId: bidRequest.auctionId,
+        hasWinner: !!auctionResult.winner,
+      });
+    } catch (error) {
+      this.logger.error('Failed to publish auction completion', {
+        error: error.message,
+        auctionId: auctionResult.auctionId,
+      });
+      // Don't throw - this shouldn't break the main flow
     }
   }
 
@@ -124,55 +162,6 @@ export default class AuctionProducer {
         error: error.message,
         requestId: bidRequest.id,
       });
-    }
-  }
-
-  public async publishAuctionCompletion(auctionResult: any): Promise<void> {
-    try {
-      // Extract bidRequest from auctionResult
-      const bidRequest = auctionResult.originalBidRequest || {};
-
-      this.logger.debug('Publishing Auction Completion');
-
-      // Prepare auction completion data
-      const auctionCompletionData = {
-        auctionId: bidRequest.auctionId,
-        requestId: bidRequest.id || bidRequest.externalRequestId,
-        inventoryId: bidRequest.inventoryId,
-        bidRequest,
-        campaignIds: auctionResult.winner
-          ? [auctionResult.winner.campaignId]
-          : [],
-        winner: auctionResult.winner,
-        totalBids: auctionResult.totalBids || 1,
-        validBids: auctionResult.validBids || 1,
-        processingTime: auctionResult.processingTime || 0,
-        auctionType: auctionResult.auctionType || 'SECOND_PRICE',
-        floorPrice: auctionResult.floorPrice,
-        finalPrice: auctionResult.winner?.finalPrice,
-        timestamp: new Date().toISOString(),
-        auctionStatus: auctionResult.auctionStatus || 'COMPLETED',
-      };
-
-      this.logger.debug('Publishing auction completion', {
-        auctionCompletionData,
-      });
-
-      await this.kafka.publish(kafkaTopics.AUCTION_COMPLETION, {
-        key: bidRequest.auctionId,
-        value: auctionCompletionData,
-      });
-
-      this.logger.debug('Auction completion published', {
-        auctionId: bidRequest.auctionId,
-        hasWinner: !!auctionResult.winner,
-      });
-    } catch (error) {
-      this.logger.error('Failed to publish auction completion', {
-        error: error.message,
-        auctionId: auctionResult.auctionId,
-      });
-      // Don't throw - this shouldn't break the main flow
     }
   }
 }

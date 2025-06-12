@@ -2,10 +2,11 @@ import { Logger } from '@nestjs/common';
 import { REDIS_KEYS, RTB_CACHE_TTL } from '../constants/cache-keys';
 import { RedisService } from 'src/redis/redis.service';
 import { BidRequestWithAuction } from '../types/bid-request.types';
+import { BidResponseDto } from '../dto';
 
 export class RtbCacheService {
   private readonly logger = new Logger(RtbCacheService.name);
-  constructor(private readonly redis: RedisService) {}
+  constructor(private readonly redis: RedisService) { }
 
   public async cacheBidRequest(
     bidRequest: BidRequestWithAuction,
@@ -22,6 +23,42 @@ export class RtbCacheService {
       this.logger.warn('Failed to cache bid request', {
         error: error.message,
         requestId: bidRequest.id,
+      });
+    }
+  }
+
+  public async getCachedBidResponse(
+    requestId: string,
+  ): Promise<BidResponseDto | null> {
+    try {
+      const cacheKey = REDIS_KEYS.AUCTION_RESULT(requestId);
+      const cached = await this.redis.get<string>(cacheKey);
+
+      if (!cached) {
+        return null;
+      }
+
+      return JSON.parse(cached);
+    } catch (error) {
+      this.logger.warn('Failed to get cached bid response', {
+        error: error.message,
+        requestId,
+      });
+      return null;
+    }
+  }
+
+  public async setCacheBidResponse(
+    requestId: string,
+    bidResponse: BidResponseDto,
+  ): Promise<void> {
+    try {
+      const cacheKey = REDIS_KEYS.AUCTION_RESULT(requestId);
+      await this.redis.set(cacheKey, JSON.stringify(bidResponse), RTB_CACHE_TTL.AUCTION_RESULT); // 1 hour TTL
+    } catch (error) {
+      this.logger.warn('Failed to cache bid response', {
+        error: error.message,
+        requestId,
       });
     }
   }

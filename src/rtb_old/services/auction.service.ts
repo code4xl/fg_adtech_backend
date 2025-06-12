@@ -219,6 +219,8 @@ export class AuctionService {
       auctionStatus: 'COMPLETED',
     };
   }
+
+
   async getFormattedDate() {
     const now = new Date();
 

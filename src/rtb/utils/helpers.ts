@@ -42,4 +42,18 @@ export class RtbHelper {
 
     return 'normal';
   }
+
+  public validateBidRequestKafka(bidRequest: any): void {
+    if (!bidRequest.bidRequest) {
+      throw new Error('Missing bidRequest in message');
+    }
+
+    if (!bidRequest.bidRequest.auctionId) {
+      throw new Error('Missing auctionId in message');
+    }
+
+    if (!bidRequest.bidRequest.id) {
+      throw new Error('Missing bid request ID');
+    }
+  }
 }
