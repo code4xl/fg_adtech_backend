@@ -7,7 +7,7 @@ import { kafkaTopics } from '../../kafka/constants/kafka.config';
 import { REDIS_KEYS } from '../../redis/constants/redis-keys';
 
 import { WithRetry } from '../../common/resilience/retry.decorator';
-import { ImpressionEventDto } from '../dto/';
+import { ImpressionEventDto } from '../dto';
 import { RTB_REDIS_KEYS } from 'src/redis/constants/rtb-keys';
 
 @Injectable()

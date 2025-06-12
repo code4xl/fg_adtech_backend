@@ -21,9 +21,9 @@ import { KafkaModule } from './kafka/kafka.module';
 import { ResilienceModule } from './common/resilience/resilience.module';
 import { NotificationModule } from './notification/notification.module';
 import { TimescaleModule } from './timescale/timescale.module';
-import { RTBModule } from './rtb/rtb.module';
+import { RTBModule } from './rtb_old/rtb.module';
 import { CdnModule } from './cdn/cdn.module';
-import { SharedModule } from './shared/shared.module'; 
+import { SharedModule } from './shared/shared.module';
 @Module({
   imports: [
     ConfigModule.forRoot({

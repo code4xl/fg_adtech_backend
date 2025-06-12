@@ -5,7 +5,7 @@ import {
   TimescaleImpressionDto,
   TimescaleClickDto,
   TimescaleBidMetricDto,
-} from '../rtb/dto/tracking-events.dto';
+} from '../rtb_old/dto/tracking-events.dto';
 import { from as copyFrom } from 'pg-copy-streams';
 
 @Injectable()

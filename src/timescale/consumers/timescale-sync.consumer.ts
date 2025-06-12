@@ -6,7 +6,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { kafkaTopics } from '../../kafka/constants/kafka.config';
 import { REDIS_KEYS } from '../../redis/constants/redis-keys';
-import { TimescaleImpressionDto, TimescaleClickDto } from 'src/rtb/dto';
+import { TimescaleImpressionDto, TimescaleClickDto } from 'src/rtb_old/dto';
 
 /**
  * TimescaleDB Sync Consumer - Phase 6 Complete Implementation
