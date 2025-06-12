@@ -36,6 +36,18 @@ model Campaign {
     ImpressionEvent ImpressionEvent[]
     ClickEvent      ClickEvent[]
     ClientCampaign  ClientCampaign[]
+
+    @@index([startDate])
+    @@index([endDate])
+    @@index([advertiserId])
+    @@index([clientId])
+    @@index([status])
+    @@index([businessCategory])
+    @@index([objective])
+    @@index([bidStrategy])
+    @@index([pacing])
+    @@index([status, startDate, endDate])
+    @@index([advertiserId, status])
 }
 
 model CampaignStatistics {
@@ -53,6 +65,8 @@ model CampaignStatistics {
     campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
     @@unique([campaignId, date])
+    @@index([campaignId])
+    @@index([date])
 }
 
 model CampaignBudgetTracker {
@@ -70,4 +84,8 @@ model CampaignBudgetTracker {
     campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
     @@unique([campaignId, date])
+    @@index([campaignId])
+    @@index([date])
+    @@index([isExhausted])
+    @@index([isExhausted, date])
 }
