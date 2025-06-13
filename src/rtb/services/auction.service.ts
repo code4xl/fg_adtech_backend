@@ -8,7 +8,6 @@ import { CampaignEligibilityService } from './campaign-eligibility.service';
 import { CampaignWithTargeting } from '../types/campaign.types';
 import { BidEvaluationService } from './bid-evaluation.service';
 import { CreativeWithTemplate } from '../types/creative.types';
-import { ConfigService } from '@nestjs/config';
 import { CreatedBidResponse } from '../types/bid-response.types';
 import { AuctionBidResult } from '../types/auction-result.types';
 
@@ -21,10 +20,8 @@ export class AuctionService {
     private readonly redis: RedisService,
     private readonly campaignEligibility: CampaignEligibilityService,
     private readonly bidEvaluationService: BidEvaluationService,
-    private readonly config: ConfigService,
   ) {
-    this.trackingBaseUrl =
-      this.config.get<string>('template.url') ||
+    this.trackingBaseUrl = process.env.TRACKING_URL ||
       'https://track.oceanadtech.com';
   }
 
