@@ -1,17 +1,9 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { KafkaService } from "src/kafka/kafka.service";
-import { AuctionService } from "../services/auction.service";
 import { kafkaTopics } from "../constants/kafka-topics";
-import { BidRequestPayload, BidRequestWithAuction, ProcessAuctionResultPayload, ProcessBidRequestPayload } from "../types/bid-request.types";
+import { BidRequestPayload, ProcessBidRequestPayload } from "../types/bid-request.types";
 import { RtbHelper } from "../utils/helpers";
 import { BidRequestProcessor } from "../processors/bid-request.processor";
-import { AuctionBidResult, ErrorAuctionResult, HandleNoBidsResult } from "../types/auction-result.types";
-import { BidResponseProcessor } from "../processors/bid-response.processor";
-import AuctionProducer from "../producers/auction.producer";
-
-
-
-
 
 @Injectable()
 export class BidRequestKafkaConsumer implements OnModuleInit {
@@ -19,10 +11,8 @@ export class BidRequestKafkaConsumer implements OnModuleInit {
 
     constructor(
         private readonly kafka: KafkaService,
-        private readonly auctionService: AuctionService,
         private readonly bidRequestProcessor: BidRequestProcessor,
-        private readonly bidResponseProcessor: BidResponseProcessor,
-        private readonly auctionProducer: AuctionProducer,
+
         private readonly rtbHelper: RtbHelper,
     ) {
         this.logger.log('RTB Kafka Consumer initialized - Phase 4');
@@ -30,16 +20,10 @@ export class BidRequestKafkaConsumer implements OnModuleInit {
 
     async onModuleInit() {
         try {
-            // Primary subscription: Process incoming bid requests
+            // Process incoming bid requests
             await this.subscribeToAuctionProcessing();
-
-            // Secondary subscription: Generate bid responses from auction results
-            await this.subscribeToAuctionResults();
-
-            // // Error handling subscription: Process failed messages
-            // await this.subscribeToDeadLetterQueues();
         } catch (error) {
-            this.logger.error('❌ Failed to initialize RTB Kafka Consumer', {
+            this.logger.error('Failed to initialize RTB Kafka Consumer', {
                 error: error.message,
             });
             throw error;
@@ -53,15 +37,6 @@ export class BidRequestKafkaConsumer implements OnModuleInit {
             this.processBidRequestForAuction.bind(this),
         );
     }
-
-    private async subscribeToAuctionResults(): Promise<void> {
-        await this.kafka.subscribe(
-            kafkaTopics.AUCTION_RESULTS,
-            'rtb-response-generator',
-            this.processAuctionResult.bind(this),
-        );
-    }
-
 
     private async processBidRequestForAuction(payload: ProcessBidRequestPayload): Promise<void> {
         const startTime = Date.now();
@@ -124,62 +99,10 @@ export class BidRequestKafkaConsumer implements OnModuleInit {
             });
 
             // Send to DLQ for manual review if critical error
-            await this.handleProcessingError(payload, error, 'auction_processing');
+            await this.rtbHelper.handleProcessingError(payload, error, 'auction_processing');
 
             // Record failure metrics
             await this.recordProcessingMetrics(auctionId, processingTime, 'error');
-        }
-    }
-
-    private async processAuctionResult(payload: ProcessAuctionResultPayload): Promise<void> {
-        const startTime = Date.now();
-
-        try {
-            this.logger.debug('Processing auction result', {
-                key: payload.key,
-                partition: payload.partition,
-            });
-
-            // 1. Deserialize auction result
-            const auctionResult = this.deserializeAuctionResult(payload.value);
-            // this.logger.debug('Auction result deserialized & now going to hell', {
-            //   auctionResult,
-            // });
-
-            // 2. Generate bid responses and ad markup
-            const bidResponses =
-                await this.bidResponseProcessor.generateBidResponses(auctionResult);
-            this.logger.debug('Bid responses generated', {
-                responseCount: bidResponses.length,
-            });
-
-            // 3. Store responses in cache for SDK polling
-            await this.bidResponseProcessor.storeBidResponses(bidResponses);
-
-            // 4. *** NEW *** Publish auction completion for log storage and analytics
-            await this.auctionProducer.publishAuctionCompletion(auctionResult);
-
-            // 5. Send win notifications if applicable (later phase)
-            // if (auctionResult.winner) {
-            //   await this.bidResponseProcessor.sendWinNotifications(auctionResult);
-            // }
-
-            const processingTime = Date.now() - startTime;
-
-            this.logger.log('✅ Auction result processed', {
-                auctionId: auctionResult.auctionId,
-                processingTime: `${processingTime}ms`,
-                responseCount: bidResponses.length,
-            });
-        } catch (error) {
-            this.logger.error('❌ Auction result processing failed', {
-                error: error.message,
-                partition: payload.partition,
-                offset: payload.offset,
-            });
-
-            // Send to DLQ for manual review
-            await this.handleProcessingError(payload, error, 'auction_result');
         }
     }
 
@@ -198,82 +121,7 @@ export class BidRequestKafkaConsumer implements OnModuleInit {
         }
     }
 
-    private deserializeAuctionResult(data: AuctionBidResult | HandleNoBidsResult | ErrorAuctionResult): AuctionBidResult | HandleNoBidsResult | ErrorAuctionResult {
-        try {
-            if (typeof data === 'string') {
-                return JSON.parse(data);
-            }
-            return data;
-        } catch (error) {
-            throw new Error(`Invalid auction result format: ${error.message}`);
-        }
-    }
 
-    private async handleProcessingError(
-        payload: any,
-        error: Error,
-        processingStage: string,
-    ): Promise<void> {
-        const errorCategory = this.categorizeError(error);
-
-        // Only send recoverable errors to DLQ
-        if (errorCategory === 'transient' || errorCategory === 'timeout') {
-            try {
-                await this.kafka.publish(kafkaTopics.DLQ_AUCTIONS, {
-                    key: payload.key,
-                    value: {
-                        originalMessage: payload.value,
-                        originalTopic: payload.topic,
-                        errorType: errorCategory,
-                        errorMessage: error.message,
-                        processingStage,
-                        timestamp: new Date().toISOString(),
-                        retryCount: 0,
-                        maxRetries: 3,
-                    },
-                });
-
-                this.logger.warn('Message sent to DLQ', {
-                    key: payload.key,
-                    errorCategory,
-                    processingStage,
-                });
-            } catch (dlqError) {
-                this.logger.error('Failed to send message to DLQ', {
-                    error: dlqError.message,
-                    originalError: error.message,
-                });
-            }
-        } else {
-            // Log permanent failures for monitoring
-            this.logger.error('Permanent processing failure', {
-                key: payload.key,
-                errorCategory,
-                errorMessage: error.message,
-                processingStage,
-            });
-        }
-    }
-
-    private categorizeError(
-        error: Error,
-    ): 'validation' | 'transient' | 'timeout' | 'critical' {
-        const message = error.message.toLowerCase();
-
-        if (message.includes('timeout')) {
-            return 'timeout';
-        }
-
-        if (message.includes('missing') || message.includes('invalid')) {
-            return 'validation';
-        }
-
-        if (message.includes('connection') || message.includes('network')) {
-            return 'transient';
-        }
-
-        return 'critical';
-    }
 
     private async recordProcessingMetrics(
         auctionId: string | undefined,

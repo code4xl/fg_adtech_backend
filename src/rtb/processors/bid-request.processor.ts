@@ -265,7 +265,7 @@ export class BidRequestProcessor {
     }
 
     private async handleProcessingError(
-        bidRequest: any,
+        bidRequest: BidRequestWithAuction,
         auctionId: string,
         error: Error,
         startTime: number,

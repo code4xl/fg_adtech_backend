@@ -24,51 +24,53 @@ export class BidResponseProcessor {
         this.logger.log('Bid Response Processor initialized - Phase 4');
     }
 
-    async generateBidResponses(auctionResult: CompleteAuctionResult): Promise<WinningBidResponse[] | HandleNoBidsResult[] | ErrorAuctionResult[]> {
-        this.logger.debug(
-            'Generating bid responses' +
-            JSON.stringify({
-                // auctionResult: auctionResult,
-                auctionId: auctionResult.auctionId,
-                hasWinner: !!auctionResult.winner,
-                // status: auctionResult.auctionStatus,
-            }),
-        );
+    // Deprecated: This method is no longer used
+    // async generateBidResponses(auctionResult: CompleteAuctionResult): Promise<WinningBidResponse[] | HandleNoBidsResult[] | ErrorAuctionResult[]> {
+    //     this.logger.debug(
+    //         'Generating bid responses' +
+    //         JSON.stringify({
+    //             // auctionResult: auctionResult,
+    //             auctionId: auctionResult.auctionId,
+    //             hasWinner: !!auctionResult.winner,
+    //             // status: auctionResult.auctionStatus,
+    //         }),
+    //     );
 
-        try {
-            // Handle different auction outcomes
-            switch (auctionResult.auctionStatus) {
-                case 'NO_BIDS':
-                    return await this.generateNoBidsResponse(auctionResult);
+    //     try {
+    //         // Handle different auction outcomes
+    //         switch (auctionResult.auctionStatus) {
+    //             case 'NO_BIDS':
+    //                 return await this.generateNoBidsResponse(auctionResult);
 
-                case 'ERROR':
-                    return await this.generateErrorResponse(auctionResult);
+    //             case 'ERROR':
+    //                 return await this.generateErrorResponse(auctionResult);
 
-                default:
-                    return await this.generateCompletedAuctionResponses(auctionResult);
-            }
-        } catch (error) {
-            this.logger.error('Failed to generate bid responses', {
-                error: error,
-                auctionId: auctionResult.auctionId,
-            });
-            throw error;
-        }
-    }
+    //             default:
+    //                 return await this.generateCompletedAuctionResponses(auctionResult);
+    //         }
+    //     } catch (error) {
+    //         this.logger.error('Failed to generate bid responses', {
+    //             error: error,
+    //             auctionId: auctionResult.auctionId,
+    //         });
+    //         throw error;
+    //     }
+    // }
 
-    private async generateCompletedAuctionResponses(
+    async generateCompletedAuctionResponses(
         auctionResult: AuctionBidResult,
     ): Promise<WinningBidResponse[]> {
-        const responses = [];
+        const responses: WinningBidResponse[] = [];
 
         this.logger.debug('Generating responses for completed auction', {
-            auctionResult,
+            auctionId: auctionResult.auctionId,
+            hasWinner: !!auctionResult.winner,
+            finalPrice: auctionResult.finalPrice
         });
 
         if (auctionResult.winner) {
             // Generate winning bid response
-            const winningResponse =
-                await this.generateWinningBidResponse(auctionResult);
+            const winningResponse = await this.generateWinningBidResponse(auctionResult);
             responses.push(winningResponse);
 
             // Update campaign spend atomically - budget management error
@@ -81,6 +83,61 @@ export class BidResponseProcessor {
         return responses;
     }
 
+    // Deprecated: This method is no longer used
+    // public async generateWinningBidResponse(auctionResult: AuctionBidResult): Promise<WinningBidResponse> {
+    //     const winner = auctionResult.winner;
+    //     const creativeId = winner.creativeId;
+    //     const auctionId = auctionResult.auctionId;
+
+    //     this.logger.debug('Generating winning bid response', {
+    //         auctionId,
+    //         winnerId: winner.id,
+    //         finalPrice: winner.finalPrice,
+    //         creativeId,
+    //         auctionResult,
+    //         adSlotContext: auctionResult.originalBidRequest.adSlotContext,
+    //     });
+    //     // Use auction service for tracking URLs
+    //     const trackingUrls = this.auctionService.generateTrackingUrls(
+    //         auctionId,
+    //         winner.id,
+    //     );
+    //     const adSlotContextData = auctionResult.originalBidRequest.adSlotContext;
+
+    //     // Use auction service for ad markup
+    //     const adMarkup = this.auctionService.generateAdMarkup(
+    //         creativeId,
+    //         trackingUrls,
+    //         {
+    //             width: adSlotContextData.width,
+    //             height: adSlotContextData.height,
+    //             format: adSlotContextData.format,
+    //         },
+    //     );
+
+    //     return {
+    //         requestId: auctionResult.originalBidRequest.externalRequestId,
+    //         status: 'COMPLETED',
+    //         winningBid: {
+    //             price: winner.finalPrice,
+    //             currency: winner.currency || 'INR',
+    //             campaignId: winner.campaignId,
+    //             creativeId: winner.creativeId,
+    //             adMarkup,
+    //             impressionUrls: trackingUrls.impression,
+    //             clickUrls: trackingUrls.click,
+    //             landingUrl: winner.landingUrl,
+    //         },
+    //         auctionData: {
+    //             totalBids: auctionResult.totalBids || 1,
+    //             validBids: auctionResult.validBids || 1,
+    //             auctionDuration: `${auctionResult.processingTime || 0}ms`,
+    //             timestamp: new Date().toISOString(),
+    //             floorPrice: auctionResult.floorPrice,
+    //         },
+    //     };
+    // }
+
     private async generateWinningBidResponse(auctionResult: AuctionBidResult): Promise<WinningBidResponse> {
         const winner = auctionResult.winner;
         const creativeId = winner.creativeId;
@@ -89,11 +146,11 @@ export class BidResponseProcessor {
         this.logger.debug('Generating winning bid response', {
             auctionId,
             winnerId: winner.id,
-            finalPrice: winner.finalPrice,
+            finalPrice: auctionResult.finalPrice, // Use finalPrice from auction result
             creativeId,
-            auctionResult,
             adSlotContext: auctionResult.originalBidRequest.adSlotContext,
         });
+
         // Use auction service for tracking URLs
         const trackingUrls = this.auctionService.generateTrackingUrls(
             auctionId,
@@ -116,7 +173,7 @@ export class BidResponseProcessor {
             requestId: auctionResult.originalBidRequest.externalRequestId,
             status: 'COMPLETED',
             winningBid: {
-                price: winner.finalPrice,
+                price: auctionResult.finalPrice, // Type-safe access to finalPrice
                 currency: winner.currency || 'INR',
                 campaignId: winner.campaignId,
                 creativeId: winner.creativeId,
@@ -135,15 +192,21 @@ export class BidResponseProcessor {
         };
     }
 
-    private async generateNoBidsResponse(auctionResult: HandleNoBidsResult): Promise<HandleNoBidsResult[]> {
+    async generateNoBidsResponse(auctionResult: HandleNoBidsResult): Promise<HandleNoBidsResult[]> {
+        this.logger.debug('Generating no bids response', {
+            auctionId: auctionResult.auctionId,
+            totalBids: auctionResult.totalBids,
+            processingTime: auctionResult.processingTime
+        });
+
         return [
             {
                 auctionId: auctionResult.auctionId,
                 auctionStatus: 'NO_BIDS',
-                totalBids: 0,
-                validBids: 0,
+                totalBids: auctionResult.totalBids || 0,
+                validBids: auctionResult.validBids || 0,
                 processingTime: auctionResult.processingTime || 0,
-                originalBidRequest: auctionResult.originalBidRequest || {},
+                originalBidRequest: auctionResult.originalBidRequest,
                 processedAt: new Date().toISOString(),
                 winner: null,
                 auctionType: auctionResult.auctionType || 'SECOND_PRICE',
@@ -151,15 +214,21 @@ export class BidResponseProcessor {
         ];
     }
 
-    private async generateErrorResponse(auctionResult: ErrorAuctionResult): Promise<ErrorAuctionResult[]> {
+    async generateErrorResponse(auctionResult: ErrorAuctionResult): Promise<ErrorAuctionResult[]> {
+        this.logger.error('Generating error response', {
+            auctionId: auctionResult.auctionId,
+            errorMessage: auctionResult.errorMessage,
+            errorCode: auctionResult.errorCode
+        });
+
         return [
             {
                 auctionId: auctionResult.auctionId,
                 auctionStatus: 'ERROR',
-                totalBids: 0,
-                validBids: 0,
+                totalBids: auctionResult.totalBids || 0,
+                validBids: auctionResult.validBids || 0,
                 processingTime: auctionResult.processingTime || 0,
-                originalBidRequest: auctionResult.originalBidRequest || {},
+                originalBidRequest: auctionResult.originalBidRequest,
                 processedAt: new Date().toISOString(),
                 winner: null,
                 errorMessage: auctionResult.errorMessage || 'Auction processing failed',
@@ -168,7 +237,6 @@ export class BidResponseProcessor {
             },
         ];
     }
-
 
     async storeBidResponses(bidResponses: WinningBidResponse[] | HandleNoBidsResult[] | ErrorAuctionResult[]): Promise<void> {
         try {
@@ -179,13 +247,28 @@ export class BidResponseProcessor {
 
             // Store each response by its request ID
             const storePromises = bidResponses.map(async (response) => {
-                const cacheKey = RTB_KEYS.AUCTION_RESULT(response.requestId);
+                let requestId: string;
+                let status: string;
+
+                // Type-safe extraction of requestId and status
+                if ('requestId' in response) {
+                    // This is a WinningBidResponse
+                    requestId = response.requestId;
+                    status = response.status;
+                } else {
+                    // This is HandleNoBidsResult or ErrorAuctionResult
+                    requestId = response.originalBidRequest?.externalRequestId;
+                    status = response.auctionStatus;
+                }
+
+                const cacheKey = RTB_KEYS.AUCTION_RESULT(requestId);
 
                 await this.redis.set(cacheKey, JSON.stringify(response), RTB_CACHE_TTL.AUCTION_RESULT);
 
                 this.logger.debug('Bid response cached', {
-                    requestId: response.requestId,
-                    status: response.status,
+                    requestId,
+                    status,
+                    auctionId: 'auctionId' in response ? response.auctionId : 'N/A'
                 });
             });
 

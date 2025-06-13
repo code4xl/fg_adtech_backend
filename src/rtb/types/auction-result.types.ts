@@ -1,8 +1,5 @@
-// src/rtb/types/auction-result.types.ts
+import { BidRequestWithAuction } from "./bid-request.types";
 
-/**
- * Base auction result structure that gets published to Kafka
- */
 export interface BaseAuctionResult {
     auctionId: string;
     auctionStatus: 'COMPLETED' | 'NO_BIDS' | 'TIMEOUT' | 'ERROR';
@@ -10,7 +7,7 @@ export interface BaseAuctionResult {
     validBids: number;
     processingTime: number;
     auctionType: string;
-    originalBidRequest: any; // The original bid request data
+    originalBidRequest: BidRequestWithAuction; // The original bid request data
     processedAt: string; // ISO timestamp when published
 }
 
@@ -22,10 +19,10 @@ export interface HandleNoBidsResult extends BaseAuctionResult {
 }
 
 export interface ErrorAuctionResult extends BaseAuctionResult {
-    auctionStatus: 'ERROR';
     winner: null;
     errorMessage: string;
     errorCode?: string;
+    auctionStatus: 'ERROR';
 }
 
 export interface AuctionBidResult extends BaseAuctionResult {
@@ -56,9 +53,6 @@ export interface WinningBidDetails {
     landingUrl?: string;
 }
 
-/**
- * Successful auction result (when there's a winner)
- */
 export interface SuccessfulAuctionResult extends BaseAuctionResult {
     auctionStatus: 'COMPLETED';
     winner: WinningBidDetails;
@@ -67,20 +61,6 @@ export interface SuccessfulAuctionResult extends BaseAuctionResult {
     validBids: number;
 }
 
-/**
- * No bids auction result (when no eligible campaigns)
- */
-// export interface NoBidsAuctionResult extends BaseAuctionResult {
-//     auctionStatus: 'NO_BIDS';
-//     winner: null;
-//     message: string;
-//     totalBids: 0;
-//     validBids?: 0;
-// }
-
-/**
- * Timeout auction result (when auction times out)
- */
 export interface TimeoutAuctionResult extends BaseAuctionResult {
     auctionStatus: 'TIMEOUT';
     winner: null;
@@ -88,31 +68,6 @@ export interface TimeoutAuctionResult extends BaseAuctionResult {
     partialBids?: number;
 }
 
-/**
- * Error auction result (when auction fails)
- */
-// export interface ErrorAuctionResult extends BaseAuctionResult {
-//     auctionStatus: 'ERROR';
-//     winner: null;
-//     errorMessage: string;
-//     errorCode?: string;
-// }
-
-
-
-/**
- * Union type for all possible auction results
- * This is what gets published to Kafka AUCTION_RESULTS topic
- */
-export type AuctionResult =
-    | SuccessfulAuctionResult
-    // | NoBidsAuctionResult
-    | TimeoutAuctionResult
-    | ErrorAuctionResult;
-
-/**
- * The data passed to publishAuctionResult() method (before adding metadata)
- */
 export interface AuctionResultInput {
     auctionStatus: 'COMPLETED' | 'NO_BIDS' | 'TIMEOUT' | 'ERROR';
     winner?: WinningBidDetails | null;
@@ -128,9 +83,6 @@ export interface AuctionResultInput {
     partialBids?: number;
 }
 
-/**
- * Complete Kafka message structure for auction results
- */
 export interface AuctionResultKafkaMessage {
     key: string; // auctionId
     value: AuctionResult;
@@ -138,26 +90,6 @@ export interface AuctionResultKafkaMessage {
     partition?: number;
     offset?: string;
 }
-
-
-
-
-
-/**
- * Type for the handleNoBidsAuction return value
- */
-// export interface HandleNoBidsResult extends BaseAuctionResult {
-//     auctionId: string;
-//     winner: null;
-//     totalBids: 0;
-//     validBids: 0;
-//     processingTime: number;
-//     auctionType: string;
-//     auctionStatus: string;
-// }
-
-
-
 
 export interface ProcessedAuctionResult {
     auctionId: string;
@@ -169,5 +101,13 @@ export interface ProcessedAuctionResult {
     floorPrice?: number;
     auctionStatus: string;
 }
+export type AuctionResult =
+    | SuccessfulAuctionResult
+    // | NoBidsAuctionResult
+    | TimeoutAuctionResult
+    | ErrorAuctionResult;
+
+
+
 
 export type CompleteAuctionResult = AuctionBidResult | HandleNoBidsResult | ErrorAuctionResult;
