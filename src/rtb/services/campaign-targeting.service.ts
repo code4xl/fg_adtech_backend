@@ -1,7 +1,8 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { RedisService } from "src/redis/redis.service";
-import { BehavioralTargeting, CampaignWithTargeting, ContextualTargeting, DemographicTargeting, DeviceTargeting, FrequencyTargeting, GeographicTargeting, TimeTargeting } from "../types/campaign.types";
+import { CampaignWithTargeting } from "../types/campaign.types";
 import { CAMPAIGN_KEYS } from "../constants/cache-keys";
+import { GeographicTargeting, DeviceTargeting, DemographicTargeting, TimeTargeting, ContextualTargeting, BehavioralTargeting, FrequencyTargeting } from "@prisma/client";
 
 @Injectable()
 export class CampaignTargetingService {
@@ -226,7 +227,7 @@ export class CampaignTargetingService {
                 'FRIDAY',
                 'SATURDAY',
             ];
-            if (!rule.daysOfWeek.includes(dayNames[currentDay])) {
+            if (!rule.daysOfWeek.includes(dayNames[currentDay] as any)) {
                 return false;
             }
         }
