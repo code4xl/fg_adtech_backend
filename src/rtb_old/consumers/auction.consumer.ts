@@ -3,8 +3,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { KafkaService } from '../../kafka/kafka.service';
-import { kafkaTopics } from '../../kafka/constants/kafka.config';
 import RTBProducer from '../producer/rtb.producer';
+import { kafkaTopics } from 'src/rtb/constants/kafka-topics';
 
 @Injectable()
 export class AuctionProcessor {
@@ -265,11 +265,11 @@ export class AuctionProcessor {
         // Revenue metrics (if auction won)
         ...(auctionData.winner
           ? [
-              this.redis.incrbyfloat(
-                `metrics:revenue:total:${dateHour}`,
-                auctionData.finalPrice || 0,
-              ),
-            ]
+            this.redis.incrbyfloat(
+              `metrics:revenue:total:${dateHour}`,
+              auctionData.finalPrice || 0,
+            ),
+          ]
           : []),
 
         // Set expiration for all metrics (7 days)
@@ -423,11 +423,11 @@ export class AuctionProcessor {
         ),
         ...(auctionData.winner
           ? [
-              this.redis.incrbyfloat(
-                `metrics:${inventoryKey}:revenue:${dateHour}`,
-                auctionData.finalPrice || 0,
-              ),
-            ]
+            this.redis.incrbyfloat(
+              `metrics:${inventoryKey}:revenue:${dateHour}`,
+              auctionData.finalPrice || 0,
+            ),
+          ]
           : []),
 
         // Set expiration

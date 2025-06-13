@@ -2,9 +2,9 @@
 
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { KafkaService } from '../../kafka/kafka.service';
-import { kafkaTopics } from '../../kafka/constants/kafka.config';
 import { AuctionProcessor } from './auction.consumer'; // Your existing auction consumer
 import { PrismaService } from '../../prisma/prisma.service';
+import { kafkaTopics } from 'src/rtb/constants/kafka-topics';
 
 @Injectable()
 export class AuctionCompletionConsumer implements OnModuleInit {
@@ -62,7 +62,7 @@ export class AuctionCompletionConsumer implements OnModuleInit {
       await this.storeAuctionLog(auctionData);
 
       // Use existing auction processor for analytics
-      // await this.auctionProcessor.processAuctionCompletion(auctionData);
+      await this.auctionProcessor.processAuctionCompletion(auctionData);
 
       const processingTime = Date.now() - startTime;
       this.logger.log('✅ Auction completion processed', {

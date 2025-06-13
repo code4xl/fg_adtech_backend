@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { kafkaTopics } from 'src/kafka/constants/kafka.config';
 import { KafkaService } from 'src/kafka/kafka.service';
+import { kafkaTopics } from 'src/rtb/constants/kafka-topics';
 @Injectable()
 export default class RTBProducer {
   private readonly logger: Logger = new Logger(RTBProducer.name);
-  constructor(private readonly kafka: KafkaService) {}
+  constructor(private readonly kafka: KafkaService) { }
 
   public async publishAuctionResult(
     auctionResult: any,
