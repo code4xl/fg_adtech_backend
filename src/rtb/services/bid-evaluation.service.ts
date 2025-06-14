@@ -50,7 +50,7 @@ export class BidEvaluationService {
       const finalBid = this.applyBidConstraints(
         pacedBid,
         context.floorPrice,
-        campaign.bidAmount.toNumber(),
+        Number(campaign.bidAmount),
       );
 
       this.logger.debug('Bid calculation completed', {

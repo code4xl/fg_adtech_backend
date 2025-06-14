@@ -3,12 +3,14 @@ import { CreateBidRequestDto } from '../dto';
 import { BidRequestWithAuction } from '../types/bid-request.types';
 import { kafkaTopics } from '../constants/kafka-topics';
 import { KafkaService } from 'src/kafka/kafka.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class RtbHelper {
   private readonly logger = new Logger(RtbHelper.name);
   constructor(
     @Inject(KafkaService) private readonly kafka: KafkaService,
+    private readonly prisma: PrismaService,
   ) { }
 
   public async validateBidRequest(
@@ -32,6 +34,94 @@ export class RtbHelper {
       !bidRequestDto.adSlotContext?.height
     ) {
       throw new BadRequestException('Ad slot dimensions are required');
+    }
+  }
+
+  public async validateInventoryAdSlotContext(
+    inventoryId: string,
+    adSlotContext: any,
+  ): Promise<void> {
+    try {
+      this.logger.debug('Validating inventory adSlot context', {
+        inventoryId,
+        requestedContext: adSlotContext,
+      });
+
+      // Get inventory with its adSlotTemplate
+      const inventory = await this.prisma.adInventory.findUnique({
+        where: { id: inventoryId },
+        include: {
+          adSlotTemplate: {
+            select: {
+              id: true,
+              name: true,
+              width: true,
+              height: true,
+              format: true,
+              position: true,
+              isActive: true,
+            },
+          },
+        },
+      });
+
+      if (!inventory) {
+        throw new BadRequestException(`Inventory not found: ${inventoryId}`);
+      }
+
+      if (!inventory.adSlotTemplate) {
+        throw new BadRequestException(`Inventory ${inventoryId} has no adSlotTemplate configured`);
+      }
+
+      if (!inventory.adSlotTemplate.isActive) {
+        throw new BadRequestException(`Inventory ${inventoryId} adSlotTemplate is inactive`);
+      }
+
+      const template = inventory.adSlotTemplate;
+
+      // Validate dimensions
+      if (adSlotContext.width !== template.width) {
+        throw new BadRequestException(
+          `Invalid width: expected ${template.width}, got ${adSlotContext.width} for inventory ${inventoryId}`
+        );
+      }
+
+      if (adSlotContext.height !== template.height) {
+        throw new BadRequestException(
+          `Invalid height: expected ${template.height}, got ${adSlotContext.height} for inventory ${inventoryId}`
+        );
+      }
+
+      // Validate format
+      if (adSlotContext.format !== template.format) {
+        throw new BadRequestException(
+          `Invalid format: expected ${template.format}, got ${adSlotContext.format} for inventory ${inventoryId}`
+        );
+      }
+
+      // Validate position
+      if (adSlotContext.position !== template.position) {
+        throw new BadRequestException(
+          `Invalid position: expected ${template.position}, got ${adSlotContext.position} for inventory ${inventoryId}`
+        );
+      }
+
+      this.logger.debug('AdSlot context validation passed', {
+        inventoryId,
+        templateId: template.id,
+        templateName: template.name,
+        validatedDimensions: `${template.width}x${template.height}`,
+        validatedFormat: template.format,
+        validatedPosition: template.position,
+      });
+
+    } catch (error) {
+      this.logger.error('AdSlot context validation failed', {
+        error: error.message,
+        inventoryId,
+        adSlotContext,
+      });
+      throw error;
     }
   }
 

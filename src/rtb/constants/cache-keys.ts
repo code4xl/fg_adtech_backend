@@ -53,6 +53,7 @@ export const CAMPAIGN_KEYS = {
   // Campaign Budget
   CAMPAIGN_BUDGET: (campaignId: string, date: string) =>
     `budget:campaign:${campaignId}:${date}`,
+  CAMPAIGN_BUDGET_INFO: (campaignId: string, today: string) => `campaign:budget:info:${campaignId}:${today}`
 } as const;
 
 // Creative Management

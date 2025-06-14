@@ -10,6 +10,7 @@ import {
   ProcessBidRequestResponse,
   ServerContext,
 } from '../types/bid-request.types';
+import { RtbHelper } from '../utils/helpers';
 
 @Injectable()
 export class RtbService {
@@ -19,6 +20,7 @@ export class RtbService {
     private readonly prisma: PrismaService,
     private readonly rtbCacheService: RtbCacheService,
     private readonly auctionProducer: AuctionProducer,
+    private readonly rtbHelper: RtbHelper,
   ) { }
 
   async processBidRequest(
@@ -27,6 +29,11 @@ export class RtbService {
     const startTime = Date.now();
 
     try {
+      await this.rtbHelper.validateInventoryAdSlotContext(
+        bidRequestData.inventoryId,
+        bidRequestData.adSlotContext
+      );
+
       this.logger.debug('Processing bid request', {
         externalRequestId: bidRequestData.externalRequestId,
         inventoryId: bidRequestData.inventoryId,

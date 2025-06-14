@@ -51,11 +51,11 @@ export class CampaignEligibilityService {
       }
 
       // 3. Apply targeting filters in order of selectivity
-      // const eligibleCampaigns = await this.applyTargetingFilters(
-      //   campaignPool,
-      //   userContext,
-      //   adSlotContext,
-      // );
+      const eligibleCampaigns = await this.applyTargetingFilters(
+        campaignPool,
+        userContext,
+        adSlotContext,
+      );
 
       // 4. Final budget validation (real-time check)
       const budgetValidated = await this.validateBudgets(campaignPool);
@@ -160,10 +160,6 @@ export class CampaignEligibilityService {
   }
 
   private async validateBudgets(campaigns: CampaignWithTargeting[]): Promise<CampaignWithTargeting[]> {
-    this.logger.debug("All Campaigns", {
-      campaigns,
-    })
-
     const budgetChecks = campaigns.map(async (campaign) => {
       const hasBudget = await this.checkBudgetAvailability(campaign.id);
       return hasBudget ? campaign : null;
@@ -197,35 +193,33 @@ export class CampaignEligibilityService {
 
   async checkBudgetAvailability(campaignId: string): Promise<boolean> {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
       const spentKey = CAMPAIGN_KEYS.CAMPAIGN_BUDGET(campaignId, today);
 
-      // Get current spend from Redis
-      const spentToday =
-        parseFloat((await this.redis.get<string>(spentKey)) || '0') / 100; // Convert from cents
+      // Get current spend from Redis with proper null handling
+      const spentData = await this.redis.get<string>(spentKey);
+      const spentToday = spentData ? parseFloat(spentData) / 100 : 0; // Convert from cents, default to 0
 
-      // Get campaign budget info (cached)
-      const campaign = await this.getCampaignBudgetInfo(campaignId, today);
-      if (!campaign) {
-        this.logger.warn('Campaign not found for budget check', { campaignId });
+      // Get campaign budget info
+      const budgetInfo = await this.getCampaignBudgetInfo(campaignId, today);
+      if (!budgetInfo) {
+        this.logger.warn('Campaign budget info not found', { campaignId });
         return false;
       }
 
-      // Check daily budget
-      const remainingDaily = Number(campaign.dailyBudget) - spentToday;
+      // Ensure proper number conversion
+      const dailyBudget = Number(budgetInfo.dailyBudget);
+      const remainingDaily = dailyBudget - spentToday;
       const isWithinBudget = remainingDaily > 0.01; // Minimum $0.01 remaining
-
-      this.logger.debug("Whyy plss", {
-        spentToday,
-        remainingDaily,
-      })
 
       this.logger.debug('Budget availability checked', {
         campaignId,
-        dailyBudget: campaign.dailyBudget,
+        dailyBudget,
         spentToday,
         remainingDaily,
         isWithinBudget,
+        budgetInfoType: typeof budgetInfo.dailyBudget,
+        spentTodayType: typeof spentToday,
       });
 
       return isWithinBudget;
@@ -234,58 +228,66 @@ export class CampaignEligibilityService {
         error: error.message,
         campaignId,
       });
-      return false;
+      return false; // Fail safely
     }
   }
 
   private async getCampaignBudgetInfo(
     campaignId: string,
     today: string,
-  ): Promise<CampaignBudgetInfo> {
+  ): Promise<CampaignBudgetInfo | null> {
     try {
-      // Use cache for campaign budget info
-      const cacheKey = CAMPAIGN_KEYS.CAMPAIGN_BUDGET(campaignId, today);
+      const cacheKey = CAMPAIGN_KEYS.CAMPAIGN_BUDGET_INFO(campaignId, today);
       const cached = await this.redis.get<string>(cacheKey);
 
       if (cached) {
-        return JSON.parse(cached);
+        const parsed = JSON.parse(cached);
+        return {
+          dailyBudget: parsed.dailyBudget,
+          totalBudget: parsed.totalBudget,
+        };
       }
 
-      // Get from database
-      const campaign = await this.prisma.campaign.findUnique({
-        where: { id: campaignId },
-        select: {
-          id: true,
-          campaignBudgetTracker: {
-            where: {
-              date: new Date().toISOString(),
-            },
-            select: {
-              dailyBudget: true,
-              totalBudget: true,
-            },
+      // Get from database with proper date matching
+      const budgetTracker = await this.prisma.campaignBudgetTracker.findFirst({
+        where: {
+          campaignId,
+          date: {
+            equals: new Date(today + 'T00:00:00.000Z'), // Proper date matching
           },
+        },
+        select: {
+          dailyBudget: true,
+          totalBudget: true,
         },
       });
 
-      if (!campaign?.campaignBudgetTracker[0]) {
+      if (!budgetTracker) {
+        this.logger.warn('No budget tracker found for campaign', {
+          campaignId,
+          today
+        });
         return null;
       }
 
-      const budgetInfo = campaign.campaignBudgetTracker[0];
+      const budgetInfo = {
+        dailyBudget: budgetTracker.dailyBudget,
+        totalBudget: budgetTracker.totalBudget,
+      };
 
-      this.logger.debug("Budget info", {
-        budgetInfo,
-      })
-
-      // Cache for 1 hour
-      await this.redis.set(cacheKey, JSON.stringify(budgetInfo), RTB_CACHE_TTL.CAMPAIGN_BUDGET_INFO);
+      // Cache for 1 hour with proper serialization
+      await this.redis.set(
+        cacheKey,
+        JSON.stringify(budgetInfo),
+        RTB_CACHE_TTL.CAMPAIGN_BUDGET_INFO
+      );
 
       return budgetInfo;
     } catch (error) {
       this.logger.error('Failed to get campaign budget info', {
         error: error.message,
         campaignId,
+        today,
       });
       return null;
     }
