@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { BidResponseDto, CreateBidRequestDto } from '../dto';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -11,6 +11,7 @@ import {
   ServerContext,
 } from '../types/bid-request.types';
 
+@Injectable()
 export class RtbService {
   private readonly logger = new Logger(RtbService.name);
 
@@ -118,7 +119,7 @@ export class RtbService {
     try {
       let bidRequest = await this.prisma.bidRequest.create({
         data: {
-          externalRequestId: enrichedRequest.externalRequestId,
+          externalRequestId: enrichedRequest.id,
           inventoryId: enrichedRequest.inventoryId,
           publisherId: enrichedRequest.publisherId,
           websiteId: enrichedRequest.websiteId,
@@ -126,7 +127,7 @@ export class RtbService {
           adSlotContext: JSON.parse(
             JSON.stringify(enrichedRequest.adSlotContext),
           ),
-          floorPrice: enrichedRequest.floorPrice,
+          floorPrice: enrichedRequest.floorPrice || 0,
           auctionType: enrichedRequest.auctionType || 'SECOND_PRICE',
           timeout: enrichedRequest.timeout || 200,
           requestTimestamp: enrichedRequest.requestTimestamp,
@@ -139,7 +140,7 @@ export class RtbService {
       });
       return {
         ...bidRequest,
-        floorPrice: bidRequest.floorPrice.toNumber(),
+        floorPrice: bidRequest.floorPrice?.toNumber() || 0,
         auctionId,
       };
     } catch (error) {
@@ -147,7 +148,7 @@ export class RtbService {
         error instanceof Error ? error.message : 'Unknown error';
 
       this.logger.error('Failed to store bid request', {
-        error: errorMessage,
+        error: error,
         externalRequestId: enrichedRequest.externalRequestId,
       });
 

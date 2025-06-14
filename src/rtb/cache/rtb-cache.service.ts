@@ -1,9 +1,10 @@
-import { Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { REDIS_KEYS, RTB_CACHE_TTL } from '../constants/cache-keys';
 import { RedisService } from 'src/redis/redis.service';
 import { BidRequestWithAuction } from '../types/bid-request.types';
 import { BidResponseDto } from '../dto';
 
+@Injectable()
 export class RtbCacheService {
   private readonly logger = new Logger(RtbCacheService.name);
   constructor(private readonly redis: RedisService) { }

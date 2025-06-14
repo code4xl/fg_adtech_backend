@@ -1,15 +1,18 @@
+import { AuctionType } from "@prisma/client";
+import { BidRequestWithAuction } from "./bid-request.types";
+
 // Generic base interface for auction completion data
 export interface BaseAuctionCompletionData {
     auctionId: string;
     requestId: string;
     inventoryId: string;
-    bidRequest: any;
+    bidRequest: BidRequestWithAuction;
     campaignIds: string[];
     winner: WinnerData | null;
     totalBids: number;
     validBids: number;
     processingTime: number;
-    auctionType: string;
+    auctionType: AuctionType;
     floorPrice: number;
     finalPrice: number | null;
     auctionStatus: 'COMPLETED' | 'NO_BIDS' | 'ERROR';

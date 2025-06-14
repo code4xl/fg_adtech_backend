@@ -125,7 +125,7 @@ export default class AuctionProducer {
       totalBids: auctionResult.totalBids || 1,
       validBids: auctionResult.validBids || 1,
       processingTime: auctionResult.processingTime || 0,
-      auctionType: auctionResult.auctionType || 'SECOND_PRICE',
+      auctionType: auctionResult.auctionType,
 
       // Pricing information (only available for successful auctions)
       floorPrice: auctionResult.floorPrice || 0,
@@ -158,7 +158,7 @@ export default class AuctionProducer {
       totalBids: auctionResult.totalBids || 0,
       validBids: auctionResult.validBids || 0,
       processingTime: auctionResult.processingTime || 0,
-      auctionType: auctionResult.auctionType || 'SECOND_PRICE',
+      auctionType: auctionResult.auctionType,
 
       // No pricing information for no bids
       floorPrice: bidRequest.floorPrice || 0,

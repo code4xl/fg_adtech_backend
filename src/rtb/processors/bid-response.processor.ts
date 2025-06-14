@@ -240,6 +240,10 @@ export class BidResponseProcessor {
 
     async storeBidResponses(bidResponses: WinningBidResponse[] | HandleNoBidsResult[] | ErrorAuctionResult[]): Promise<void> {
         try {
+            this.logger.debug("In Storing Bid Responses", {
+                bidResponses,
+            });
+
             if (bidResponses.length === 0) {
                 this.logger.debug('No bid responses to store');
                 return;

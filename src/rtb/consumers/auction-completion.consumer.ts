@@ -77,12 +77,12 @@ export class AuctionCompletionKafkaConsumer implements OnModuleInit {
         }
     }
 
-    private async storeAuctionLog(auctionData: any): Promise<void> {
+    private async storeAuctionLog(auctionData: AuctionCompletionData): Promise<void> {
         try {
             await this.prisma.auctionLog.create({
                 data: {
-                    bidRequestId: auctionData.winner?.bidRequestId,
-                    auctionType: auctionData.auctionType || 'SECOND_PRICE',
+                    bidRequestId: auctionData.bidRequest.id,
+                    auctionType: auctionData.auctionType,
                     floorPrice: auctionData.floorPrice,
                     winningBidId: auctionData.winner?.id,
                     finalPrice: auctionData.finalPrice,

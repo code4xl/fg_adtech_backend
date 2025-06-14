@@ -32,6 +32,7 @@ import AuctionProducer from './producers/auction.producer';
 // Cache & Utils
 import { RtbCacheService } from './cache/rtb-cache.service';
 import { RtbHelper } from './utils/helpers';
+import { RTBMetricsService } from './services/rtb-metrics.service';
 
 @Module({
     imports: [
@@ -46,6 +47,7 @@ import { RtbHelper } from './utils/helpers';
     providers: [
         // === CORE SERVICES ===
         RtbService,
+        RTBMetricsService,
         AuctionService,
         BidEvaluationService,
         CampaignEligibilityService,

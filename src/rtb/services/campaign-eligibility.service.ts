@@ -51,14 +51,14 @@ export class CampaignEligibilityService {
       }
 
       // 3. Apply targeting filters in order of selectivity
-      const eligibleCampaigns = await this.applyTargetingFilters(
-        campaignPool,
-        userContext,
-        adSlotContext,
-      );
+      // const eligibleCampaigns = await this.applyTargetingFilters(
+      //   campaignPool,
+      //   userContext,
+      //   adSlotContext,
+      // );
 
       // 4. Final budget validation (real-time check)
-      const budgetValidated = await this.validateBudgets(eligibleCampaigns);
+      const budgetValidated = await this.validateBudgets(campaignPool);
 
       // 5. Cache results for 5 minutes
       await this.cacheEligibility(cacheKey, budgetValidated, RTB_CACHE_TTL.CAMPAIGN_ELIGIBILITY_BUDGET);
@@ -160,6 +160,10 @@ export class CampaignEligibilityService {
   }
 
   private async validateBudgets(campaigns: CampaignWithTargeting[]): Promise<CampaignWithTargeting[]> {
+    this.logger.debug("All Campaigns", {
+      campaigns,
+    })
+
     const budgetChecks = campaigns.map(async (campaign) => {
       const hasBudget = await this.checkBudgetAvailability(campaign.id);
       return hasBudget ? campaign : null;
@@ -210,6 +214,11 @@ export class CampaignEligibilityService {
       // Check daily budget
       const remainingDaily = Number(campaign.dailyBudget) - spentToday;
       const isWithinBudget = remainingDaily > 0.01; // Minimum $0.01 remaining
+
+      this.logger.debug("Whyy plss", {
+        spentToday,
+        remainingDaily,
+      })
 
       this.logger.debug('Budget availability checked', {
         campaignId,
@@ -264,6 +273,10 @@ export class CampaignEligibilityService {
       }
 
       const budgetInfo = campaign.campaignBudgetTracker[0];
+
+      this.logger.debug("Budget info", {
+        budgetInfo,
+      })
 
       // Cache for 1 hour
       await this.redis.set(cacheKey, JSON.stringify(budgetInfo), RTB_CACHE_TTL.CAMPAIGN_BUDGET_INFO);

@@ -1,3 +1,4 @@
+import { AuctionType } from "@prisma/client";
 import { BidRequestWithAuction } from "./bid-request.types";
 
 export interface BaseAuctionResult {
@@ -6,7 +7,7 @@ export interface BaseAuctionResult {
     totalBids: number;
     validBids: number;
     processingTime: number;
-    auctionType: string;
+    auctionType: AuctionType;
     originalBidRequest: BidRequestWithAuction; // The original bid request data
     processedAt: string; // ISO timestamp when published
 }

@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuctionStatusDto } from '../dto';
 import { BidRequestWithAuction } from '../types/bid-request.types';
@@ -11,6 +11,7 @@ import { CreativeWithTemplate } from '../types/creative.types';
 import { CreatedBidResponse } from '../types/bid-response.types';
 import { AuctionBidResult } from '../types/auction-result.types';
 
+@Injectable()
 export class AuctionService {
   private readonly logger = new Logger(AuctionService.name);
   private readonly trackingBaseUrl: string;
