@@ -1,7 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { RedisService } from 'src/redis/redis.service';
-import { REDIS_KEYS } from '../../redis/constants/redis-keys';
+import { Injectable, Logger } from "@nestjs/common";
+import { PrismaService } from "src/prisma/prisma.service";
+import { RedisService } from "src/redis/redis.service";
+import { CAMPAIGN_KEYS, REDIS_KEYS, RTB_CACHE_TTL } from "../constants/cache-keys";
+import { CampaignBudgetInfo, CampaignBudgetTracker, CampaignWithTargeting } from "../types/campaign.types";
+import { CampaignTargetingService } from "./campaign-targeting.service";
 
 @Injectable()
 export class CampaignEligibilityService {
@@ -10,11 +12,8 @@ export class CampaignEligibilityService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
-  ) {
-    this.logger.log(
-      'Campaign Eligibility Service initialized - Phase 3 Complete',
-    );
-  }
+    private readonly campaignTargetingService: CampaignTargetingService,
+  ) { }
 
   async getEligibleCampaigns(
     inventoryId: string,
@@ -29,7 +28,7 @@ export class CampaignEligibilityService {
 
     try {
       // 1. Check Redis cache first
-      const cacheKey = REDIS_KEYS.ELIGIBLE_CAMPAIGNS(
+      const cacheKey = CAMPAIGN_KEYS.ELIGIBLE_CAMPAIGNS(
         inventoryId,
         userContext.deviceType,
       );
@@ -52,17 +51,17 @@ export class CampaignEligibilityService {
       }
 
       // 3. Apply targeting filters in order of selectivity
-      // const eligibleCampaigns = await this.applyTargetingFilters(
-      //   campaignPool,
-      //   userContext,
-      //   adSlotContext,
-      // );
+      const eligibleCampaigns = await this.applyTargetingFilters(
+        campaignPool,
+        userContext,
+        adSlotContext,
+      );
 
       // 4. Final budget validation (real-time check)
       const budgetValidated = await this.validateBudgets(campaignPool);
 
       // 5. Cache results for 5 minutes
-      await this.cacheEligibility(cacheKey, budgetValidated, 300);
+      await this.cacheEligibility(cacheKey, budgetValidated, RTB_CACHE_TTL.CAMPAIGN_ELIGIBILITY_BUDGET);
 
       this.logger.log('Campaign eligibility calculated', {
         inventoryId,
@@ -80,101 +79,7 @@ export class CampaignEligibilityService {
     }
   }
 
-  async checkBudgetAvailability(campaignId: string): Promise<boolean> {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const spentKey = REDIS_KEYS.CAMPAIGN_BUDGET(campaignId, today);
-
-      // Get current spend from Redis
-      const spentToday =
-        parseFloat((await this.redis.get<string>(spentKey)) || '0') / 100; // Convert from cents
-
-      // Get campaign budget info (cached)
-      const campaign = await this.getCampaignBudgetInfo(campaignId, today);
-      if (!campaign) {
-        this.logger.warn('Campaign not found for budget check', { campaignId });
-        return false;
-      }
-
-      // Check daily budget
-      const remainingDaily = Number(campaign.dailyBudget) - spentToday;
-      const isWithinBudget = remainingDaily > 0.01; // Minimum $0.01 remaining
-
-      this.logger.debug('Budget availability checked', {
-        campaignId,
-        dailyBudget: campaign.dailyBudget,
-        spentToday,
-        remainingDaily,
-        isWithinBudget,
-      });
-
-      return isWithinBudget;
-    } catch (error) {
-      this.logger.error('Budget availability check failed', {
-        error: error.message,
-        campaignId,
-      });
-      return false;
-    }
-  }
-
-  async checkTargetingRules(
-    campaign: any,
-    userContext: any,
-    adSlotContext: any,
-  ): Promise<boolean> {
-    try {
-      // Early exit if campaign has no targeting rules
-      if (!this.hasTargetingRules(campaign)) {
-        return true; // No targeting = all traffic eligible
-      }
-
-      // Evaluate each targeting type (AND logic - all must pass)
-      const checks = await Promise.all([
-        this.checkGeographicTargeting(
-          campaign.geographicTargeting,
-          userContext,
-        ),
-        this.checkDeviceTargeting(campaign.deviceTargeting, userContext),
-        this.checkDemographicTargeting(
-          campaign.demographicTargeting,
-          userContext,
-        ),
-        this.checkTimeTargeting(campaign.timeTargeting, userContext),
-        this.checkContextualTargeting(
-          campaign.contextualTargeting,
-          adSlotContext,
-        ),
-        this.checkBehavioralTargeting(
-          campaign.behavioralTargeting,
-          userContext,
-        ),
-        this.checkFrequencyTargeting(
-          campaign.frequencyTargeting,
-          userContext,
-          campaign.id,
-        ),
-      ]);
-
-      const allRulesPassed = checks.every((result) => result === true);
-
-      this.logger.debug('Targeting rules evaluated', {
-        campaignId: campaign.id,
-        rulesCount: checks.length,
-        allPassed: allRulesPassed,
-      });
-
-      return allRulesPassed;
-    } catch (error) {
-      this.logger.error('Targeting rule evaluation failed', {
-        error: error.message,
-        campaignId: campaign.id,
-      });
-      return false;
-    }
-  }
-
-  private async getCachedEligibility(cacheKey: string): Promise<any[] | null> {
+  private async getCachedEligibility(cacheKey: string): Promise<CampaignWithTargeting[] | null> {
     try {
       const cached = await this.redis.get<string>(cacheKey);
       return cached ? JSON.parse(cached) : null;
@@ -187,25 +92,11 @@ export class CampaignEligibilityService {
     }
   }
 
-  private async cacheEligibility(
-    cacheKey: string,
-    campaigns: any[],
-    ttlSeconds: number,
-  ): Promise<void> {
-    try {
-      await this.redis.set(cacheKey, JSON.stringify(campaigns), ttlSeconds);
-    } catch (error) {
-      this.logger.warn('Cache storage failed', {
-        error: error.message,
-        cacheKey,
-      });
-    }
-  }
-
+  // Ask Mit about this
   private async getBasicCampaignPool(
     inventoryId: string,
     adSlotContext: any,
-  ): Promise<any[]> {
+  ): Promise<CampaignWithTargeting[]> {
     const now = new Date();
 
     return await this.prisma.campaign.findMany({
@@ -213,7 +104,6 @@ export class CampaignEligibilityService {
         status: 'ACTIVE',
         startDate: { lte: now },
         endDate: { gte: now },
-        // Has approved creatives matching ad slot
         creatives: {
           some: {
             status: 'APPROVED',
@@ -254,14 +144,36 @@ export class CampaignEligibilityService {
     });
   }
 
-  /**
-   * Apply targeting filters in order of selectivity
-   */
+  private async cacheEligibility(
+    cacheKey: string,
+    campaigns: CampaignWithTargeting[],
+    ttlSeconds: number,
+  ): Promise<void> {
+    try {
+      await this.redis.set(cacheKey, JSON.stringify(campaigns), ttlSeconds);
+    } catch (error) {
+      this.logger.warn('Cache storage failed', {
+        error: error.message,
+        cacheKey,
+      });
+    }
+  }
+
+  private async validateBudgets(campaigns: CampaignWithTargeting[]): Promise<CampaignWithTargeting[]> {
+    const budgetChecks = campaigns.map(async (campaign) => {
+      const hasBudget = await this.checkBudgetAvailability(campaign.id);
+      return hasBudget ? campaign : null;
+    });
+
+    const results = await Promise.all(budgetChecks);
+    return results.filter((campaign) => campaign !== null);
+  }
+
   private async applyTargetingFilters(
-    campaigns: any[],
+    campaigns: CampaignWithTargeting[],
     userContext: any,
     adSlotContext: any,
-  ): Promise<any[]> {
+  ): Promise<CampaignWithTargeting[]> {
     const filteredCampaigns = [];
 
     for (const campaign of campaigns) {
@@ -279,480 +191,161 @@ export class CampaignEligibilityService {
     return filteredCampaigns;
   }
 
-  /**
-   * Validate budgets for final campaign list
-   */
-  private async validateBudgets(campaigns: any[]): Promise<any[]> {
-    const budgetChecks = campaigns.map(async (campaign) => {
-      const hasBudget = await this.checkBudgetAvailability(campaign.id);
-      return hasBudget ? campaign : null;
-    });
+  async checkBudgetAvailability(campaignId: string): Promise<boolean> {
+    try {
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const spentKey = CAMPAIGN_KEYS.CAMPAIGN_BUDGET(campaignId, today);
 
-    const results = await Promise.all(budgetChecks);
-    return results.filter((campaign) => campaign !== null);
+      // Get current spend from Redis with proper null handling
+      const spentData = await this.redis.get<string>(spentKey);
+      const spentToday = spentData ? parseFloat(spentData) / 100 : 0; // Convert from cents, default to 0
+
+      // Get campaign budget info
+      const budgetInfo = await this.getCampaignBudgetInfo(campaignId, today);
+      if (!budgetInfo) {
+        this.logger.warn('Campaign budget info not found', { campaignId });
+        return false;
+      }
+
+      // Ensure proper number conversion
+      const dailyBudget = Number(budgetInfo.dailyBudget);
+      const remainingDaily = dailyBudget - spentToday;
+      const isWithinBudget = remainingDaily > 0.01; // Minimum $0.01 remaining
+
+      this.logger.debug('Budget availability checked', {
+        campaignId,
+        dailyBudget,
+        spentToday,
+        remainingDaily,
+        isWithinBudget,
+        budgetInfoType: typeof budgetInfo.dailyBudget,
+        spentTodayType: typeof spentToday,
+      });
+
+      return isWithinBudget;
+    } catch (error) {
+      this.logger.error('Budget availability check failed', {
+        error: error.message,
+        campaignId,
+      });
+      return false; // Fail safely
+    }
   }
 
   private async getCampaignBudgetInfo(
     campaignId: string,
     today: string,
-  ): Promise<any> {
+  ): Promise<CampaignBudgetInfo | null> {
     try {
-      // Use cache for campaign budget info
-      const cacheKey = REDIS_KEYS.CAMPAIGN_BUDGET(campaignId, today);
+      const cacheKey = CAMPAIGN_KEYS.CAMPAIGN_BUDGET_INFO(campaignId, today);
       const cached = await this.redis.get<string>(cacheKey);
 
       if (cached) {
-        return JSON.parse(cached);
+        const parsed = JSON.parse(cached);
+        return {
+          dailyBudget: parsed.dailyBudget,
+          totalBudget: parsed.totalBudget,
+        };
       }
 
-      // Get from database
-      const campaign = await this.prisma.campaign.findUnique({
-        where: { id: campaignId },
-        select: {
-          id: true,
-          campaignBudgetTracker: {
-            where: {
-              date: new Date().toISOString(),
-            },
-            select: {
-              dailyBudget: true,
-              totalBudget: true,
-            },
+      // Get from database with proper date matching
+      const budgetTracker = await this.prisma.campaignBudgetTracker.findFirst({
+        where: {
+          campaignId,
+          date: {
+            equals: new Date(today + 'T00:00:00.000Z'), // Proper date matching
           },
+        },
+        select: {
+          dailyBudget: true,
+          totalBudget: true,
         },
       });
 
-      if (!campaign?.campaignBudgetTracker[0]) {
+      if (!budgetTracker) {
+        this.logger.warn('No budget tracker found for campaign', {
+          campaignId,
+          today
+        });
         return null;
       }
 
-      const budgetInfo = campaign.campaignBudgetTracker[0];
+      const budgetInfo = {
+        dailyBudget: budgetTracker.dailyBudget,
+        totalBudget: budgetTracker.totalBudget,
+      };
 
-      // Cache for 1 hour
-      await this.redis.set(cacheKey, JSON.stringify(budgetInfo), 3600);
+      // Cache for 1 hour with proper serialization
+      await this.redis.set(
+        cacheKey,
+        JSON.stringify(budgetInfo),
+        RTB_CACHE_TTL.CAMPAIGN_BUDGET_INFO
+      );
 
       return budgetInfo;
     } catch (error) {
       this.logger.error('Failed to get campaign budget info', {
         error: error.message,
         campaignId,
+        today,
       });
       return null;
     }
   }
 
-  private hasTargetingRules(campaign: any): boolean {
-    return !!(
-      campaign.geographicTargeting?.length ||
-      campaign.deviceTargeting?.length ||
-      campaign.demographicTargeting?.length ||
-      campaign.timeTargeting?.length ||
-      campaign.contextualTargeting?.length ||
-      campaign.behavioralTargeting?.length ||
-      campaign.frequencyTargeting?.length
-    );
-  }
-
-  private async checkGeographicTargeting(
-    rules: any[],
+  async checkTargetingRules(
+    campaign: CampaignWithTargeting,
     userContext: any,
-  ): Promise<boolean> {
-    if (!rules || rules.length === 0) return true;
-
-    for (const rule of rules) {
-      const isMatch = this.evaluateGeographicRule(rule, userContext);
-
-      if (rule.isInclude && isMatch) {
-        return true; // Include rule matched
-      }
-      if (!rule.isInclude && isMatch) {
-        return false; // Exclude rule matched
-      }
-    }
-
-    // If we have include rules but none matched
-    const hasIncludeRules = rules.some((rule) => rule.isInclude);
-    return !hasIncludeRules;
-  }
-
-  private evaluateGeographicRule(rule: any, userContext: any): boolean {
-    // Country targeting
-    if (rule.countries?.length > 0) {
-      if (!rule.countries.includes(userContext.country)) {
-        return false;
-      }
-    }
-
-    // State/region targeting
-    if (rule.states?.length > 0) {
-      if (!rule.states.includes(userContext.region)) {
-        return false;
-      }
-    }
-
-    // City targeting
-    if (rule.cities?.length > 0) {
-      if (!rule.cities.includes(userContext.city)) {
-        return false;
-      }
-    }
-
-    // Radius targeting (if GPS coordinates available)
-    if (rule.latitude && rule.longitude && rule.radius) {
-      if (userContext.latitude && userContext.longitude) {
-        const distance = this.calculateDistance(
-          rule.latitude,
-          rule.longitude,
-          userContext.latitude,
-          userContext.longitude,
-        );
-        if (distance > rule.radius) {
-          return false;
-        }
-      }
-    }
-
-    return true;
-  }
-
-  private async checkDeviceTargeting(
-    rules: any[],
-    userContext: any,
-  ): Promise<boolean> {
-    if (!rules || rules.length === 0) return true;
-
-    for (const rule of rules) {
-      const isMatch = this.evaluateDeviceRule(rule, userContext);
-
-      if (rule.isInclude && isMatch) {
-        return true;
-      }
-      if (!rule.isInclude && isMatch) {
-        return false;
-      }
-    }
-
-    const hasIncludeRules = rules.some((rule) => rule.isInclude);
-    return !hasIncludeRules;
-  }
-
-  private evaluateDeviceRule(rule: any, userContext: any): boolean {
-    // Device type targeting
-    if (rule.deviceTypes?.length > 0) {
-      if (!rule.deviceTypes.includes(userContext.deviceType?.toUpperCase())) {
-        return false;
-      }
-    }
-
-    // Operating system targeting
-    if (rule.operatingSystems?.length > 0) {
-      if (!rule.operatingSystems.includes(userContext.osType?.toUpperCase())) {
-        return false;
-      }
-    }
-
-    // Browser targeting
-    if (rule.browsers?.length > 0) {
-      if (!rule.browsers.includes(userContext.browserType?.toUpperCase())) {
-        return false;
-      }
-    }
-
-    // Connection type targeting
-    if (rule.connectionTypes?.length > 0) {
-      if (
-        !rule.connectionTypes.includes(
-          userContext.connectionType?.toUpperCase(),
-        )
-      ) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * Demographic targeting evaluation
-   */
-  private async checkDemographicTargeting(
-    rules: any[],
-    userContext: any,
-  ): Promise<boolean> {
-    if (!rules || rules.length === 0) return true;
-
-    for (const rule of rules) {
-      if (this.evaluateDemographicRule(rule, userContext)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private evaluateDemographicRule(rule: any, userContext: any): boolean {
-    // Age targeting
-    if (rule.ageMin !== null || rule.ageMax !== null) {
-      const userAge = userContext.age;
-      if (!userAge) return false;
-
-      if (rule.ageMin && userAge < rule.ageMin) return false;
-      if (rule.ageMax && userAge > rule.ageMax) return false;
-    }
-
-    // Gender targeting
-    if (rule.genders?.length > 0) {
-      if (!rule.genders.includes(userContext.gender)) {
-        return false;
-      }
-    }
-
-    // Language targeting
-    if (rule.languages?.length > 0) {
-      if (!rule.languages.includes(userContext.language)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * Time targeting evaluation
-   */
-  private async checkTimeTargeting(
-    rules: any[],
-    userContext: any,
-  ): Promise<boolean> {
-    if (!rules || rules.length === 0) return true;
-
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentDay = now.getDay(); // 0 = Sunday
-
-    for (const rule of rules) {
-      if (this.evaluateTimeRule(rule, currentHour, currentDay)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private evaluateTimeRule(
-    rule: any,
-    currentHour: number,
-    currentDay: number,
-  ): boolean {
-    // Hour targeting
-    if (rule.startHour !== null && rule.endHour !== null) {
-      if (currentHour < rule.startHour || currentHour > rule.endHour) {
-        return false;
-      }
-    }
-
-    // Day of week targeting
-    if (rule.daysOfWeek?.length > 0) {
-      const dayNames = [
-        'SUNDAY',
-        'MONDAY',
-        'TUESDAY',
-        'WEDNESDAY',
-        'THURSDAY',
-        'FRIDAY',
-        'SATURDAY',
-      ];
-      if (!rule.daysOfWeek.includes(dayNames[currentDay])) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * Contextual targeting evaluation
-   */
-  private async checkContextualTargeting(
-    rules: any[],
     adSlotContext: any,
   ): Promise<boolean> {
-    if (!rules || rules.length === 0) return true;
-
-    for (const rule of rules) {
-      const isMatch = this.evaluateContextualRule(rule, adSlotContext);
-
-      if (rule.isInclude && isMatch) {
-        return true;
-      }
-      if (!rule.isInclude && isMatch) {
-        return false;
-      }
-    }
-
-    const hasIncludeRules = rules.some((rule) => rule.isInclude);
-    return !hasIncludeRules;
-  }
-
-  private evaluateContextualRule(rule: any, adSlotContext: any): boolean {
-    // Page category targeting
-    if (rule.contentCategories?.length > 0) {
-      if (!rule.contentCategories.includes(adSlotContext.pageCategory)) {
-        return false;
-      }
-    }
-
-    // Keyword targeting
-    if (rule.keywords?.length > 0) {
-      const pageKeywords = adSlotContext.pageKeywords || [];
-      const hasMatchingKeyword = rule.keywords.some((keyword) =>
-        pageKeywords.some((pageKeyword) =>
-          pageKeyword.toLowerCase().includes(keyword.toLowerCase()),
-        ),
-      );
-      if (!hasMatchingKeyword) {
-        return false;
-      }
-    }
-
-    // URL pattern targeting
-    if (rule.urlPatterns?.length > 0) {
-      const pageUrl = adSlotContext.pageUrl || '';
-      const hasMatchingPattern = rule.urlPatterns.some((pattern) =>
-        new RegExp(pattern, 'i').test(pageUrl),
-      );
-      if (!hasMatchingPattern) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * Behavioral targeting evaluation
-   */
-  private async checkBehavioralTargeting(
-    rules: any[],
-    userContext: any,
-  ): Promise<boolean> {
-    if (!rules || rules.length === 0) return true;
-
-    for (const rule of rules) {
-      if (this.evaluateBehavioralRule(rule, userContext)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private evaluateBehavioralRule(rule: any, userContext: any): boolean {
-    // Interest targeting
-    if (rule.interests?.length > 0) {
-      const userInterests = userContext.interests || [];
-      const hasMatchingInterest = rule.interests.some((interest) =>
-        userInterests.includes(interest),
-      );
-      if (!hasMatchingInterest) {
-        return false;
-      }
-    }
-
-    // Purchase intent targeting
-    if (rule.purchaseIntent?.length > 0) {
-      if (!rule.purchaseIntent.includes(userContext.purchaseIntent)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  private async checkFrequencyTargeting(
-    rules: any[],
-    userContext: any,
-    campaignId: string,
-  ): Promise<boolean> {
-    if (!rules || rules.length === 0) return true;
-
-    const userId = userContext.userId;
-    if (!userId) return true; // Can't cap frequency without user ID
-
-    for (const rule of rules) {
-      const isWithinLimit = await this.checkFrequencyLimit(
-        userId,
-        campaignId,
-        rule.maxImpressions,
-        rule.frequencyWindow,
-      );
-
-      if (!isWithinLimit) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  private async checkFrequencyLimit(
-    userId: string,
-    campaignId: string,
-    maxImpressions: number,
-    window: string,
-  ): Promise<boolean> {
     try {
-      const windowHours = this.getWindowHours(window);
-      const key = REDIS_KEYS.USER_CAMPAIGN_FREQUENCY(userId, campaignId);
+      // Early exit if campaign has no targeting rules
+      if (!this.campaignTargetingService.hasTargetingRules(campaign)) {
+        return true; // No targeting = all traffic eligible
+      }
 
-      const currentCount = parseInt((await this.redis.get<string>(key)) || '0');
+      // Evaluate each targeting type (AND logic - all must pass)
+      const checks = await Promise.all([
+        this.campaignTargetingService.checkGeographicTargeting(
+          campaign.geographicTargeting,
+          userContext,
+        ),
+        this.campaignTargetingService.checkDeviceTargeting(campaign.deviceTargeting, userContext),
+        this.campaignTargetingService.checkDemographicTargeting(
+          campaign.demographicTargeting,
+          userContext,
+        ),
+        this.campaignTargetingService.checkTimeTargeting(campaign.timeTargeting, userContext),
+        this.campaignTargetingService.checkContextualTargeting(
+          campaign.contextualTargeting,
+          adSlotContext,
+        ),
+        this.campaignTargetingService.checkBehavioralTargeting(
+          campaign.behavioralTargeting,
+          userContext,
+        ),
+        this.campaignTargetingService.checkFrequencyTargeting(
+          campaign.frequencyTargeting,
+          userContext,
+          campaign.id,
+        ),
+      ]);
 
-      return currentCount < maxImpressions;
-    } catch (error) {
-      this.logger.error('Frequency check failed', {
-        error: error.message,
-        userId,
-        campaignId,
+      const allRulesPassed = checks.every((result) => result === true);
+
+      this.logger.debug('Targeting rules evaluated', {
+        campaignId: campaign.id,
+        rulesCount: checks.length,
+        allPassed: allRulesPassed,
       });
-      return true; // Fail open
+
+      return allRulesPassed;
+    } catch (error) {
+      this.logger.error('Targeting rule evaluation failed', {
+        error: error.message,
+        campaignId: campaign.id,
+      });
+      return false;
     }
-  }
-
-  private getWindowHours(window: string): number {
-    const windowMap = {
-      HOURLY: 1,
-      DAILY: 24,
-      WEEKLY: 168,
-      MONTHLY: 720,
-    };
-    return windowMap[window] || 24;
-  }
-
-  /**
-   * Calculate distance between two GPS coordinates
-   */
-  private calculateDistance(
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number,
-  ): number {
-    const R = 6371; // Earth's radius in kilometers
-    const dLat = this.toRadians(lat2 - lat1);
-    const dLon = this.toRadians(lon2 - lon1);
-
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(this.toRadians(lat1)) *
-        Math.cos(this.toRadians(lat2)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
-
-  private toRadians(degrees: number): number {
-    return degrees * (Math.PI / 180);
   }
 }

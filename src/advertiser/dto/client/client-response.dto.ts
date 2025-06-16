@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { CompanySize } from '@prisma/client';
 
-export class ClientResponseDto {
+export class AdvertiserClientResponseDto {
     @ApiProperty({ description: 'Client ID' })
     id: string;
 

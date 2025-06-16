@@ -1,11 +1,15 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { RedisService } from '../../redis/redis.service';
-import { CampaignEligibilityService } from './campaign-eligibility.service';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { AuctionStatusDto } from '../dto';
-import { REDIS_KEYS } from '../../redis/constants/redis-keys';
-import { BidEvaluationService } from './bid-evalutation.service';
-import { ConfigService } from '@nestjs/config';
+import { BidRequestWithAuction } from '../types/bid-request.types';
+import { CAMPAIGN_KEYS, RTB_CACHE_TTL, RTB_KEYS } from '../constants/cache-keys';
+import { RedisService } from 'src/redis/redis.service';
+import { CampaignEligibilityService } from './campaign-eligibility.service';
+import { CampaignWithTargeting } from '../types/campaign.types';
+import { BidEvaluationService } from './bid-evaluation.service';
+import { CreativeWithTemplate } from '../types/creative.types';
+import { CreatedBidResponse } from '../types/bid-response.types';
+import { AuctionBidResult } from '../types/auction-result.types';
 
 @Injectable()
 export class AuctionService {
@@ -16,222 +20,10 @@ export class AuctionService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly campaignEligibility: CampaignEligibilityService,
-    private readonly bidEvaluation: BidEvaluationService,
-    private readonly config: ConfigService,
+    private readonly bidEvaluationService: BidEvaluationService,
   ) {
-    this.trackingBaseUrl =
-      this.config.get<string>('template.url') ||
+    this.trackingBaseUrl = process.env.TRACKING_URL ||
       'https://track.oceanadtech.com';
-    this.logger.log('Auction Service initialized - Phase 3 Complete');
-  }
-
-  async findEligibleCampaigns(bidRequest: any): Promise<any[]> {
-    // const cacheKey = `eligible:${bidRequest.inventoryId}:${bidRequest.userContext.deviceType}`;
-    const cacheKey = REDIS_KEYS.ELIGIBLE_CAMPAIGNS(
-      bidRequest.inventoryId,
-      bidRequest.userContext.deviceType,
-    );
-
-    try {
-      // 1. Check Redis cache first
-      const cached = await this.redis.get<string>(cacheKey);
-      if (cached) {
-        this.logger.debug('Campaign eligibility cache hit', {
-          inventoryId: bidRequest.inventoryId,
-        });
-        return JSON.parse(cached);
-      }
-
-      this.logger.debug('Campaign eligibility cache miss, querying database', {
-        inventoryId: bidRequest.inventoryId,
-      });
-
-      // 2. Get eligible campaigns from database with targeting rules
-      const eligibleCampaigns =
-        await this.campaignEligibility.getEligibleCampaigns(
-          bidRequest.inventoryId,
-          bidRequest.userContext,
-          bidRequest.adSlotContext,
-        );
-
-      // 3. Cache results for 5 minutes
-      await this.redis.set(cacheKey, JSON.stringify(eligibleCampaigns), 300);
-
-      return eligibleCampaigns;
-    } catch (error) {
-      this.logger.error('Failed to find eligible campaigns', {
-        error: error.message,
-        inventoryId: bidRequest.inventoryId,
-      });
-      return [];
-    }
-  }
-
-  async generateBidResponses(
-    bidRequest: any,
-    eligibleCampaigns: any[],
-    auctionId: string,
-  ): Promise<any[]> {
-    const bidPromises = eligibleCampaigns.map(async (campaign) => {
-      try {
-        // 1. Check budget availability
-        // const hasBudget =
-        //   await this.campaignEligibility.checkBudgetAvailability(campaign.id);
-        // if (!hasBudget) {
-        //   this.logger.debug('Campaign excluded due to budget exhaustion', {
-        //     campaignId: campaign.id,
-        //   });
-        //   return null;
-        // }
-
-        // 2. Calculate bid price
-        const bidPrice = await this.bidEvaluation.calculateBidPrice(
-          campaign,
-          bidRequest,
-        );
-
-        // 3. Apply floor price check
-        if (bidRequest.floorPrice && bidPrice < bidRequest.floorPrice) {
-          this.logger.debug('Bid below floor price', {
-            campaignId: campaign.id,
-            bidPrice,
-            floorPrice: bidRequest.floorPrice,
-          });
-          return null;
-        }
-
-        // 4. Select appropriate creative
-        const creative = await this.selectCreative(
-          campaign,
-          bidRequest.adSlotContext,
-        );
-        if (!creative) {
-          this.logger.debug('No matching creative found', {
-            campaignId: campaign.id,
-          });
-          return null;
-        }
-
-        // 5. Create bid response
-        return await this.createBidResponse(
-          bidRequest,
-          campaign,
-          creative,
-          bidPrice,
-          auctionId,
-        );
-      } catch (error) {
-        this.logger.warn('Failed to generate bid for campaign', {
-          campaignId: campaign.id,
-          error: error.message,
-        });
-        return null;
-      }
-    });
-
-    const bidResults = await Promise.all(bidPromises);
-    return bidResults.filter((bid) => bid !== null);
-  }
-
-  async runAuction(
-    bidResponses: any[],
-    bidRequest: any,
-  ): Promise<{
-    winner: any;
-    winnerId: string;
-    finalPrice: number;
-    auctionType: string;
-    auctionId: string;
-    auctionStatus: string;
-  }> {
-    // Sort bids by price (descending)
-    const sortedBids = bidResponses.sort(
-      (a, b) => Number(b.bidPrice) - Number(a.bidPrice),
-    );
-
-    const winningBid = sortedBids[0];
-    const auctionType = bidRequest.auctionType || 'SECOND_PRICE';
-
-    let finalPrice: number;
-
-    if (auctionType === 'FIRST_PRICE') {
-      // Winner pays their bid
-      finalPrice = Number(winningBid.bidPrice);
-    } else {
-      // Second-price auction: winner pays second highest + $0.01
-      if (sortedBids.length > 1) {
-        finalPrice = Number(sortedBids[1].bidPrice) + 0.01;
-      } else {
-        // Only one bid, use floor price or minimum
-        finalPrice = bidRequest.floorPrice
-          ? Math.max(Number(bidRequest.floorPrice), 0.01)
-          : 0.01;
-      }
-    }
-
-    this.logger.debug('Auction completed', {
-      auctionType,
-      winningBid: Number(winningBid.bidPrice),
-      finalPrice,
-      totalBids: bidResponses.length,
-    });
-
-    winningBid.finalPrice = finalPrice;
-    winningBid.status = 'WON';
-
-    this.redis.set(
-      `auction:latest_winner:${this.getFormattedDate()}`,
-      {
-        winningBidId: winningBid.id,
-        campaignId: winningBid.campaignId,
-        creativeId: winningBid.creativeId,
-        bidPrice: winningBid.bidPrice,
-        winningPrice: finalPrice,
-        auctionType,
-        bidStatus: 'WON',
-        totalBids: bidResponses.length,
-        validBids: bidResponses.length,
-        auctionId: bidRequest.auctionId,
-      },
-      60 * 60 * 24,
-    );
-    // Update all other bids to LOST
-    await this.updateBidResponseStatuses(
-      bidResponses,
-      winningBid.id,
-      finalPrice,
-    );
-    this.logger.debug('Bid Request Timestamp', {
-      requestTimestamp: bidRequest.requestTimestamp,
-      responseTimestamp: Date.now(),
-      requestTimestampType: typeof bidRequest.requestTimestamp,
-      converted: new Date(bidRequest.requestTimestamp).getTime(),
-    });
-    winningBid.responseLatency =
-      Date.now() - new Date(bidRequest.requestTimestamp).getTime();
-    winningBid.processedAt = Date.now();
-    return {
-      winner: winningBid,
-      winnerId: winningBid.id,
-      finalPrice,
-      auctionType,
-      auctionId: bidRequest.auctionId,
-      auctionStatus: 'COMPLETED',
-    };
-  }
-  async getFormattedDate() {
-    const now = new Date();
-
-    const pad = (num) => String(num).padStart(2, '0');
-
-    const day = pad(now.getDate());
-    const month = pad(now.getMonth() + 1); // Months are 0-indexed
-    const year = now.getFullYear();
-    const hours = pad(now.getHours());
-    const minutes = pad(now.getMinutes());
-    const seconds = pad(now.getSeconds());
-
-    return `${day}/${month}/${year}_${hours}:${minutes}:${seconds}`;
   }
 
   async getAuctionStatus(requestId: string): Promise<AuctionStatusDto | null> {
@@ -331,10 +123,118 @@ export class AuctionService {
     }
   }
 
+
+  async findEligibleCampaigns(bidRequest: BidRequestWithAuction): Promise<CampaignWithTargeting[]> {
+    const cacheKey = CAMPAIGN_KEYS.ELIGIBLE_CAMPAIGNS(
+      bidRequest.inventoryId,
+      bidRequest.userContext.deviceType,
+    );
+
+    try {
+      // 1. Check Redis cache first
+      const cached = await this.redis.get<string>(cacheKey);
+      if (cached) {
+        this.logger.debug('Campaign eligibility cache hit', {
+          inventoryId: bidRequest.inventoryId,
+        });
+        return JSON.parse(cached);
+      }
+
+      this.logger.debug('Campaign eligibility cache miss, querying database', {
+        inventoryId: bidRequest.inventoryId,
+      });
+
+      // 2. Get eligible campaigns from database with targeting rules
+      const eligibleCampaigns =
+        await this.campaignEligibility.getEligibleCampaigns(
+          bidRequest.inventoryId,
+          bidRequest.userContext,
+          bidRequest.adSlotContext,
+        );
+
+      // 3. Cache results for 5 minutes
+      await this.redis.set(cacheKey, JSON.stringify(eligibleCampaigns), RTB_CACHE_TTL.CAMPAIGN_ELIGIBILITY);
+
+      return eligibleCampaigns;
+    } catch (error) {
+      this.logger.error('Failed to find eligible campaigns', {
+        error: error.message,
+        inventoryId: bidRequest.inventoryId,
+      });
+      return [];
+    }
+  }
+
+  async generateBidResponses(
+    bidRequest: BidRequestWithAuction,
+    eligibleCampaigns: CampaignWithTargeting[],
+    auctionId: string,
+  ): Promise<CreatedBidResponse[]> {
+    const bidPromises = eligibleCampaigns.map(async (campaign) => {
+      try {
+        // 1. Check budget availability
+        const hasBudget =
+          await this.campaignEligibility.checkBudgetAvailability(campaign.id);
+        if (!hasBudget) {
+          this.logger.debug('Campaign excluded due to budget exhaustion', {
+            campaignId: campaign.id,
+          });
+          return null;
+        }
+
+        // 2. Calculate bid price
+        const bidPrice = await this.bidEvaluationService.calculateBidPrice(
+          campaign,
+          bidRequest,
+        );
+
+        // 3. Apply floor price check
+        if (bidRequest.floorPrice && bidPrice < bidRequest.floorPrice) {
+          this.logger.debug('Bid below floor price', {
+            campaignId: campaign.id,
+            bidPrice,
+            floorPrice: bidRequest.floorPrice,
+          });
+          return null;
+        }
+
+        // 4. Select appropriate creative
+        const creative = await this.selectCreative(
+          campaign,
+          bidRequest.adSlotContext,
+        );
+        if (!creative) {
+          this.logger.debug('No matching creative found', {
+            campaignId: campaign.id,
+          });
+          return null;
+        }
+
+        // 5. Create bid response
+        return await this.createBidResponse(
+          bidRequest,
+          campaign,
+          creative,
+          bidPrice,
+          auctionId,
+        );
+      } catch (error) {
+        this.logger.warn('Failed to generate bid for campaign', {
+          campaignId: campaign.id,
+          error: error.message,
+        });
+        return null;
+      }
+    });
+
+    const bidResults = await Promise.all(bidPromises);
+    return bidResults.filter((bid) => bid !== null);
+  }
+
   private async selectCreative(
-    campaign: any,
+    campaign: CampaignWithTargeting,
     adSlotContext: any,
-  ): Promise<any> {
+  ): Promise<CreativeWithTemplate> {
     try {
       // Find creative that matches ad slot requirements
       const creative = await this.prisma.creative.findFirst({
@@ -363,9 +263,9 @@ export class AuctionService {
   }
 
   private async createBidResponse(
-    bidRequest: any,
-    campaign: any,
-    creative: any,
+    bidRequest: BidRequestWithAuction,
+    campaign: CampaignWithTargeting,
+    creative: CreativeWithTemplate,
     bidPrice: number,
     auctionId: string,
   ): Promise<any> {
@@ -378,13 +278,13 @@ export class AuctionService {
       height: bidRequest.adSlotContext.height,
       format: bidRequest.adSlotContext.format,
     });
+
     this.logger.debug('Creating bid response', {
-      bidRequest,
-      campaign,
-      creative,
-      bidPrice,
-      auctionId,
+      id: bidRequest.id,
     });
+
+    // Ask mit about this, store the admarkup, impression and click urls in the bid response for the winner only.
+    // Not for all the bids. (This is to avoid storing unnecessary data for lost bids)
     return await this.prisma.bidResponse.create({
       data: {
         bidRequestId: bidRequest.id,
@@ -395,9 +295,9 @@ export class AuctionService {
         currency: 'INR',
         status: 'PENDING',
         adMarkup,
-        // finalPrice:
         impressionUrls: trackingUrls.impression,
         clickUrls: trackingUrls.click,
+        landingUrl: creative.landingUrl,
       },
     });
   }
@@ -562,95 +462,131 @@ export class AuctionService {
         `.trim();
   }
 
-  private async handleNoBidsAuction(
-    bidRequest: any,
-    auctionId: string,
-    startTime: number,
-  ): Promise<any> {
-    const processingTime = Date.now() - startTime;
+  async getFormattedDate() {
+    const now = new Date();
 
-    await this.prisma.auctionLog.create({
-      data: {
-        bidRequestId: bidRequest.id,
-        auctionType: bidRequest.auctionType || 'SECOND_PRICE',
-        status: 'NO_BIDS',
-        totalBids: 0,
-        validBids: 0,
-        auctionDuration: processingTime,
-        startedAt: new Date(startTime),
-        completedAt: new Date(),
-      },
+    const pad = (num) => String(num).padStart(2, '0');
+
+    const day = pad(now.getDate());
+    const month = pad(now.getMonth() + 1); // Months are 0-indexed
+    const year = now.getFullYear();
+    const hours = pad(now.getHours());
+    const minutes = pad(now.getMinutes());
+    const seconds = pad(now.getSeconds());
+
+    return `${day}/${month}/${year}_${hours}:${minutes}:${seconds}`;
+  }
+
+  async runAuction(
+    bidResponses: CreatedBidResponse[],
+    bidRequest: BidRequestWithAuction,
+  ): Promise<AuctionBidResult> {
+    // Sort bids by price (descending)
+    const sortedBids = bidResponses.sort(
+      (a, b) => Number(b.bidPrice) - Number(a.bidPrice),
+    );
+
+    const winningBid = sortedBids[0];
+    const auctionType = bidRequest.auctionType || 'SECOND_PRICE';
+
+    let finalPrice: number;
+
+    if (auctionType === 'FIRST_PRICE') {
+      // Winner pays their bid
+      finalPrice = Number(winningBid.bidPrice);
+    } else {
+      // Second-price auction: winner pays second highest + $0.01
+      if (sortedBids.length > 1) {
+        finalPrice = Number(sortedBids[1].bidPrice) + 0.01;
+      } else {
+        // Only one bid, use floor price or minimum
+        finalPrice = bidRequest.floorPrice
+          ? Math.max(Number(bidRequest.floorPrice), 0.01)
+          : 0.01;
+      }
+    }
+
+    this.logger.debug('Auction completed', {
+      auctionType,
+      winningBid: Number(winningBid.bidPrice),
+      finalPrice,
+      totalBids: bidResponses.length,
     });
 
-    this.logger.log('Auction completed with no bids', {
-      auctionId,
-      processingTime: `${processingTime}ms`,
+    winningBid.finalPrice = finalPrice;
+    winningBid.status = 'WON';
+
+    const date = await this.getFormattedDate();
+
+    this.redis.setWinner(
+      RTB_KEYS.WINNER_BID_REQUEST(winningBid.campaignId, date),
+      JSON.stringify({
+        winningBidId: winningBid.id,
+        campaignId: winningBid.campaignId,
+        creativeId: winningBid.creativeId,
+        bidPrice: winningBid.bidPrice,
+        winningPrice: finalPrice,
+        auctionType,
+        bidStatus: 'WON',
+        totalBids: bidResponses.length,
+        validBids: bidResponses.length,
+        auctionId: bidRequest.auctionId,
+      }),
+      60 * 60 * 24,
+    );
+
+    // Update all other bids to LOST
+    await this.updateBidResponseStatuses(
+      bidResponses,
+      winningBid.id,
+      finalPrice,
+    );
+
+    this.logger.debug('Bid Request Timestamp', {
+      requestTimestamp: bidRequest.requestTimestamp,
+      responseTimestamp: Date.now(),
+      requestTimestampType: typeof bidRequest.requestTimestamp,
+      converted: new Date(bidRequest.requestTimestamp).getTime(),
     });
+
+    winningBid.responseLatency =
+      Date.now() - new Date(bidRequest.requestTimestamp).getTime();
+
+    winningBid.processedAt = new Date();
 
     return {
-      auctionId,
-      winner: null,
-      totalBids: 0,
-      processingTime,
+      winner: {
+        id: winningBid.id,
+        campaignId: winningBid.campaignId,
+        creativeId: winningBid.creativeId,
+        advertiserId: winningBid.advertiserId,
+        bidPrice: Number(winningBid.bidPrice),
+        finalPrice: Number(finalPrice),
+        status: 'WON',
+        responseLatency: winningBid.responseLatency,
+        processedAt: winningBid.processedAt?.getTime(),
+        currency: winningBid.currency,
+        adMarkup: winningBid.adMarkup,
+        impressionUrls: winningBid.impressionUrls,
+        clickUrls: winningBid.clickUrls,
+        landingUrl: winningBid.landingUrl,
+      },
+      winnerId: winningBid.id,
+      finalPrice,
+      auctionType,
+      auctionId: bidRequest.auctionId,
+      auctionStatus: 'COMPLETED',
+      totalBids: bidResponses.length,
+      validBids: bidResponses.length,
+      processingTime: winningBid.responseLatency,
+      originalBidRequest: bidRequest,
+      processedAt: winningBid.processedAt?.toISOString(),
+      floorPrice: bidRequest.floorPrice,
     };
   }
 
-  private async storeAuctionLog(
-    bidRequest: any,
-    auctionResult: any,
-    startTime: number,
-  ): Promise<void> {
-    const processingTime = Date.now() - startTime;
-
-    await this.prisma.auctionLog.create({
-      data: {
-        bidRequestId: bidRequest.id,
-        auctionType: auctionResult.auctionType,
-        floorPrice: bidRequest.floorPrice,
-        winningBidId: auctionResult.winnerId,
-        finalPrice: auctionResult.finalPrice,
-        totalBids: 1, // Will be updated with actual count
-        validBids: 1,
-        auctionDuration: processingTime,
-        status: 'COMPLETED',
-        startedAt: new Date(startTime),
-        completedAt: new Date(),
-      },
-    });
-  }
-
-  private async storeFailedAuctionLog(
-    bidRequest: any,
-    auctionId: string,
-    errorMessage: string,
-    startTime: number,
-  ): Promise<void> {
-    try {
-      const processingTime = Date.now() - startTime;
-
-      await this.prisma.auctionLog.create({
-        data: {
-          bidRequestId: bidRequest.id,
-          auctionType: bidRequest.auctionType || 'SECOND_PRICE',
-          status: 'ERROR',
-          totalBids: 0,
-          validBids: 0,
-          auctionDuration: processingTime,
-          startedAt: new Date(startTime),
-          errorMessage,
-          debugData: { auctionId },
-        },
-      });
-    } catch (logError) {
-      this.logger.error('Failed to store failed auction log', {
-        error: logError.message,
-        originalError: errorMessage,
-      });
-    }
-  }
-
   private async updateBidResponseStatuses(
-    bidResponses: any[],
+    bidResponses: CreatedBidResponse[],
     winnerId: string,
     finalPrice: number,
   ): Promise<void> {
@@ -683,37 +619,6 @@ export class AuctionService {
       this.logger.error('Failed to update bid response statuses', {
         error: error.message,
         winnerId,
-      });
-    }
-  }
-
-  private async updateCampaignSpend(
-    campaignId: string,
-    amount: number,
-  ): Promise<void> {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const spentKey = REDIS_KEYS.CAMPAIGN_BUDGET(campaignId, today);
-
-      // Atomically increment campaign spend
-      await this.redis.incrby(spentKey, Math.round(amount * 100)); // Store as cents
-
-      // Set expiration for end of day
-      const endOfDay = new Date();
-      endOfDay.setHours(23, 59, 59, 999);
-      const ttlSeconds = Math.floor((endOfDay.getTime() - Date.now()) / 1000);
-      await this.redis.expire(spentKey, ttlSeconds);
-
-      this.logger.debug('Campaign spend updated', {
-        campaignId,
-        amount,
-        date: today,
-      });
-    } catch (error) {
-      this.logger.error('Failed to update campaign spend', {
-        error: error.message,
-        campaignId,
-        amount,
       });
     }
   }

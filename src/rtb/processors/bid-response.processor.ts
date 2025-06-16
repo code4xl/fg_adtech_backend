@@ -1,361 +1,292 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { RedisService } from '../../redis/redis.service';
-import { RTBRedisService } from '../../redis/services/rtb-redis.service';
-import { KafkaService } from '../../kafka/kafka.service';
-import { ConfigService } from '@nestjs/config';
-import { REDIS_KEYS } from '../../redis/constants/redis-keys';
-import { kafkaTopics } from '../../kafka/constants/kafka.config';
-import { AuctionService } from '../services/auction.service';
-import RTBProducer from '../producer/rtb.producer';
+import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { KafkaService } from "src/kafka/kafka.service";
+import { PrismaService } from "src/prisma/prisma.service";
+import { RedisService } from "src/redis/redis.service";
+import { AuctionService } from "../services/auction.service";
+import AuctionProducer from "../producers/auction.producer";
+import { AuctionBidResult, CompleteAuctionResult, ErrorAuctionResult, HandleNoBidsResult } from "../types/auction-result.types";
+import { WinningBidResponse } from "../types/bid-response.types";
+import { RTB_CACHE_TTL, RTB_KEYS } from "../constants/cache-keys";
 
 @Injectable()
 export class BidResponseProcessor {
-  private readonly logger = new Logger(BidResponseProcessor.name);
-  private readonly trackingBaseUrl: string;
+    private readonly logger = new Logger(BidResponseProcessor.name);
+    private readonly trackingBaseUrl: string;
 
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly redis: RedisService,
-    private readonly rtbRedis: RTBRedisService,
-    private readonly kafka: KafkaService,
-    private readonly config: ConfigService,
-    private readonly auctionService: AuctionService,
-    private readonly rtbProducer: RTBProducer,
-  ) {
-    this.trackingBaseUrl =
-      this.config.get<string>('APP_URL') || 'https://track.oceanadtech.com';
-    this.logger.log('Bid Response Processor initialized - Phase 4');
-  }
-
-  async generateBidResponses(auctionResult: any): Promise<any[]> {
-    // Extract auction metadata with fallback handling
-
-    this.logger.debug(
-      'Generating bid responses mitt' +
-        JSON.stringify({
-          auctionResult: auctionResult,
-          auctionId: auctionResult.auctionId,
-          hasWinner: !!auctionResult.winner,
-          // status: auctionResult.auctionStatus,
-        }),
-    );
-
-    try {
-      // Handle different auction outcomes
-      switch (auctionResult.auctionStatus) {
-        case 'NO_BIDS':
-          return await this.generateNoBidsResponse(auctionResult);
-
-        case 'ERROR':
-          return await this.generateErrorResponse(auctionResult);
-
-        default:
-          return await this.generateCompletedAuctionResponses(auctionResult);
-      }
-    } catch (error) {
-      this.logger.error('Failed to generate bid responses', {
-        error: error,
-        auctionId: auctionResult.auctionId,
-      });
-      throw error;
-    }
-  }
-
-  async storeBidResponses(bidResponses: any[]): Promise<void> {
-    try {
-      if (bidResponses.length === 0) {
-        this.logger.debug('No bid responses to store');
-        return;
-      }
-
-      // Store each response by its request ID
-      const storePromises = bidResponses.map(async (response) => {
-        const cacheKey = REDIS_KEYS.AUCTION_RESULT(response.requestId);
-        const ttl = 3600; // 1 hour TTL
-
-        await this.redis.set(cacheKey, JSON.stringify(response), ttl);
-
-        this.logger.debug('Bid response cached', {
-          requestId: response.requestId,
-          status: response.status,
-        });
-      });
-
-      await Promise.all(storePromises);
-
-      this.logger.log('✅ Bid responses stored in cache', {
-        count: bidResponses.length,
-      });
-    } catch (error) {
-      this.logger.error('Failed to store bid responses', {
-        error: error.message,
-        responseCount: bidResponses.length,
-      });
-      throw error;
-    }
-  }
-
-  async sendWinNotifications(auctionResult: any): Promise<void> {
-    if (!auctionResult.winner) {
-      this.logger.debug('No winner to notify', {
-        auctionId: auctionResult.auctionId,
-      });
-      return;
+    constructor(
+        private readonly config: ConfigService,
+        private readonly auctionService: AuctionService,
+        private readonly redis: RedisService
+    ) {
+        this.trackingBaseUrl =
+            this.config.get<string>('APP_URL') || 'https://track.oceanadtech.com';
+        this.logger.log('Bid Response Processor initialized - Phase 4');
     }
 
-    try {
-      const winNotification = await this.generateWinNotification(auctionResult);
+    // Deprecated: This method is no longer used
+    // async generateBidResponses(auctionResult: CompleteAuctionResult): Promise<WinningBidResponse[] | HandleNoBidsResult[] | ErrorAuctionResult[]> {
+    //     this.logger.debug(
+    //         'Generating bid responses' +
+    //         JSON.stringify({
+    //             // auctionResult: auctionResult,
+    //             auctionId: auctionResult.auctionId,
+    //             hasWinner: !!auctionResult.winner,
+    //             // status: auctionResult.auctionStatus,
+    //         }),
+    //     );
 
-      // Send notification asynchronously via Kafka
-      await this.kafka.publish('win-notifications', {
-        key: auctionResult.winner.id,
-        value: winNotification,
-      });
+    //     try {
+    //         // Handle different auction outcomes
+    //         switch (auctionResult.auctionStatus) {
+    //             case 'NO_BIDS':
+    //                 return await this.generateNoBidsResponse(auctionResult);
 
-      // Update bid response with notification sent flag
-      await this.updateBidResponseNotificationStatus(
-        auctionResult.winner.id,
-        true,
-      );
+    //             case 'ERROR':
+    //                 return await this.generateErrorResponse(auctionResult);
 
-      this.logger.log('✅ Win notification sent', {
-        auctionId: auctionResult.auctionId,
-        winnerId: auctionResult.winner.id,
-        finalPrice: auctionResult.finalPrice,
-      });
-    } catch (error) {
-      this.logger.error('Failed to send win notification', {
-        error: error.message,
-        auctionId: auctionResult.auctionId,
-        winnerId: auctionResult.winner?.id,
-      });
-      // Don't throw - notification failure shouldn't block auction
-    }
-  }
+    //             default:
+    //                 return await this.generateCompletedAuctionResponses(auctionResult);
+    //         }
+    //     } catch (error) {
+    //         this.logger.error('Failed to generate bid responses', {
+    //             error: error,
+    //             auctionId: auctionResult.auctionId,
+    //         });
+    //         throw error;
+    //     }
+    // }
 
-  private async generateCompletedAuctionResponses(
-    auctionResult: any,
-  ): Promise<any[]> {
-    const responses = [];
-    this.logger.debug('Generating responses for completed auction', {
-      auctionResult,
-    });
-    if (auctionResult.winner) {
-      // Generate winning bid response
-      const winningResponse =
-        await this.generateWinningBidResponse(auctionResult);
-      responses.push(winningResponse);
+    async generateCompletedAuctionResponses(
+        auctionResult: AuctionBidResult,
+    ): Promise<WinningBidResponse[]> {
+        const responses: WinningBidResponse[] = [];
 
-      // Update campaign spend atomically - budget management error
-      //   await this.updateCampaignSpend(
-      //     auctionResult.winner.campaignId,
-      //     auctionResult.finalPrice,
-      //   );
-    }
-
-    // Generate responses for losing bids (if any)
-    if (auctionResult.losingBids && auctionResult.losingBids.length > 0) {
-      const losingResponses =
-        await this.generateLosingBidResponses(auctionResult);
-      responses.push(...losingResponses);
-    }
-
-    return responses;
-  }
-
-  private async generateWinningBidResponse(auctionResult: any): Promise<any> {
-    const winner = auctionResult.winner;
-    const creativeId = winner.creativeId;
-    const auctionId =
-      auctionResult.auctionId ||
-      auctionResult.originalBidRequest.auctionId ||
-      auctionResult.originalBidRequest.bidRequest.auctionId;
-    this.logger.debug('Generating winning bid response', {
-      auctionId,
-      winnerId: winner.id,
-      finalPrice: winner.finalPrice,
-      creativeId,
-      auctionResult: auctionResult,
-      adSlotContext:
-        auctionResult.originalRequest.externalRequestId ||
-        auctionResult.originalBidRequest.bidRequest?.adSlotContext,
-    });
-    // Use auction service for tracking URLs
-    const trackingUrls = this.auctionService.generateTrackingUrls(
-      auctionId,
-      winner.id,
-    );
-
-    // Use auction service for ad markup
-    const adMarkup = this.auctionService.generateAdMarkup(
-      creativeId,
-      trackingUrls,
-      {
-        width:
-          auctionResult.originalBidRequest.adSlotContext.width ||
-          auctionResult.originalBidRequest.bidRequest?.adSlotContext.width,
-        height:
-          auctionResult.originalBidRequest.adSlotContext.height ||
-          auctionResult.originalBidRequest.bidRequest?.adSlotContext.height,
-        format:
-          auctionResult.originalBidRequest.adSlotContext.format ||
-          auctionResult.originalBidRequest.bidRequest?.adSlotContext.format,
-      },
-    );
-
-    return {
-      requestId:
-        auctionResult.originalBidRequest.externalRequestId ||
-        auctionResult.originalBidRequest.bidRequest.externalRequestId,
-      status: 'COMPLETED',
-      winningBid: {
-        price: winner.finalPrice,
-        currency: winner.currency || 'INR',
-        campaignId: winner.campaignId,
-        creativeId: winner.creativeId,
-        adMarkup,
-        impressionUrls: trackingUrls.impression,
-        clickUrls: trackingUrls.click,
-        landingUrl: 'atharva.temp',
-      },
-      auctionData: {
-        totalBids: auctionResult.totalBids || 1,
-        validBids: auctionResult.validBids || 1,
-        auctionDuration: `${auctionResult.processingTime || 0}ms`,
-        timestamp: new Date().toISOString(),
-        floorPrice: auctionResult.floorPrice,
-      },
-    };
-  }
-
-  private async generateLosingBidResponses(auctionResult: any): Promise<any[]> {
-    return auctionResult.losingBids.map((losingBid) => ({
-      requestId:
-        auctionResult.originalRequest.externalRequestId ||
-        auctionResult.originalRequest.bidRequest.externalRequestId,
-      status: 'lost',
-      bidId: losingBid.id,
-      bidPrice: losingBid.bidPrice,
-      message: 'Bid did not win auction',
-    }));
-  }
-
-  private async generateNoBidsResponse(auctionResult: any): Promise<any[]> {
-    return [
-      {
-        requestId:
-          auctionResult.originalRequest?.externalRequestId ||
-          auctionResult.originalRequest.bidRequest.externalRequestId ||
-          'unknown',
-        status: 'no_bids',
-        message: auctionResult.message || 'No eligible campaigns found',
-        auctionData: {
-          totalBids: 0,
-          validBids: 0,
-          auctionDuration: `${auctionResult.processingTime || 0}ms`,
-          timestamp: new Date().toISOString(),
-        },
-      },
-    ];
-  }
-
-  private async generateErrorResponse(auctionResult: any): Promise<any[]> {
-    return [
-      {
-        requestId:
-          auctionResult.originalRequest?.externalRequestId ||
-          auctionResult.originalRequest.bidRequest.externalRequestId ||
-          'unknown',
-        status: 'error',
-        errorMessage: auctionResult.error || 'Auction processing failed',
-        auctionData: {
-          totalBids: 0,
-          validBids: 0,
-          auctionDuration: `${auctionResult.processingTime || 0}ms`,
-          timestamp: new Date().toISOString(),
-        },
-      },
-    ];
-  }
-
-  private async generateWinNotification(auctionResult: any): Promise<any> {
-    return {
-      bidId: auctionResult.winner.id,
-      auctionId: auctionResult.auctionId,
-      campaignId: auctionResult.winner.campaignId,
-      creativeId: auctionResult.winner.creativeId,
-      advertiserId: auctionResult.winner.advertiserId,
-      winPrice: auctionResult.finalPrice,
-      currency: auctionResult.winner.currency || 'INR',
-      timestamp: new Date().toISOString(),
-      adMarkup: auctionResult.adMarkup || '',
-      impressionUrls: auctionResult.trackingUrls?.impression || [],
-      clickUrls: auctionResult.trackingUrls?.click || [],
-    };
-  }
-
-  private async updateBidResponseNotificationStatus(
-    bidResponseId: string,
-    notificationSent: boolean,
-  ): Promise<void> {
-    try {
-      // This would update the database record
-      // await this.prisma.bidResponse.update({
-      //     where: { id: bidResponseId },
-      //     data: { winNotificationSent: notificationSent }
-      // });
-
-      this.logger.debug('Bid response notification status updated', {
-        bidResponseId,
-        notificationSent,
-      });
-    } catch (error) {
-      this.logger.warn('Failed to update notification status', {
-        error: error.message,
-        bidResponseId,
-      });
-    }
-  }
-
-  private async updateCampaignSpend(
-    campaignId: string,
-    amount: number,
-  ): Promise<void> {
-    try {
-      const spendResult = await this.rtbRedis.incrementCampaignSpend(
-        campaignId,
-        amount,
-      );
-
-      if (spendResult.success) {
-        this.logger.debug('Campaign spend updated', {
-          campaignId,
-          amount,
-          newTotal: spendResult.newTotal,
-          remainingBudget: spendResult.remainingBudget,
+        this.logger.debug('Generating responses for completed auction', {
+            auctionId: auctionResult.auctionId,
+            hasWinner: !!auctionResult.winner,
+            finalPrice: auctionResult.finalPrice
         });
 
-        // Check if budget is nearly exhausted
-        if (spendResult.remainingBudget < amount * 10) {
-          await this.rtbProducer.sendBudgetWarning(
-            campaignId,
-            spendResult.remainingBudget,
-          );
+        if (auctionResult.winner) {
+            // Generate winning bid response
+            const winningResponse = await this.generateWinningBidResponse(auctionResult);
+            responses.push(winningResponse);
+
+            // Update campaign spend atomically - budget management error
+            // await this.updateCampaignSpend(
+            //     auctionResult.winner.campaignId,
+            //     auctionResult.finalPrice,
+            // );
         }
-      } else {
-        this.logger.warn('Campaign spend update failed - budget exhausted', {
-          campaignId,
-          requestedAmount: amount,
-          remainingBudget: spendResult.remainingBudget,
-        });
-      }
-    } catch (error) {
-      this.logger.error('Failed to update campaign spend', {
-        error: error.message,
-        campaignId,
-        amount,
-      });
+
+        return responses;
     }
-  }
+
+    // Deprecated: This method is no longer used
+    // public async generateWinningBidResponse(auctionResult: AuctionBidResult): Promise<WinningBidResponse> {
+    //     const winner = auctionResult.winner;
+    //     const creativeId = winner.creativeId;
+    //     const auctionId = auctionResult.auctionId;
+
+    //     this.logger.debug('Generating winning bid response', {
+    //         auctionId,
+    //         winnerId: winner.id,
+    //         finalPrice: winner.finalPrice,
+    //         creativeId,
+    //         auctionResult,
+    //         adSlotContext: auctionResult.originalBidRequest.adSlotContext,
+    //     });
+    //     // Use auction service for tracking URLs
+    //     const trackingUrls = this.auctionService.generateTrackingUrls(
+    //         auctionId,
+    //         winner.id,
+    //     );
+    //     const adSlotContextData = auctionResult.originalBidRequest.adSlotContext;
+
+    //     // Use auction service for ad markup
+    //     const adMarkup = this.auctionService.generateAdMarkup(
+    //         creativeId,
+    //         trackingUrls,
+    //         {
+    //             width: adSlotContextData.width,
+    //             height: adSlotContextData.height,
+    //             format: adSlotContextData.format,
+    //         },
+    //     );
+
+    //     return {
+    //         requestId: auctionResult.originalBidRequest.externalRequestId,
+    //         status: 'COMPLETED',
+    //         winningBid: {
+    //             price: winner.finalPrice,
+    //             currency: winner.currency || 'INR',
+    //             campaignId: winner.campaignId,
+    //             creativeId: winner.creativeId,
+    //             adMarkup,
+    //             impressionUrls: trackingUrls.impression,
+    //             clickUrls: trackingUrls.click,
+    //             landingUrl: winner.landingUrl,
+    //         },
+    //         auctionData: {
+    //             totalBids: auctionResult.totalBids || 1,
+    //             validBids: auctionResult.validBids || 1,
+    //             auctionDuration: `${auctionResult.processingTime || 0}ms`,
+    //             timestamp: new Date().toISOString(),
+    //             floorPrice: auctionResult.floorPrice,
+    //         },
+    //     };
+    // }
+
+    private async generateWinningBidResponse(auctionResult: AuctionBidResult): Promise<WinningBidResponse> {
+        const winner = auctionResult.winner;
+        const creativeId = winner.creativeId;
+        const auctionId = auctionResult.auctionId;
+
+        this.logger.debug('Generating winning bid response', {
+            auctionId,
+            winnerId: winner.id,
+            finalPrice: auctionResult.finalPrice, // Use finalPrice from auction result
+            creativeId,
+            adSlotContext: auctionResult.originalBidRequest.adSlotContext,
+        });
+
+        // Use auction service for tracking URLs
+        const trackingUrls = this.auctionService.generateTrackingUrls(
+            auctionId,
+            winner.id,
+        );
+        const adSlotContextData = auctionResult.originalBidRequest.adSlotContext;
+
+        // Use auction service for ad markup
+        const adMarkup = this.auctionService.generateAdMarkup(
+            creativeId,
+            trackingUrls,
+            {
+                width: adSlotContextData.width,
+                height: adSlotContextData.height,
+                format: adSlotContextData.format,
+            },
+        );
+
+        return {
+            requestId: auctionResult.originalBidRequest.externalRequestId,
+            status: 'COMPLETED',
+            winningBid: {
+                price: auctionResult.finalPrice, // Type-safe access to finalPrice
+                currency: winner.currency || 'INR',
+                campaignId: winner.campaignId,
+                creativeId: winner.creativeId,
+                adMarkup,
+                impressionUrls: trackingUrls.impression,
+                clickUrls: trackingUrls.click,
+                landingUrl: winner.landingUrl,
+            },
+            auctionData: {
+                totalBids: auctionResult.totalBids || 1,
+                validBids: auctionResult.validBids || 1,
+                auctionDuration: `${auctionResult.processingTime || 0}ms`,
+                timestamp: new Date().toISOString(),
+                floorPrice: auctionResult.floorPrice,
+            },
+        };
+    }
+
+    async generateNoBidsResponse(auctionResult: HandleNoBidsResult): Promise<HandleNoBidsResult[]> {
+        this.logger.debug('Generating no bids response', {
+            auctionId: auctionResult.auctionId,
+            totalBids: auctionResult.totalBids,
+            processingTime: auctionResult.processingTime
+        });
+
+        return [
+            {
+                auctionId: auctionResult.auctionId,
+                auctionStatus: 'NO_BIDS',
+                totalBids: auctionResult.totalBids || 0,
+                validBids: auctionResult.validBids || 0,
+                processingTime: auctionResult.processingTime || 0,
+                originalBidRequest: auctionResult.originalBidRequest,
+                processedAt: new Date().toISOString(),
+                winner: null,
+                auctionType: auctionResult.auctionType || 'SECOND_PRICE',
+            },
+        ];
+    }
+
+    async generateErrorResponse(auctionResult: ErrorAuctionResult): Promise<ErrorAuctionResult[]> {
+        this.logger.error('Generating error response', {
+            auctionId: auctionResult.auctionId,
+            errorMessage: auctionResult.errorMessage,
+            errorCode: auctionResult.errorCode
+        });
+
+        return [
+            {
+                auctionId: auctionResult.auctionId,
+                auctionStatus: 'ERROR',
+                totalBids: auctionResult.totalBids || 0,
+                validBids: auctionResult.validBids || 0,
+                processingTime: auctionResult.processingTime || 0,
+                originalBidRequest: auctionResult.originalBidRequest,
+                processedAt: new Date().toISOString(),
+                winner: null,
+                errorMessage: auctionResult.errorMessage || 'Auction processing failed',
+                errorCode: auctionResult.errorCode || 'UNKNOWN_ERROR',
+                auctionType: auctionResult.auctionType || 'SECOND_PRICE',
+            },
+        ];
+    }
+
+    async storeBidResponses(bidResponses: WinningBidResponse[] | HandleNoBidsResult[] | ErrorAuctionResult[]): Promise<void> {
+        try {
+            this.logger.debug("In Storing Bid Responses", {
+                bidResponses,
+            });
+
+            if (bidResponses.length === 0) {
+                this.logger.debug('No bid responses to store');
+                return;
+            }
+
+            // Store each response by its request ID
+            const storePromises = bidResponses.map(async (response) => {
+                let requestId: string;
+                let status: string;
+
+                // Type-safe extraction of requestId and status
+                if ('requestId' in response) {
+                    // This is a WinningBidResponse
+                    requestId = response.requestId;
+                    status = response.status;
+                } else {
+                    // This is HandleNoBidsResult or ErrorAuctionResult
+                    requestId = response.originalBidRequest?.externalRequestId;
+                    status = response.auctionStatus;
+                }
+
+                const cacheKey = RTB_KEYS.AUCTION_RESULT(requestId);
+
+                await this.redis.set(cacheKey, JSON.stringify(response), RTB_CACHE_TTL.AUCTION_RESULT);
+
+                this.logger.debug('Bid response cached', {
+                    requestId,
+                    status,
+                    auctionId: 'auctionId' in response ? response.auctionId : 'N/A'
+                });
+            });
+
+            await Promise.all(storePromises);
+
+            this.logger.log('✅ Bid responses stored in cache', {
+                count: bidResponses.length,
+            });
+        } catch (error) {
+            this.logger.error('Failed to store bid responses', {
+                error: error.message,
+                responseCount: bidResponses.length,
+            });
+            throw error;
+        }
+    }
 }

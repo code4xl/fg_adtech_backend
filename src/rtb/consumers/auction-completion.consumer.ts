@@ -1,49 +1,44 @@
-// Create new file: src/rtb/consumers/auction-completion.consumer.ts
+import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import { KafkaService } from "src/kafka/kafka.service";
+import { PrismaService } from "src/prisma/prisma.service";
+import { kafkaTopics } from "../constants/kafka-topics";
+import { AuctionCompletionData } from "../types/auction-completion.type";
 
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
-import { KafkaService } from '../../kafka/kafka.service';
-import { kafkaTopics } from '../../kafka/constants/kafka.config';
-import { AuctionProcessor } from './auction.consumer'; // Your existing auction consumer
-import { PrismaService } from '../../prisma/prisma.service';
+export interface processAuctionCompletionPayload {
+    key: string;
+    value: AuctionCompletionData;
+    topic: string;
+    partition: number;
+    offset: string;
+}
 
 @Injectable()
-export class AuctionCompletionConsumer implements OnModuleInit {
-    private readonly logger = new Logger(AuctionCompletionConsumer.name);
+export class AuctionCompletionKafkaConsumer implements OnModuleInit {
+    private readonly logger = new Logger(AuctionCompletionKafkaConsumer.name);
 
     constructor(
         private readonly kafka: KafkaService,
         private readonly prisma: PrismaService,
-        private readonly auctionProcessor: AuctionProcessor,
-    ) {
-        this.logger.log('Auction Completion Consumer initialized');
-    }
+    ) { }
 
     async onModuleInit() {
         try {
-            this.logger.log('Subscribing to auction completion events...');
-
             await this.kafka.subscribe(
                 kafkaTopics.AUCTION_COMPLETION,
                 'auction-completion-processor',
                 this.processAuctionCompletion.bind(this),
             );
 
-            this.logger.log('✅ Subscribed to auction completion topic');
+            this.logger.log('Subscribed to auction completion topic');
         } catch (error) {
-            this.logger.error('❌ Failed to subscribe to auction completion', {
+            this.logger.error('Failed to subscribe to auction completion', {
                 error: error.message,
             });
             throw error;
         }
     }
 
-    private async processAuctionCompletion(payload: {
-        key: string;
-        value: any;
-        topic: string;
-        partition: number;
-        offset: string;
-    }): Promise<void> {
+    private async processAuctionCompletion(payload: processAuctionCompletionPayload): Promise<void> {
         const startTime = Date.now();
 
         try {
@@ -54,14 +49,14 @@ export class AuctionCompletionConsumer implements OnModuleInit {
 
             const auctionData = payload.value;
 
-            this.logger.debug("Auction Data payload", {
-                auctionData,
-            })
+            //   this.logger.debug('Auction Data payload', {
+            //     auctionData,
+            //   });
 
-            // Store auction log in database
+            //  Store auction log in database
             await this.storeAuctionLog(auctionData);
 
-            // Use existing auction processor for analytics
+            // Use existing auction processor for analytics  --> Aski mit about this 
             // await this.auctionProcessor.processAuctionCompletion(auctionData);
 
             const processingTime = Date.now() - startTime;
@@ -82,12 +77,12 @@ export class AuctionCompletionConsumer implements OnModuleInit {
         }
     }
 
-    private async storeAuctionLog(auctionData: any): Promise<void> {
+    private async storeAuctionLog(auctionData: AuctionCompletionData): Promise<void> {
         try {
             await this.prisma.auctionLog.create({
                 data: {
-                    bidRequestId: auctionData.requestId,
-                    auctionType: auctionData.auctionType || 'SECOND_PRICE',
+                    bidRequestId: auctionData.bidRequest.id,
+                    auctionType: auctionData.auctionType,
                     floorPrice: auctionData.floorPrice,
                     winningBidId: auctionData.winner?.id,
                     finalPrice: auctionData.finalPrice,

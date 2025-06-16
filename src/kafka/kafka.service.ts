@@ -1,7 +1,7 @@
 // src/kafka/kafka.service.ts
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Kafka, Producer, Consumer, EachMessagePayload } from 'kafkajs';
-import { getKafkaConfig, kafkaTopics } from './constants/kafka.config';
+import { getKafkaConfig } from './constants/kafka.config';
 import { ConfigService } from '@nestjs/config';
 import { WithRetry } from 'src/common/resilience/retry.decorator';
 

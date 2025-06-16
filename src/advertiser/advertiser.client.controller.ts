@@ -25,7 +25,7 @@ import {
 } from 'src/common/decorators/swagger.decorator';
 import { AssignCampaignsDto } from './dto/client/assign-campaign.dto';
 import { AdvertiserClientService } from './advertiser.client.service';
-import { ClientResponseDto } from './dto/client/client-response.dto';
+import { AdvertiserClientResponseDto } from './dto/client/client-response.dto';
 import { CreateClientDto } from './dto/client/create-client.dto';
 import { UpdateClientDto } from './dto/client/update-client.dto';
 
@@ -43,7 +43,7 @@ export class AdvertiserClientController {
         description: 'Creates a new client account and sends a password setup email'
     })
     @ApiStandardResponse({
-        type: ClientResponseDto,
+        type: AdvertiserClientResponseDto,
         description: 'Client created successfully',
         status: 201,
     })
@@ -62,7 +62,7 @@ export class AdvertiserClientController {
         description: 'Retrieves all clients belonging to the current advertiser'
     })
     @ApiStandardResponse({
-        type: ClientResponseDto,
+        type: AdvertiserClientResponseDto,
         description: 'Clients retrieved successfully',
     })
     @ApiStandardErrors()
@@ -82,7 +82,7 @@ export class AdvertiserClientController {
         example: 'uuid-example'
     })
     @ApiStandardResponse({
-        type: ClientResponseDto,
+        type: AdvertiserClientResponseDto,
         description: 'Client retrieved successfully',
     })
     @ApiStandardErrors()
@@ -105,7 +105,7 @@ export class AdvertiserClientController {
         example: 'uuid-example'
     })
     @ApiStandardResponse({
-        type: ClientResponseDto,
+        type: AdvertiserClientResponseDto,
         description: 'Client updated successfully',
     })
     @ApiStandardErrors()

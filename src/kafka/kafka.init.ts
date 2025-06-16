@@ -6,7 +6,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { KafkaService } from './kafka.service';
-import { kafkaTopics } from './constants/kafka.config';
+import { kafkaTopics } from 'src/rtb/constants/kafka-topics';
 
 /**
  * Enhanced Kafka Initialization Service
@@ -28,7 +28,7 @@ import { kafkaTopics } from './constants/kafka.config';
 export class KafkaInitService implements OnModuleInit {
   private readonly logger = new Logger(KafkaInitService.name);
 
-  constructor(private readonly kafkaService: KafkaService) { }
+  constructor(private readonly kafkaService: KafkaService) {}
 
   async onModuleInit() {
     try {

@@ -17,6 +17,8 @@ model BidResponse {
   finalPrice          Decimal? @db.Decimal(10, 4)
   winNotificationSent Boolean  @default(false)
 
+  landingUrl String
+
   // Ad markup
   adMarkup       String?
   impressionUrls String[] // Multiple tracking URLs

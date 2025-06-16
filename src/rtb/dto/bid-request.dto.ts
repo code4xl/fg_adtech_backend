@@ -246,7 +246,7 @@ export class CreateBidRequestDto {
   })
   @IsOptional()
   @IsEnum(AuctionType)
-  auctionType?: string;
+  auctionType?: AuctionType;
 
   @ApiPropertyOptional({
     description: 'Timeout for auction in milliseconds',

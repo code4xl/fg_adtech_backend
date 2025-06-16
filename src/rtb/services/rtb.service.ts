@@ -1,68 +1,73 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { KafkaService } from '../../kafka/kafka.service';
-import { RedisService } from '../../redis/redis.service';
-import { RTBCacheService } from './rtb-cache.service';
-import { CampaignEligibilityService } from './campaign-eligibility.service';
-import { CreateBidRequestDto, BidResponseDto, HealthCheckDto } from '../dto';
-import { kafkaTopics } from '../../kafka/constants/kafka.config';
-import { REDIS_KEYS } from '../../redis/constants/redis-keys';
+import { BidResponseDto, CreateBidRequestDto } from '../dto';
 import { v4 as uuidv4 } from 'uuid';
-import RTBProducer from '../producer/rtb.producer';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { RtbCacheService } from '../cache/rtb-cache.service';
+import AuctionProducer from '../producers/auction.producer';
+import {
+  BidRequestWithAuction,
+  EnrichedBidRequest,
+  ProcessBidRequestResponse,
+  ServerContext,
+} from '../types/bid-request.types';
+import { RtbHelper } from '../utils/helpers';
 
 @Injectable()
-export class RTBService {
-  private readonly logger = new Logger(RTBService.name);
+export class RtbService {
+  private readonly logger = new Logger(RtbService.name);
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly kafka: KafkaService,
-    private readonly redis: RedisService,
-    private readonly rtbCache: RTBCacheService,
-    private readonly campaignEligibility: CampaignEligibilityService,
-    private readonly rtbProducer: RTBProducer,
-  ) {
-    this.logger.log('RTB Service initialized - Phase 3 Complete');
-  }
+    private readonly rtbCacheService: RtbCacheService,
+    private readonly auctionProducer: AuctionProducer,
+    private readonly rtbHelper: RtbHelper,
+  ) { }
 
-  async processBidRequest(bidRequestData: CreateBidRequestDto): Promise<{
-    requestId: string;
-    auctionId: string;
-    status: string;
-  }> {
+  async processBidRequest(
+    bidRequestData: CreateBidRequestDto,
+  ): Promise<ProcessBidRequestResponse> {
     const startTime = Date.now();
 
     try {
+      await this.rtbHelper.validateInventoryAdSlotContext(
+        bidRequestData.inventoryId,
+        bidRequestData.adSlotContext
+      );
+
       this.logger.debug('Processing bid request', {
         externalRequestId: bidRequestData.externalRequestId,
         inventoryId: bidRequestData.inventoryId,
       });
 
       // 1. Generate internal request ID and auction ID
-      const requestId = uuidv4();
-      const auctionId = uuidv4();
+      const requestId: string = uuidv4();
+      const auctionId: string = uuidv4();
 
       // 2. Enrich bid request with additional context
-      const enrichedRequest = await this.enrichBidRequest(
+      const enrichedRequest: EnrichedBidRequest = await this.enrichBidRequest(
         bidRequestData,
         requestId,
       );
 
       // 3. Store bid request in database
-      const bidRequest = await this.createBidRequest(
+      const bidRequest: BidRequestWithAuction = await this.createBidRequest(
         enrichedRequest,
         auctionId,
       );
 
       // 4. Cache bid request in Redis for fast access
-      await this.cacheBidRequest(bidRequest);
+      await this.rtbCacheService.cacheBidRequest(bidRequest);
 
       // 5. Publish to Kafka for async auction processing
-      await this.rtbProducer.publishBidRequestForProcessing(bidRequest);
+
+      await this.auctionProducer.publishBidRequestForProcessing(bidRequest);
 
       // 6. Record processing metrics
       const processingTime = Date.now() - startTime;
-      await this.recordProcessingMetrics(requestId, processingTime);
+      await this.rtbCacheService.recordProcessingMetrics(
+        requestId,
+        processingTime,
+      );
 
       this.logger.log('Bid request processed successfully', {
         requestId,
@@ -77,18 +82,82 @@ export class RTBService {
       };
     } catch (error) {
       const processingTime = Date.now() - startTime;
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
 
       this.logger.error('Bid request processing failed', {
-        error: error.message,
+        error: errorMessage,
         externalRequestId: bidRequestData.externalRequestId,
         processingTime: `${processingTime}ms`,
       });
 
       // Record error metrics
-      await this.recordErrorMetrics(
+      await this.rtbCacheService.recordErrorMetrics(
         bidRequestData.externalRequestId,
-        error.message,
+        errorMessage,
       );
+
+      throw error;
+    }
+  }
+
+  private async enrichBidRequest(
+    bidRequestData: CreateBidRequestDto,
+    requestId: string,
+  ): Promise<EnrichedBidRequest> {
+    const serverContext: ServerContext = {
+      processedAt: new Date().toISOString(),
+      version: '1.0.0',
+      requestId,
+    };
+
+    return {
+      ...bidRequestData,
+      id: requestId,
+      requestTimestamp: new Date(),
+      serverContext,
+    };
+  }
+
+  private async createBidRequest(
+    enrichedRequest: EnrichedBidRequest,
+    auctionId: string,
+  ): Promise<BidRequestWithAuction> {
+    try {
+      let bidRequest = await this.prisma.bidRequest.create({
+        data: {
+          externalRequestId: enrichedRequest.id,
+          inventoryId: enrichedRequest.inventoryId,
+          publisherId: enrichedRequest.publisherId,
+          websiteId: enrichedRequest.websiteId,
+          userContext: JSON.parse(JSON.stringify(enrichedRequest.userContext)),
+          adSlotContext: JSON.parse(
+            JSON.stringify(enrichedRequest.adSlotContext),
+          ),
+          floorPrice: enrichedRequest.floorPrice || 0,
+          auctionType: enrichedRequest.auctionType || 'SECOND_PRICE',
+          timeout: enrichedRequest.timeout || 200,
+          requestTimestamp: enrichedRequest.requestTimestamp,
+        },
+      });
+
+      this.logger.debug('Bid request stored in database', {
+        requestId: bidRequest.id,
+        auctionId,
+      });
+      return {
+        ...bidRequest,
+        floorPrice: bidRequest.floorPrice?.toNumber() || 0,
+        auctionId,
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+
+      this.logger.error('Failed to store bid request', {
+        error: error,
+        externalRequestId: enrichedRequest.externalRequestId,
+      });
 
       throw error;
     }
@@ -99,7 +168,7 @@ export class RTBService {
 
     try {
       // 1. Check Redis cache first for fast response
-      const cachedResponse = await this.getCachedBidResponse(requestId);
+      const cachedResponse = await this.rtbCacheService.getCachedBidResponse(requestId);
       if (cachedResponse) {
         this.logger.debug('Bid response cache hit', { requestId });
         return cachedResponse;
@@ -114,7 +183,7 @@ export class RTBService {
 
       // 3. Cache the response for future requests (if completed)
       if (bidResponse.status === 'completed') {
-        await this.cacheBidResponse(requestId, bidResponse);
+        await this.rtbCacheService.setCacheBidResponse(requestId, bidResponse);
       }
 
       return bidResponse;
@@ -124,151 +193,6 @@ export class RTBService {
         requestId,
       });
       throw error;
-    }
-  }
-
-  async getSystemHealth(): Promise<HealthCheckDto> {
-    this.logger.debug('Performing system health check');
-
-    try {
-      // Run health checks in parallel for speed
-      const [databaseHealth, redisHealth, kafkaHealth, performanceMetrics] =
-        await Promise.allSettled([
-          this.checkDatabaseHealth(),
-          this.checkRedisHealth(),
-          this.checkKafkaHealth(),
-          this.getPerformanceMetrics(),
-        ]);
-
-      // Determine overall system status
-      const allHealthy = [databaseHealth, redisHealth, kafkaHealth].every(
-        (result) =>
-          result.status === 'fulfilled' && result.value === 'connected',
-      );
-
-      const status = allHealthy ? 'healthy' : 'degraded';
-
-      return {
-        status,
-        timestamp: new Date().toISOString(),
-        version: '1.0.0-phase3',
-        components: {
-          database: this.getHealthStatus(databaseHealth),
-          redis: this.getHealthStatus(redisHealth),
-          kafka: this.getHealthStatus(kafkaHealth),
-        },
-        metrics:
-          performanceMetrics.status === 'fulfilled'
-            ? performanceMetrics.value
-            : {
-                requestsPerSecond: 0,
-                averageLatency: 'unknown',
-                cacheHitRate: 'unknown',
-                errorRate: 'unknown',
-              },
-      };
-    } catch (error) {
-      this.logger.error('Health check failed', { error: error.message });
-      throw error;
-    }
-  }
-
-  // /**
-  //  * Generate auction ID for tracking
-  //  */
-  // private generateAuctionId(requestId: string): string {
-  //   const random = Math.random().toString(36).substring(2, 6);
-  //   return `auction_${requestId.split('_')[1]}_${random}`;
-  // }
-
-  /**
-   * Enrich bid request with server-side context
-   */
-  private async enrichBidRequest(
-    bidRequestData: CreateBidRequestDto,
-    requestId: string,
-  ): Promise<any> {
-    return {
-      ...bidRequestData,
-      id: requestId,
-      requestTimestamp: new Date(),
-      // Add server-side enrichments
-      serverContext: {
-        processedAt: new Date().toISOString(),
-        version: '1.0.0-phase3',
-        requestId,
-      },
-    };
-  }
-
-  private async createBidRequest(
-    enrichedRequest: any,
-    auctionId: string,
-  ): Promise<any> {
-    try {
-      const bidRequest = await this.prisma.bidRequest.create({
-        data: {
-          externalRequestId: enrichedRequest.externalRequestId,
-          inventoryId: enrichedRequest.inventoryId,
-          publisherId: enrichedRequest.publisherId,
-          websiteId: enrichedRequest.websiteId,
-          userContext: enrichedRequest.userContext,
-          adSlotContext: enrichedRequest.adSlotContext,
-          floorPrice: enrichedRequest.floorPrice,
-          auctionType: enrichedRequest.auctionType || 'SECOND_PRICE',
-          timeout: enrichedRequest.timeout || 200,
-          requestTimestamp: enrichedRequest.requestTimestamp,
-        },
-      });
-
-      this.logger.debug('Bid request stored in database', {
-        id: bidRequest.id,
-        auctionId,
-      });
-
-      return { ...bidRequest, auctionId };
-    } catch (error) {
-      this.logger.error('Failed to store bid request', {
-        error: error.message,
-        externalRequestId: enrichedRequest.externalRequestId,
-      });
-      throw error;
-    }
-  }
-
-  private async cacheBidRequest(bidRequest: any): Promise<void> {
-    try {
-      const cacheKey = REDIS_KEYS.BID_REQUEST(bidRequest.id);
-      await this.redis.set(cacheKey, JSON.stringify(bidRequest), 3600); // 1 hour TTL
-
-      this.logger.debug('Bid request cached', { requestId: bidRequest.id });
-    } catch (error) {
-      // Non-blocking error - log but don't throw
-      this.logger.warn('Failed to cache bid request', {
-        error: error.message,
-        requestId: bidRequest.id,
-      });
-    }
-  }
-
-  private async getCachedBidResponse(
-    requestId: string,
-  ): Promise<BidResponseDto | null> {
-    try {
-      const cacheKey = REDIS_KEYS.AUCTION_RESULT(requestId);
-      const cached = await this.redis.get<string>(cacheKey);
-
-      if (!cached) {
-        return null;
-      }
-
-      return JSON.parse(cached);
-    } catch (error) {
-      this.logger.warn('Failed to get cached bid response', {
-        error: error.message,
-        requestId,
-      });
-      return null;
     }
   }
 
@@ -358,156 +282,5 @@ export class RTBService {
       });
       throw error;
     }
-  }
-
-  private async cacheBidResponse(
-    requestId: string,
-    bidResponse: BidResponseDto,
-  ): Promise<void> {
-    try {
-      const cacheKey = REDIS_KEYS.AUCTION_RESULT(requestId);
-      await this.redis.set(cacheKey, JSON.stringify(bidResponse), 3600); // 1 hour TTL
-    } catch (error) {
-      this.logger.warn('Failed to cache bid response', {
-        error: error.message,
-        requestId,
-      });
-    }
-  }
-
-  private async recordProcessingMetrics(
-    requestId: string,
-    processingTime: number,
-  ): Promise<void> {
-    try {
-      // Update hourly metrics
-      const hour = new Date().getHours();
-      const metricsKey = `metrics:requests:${hour}`;
-
-      await Promise.all([
-        this.redis.incr(metricsKey),
-        this.redis.incrby(`metrics:latency:${hour}`, processingTime),
-        this.redis.expire(metricsKey, 7200), // 2 hours TTL
-      ]);
-    } catch (error) {
-      this.logger.warn('Failed to record processing metrics', {
-        error: error.message,
-        requestId,
-      });
-    }
-  }
-
-  private async recordErrorMetrics(
-    requestId: string,
-    errorMessage: string,
-  ): Promise<void> {
-    try {
-      const hour = new Date().getHours();
-      const errorKey = `metrics:errors:${hour}`;
-
-      await this.redis.incr(errorKey);
-      await this.redis.expire(errorKey, 7200); // 2 hours TTL
-    } catch (error) {
-      this.logger.warn('Failed to record error metrics', {
-        error: error.message,
-      });
-    }
-  }
-
-  private async checkDatabaseHealth(): Promise<string> {
-    try {
-      await this.prisma.$queryRaw`SELECT 1`;
-      return 'connected';
-    } catch (error) {
-      this.logger.error('Database health check failed', {
-        error: error.message,
-      });
-      return 'disconnected';
-    }
-  }
-
-  private async checkRedisHealth(): Promise<string> {
-    try {
-      await this.redis.set('health:check', 'ok', 10);
-      const result = await this.redis.get('health:check');
-      return result === 'ok' ? 'connected' : 'error';
-    } catch (error) {
-      this.logger.error('Redis health check failed', { error: error.message });
-      return 'disconnected';
-    }
-  }
-
-  private async checkKafkaHealth(): Promise<string> {
-    try {
-      // Simple topic existence check
-      const topicExists = await this.kafka.checkTopicExists(
-        kafkaTopics.BID_REQUESTS,
-      );
-      return topicExists ? 'connected' : 'error';
-    } catch (error) {
-      this.logger.error('Kafka health check failed', { error: error.message });
-      return 'disconnected';
-    }
-  }
-
-  private async getPerformanceMetrics(): Promise<{
-    requestsPerSecond: number;
-    averageLatency: string;
-    cacheHitRate: string;
-    errorRate: string;
-    activeAuctions?: number;
-  }> {
-    try {
-      const hour = new Date().getHours();
-      const prevHour = hour === 0 ? 23 : hour - 1;
-
-      const [
-        currentRequests,
-        currentLatency,
-        currentErrors,
-        prevRequests,
-        prevLatency,
-      ] = await Promise.all([
-        this.redis.get<string>(`metrics:requests:${hour}`),
-        this.redis.get<string>(`metrics:latency:${hour}`),
-        this.redis.get<string>(`metrics:errors:${hour}`),
-        this.redis.get<string>(`metrics:requests:${prevHour}`),
-        this.redis.get<string>(`metrics:latency:${prevHour}`),
-      ]);
-
-      const requests =
-        parseInt(currentRequests || '0') + parseInt(prevRequests || '0');
-      const totalLatency =
-        parseInt(currentLatency || '0') + parseInt(prevLatency || '0');
-      const errors = parseInt(currentErrors || '0');
-
-      const requestsPerSecond = Math.round(requests / 3600); // Requests per second over 2 hours
-      const averageLatency =
-        requests > 0 ? `${Math.round(totalLatency / requests)}ms` : '0ms';
-      const errorRate =
-        requests > 0 ? `${((errors / requests) * 100).toFixed(2)}%` : '0%';
-
-      // Estimate cache hit rate (simplified)
-      const cacheHitRate = '85%'; // TODO: Implement actual cache hit tracking
-
-      return {
-        requestsPerSecond,
-        averageLatency,
-        cacheHitRate,
-        errorRate,
-      };
-    } catch (error) {
-      this.logger.error('Failed to get performance metrics', {
-        error: error.message,
-      });
-      throw error;
-    }
-  }
-
-  private getHealthStatus(result: PromiseSettledResult<string>): string {
-    if (result.status === 'fulfilled') {
-      return result.value;
-    }
-    return 'error';
   }
 }
