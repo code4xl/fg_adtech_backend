@@ -113,6 +113,26 @@ export class RedisService {
     return this.pubClient.smembers(key);
   }
 
+  async sadd(key: string, ...members: string[]): Promise<number> {
+    return this.pubClient.sadd(key, ...members);
+  }
+
+  async srem(key: string, ...members: string[]): Promise<number> {
+    return this.pubClient.srem(key, ...members);
+  }
+
+  async scard(key: string): Promise<number> {
+    return this.pubClient.scard(key);
+  }
+
+  async decr(key: string): Promise<number> {
+    return this.pubClient.decr(key);
+  }
+
+  async lrange(key: string, start: number, stop: number): Promise<string[]> {
+    return this.pubClient.lrange(key, start, stop);
+  }
+
   async keys(pattern: string): Promise<string[]> {
     return this.pubClient.keys(pattern);
   }

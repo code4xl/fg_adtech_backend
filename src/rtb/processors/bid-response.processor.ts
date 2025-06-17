@@ -4,6 +4,7 @@ import { KafkaService } from "src/kafka/kafka.service";
 import { PrismaService } from "src/prisma/prisma.service";
 import { RedisService } from "src/redis/redis.service";
 import { AuctionService } from "../services/auction.service";
+import { RtbService } from '../services/rtb.service';
 import AuctionProducer from "../producers/auction.producer";
 import { AuctionBidResult, CompleteAuctionResult, ErrorAuctionResult, HandleNoBidsResult } from "../types/auction-result.types";
 import { WinningBidResponse } from "../types/bid-response.types";
@@ -17,7 +18,8 @@ export class BidResponseProcessor {
     constructor(
         private readonly config: ConfigService,
         private readonly auctionService: AuctionService,
-        private readonly redis: RedisService
+        private readonly redis: RedisService,
+        private readonly rtbService: RtbService
     ) {
         this.trackingBaseUrl =
             this.config.get<string>('APP_URL') || 'https://track.oceanadtech.com';
@@ -243,17 +245,17 @@ export class BidResponseProcessor {
             this.logger.debug("In Storing Bid Responses", {
                 bidResponses,
             });
-
+    
             if (bidResponses.length === 0) {
                 this.logger.debug('No bid responses to store');
                 return;
             }
-
+    
             // Store each response by its request ID
             const storePromises = bidResponses.map(async (response) => {
                 let requestId: string;
                 let status: string;
-
+    
                 // Type-safe extraction of requestId and status
                 if ('requestId' in response) {
                     // This is a WinningBidResponse
@@ -264,20 +266,103 @@ export class BidResponseProcessor {
                     requestId = response.originalBidRequest?.externalRequestId;
                     status = response.auctionStatus;
                 }
-
+    
                 const cacheKey = RTB_KEYS.AUCTION_RESULT(requestId);
-
+    
                 await this.redis.set(cacheKey, JSON.stringify(response), RTB_CACHE_TTL.AUCTION_RESULT);
-
+    
                 this.logger.debug('Bid response cached', {
                     requestId,
                     status,
                     auctionId: 'auctionId' in response ? response.auctionId : 'N/A'
                 });
+    
+                // *** NEW SSE PUBLISHING CODE START ***
+                try {
+                    // Check if SSE is enabled for this request
+                    const sseEnabled = await this.rtbService.isSSEEnabled(requestId);
+                    
+                    if (sseEnabled) {
+                        // Format the SSE event data based on response type
+                        let sseEventData: any;
+                        
+                        if ('requestId' in response && 'winningBid' in response) {
+                            // This is a WinningBidResponse
+                            sseEventData = {
+                                status: 'complete',
+                                slots: [{
+                                    inventoryId: response.winningBid.creativeId, // Using creativeId as we don't have inventoryId
+                                    status: 'filled',
+                                    bid: {
+                                        campaignId: response.winningBid.campaignId,
+                                        price: response.winningBid.price,
+                                        currency: response.winningBid.currency || 'INR',
+                                        cpm: response.winningBid.price,
+                                    },
+                                    creative: {
+                                        creativeId: response.winningBid.creativeId,
+                                        adMarkup: response.winningBid.adMarkup,
+                                        impressionUrls: response.winningBid.impressionUrls || [],
+                                        clickUrls: response.winningBid.clickUrls || [],
+                                        landingUrl: response.winningBid.landingUrl,
+                                    },
+                                }],
+                                processingTime: parseInt(response.auctionData?.auctionDuration) || 0,
+                                auctionStats: {
+                                    totalBids: response.auctionData?.totalBids || 0,
+                                    validBids: response.auctionData?.validBids || 0,
+                                    auctionType: 'SECOND_PRICE',
+                                    timestamp: response.auctionData?.timestamp || new Date().toISOString(),
+                                    floorPrice: response.auctionData?.floorPrice,
+                                },
+                            };
+                        } else {
+                            // This is HandleNoBidsResult or ErrorAuctionResult
+                            const isError = 'errorMessage' in response;
+                            sseEventData = {
+                                status: isError ? 'error' : 'partial',
+                                slots: [{
+                                    inventoryId: response.originalBidRequest?.inventoryId || 'unknown',
+                                    status: 'unfilled',
+                                    error: isError 
+                                        ? (response as ErrorAuctionResult).errorMessage 
+                                        : 'No eligible campaigns found',
+                                }],
+                                processingTime: response.processingTime || 0,
+                                auctionStats: {
+                                    totalBids: response.totalBids || 0,
+                                    validBids: response.validBids || 0,
+                                    auctionType: response.auctionType || 'SECOND_PRICE',
+                                    timestamp: response.processedAt || new Date().toISOString(),
+                                },
+                            };
+                        }
+    
+                        // Publish the SSE complete event
+                        await this.rtbService.publishSSEEvent(
+                            requestId,
+                            'bid_complete',
+                            sseEventData
+                        );
+    
+                        this.logger.log('SSE complete event published', {
+                            requestId,
+                            status: sseEventData.status,
+                            hasWinner: 'requestId' in response && 'winningBid' in response,
+                        });
+                    }
+                } catch (sseError) {
+                    // Don't let SSE errors affect the main flow
+                    this.logger.error('Failed to publish SSE event', {
+                        requestId,
+                        error: sseError.message,
+                    });
+                }
+                // *** NEW SSE PUBLISHING CODE END ***
             });
-
+    
             await Promise.all(storePromises);
-
+    
             this.logger.log('✅ Bid responses stored in cache', {
                 count: bidResponses.length,
             });

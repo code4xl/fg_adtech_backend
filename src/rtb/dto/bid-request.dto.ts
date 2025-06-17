@@ -6,6 +6,7 @@ import {
   IsNumber,
   IsEnum,
   IsArray,
+  IsBoolean,
   ValidateNested,
   Min,
   Max,
@@ -259,4 +260,35 @@ export class CreateBidRequestDto {
   @Min(50)
   @Max(1000)
   timeout?: number;
+
+  @ApiPropertyOptional({
+    description: 'Enable Server-Sent Events (SSE) for real-time updates',
+    example: true,
+    default: false
+  })
+  @IsOptional()
+  @IsBoolean()
+  enableSSE?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'SSE timeout override in milliseconds (max 10000)',
+    example: 5000,
+    minimum: 250,
+    maximum: 10000
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(250)
+  @Max(10000)
+  sseTimeout?: number;
+
+  @ApiPropertyOptional({
+    description: 'Response mode preference',
+    example: 'sse',
+    enum: ['polling', 'sse'],
+    default: 'polling'
+  })
+  @IsOptional()
+  @IsEnum(['polling', 'sse'])
+  responseMode?: 'polling' | 'sse';
 }

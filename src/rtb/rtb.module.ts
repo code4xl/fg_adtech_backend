@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RedisModule } from '../redis/redis.module';
 import { KafkaModule } from '../kafka/kafka.module';
+import { ConfigModule } from '@nestjs/config';
+import { SSEModule } from './sse/sse.module';
 // import { TimescaleModule } from '../timescale/timescale.module';
 
 // Controllers
@@ -39,6 +41,8 @@ import { RTBMetricsService } from './services/rtb-metrics.service';
         PrismaModule,
         RedisModule,
         KafkaModule,
+        ConfigModule,  
+        SSEModule,    
         // TimescaleModule, // Add TimescaleModule for analytics
     ],
     controllers: [
@@ -85,6 +89,7 @@ import { RTBMetricsService } from './services/rtb-metrics.service';
         RtbCacheService,
         AuctionProducer,
         RtbHelper,
+        RTBMetricsService,
     ],
 })
 

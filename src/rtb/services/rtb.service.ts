@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { BidResponseDto, CreateBidRequestDto } from '../dto';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { RedisService } from '../../redis/redis.service';
 import { RtbCacheService } from '../cache/rtb-cache.service';
 import AuctionProducer from '../producers/auction.producer';
 import {
@@ -11,6 +12,7 @@ import {
   ServerContext,
 } from '../types/bid-request.types';
 import { RtbHelper } from '../utils/helpers';
+import { SSE_REDIS_KEYS } from '../sse/constants/sse.constants';
 
 @Injectable()
 export class RtbService {
@@ -18,10 +20,51 @@ export class RtbService {
 
   constructor(
     private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
     private readonly rtbCacheService: RtbCacheService,
     private readonly auctionProducer: AuctionProducer,
     private readonly rtbHelper: RtbHelper,
   ) { }
+ /**
+     * Store SSE metadata for request tracking
+     * Called when SSE is enabled for a request
+     */
+  async storeSSEMetadata(
+    requestId: string,
+    metadata: {
+        publisherId: string;
+        websiteId: string;
+        inventoryId: string;
+        auctionId: string;
+        sseEnabled: boolean;
+        sseTimeout?: number;
+    }
+  ): Promise<void> {
+    try {
+        const key = SSE_REDIS_KEYS.REQUEST_INFO(requestId);
+        const data = {
+            requestId,
+            ...metadata,
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+            ttl: 300, // 5 minutes
+        };
+
+        await this.redis.set(
+            key,
+            JSON.stringify(data),
+            300 // 5 minutes TTL
+        );
+
+        this.logger.debug('SSE metadata stored', { requestId, metadata });
+    } catch (error) {
+        // Non-blocking error - SSE is optional enhancement
+        this.logger.warn('Failed to store SSE metadata', {
+            error: error.message,
+            requestId,
+        });
+    }
+  }
 
   async processBidRequest(
     bidRequestData: CreateBidRequestDto,
@@ -116,7 +159,9 @@ export class RtbService {
       id: requestId,
       requestTimestamp: new Date(),
       serverContext,
-    };
+      sseEnabled: bidRequestData.enableSSE || false,
+      responseMode: bidRequestData.responseMode || 'polling',
+  };
   }
 
   private async createBidRequest(
@@ -162,7 +207,66 @@ export class RtbService {
       throw error;
     }
   }
+  /**
+       * Publish SSE event when auction state changes
+       * This will be called by Kafka consumers during processing
+       */
+  async publishSSEEvent(
+    requestId: string,
+    eventType: 'bid_update' | 'bid_complete' | 'error',
+    data: any
+  ): Promise<void> {
+    try {
+        const channelKey = SSE_REDIS_KEYS.EVENT_CHANNEL(requestId);
+        const event = {
+            type: eventType,
+            requestId,
+            timestamp: new Date().toISOString(),
+            data,
+        };
 
+        // Publish to Redis pub/sub channel
+        await this.redis.publish(channelKey, JSON.stringify(event));
+
+        // Also store in event queue for replay capability
+        const queueKey = SSE_REDIS_KEYS.EVENT_QUEUE(requestId);
+        await this.redis.rpush(queueKey, JSON.stringify(event));
+        await this.redis.expire(queueKey, 300); // 5 minutes TTL
+
+        this.logger.debug('SSE event published', { requestId, eventType });
+    } catch (error) {
+        // Non-blocking - SSE failures shouldn't affect core RTB
+        this.logger.error('Failed to publish SSE event', {
+            error: error.message,
+            requestId,
+            eventType,
+        });
+    }
+  }
+
+  /**
+  * Check if SSE is enabled for a request
+  * Used by Kafka consumers to determine if they should publish SSE events
+  */
+  async isSSEEnabled(requestId: string): Promise<boolean> {
+    try {
+        const key = SSE_REDIS_KEYS.REQUEST_INFO(requestId);
+        const data = await this.redis.get<string>(key);
+        
+        if (!data) {
+            return false;
+        }
+
+        const metadata = JSON.parse(data);
+        return metadata.sseEnabled === true;
+    } catch (error) {
+        this.logger.error('Failed to check SSE status', {
+            error: error.message,
+            requestId,
+        });
+        return false;
+    }
+  }
   async getBidResponse(requestId: string): Promise<BidResponseDto | null> {
     this.logger.debug('Getting bid response', { requestId });
 

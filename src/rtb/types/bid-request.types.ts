@@ -18,6 +18,8 @@ export interface EnrichedBidRequest extends CreateBidRequestDto {
   id: string;
   requestTimestamp: Date;
   serverContext: ServerContext;
+  sseEnabled: boolean;
+  responseMode: 'polling' | 'sse';
 }
 
 export interface StoredBidRequest {

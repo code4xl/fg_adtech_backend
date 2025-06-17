@@ -8,7 +8,9 @@ import {
     HttpStatus,
     BadRequestException,
     NotFoundException,
+    Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import {
     ApiTags,
     ApiOperation,
@@ -16,11 +18,15 @@ import {
     ApiParam,
     ApiBody,
 } from '@nestjs/swagger';
+import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../../prisma/prisma.service';  
+import { SSETrackerService } from '../sse/services/sse-tracker.service';
 
 import { AuctionStatusDto, BidResponseDto, CreateBidRequestDto } from '../dto';
 import { RtbHelper } from '../utils/helpers';
 import { RtbService } from '../services/rtb.service';
 import { AuctionService } from '../services/auction.service';
+import { BidRequestResponseDto } from '../dto/bid-request-response.dto';
 
 @ApiTags('RTB')
 @Controller('rtb')
@@ -31,6 +37,9 @@ export class RTBController {
         private readonly rtbService: RtbService,
         private readonly auctionService: AuctionService,
         private readonly rtbHelper: RtbHelper,
+        private readonly prisma: PrismaService,
+        private readonly configService: ConfigService,  
+        private readonly sseTracker: SSETrackerService, 
     ) {
         this.logger.log('RTB Controller initialized - Phase 3 Complete');
     }
@@ -38,60 +47,94 @@ export class RTBController {
     @Post('bid-request')
     @ApiOperation({
         summary: 'Process bid request from SDK',
-        description:
-            'Receives bid request from SDK and initiates RTB auction processing. Returns immediately with request ID for polling.',
-    })
-    @ApiBody({
-        type: CreateBidRequestDto,
-        description:
-            'Bid request data from SDK including user context and ad slot information',
+        description: 'Receives bid request from SDK and initiates RTB auction processing. Returns immediately with request ID for polling or SSE streaming.'
     })
     @ApiResponse({
         status: 202,
         description: 'Bid request accepted for processing',
-        schema: {
-            type: 'object',
-            properties: {
-                requestId: { type: 'string', example: 'req_abc123_def456' },
-                status: { type: 'string', example: 'processing' },
-                message: {
-                    type: 'string',
-                    example: 'Bid request accepted for processing',
-                },
-                estimatedResponseTime: { type: 'string', example: '100ms' },
-            },
-        },
+        type: BidRequestResponseDto,  
     })
-    @ApiResponse({
-        status: 400,
-        description: 'Invalid bid request data',
-    })
-    async handleBidRequest(@Body() bidRequestDto: CreateBidRequestDto) {
+    async handleBidRequest(
+        @Body() bidRequestDto: CreateBidRequestDto,
+        @Req() req: Request
+    ): Promise<BidRequestResponseDto> {  
         this.logger.debug('Bid request received', {
             externalRequestId: bidRequestDto.externalRequestId,
             inventoryId: bidRequestDto.inventoryId,
             publisherId: bidRequestDto.publisherId,
+            enableSSE: bidRequestDto.enableSSE, // LOG SSE MODE
         });
 
         try {
             // Validate request data
-            await this.rtbHelper.validateBidRequest(bidRequestDto);
+            await this.validateBidRequest(bidRequestDto);
 
             // Process bid request (stores in DB, triggers Kafka processing)
             const result = await this.rtbService.processBidRequest(bidRequestDto);
 
-            this.logger.log('Bid request processed successfully', {
-                requestId: result.requestId,
-                inventoryId: bidRequestDto.inventoryId,
-            });
+            // Check if SSE is enabled for this request
+            const sseEnabled = bidRequestDto.enableSSE || 
+                              bidRequestDto.responseMode === 'sse';
 
-            return {
+            // Prepare response
+            const response: BidRequestResponseDto = {
                 requestId: result.requestId,
+                auctionId: result.auctionId,
                 status: 'processing',
                 message: 'Bid request accepted for processing',
                 estimatedResponseTime: '100ms',
-                auctionId: result.auctionId, // For tracking
             };
+
+            // If SSE is enabled, add SSE URL and track the request
+            if (sseEnabled) {
+                // Try to get base URL from config first
+                let baseUrl = this.configService.get<string>('APP_URL');
+                
+                // If not configured, generate from request
+                if (!baseUrl) {
+                    const protocol = req.protocol || 'https';
+                    const host = req.get('host') || 'localhost:3000';
+                    baseUrl = `${protocol}://${host}`;
+                    
+                    this.logger.debug('Generated base URL from request', { 
+                        protocol, 
+                        host, 
+                        baseUrl 
+                    });
+                }
+                
+                response.sseUrl = `${baseUrl}/rtb/stream/${result.requestId}`;
+                response.sseEnabled = true;
+                response.sseTimeout = bidRequestDto.sseTimeout || 5000;
+
+                // Track SSE request for the SSE service
+                await this.sseTracker.trackRequest({
+                    requestId: result.requestId,
+                    publisherId: bidRequestDto.publisherId,
+                    websiteId: bidRequestDto.websiteId,
+                    inventoryId: bidRequestDto.inventoryId,
+                    metadata: {
+                        auctionId: result.auctionId,
+                        enableSSE: true,
+                        sseTimeout: response.sseTimeout,
+                        requestedAt: new Date().toISOString(),
+                    }
+                });
+
+                this.logger.log('SSE enabled for bid request', {
+                    requestId: result.requestId,
+                    sseUrl: response.sseUrl,
+                });
+            }
+
+            this.logger.log('Bid request processed successfully', {
+                requestId: result.requestId,
+                inventoryId: bidRequestDto.inventoryId,
+                sseEnabled,
+            });
+
+            return response;
+
         } catch (error) {
             this.logger.error('Bid request processing failed', {
                 error: error.message,
@@ -235,5 +278,73 @@ export class RTBController {
 
             throw new BadRequestException('Failed to retrieve auction status');
         }
+    }
+
+    
+    /**
+     * Validate bid request before processing
+     * 
+     * Ensures all required relationships exist and are valid
+     */
+    private async validateBidRequest(bidRequest: CreateBidRequestDto): Promise<void> {
+        // Check if publisher exists and is active
+        const publisher = await this.prisma.publisher.findUnique({
+            where: { id: bidRequest.publisherId },
+            select: { id: true, status: true }
+        });
+
+        if (!publisher) {
+            throw new BadRequestException('Invalid publisher ID');
+        }
+
+        if (publisher.status !== 'ACTIVE') {
+            throw new BadRequestException('Publisher is not active');
+        }
+
+        // Check if website exists and belongs to publisher
+        const website = await this.prisma.website.findFirst({
+            where: {
+                id: bidRequest.websiteId,
+                publisherId: bidRequest.publisherId,
+                isActive: true
+            },
+            select: { id: true }
+        });
+
+        if (!website) {
+            throw new BadRequestException('Invalid website ID or website not active');
+        }
+
+        // Check if inventory exists and belongs to website
+        const inventory = await this.prisma.adInventory.findFirst({
+            where: {
+                id: bidRequest.inventoryId,
+                websiteId: bidRequest.websiteId,
+                isActive: true
+            },
+            select: { id: true }
+        });
+
+        if (!inventory) {
+            throw new BadRequestException('Invalid inventory ID or inventory not active');
+        }
+
+        // Validate floor price if provided
+        if (bidRequest.floorPrice !== undefined && bidRequest.floorPrice < 0) {
+            throw new BadRequestException('Floor price must be non-negative');
+        }
+
+        // Validate SSE timeout if provided
+        if (bidRequest.sseTimeout !== undefined) {
+            if (bidRequest.sseTimeout < 250 || bidRequest.sseTimeout > 10000) {
+                throw new BadRequestException('SSE timeout must be between 250ms and 10000ms');
+            }
+        }
+
+        this.logger.debug('Bid request validation passed', {
+            publisherId: bidRequest.publisherId,
+            websiteId: bidRequest.websiteId,
+            inventoryId: bidRequest.inventoryId
+        });
     }
 }
