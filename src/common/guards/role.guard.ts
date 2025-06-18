@@ -15,7 +15,11 @@ export class RoleGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
     
-    if (!user || !roles.includes(user.role)) {
+    // Make role comparison case-insensitive
+    const userRole = user?.role?.toUpperCase();
+    const expectedRoles = roles.map(role => role.toUpperCase());
+    
+    if (!user || !expectedRoles.includes(userRole)) {
       throw new UnauthorizedException('You do not have permission to access this resource');
     }
     

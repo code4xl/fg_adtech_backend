@@ -22,6 +22,7 @@ import { ResilienceModule } from './common/resilience/resilience.module';
 import { NotificationModule } from './notification/notification.module';
 // import { TimescaleModule } from './timescale/timescale.module';
 import { RTBModule } from './rtb/rtb.module';
+import { SSEModule } from './rtb/sse/sse.module';
 import { CdnModule } from './cdn/cdn.module';
 import { SharedModule } from './shared/shared.module';
 @Module({
@@ -76,6 +77,7 @@ import { SharedModule } from './shared/shared.module';
     ResilienceModule,
     NotificationModule,
     RTBModule,
+    SSEModule,
     // TimescaleModule,
     CdnModule,
     SharedModule,

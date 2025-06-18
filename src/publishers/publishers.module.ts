@@ -6,6 +6,8 @@ import { PublisherController } from './publisher.controller';
 import { PublisherWebsiteController } from './publisher.website.controller';
 import { PublisherFloorPriceController } from './publisher.floorprice.controller';
 import { PublisherTargetingController } from './publisher.targeting.controller';
+import { PublisherAdInventoryController } from './controllers/publisher-adinventory.controller';
+import { PublisherAdInventoryService } from './services/publisher-adinventory.service';
 
 @Module({
   controllers: [
@@ -13,9 +15,10 @@ import { PublisherTargetingController } from './publisher.targeting.controller';
     PublisherController,
     PublisherWebsiteController,
     PublisherFloorPriceController,
+    PublisherAdInventoryController,
     PublisherTargetingController,
   ],
-  providers: [PublisherService],
-  exports: [PublisherService],
+  providers: [PublisherService,PublisherAdInventoryService],
+  exports: [PublisherService, PublisherAdInventoryService],
 })
 export class PublishersModule {}

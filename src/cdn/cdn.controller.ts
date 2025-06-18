@@ -20,6 +20,7 @@ import {
   import { CdnOrchestratorService } from './services/cdn-orchestrator.service';
   import { ConfigBuilderService } from './services/config-builder.service';
   import { CdnCacheService } from './services/cdn-cache.service';
+  import { PrismaService } from '../prisma/prisma.service';
   import {
     GenerateCdnDto,
     InvalidateCdnDto,
@@ -47,6 +48,7 @@ import {
       private readonly cdnOrchestrator: CdnOrchestratorService,
       private readonly configBuilder: ConfigBuilderService,
       private readonly cdnCache: CdnCacheService,
+      private readonly prisma: PrismaService,
     ) {}
   
     /**
@@ -99,6 +101,87 @@ import {
     }
   
     /**
+     * Debug endpoint to check if publisher and website data exists
+     * GET /api/publishers/:publisherId/websites/:websiteId/debug
+     */
+    @Get('api/publishers/:publisherId/websites/:websiteId/debug')
+    @UseGuards(AuthGuard('jwt'), RoleGuard, CdnAccessGuard)
+    @Roles('PUBLISHER', 'ADMIN')
+    async debugPublisherWebsite(
+      @Param('publisherId') publisherId: string,
+      @Param('websiteId') websiteId: string,
+    ): Promise<any> {
+      this.logger.log(`Debug check for publisher ${publisherId}, website ${websiteId}`);
+  
+      try {
+        // Check if publisher exists
+        const publisher = await this.prisma.publisher.findUnique({
+          where: { id: publisherId },
+        });
+  
+        if (!publisher) {
+          return {
+            status: 'error',
+            message: 'Publisher not found',
+            publisherId,
+            websiteId,
+          };
+        }
+  
+        // Check if website exists
+        const website = await this.prisma.website.findUnique({
+          where: { 
+            id: websiteId,
+            publisherId: publisherId 
+          },
+          include: {
+            inventories: {
+              where: { isActive: true },
+            },
+          },
+        });
+  
+        if (!website) {
+          return {
+            status: 'error',
+            message: 'Website not found or does not belong to publisher',
+            publisherId,
+            websiteId,
+            publisherExists: true,
+          };
+        }
+  
+        return {
+          status: 'success',
+          message: 'Publisher and website found',
+          data: {
+            publisher: {
+              id: publisher.id,
+              email: publisher.email,
+              status: publisher.status,
+            },
+            website: {
+              id: website.id,
+              name: website.name,
+              domain: website.domain,
+              url: website.url,
+              isActive: website.isActive,
+              inventoriesCount: website.inventories.length,
+            },
+          },
+        };
+      } catch (error) {
+        return {
+          status: 'error',
+          message: 'Database error',
+          error: error.message,
+          publisherId,
+          websiteId,
+        };
+      }
+    }
+  
+    /**
      * Generate CDN for a publisher website
      * POST /api/publishers/:publisherId/websites/:websiteId/generate-cdn
      */
@@ -112,12 +195,15 @@ import {
     ): Promise<CdnBuildResponseDto> {
       this.logger.log(`Generate CDN for publisher ${publisherId}, website ${websiteId}`);
   
+      // Ensure dto is not undefined by providing default empty object
+      const requestDto = dto || {};
+  
       const generateDto: GenerateCdnDto = {
         publisherId,
         websiteId,
-        environment: dto.environment,
-        forceRebuild: dto.forceRebuild || false,
-        includeDebug: dto.includeDebug || false,
+        environment: requestDto.environment,
+        forceRebuild: requestDto.forceRebuild || false,
+        includeDebug: requestDto.includeDebug || false,
       };
   
       try {
