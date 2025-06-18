@@ -19,7 +19,7 @@ export class CdnGeneratorService {
 
   constructor(private readonly configService: ConfigService) {
     this.sdkBuildPath = this.configService.get<string>(
-      'SDK_BUILD_PATH',
+      'cdn.sdkBuildPath',
       './dist/sdk/ocean-ads.min.js',
     );
   }

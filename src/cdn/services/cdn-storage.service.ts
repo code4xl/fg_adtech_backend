@@ -53,7 +53,7 @@ export class CdnStorageService {
 
   constructor(private readonly configService: ConfigService) {
     this.storageType = this.configService.get<'local' | 's3'>('CDN_STORAGE_TYPE', 'local');
-    this.basePath = this.configService.get<string>('CDN_STORAGE_PATH', './cdn-files');
+    this.basePath = this.configService.get<string>('cdn.storagePath', './cdn-files');
 
     if (this.storageType === 's3') {
       this.s3Config = {

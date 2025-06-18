@@ -59,6 +59,25 @@ export default () => ({
       ? parseInt(process.env.AI_MAX_REQUESTS, 10)
       : 10,
   },
+  // CDN Configuration
+  cdn: {
+    // SDK Build Path - where to find the compiled SDK file
+    sdkBuildPath: process.env.SDK_BUILD_PATH || './dist/sdk/ocean-ads.min.js',
+    // CDN Storage Path - where to store generated CDN files
+    storagePath: process.env.CDN_STORAGE_PATH || './cdn-files',
+    // CDN Base URL - for generating public CDN URLs
+    baseUrl: process.env.CDN_BASE_URL || 'https://cdn.oceanads.com',
+    // SDK Version for cache busting
+    sdkVersion: process.env.SDK_VERSION || '1.0.0',
+    // Development settings
+    includeDebug: process.env.CDN_INCLUDE_DEBUG === 'true',
+    minify: process.env.CDN_MINIFY === 'true',
+    compression: process.env.CDN_COMPRESSION !== 'false',
+    watchMode: process.env.SDK_WATCH_MODE === 'true',
+    verboseLogging: process.env.CDN_VERBOSE_LOGGING === 'true',
+    hotReload: process.env.CDN_HOT_RELOAD === 'true',
+    forceRefresh: process.env.SDK_FORCE_REFRESH === 'true',
+  },
   timescale: {
     // Primary configuration - use the cloud URL if provided
     databaseUrl: process.env.TIMESCALE_DATABASE_URL,

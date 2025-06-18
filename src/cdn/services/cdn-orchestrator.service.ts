@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ConfigBuilderService } from './config-builder.service';
 import { CdnGeneratorService } from './cdn-generator.service';
 import { CdnStorageService } from './cdn-storage.service';
@@ -19,6 +20,7 @@ export class CdnOrchestratorService {
   private readonly logger = new Logger(CdnOrchestratorService.name);
 
   constructor(
+    private readonly configService: ConfigService,
     private readonly configBuilder: ConfigBuilderService,
     private readonly cdnGenerator: CdnGeneratorService,
     private readonly cdnStorage: CdnStorageService,
@@ -298,7 +300,7 @@ export class CdnOrchestratorService {
    * Build CDN URL
    */
   private buildCdnUrl(publisherId: string, environment?: string): string {
-    const baseUrl = process.env.CDN_BASE_URL || 'http://localhost:3000/cdn';
+    const baseUrl = this.configService.get<string>('cdn.baseUrl', 'http://localhost:3000/cdn');
     const envPath = environment && environment !== BuildEnvironment.PRODUCTION 
       ? `${environment}/` 
       : '';
