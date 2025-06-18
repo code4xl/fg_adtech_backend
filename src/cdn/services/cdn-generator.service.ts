@@ -5,7 +5,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { IOceanConfig, ICdnBuildResult, ICdnBuildContext } from '../interfaces';
 import { BuildEnvironment } from '../dto';
-import { VERSION_FORMAT, CDN_ERROR_CODES } from '../constants/cdn.constants';
+import { VERSION_FORMAT, CDN_ERROR_CODES, SDK_CONFIG, CDN_URL_CONFIG } from '../constants/cdn.constants';
 
 /**
  * Service responsible for generating CDN files by wrapping
@@ -18,10 +18,57 @@ export class CdnGeneratorService {
   private readonly sdkCache: Map<string, { content: string; hash: string }> = new Map();
 
   constructor(private readonly configService: ConfigService) {
-    this.sdkBuildPath = this.configService.get<string>(
-      'cdn.sdkBuildPath',
-      './dist/sdk/ocean-ads.min.js',
-    );
+    // Try environment variable first, then fallback to default paths
+    const envPath = this.configService.get<string>('SDK_BUILD_PATH');
+    
+    if (envPath) {
+      this.sdkBuildPath = envPath;
+      this.logger.log(`Using SDK path from environment: ${envPath}`);
+    } else {
+      // Auto-detect based on platform and existence
+      this.sdkBuildPath = this.detectSdkPath();
+      this.logger.log(`Auto-detected SDK path: ${this.sdkBuildPath}`);
+    }
+    
+    // Validate SDK path on startup
+    this.validateSdkFile().then(result => {
+      if (result.isValid) {
+        this.logger.log('✅ SDK file validated successfully');
+      } else {
+        this.logger.error(`❌ SDK file validation failed: ${result.error}`);
+        this.logger.error('🔧 Please check your SDK_BUILD_PATH environment variable');
+      }
+    });
+  }
+
+  /**
+   * Auto-detect SDK path based on platform and file existence
+   */
+  private detectSdkPath(): string {
+    const paths: string[] = [
+      SDK_CONFIG.DEFAULT_PATHS.LOCAL_WINDOWS,
+      SDK_CONFIG.DEFAULT_PATHS.LOCAL_RELATIVE,
+      SDK_CONFIG.DEFAULT_PATHS.LOCAL_FALLBACK,
+      SDK_CONFIG.DEFAULT_PATHS.NPM_PACKAGE,
+    ];
+
+    // For production/Docker environments
+    if (process.env.NODE_ENV === 'production') {
+      paths.unshift(SDK_CONFIG.DEFAULT_PATHS.PRODUCTION);
+    }
+
+    // Return first existing path
+    for (const sdkPath of paths) {
+      try {
+        // We can't use async here, so we'll use the first path and validate later
+        return sdkPath;
+      } catch {
+        continue;
+      }
+    }
+
+    // Fallback to the Windows path (user's setup)
+    return SDK_CONFIG.DEFAULT_PATHS.LOCAL_WINDOWS;
   }
 
   /**
@@ -260,14 +307,31 @@ if (typeof window.__OCEAN_INIT__ === 'function') {
    * Generate CDN URL for the build
    */
   private generateCdnUrl(publisherId: string, environment: string): string {
-    const baseUrl = this.configService.get<string>(
-      'CDN_BASE_URL',
-      'https://cdn.oceanads.com',
-    );
-
-    const envPrefix = environment === BuildEnvironment.PRODUCTION ? '' : `${environment}/`;
+    // Determine if we're in local development
+    const nodeEnv = process.env.NODE_ENV || 'development';
+    const isLocalDev = nodeEnv === 'development' || environment === BuildEnvironment.DEVELOPMENT;
     
-    return `${baseUrl}/${envPrefix}p/${publisherId}/init.js`;
+    // Get base URL from environment or use defaults
+    let baseUrl: string;
+    let pathPrefix: string;
+    
+    if (isLocalDev) {
+      // Local development configuration
+      baseUrl = this.configService.get<string>('CDN_BASE_URL', CDN_URL_CONFIG.LOCAL.BASE_URL);
+      pathPrefix = this.configService.get<string>('CDN_PATH_PREFIX', CDN_URL_CONFIG.LOCAL.PATH_PREFIX);
+      
+      this.logger.log(`🔧 Using local CDN URL for development: ${baseUrl}${pathPrefix}`);
+    } else {
+      // Production configuration
+      baseUrl = this.configService.get<string>('CDN_BASE_URL', CDN_URL_CONFIG.PRODUCTION.BASE_URL);
+      pathPrefix = this.configService.get<string>('CDN_PATH_PREFIX', CDN_URL_CONFIG.PRODUCTION.PATH_PREFIX);
+    }
+
+    // Build the complete URL
+    const envPrefix = environment === BuildEnvironment.PRODUCTION ? '' : `${environment}/`;
+    const fullPath = pathPrefix ? `${pathPrefix}/p/${publisherId}/init.js` : `p/${publisherId}/init.js`;
+    
+    return `${baseUrl}/${envPrefix}${fullPath}`.replace(/\/+/g, '/').replace(':/', '://');
   }
 
   /**

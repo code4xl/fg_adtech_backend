@@ -1,5 +1,5 @@
 export default () => ({
-  port: process.env.PORT == undefined ? 3000 : parseInt(process.env.PORT, 10),
+  port: process.env.PORT == undefined ? 3001 : parseInt(process.env.PORT, 10),
   database: {
     url: process.env.DATABASE_URL,
   },

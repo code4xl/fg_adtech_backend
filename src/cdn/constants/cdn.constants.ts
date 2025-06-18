@@ -3,6 +3,46 @@
  */
 
 /**
+ * SDK Configuration
+ */
+export const SDK_CONFIG = {
+  // Default paths for different environments
+  DEFAULT_PATHS: {
+    // Local development - adjust this path to match your setup
+    LOCAL_WINDOWS: 'C:\\Users\\Shaikh Asif\\OneDrive\\Desktop\\PaidProjects\\ocean-ads-sdk-v2\\dist\\ocean-ads.min.js',
+    LOCAL_RELATIVE: '../ocean-ads-sdk-v2/dist/ocean-ads.min.js',
+    LOCAL_FALLBACK: './dist/sdk/ocean-ads.min.js',
+    
+    // Production paths
+    PRODUCTION: '/app/sdk/ocean-ads.min.js',
+    DOCKER: '/app/sdk/ocean-ads.min.js',
+    NPM_PACKAGE: './node_modules/@ocean-ads/sdk/dist/ocean-ads.min.js',
+  },
+  
+  // SDK validation
+  MIN_FILE_SIZE: 1024, // 1KB minimum
+  MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB maximum
+  CACHE_DURATION: 300000, // 5 minutes
+} as const;
+
+/**
+ * CDN URL Configuration
+ */
+export const CDN_URL_CONFIG = {
+  // Local development URLs
+  LOCAL: {
+    BASE_URL: 'http://localhost:3001', // Your backend port (fixed from 3000)
+    PATH_PREFIX: '/cdn',
+  },
+  
+  // Production URLs
+  PRODUCTION: {
+    BASE_URL: 'https://cdn.oceanads.com',
+    PATH_PREFIX: '',
+  },
+} as const;
+
+/**
  * Default CDN configuration values
  */
 export const CDN_DEFAULTS = {
