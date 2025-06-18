@@ -41,6 +41,11 @@ export interface IInventoryConfig {
  */
 export interface ISdkSettings {
   apiUrl: string;
+  endpoints?: {
+    bid: string;
+    track: string;
+    sse?: string;
+  };
   sseTimeout: number;
   debug?: boolean;
   batchDelay?: number;

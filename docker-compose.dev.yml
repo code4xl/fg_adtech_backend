@@ -109,8 +109,14 @@ services:
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
+      # Mount SDK project for local development
+      - ../ocean-ads-sdk-v2:/usr/src/sdk-project:ro
     ports:
-      - '${PORT:-3000}:${PORT:-3000}'
+      - '3001:3001'
+    environment:
+      - PORT=3001
+      - NODE_ENV=development
+      - SDK_BUILD_PATH=/usr/src/sdk-project/dist/ocean-ads.min.js
     env_file:
       - .env.development
     networks:

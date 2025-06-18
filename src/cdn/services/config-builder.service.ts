@@ -32,7 +32,19 @@ export class ConfigBuilderService {
     private readonly inventoryMapper: InventoryMapperService,
     private readonly selectorGenerator: SelectorGeneratorService,
   ) {
-    this.defaultApiUrl = this.configService.get<string>('CDN_API_URL', 'https://rtb.oceanads.com');
+    // Determine if we're in local development
+    const nodeEnv = process.env.NODE_ENV || 'development';
+    const isLocalDev = nodeEnv === 'development';
+    
+    if (isLocalDev) {
+      // Use local development URLs
+      this.defaultApiUrl = this.configService.get<string>('CDN_API_URL', 'http://localhost:3001');
+      this.logger.log('🔧 Using local development API URL: ' + this.defaultApiUrl);
+    } else {
+      // Use production URLs
+      this.defaultApiUrl = this.configService.get<string>('CDN_API_URL', 'https://rtb.oceanads.com');
+    }
+    
     this.defaultSseTimeout = this.configService.get<number>('CDN_SSE_TIMEOUT', 250);
   }
 
@@ -293,6 +305,11 @@ export class ConfigBuilderService {
     
     const settings: ISdkSettings = {
       apiUrl: this.defaultApiUrl,
+      endpoints: {
+        bid: `${this.defaultApiUrl}/rtb/bid-request`,
+        track: `${this.defaultApiUrl}/rtb/track`,
+        sse: `${this.defaultApiUrl}/rtb/stream`,
+      },
       sseTimeout: this.defaultSseTimeout,
       debug,
       batchDelay: 50,
@@ -308,6 +325,12 @@ export class ConfigBuilderService {
       settings.batchDelay = 35;
       settings.sseTimeout = 200;
     }
+
+    this.logger.log(`🎯 SDK settings built with endpoints:`, {
+      bid: settings.endpoints.bid,
+      track: settings.endpoints.track,
+      sse: settings.endpoints.sse,
+    });
 
     return settings;
   }

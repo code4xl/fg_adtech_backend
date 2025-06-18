@@ -8,6 +8,10 @@
 export const SDK_CONFIG = {
   // Default paths for different environments
   DEFAULT_PATHS: {
+    // Docker development paths (when backend runs in Docker)
+    DOCKER_DEV: '/usr/src/sdk-project/dist/ocean-ads.min.js',
+    DOCKER_FALLBACK: '/usr/src/app/sdk/ocean-ads.min.js',
+    
     // Local development - adjust this path to match your setup
     LOCAL_WINDOWS: 'C:\\Users\\Shaikh Asif\\OneDrive\\Desktop\\PaidProjects\\ocean-ads-sdk-v2\\dist\\ocean-ads.min.js',
     LOCAL_RELATIVE: '../ocean-ads-sdk-v2/dist/ocean-ads.min.js',

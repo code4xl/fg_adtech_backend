@@ -99,7 +99,7 @@ async function bootstrap() {
         'https://5x2p27zf-3000.inc1.devtunnels.ms/',
         'Development Tunnel',
       )
-      .addServer('http://localhost:3000', 'Development Server')
+      .addServer('http://localhost:3001', 'Development Server')
       .addServer(
         'https://programmatic.api.oceanadnetwork.com',
         'Production Server',

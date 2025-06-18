@@ -45,30 +45,41 @@ export class CdnGeneratorService {
    * Auto-detect SDK path based on platform and file existence
    */
   private detectSdkPath(): string {
-    const paths: string[] = [
-      SDK_CONFIG.DEFAULT_PATHS.LOCAL_WINDOWS,
-      SDK_CONFIG.DEFAULT_PATHS.LOCAL_RELATIVE,
-      SDK_CONFIG.DEFAULT_PATHS.LOCAL_FALLBACK,
-      SDK_CONFIG.DEFAULT_PATHS.NPM_PACKAGE,
-    ];
+    const isDocker = process.env.DOCKER_ENV === 'true' || 
+                     process.cwd().includes('/usr/src/app') ||
+                     process.env.HOSTNAME?.includes('nestjs');
 
-    // For production/Docker environments
+    const paths: string[] = [];
+
+    if (isDocker) {
+      // Docker environment - prioritize Docker paths
+      paths.push(
+        SDK_CONFIG.DEFAULT_PATHS.DOCKER_DEV,
+        SDK_CONFIG.DEFAULT_PATHS.DOCKER_FALLBACK,
+        SDK_CONFIG.DEFAULT_PATHS.PRODUCTION,
+      );
+      this.logger.log('🐳 Docker environment detected, using Docker SDK paths');
+    } else {
+      // Local environment - use local paths
+      paths.push(
+        SDK_CONFIG.DEFAULT_PATHS.LOCAL_WINDOWS,
+        SDK_CONFIG.DEFAULT_PATHS.LOCAL_RELATIVE,
+        SDK_CONFIG.DEFAULT_PATHS.LOCAL_FALLBACK,
+        SDK_CONFIG.DEFAULT_PATHS.NPM_PACKAGE,
+      );
+      this.logger.log('💻 Local environment detected, using local SDK paths');
+    }
+
+    // For production environments
     if (process.env.NODE_ENV === 'production') {
       paths.unshift(SDK_CONFIG.DEFAULT_PATHS.PRODUCTION);
     }
 
-    // Return first existing path
-    for (const sdkPath of paths) {
-      try {
-        // We can't use async here, so we'll use the first path and validate later
-        return sdkPath;
-      } catch {
-        continue;
-      }
-    }
-
-    // Fallback to the Windows path (user's setup)
-    return SDK_CONFIG.DEFAULT_PATHS.LOCAL_WINDOWS;
+    // Return first path (we'll validate it later in the validation method)
+    const selectedPath = paths[0];
+    this.logger.log(`🎯 Selected SDK path: ${selectedPath}`);
+    
+    return selectedPath;
   }
 
   /**
