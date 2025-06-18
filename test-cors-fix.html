@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CORS Fix Test - Ocean Ads CDN</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      .status {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+        font-weight: bold;
+      }
+      .success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+      .error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+      .info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+      }
+      .test-section {
+        margin: 20px 0;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      #logs {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 10px;
+        margin-top: 10px;
+        max-height: 200px;
+        overflow-y: auto;
+        font-family: monospace;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🌊 Ocean Ads CDN - CORS Fix Test</h1>
+      <div class="info">
+        <strong>Testing:</strong> CORS fix for loading CDN JavaScript from
+        localhost:3001
+      </div>
+
+      <div class="test-section">
+        <h3>🔧 Current Configuration</h3>
+        <div id="config-info">
+          <p>
+            <strong>Current Origin:</strong> <span id="current-origin"></span>
+          </p>
+          <p><strong>CDN URL:</strong> <span id="cdn-url"></span></p>
+          <p><strong>User Agent:</strong> <span id="user-agent"></span></p>
+        </div>
+      </div>
+
+      <div class="test-section">
+        <h3>🧪 CORS Tests</h3>
+
+        <button onclick="testCorsWithFetch()">Test CORS with Fetch API</button>
+        <button onclick="testCorsWithScript()">
+          Test CORS with Script Tag
+        </button>
+        <button onclick="testOptionsRequest()">Test OPTIONS Preflight</button>
+        <button onclick="clearLogs()">Clear Logs</button>
+
+        <div id="test-results"></div>
+        <div id="logs"></div>
+      </div>
+
+      <div class="test-section">
+        <h3>📊 CDN Loading Test</h3>
+        <button onclick="loadCdnScript()">Load CDN Script Dynamically</button>
+        <div id="cdn-status">
+          <div id="cdn-load-result"></div>
+        </div>
+      </div>
+
+      <!-- Ocean Ads inventory slots for testing -->
+      <div class="test-section">
+        <h3>📺 Test Ad Slots</h3>
+        <div
+          data-ocean-slot="header-banner"
+          style="
+            width: 728px;
+            height: 90px;
+            border: 2px dashed #ccc;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f8f9fa;
+          "
+        >
+          Header Banner (728x90)
+        </div>
+        <div
+          data-ocean-slot="sidebar-ad"
+          style="
+            width: 300px;
+            height: 250px;
+            border: 2px dashed #ccc;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f8f9fa;
+          "
+        >
+          Sidebar Ad (300x250)
+        </div>
+        <div
+          data-ocean-slot="footer-banner"
+          style="
+            width: 728px;
+            height: 90px;
+            border: 2px dashed #ccc;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f8f9fa;
+          "
+        >
+          Footer Banner (728x90)
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Configuration
+      const CDN_URL =
+        'http://localhost:3001/cdn/p/869e6cdc-d689-401a-91b3-faa512e4fd8c/init.js';
+
+      // Initialize page
+      document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById('current-origin').textContent =
+          window.location.origin;
+        document.getElementById('cdn-url').textContent = CDN_URL;
+        document.getElementById('user-agent').textContent = navigator.userAgent;
+
+        log('🚀 Page loaded, ready for testing');
+      });
+
+      function log(message) {
+        const logs = document.getElementById('logs');
+        const timestamp = new Date().toLocaleTimeString();
+        logs.innerHTML += `[${timestamp}] ${message}\n`;
+        logs.scrollTop = logs.scrollHeight;
+        console.log(`[CORS Test] ${message}`);
+      }
+
+      function clearLogs() {
+        document.getElementById('logs').innerHTML = '';
+      }
+
+      function showResult(containerId, message, isError = false) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = `<div class="${isError ? 'error' : 'success'}">${message}</div>`;
+      }
+
+      // Test CORS with Fetch API
+      async function testCorsWithFetch() {
+        log('🔍 Testing CORS with Fetch API...');
+
+        try {
+          const response = await fetch(CDN_URL, {
+            method: 'GET',
+            mode: 'cors', // Explicitly request CORS
+            headers: {
+              Accept: 'application/javascript',
+            },
+          });
+
+          if (response.ok) {
+            const content = await response.text();
+            log(`✅ Fetch SUCCESS: ${response.status} ${response.statusText}`);
+            log(`📦 Content length: ${content.length} characters`);
+            log(
+              `🔗 CORS headers: ${response.headers.get('Access-Control-Allow-Origin')}`,
+            );
+
+            showResult(
+              'test-results',
+              `✅ Fetch API Test PASSED<br>
+                        Status: ${response.status}<br>
+                        Content-Type: ${response.headers.get('Content-Type')}<br>
+                        CORS: ${response.headers.get('Access-Control-Allow-Origin')}<br>
+                        Content Size: ${content.length} chars`,
+            );
+          } else {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+        } catch (error) {
+          log(`❌ Fetch FAILED: ${error.message}`);
+          showResult(
+            'test-results',
+            `❌ Fetch API Test FAILED: ${error.message}`,
+            true,
+          );
+        }
+      }
+
+      // Test CORS with Script Tag
+      function testCorsWithScript() {
+        log('🔍 Testing CORS with Script Tag...');
+
+        // Remove any existing test script
+        const existingScript = document.getElementById('cors-test-script');
+        if (existingScript) {
+          existingScript.remove();
+        }
+
+        const script = document.createElement('script');
+        script.id = 'cors-test-script';
+        script.src = CDN_URL;
+        script.crossOrigin = 'anonymous'; // Enable CORS for script tags
+
+        script.onload = function () {
+          log('✅ Script Tag LOADED successfully');
+          showResult(
+            'test-results',
+            '✅ Script Tag Test PASSED - CDN script loaded successfully',
+          );
+
+          // Check if Ocean Ads SDK is available
+          if (typeof window.OceanAds !== 'undefined') {
+            log('🌊 Ocean Ads SDK detected in global scope');
+          } else {
+            log('⚠️ Ocean Ads SDK not found in global scope');
+          }
+        };
+
+        script.onerror = function (error) {
+          log(
+            `❌ Script Tag FAILED to load: ${error.message || 'Unknown error'}`,
+          );
+          showResult(
+            'test-results',
+            '❌ Script Tag Test FAILED - Could not load CDN script',
+            true,
+          );
+        };
+
+        document.head.appendChild(script);
+      }
+
+      // Test OPTIONS preflight request
+      async function testOptionsRequest() {
+        log('🔍 Testing OPTIONS preflight request...');
+
+        try {
+          const response = await fetch(CDN_URL, {
+            method: 'OPTIONS',
+            mode: 'cors',
+            headers: {
+              'Access-Control-Request-Method': 'GET',
+              'Access-Control-Request-Headers': 'Content-Type, Accept',
+            },
+          });
+
+          log(`✅ OPTIONS request: ${response.status} ${response.statusText}`);
+          log(
+            `🔗 CORS Methods: ${response.headers.get('Access-Control-Allow-Methods')}`,
+          );
+          log(
+            `🔗 CORS Headers: ${response.headers.get('Access-Control-Allow-Headers')}`,
+          );
+          log(
+            `🔗 CORS Origin: ${response.headers.get('Access-Control-Allow-Origin')}`,
+          );
+
+          showResult(
+            'test-results',
+            `✅ OPTIONS Preflight Test PASSED<br>
+                    Status: ${response.status}<br>
+                    Allow-Methods: ${response.headers.get('Access-Control-Allow-Methods')}<br>
+                    Allow-Headers: ${response.headers.get('Access-Control-Allow-Headers')}<br>
+                    Allow-Origin: ${response.headers.get('Access-Control-Allow-Origin')}`,
+          );
+        } catch (error) {
+          log(`❌ OPTIONS request FAILED: ${error.message}`);
+          showResult(
+            'test-results',
+            `❌ OPTIONS Preflight Test FAILED: ${error.message}`,
+            true,
+          );
+        }
+      }
+
+      // Load CDN script dynamically and test functionality
+      function loadCdnScript() {
+        log('🔍 Loading CDN script dynamically...');
+
+        // Remove existing Ocean Ads script if any
+        const existingScript = document.getElementById('ocean-ads-cdn');
+        if (existingScript) {
+          existingScript.remove();
+          log('🗑️ Removed existing Ocean Ads script');
+        }
+
+        const script = document.createElement('script');
+        script.id = 'ocean-ads-cdn';
+        script.src = CDN_URL;
+        script.crossOrigin = 'anonymous';
+
+        script.onload = function () {
+          log('✅ Ocean Ads CDN script loaded successfully');
+
+          // Test if SDK is available and functional
+          setTimeout(() => {
+            if (typeof window.OceanAds !== 'undefined') {
+              log('🌊 Ocean Ads SDK available in global scope');
+
+              // Check if configuration is loaded
+              if (window.__OCEAN_CONFIG__) {
+                log('⚙️ Ocean configuration detected');
+                log(
+                  `📍 Publisher ID: ${window.__OCEAN_CONFIG__.publisher?.id || 'Not found'}`,
+                );
+                log(
+                  `🏢 Website ID: ${window.__OCEAN_CONFIG__.website?.id || 'Not found'}`,
+                );
+                log(
+                  `📊 Inventory items: ${window.__OCEAN_CONFIG__.inventory?.length || 0}`,
+                );
+              } else {
+                log('⚠️ Ocean configuration not found');
+              }
+
+              showResult(
+                'cdn-load-result',
+                `✅ CDN Loading Test PASSED<br>
+                            ✓ Script loaded without CORS errors<br>
+                            ✓ Ocean Ads SDK available<br>
+                            ✓ Configuration: ${window.__OCEAN_CONFIG__ ? 'Loaded' : 'Missing'}<br>
+                            ✓ Ready for ad serving`,
+              );
+            } else {
+              log('❌ Ocean Ads SDK not available after loading');
+              showResult(
+                'cdn-load-result',
+                '⚠️ CDN script loaded but SDK not available',
+                true,
+              );
+            }
+          }, 1000);
+        };
+
+        script.onerror = function (error) {
+          log(
+            `❌ CDN script FAILED to load: ${error.message || 'CORS or network error'}`,
+          );
+          showResult(
+            'cdn-load-result',
+            `❌ CDN Loading Test FAILED<br>
+                    Error: ${error.message || 'CORS or network error'}<br>
+                    This indicates CORS is still blocking the request`,
+            true,
+          );
+        };
+
+        document.head.appendChild(script);
+      }
+    </script>
+  </body>
+</html>

@@ -34,15 +34,16 @@ export class ConfigBuilderService {
   ) {
     // Determine if we're in local development
     const nodeEnv = process.env.NODE_ENV || 'development';
-    const isLocalDev = nodeEnv === 'development';
+    const isLocalDev = nodeEnv === 'development' || nodeEnv !== 'production';
     
     if (isLocalDev) {
-      // Use local development URLs
-      this.defaultApiUrl = this.configService.get<string>('CDN_API_URL', 'http://localhost:3001');
+      // Use local development URLs - force localhost for development
+      this.defaultApiUrl = 'http://localhost:3001';
       this.logger.log('🔧 Using local development API URL: ' + this.defaultApiUrl);
     } else {
       // Use production URLs
       this.defaultApiUrl = this.configService.get<string>('CDN_API_URL', 'https://rtb.oceanads.com');
+      this.logger.log('🚀 Using production API URL: ' + this.defaultApiUrl);
     }
     
     this.defaultSseTimeout = this.configService.get<number>('CDN_SSE_TIMEOUT', 250);
@@ -303,6 +304,11 @@ export class ConfigBuilderService {
   private buildSettings(tier: PublisherTier, debug: boolean): ISdkSettings {
     const tierFeatures = TIER_FEATURES[tier];
     
+    // Force debug mode in development
+    const nodeEnv = process.env.NODE_ENV || 'development';
+    const isDevelopment = nodeEnv === 'development' || nodeEnv !== 'production';
+    const debugMode = isDevelopment ? true : debug;
+    
     const settings: ISdkSettings = {
       apiUrl: this.defaultApiUrl,
       endpoints: {
@@ -311,7 +317,7 @@ export class ConfigBuilderService {
         sse: `${this.defaultApiUrl}/rtb/stream`,
       },
       sseTimeout: this.defaultSseTimeout,
-      debug,
+      debug: debugMode,
       batchDelay: 50,
       maxRetries: tier === PublisherTier.BASIC ? 1 : 3,
       fallbackTimeout: 500,
@@ -326,10 +332,12 @@ export class ConfigBuilderService {
       settings.sseTimeout = 200;
     }
 
-    this.logger.log(`🎯 SDK settings built with endpoints:`, {
+    this.logger.log(`🎯 SDK settings built for ${isDevelopment ? 'DEVELOPMENT' : 'PRODUCTION'}:`, {
+      apiUrl: settings.apiUrl,
       bid: settings.endpoints.bid,
       track: settings.endpoints.track,
       sse: settings.endpoints.sse,
+      debug: settings.debug,
     });
 
     return settings;

@@ -12,7 +12,7 @@ Your successful API response shows:
 {
   "success": true,
   "data": {
-    "cdnUrl": "https://cdn.oceanads.com/p/869e6cdc-d689-401a-91b3-faa512e4fd8c/init.js",
+    "cdnUrl": "http://localhost:3001/p/869e6cdc-d689-401a-91b3-faa512e4fd8c/init.js",
     "integrity": "sha384-CH9sPmu2gn/M+UAXabHOnjlEW0XVZq/O//0V0ISnizpcuHCL5b1fmxyu+HlY9B8m",
     "version": "1.6.18",
     "publisherId": "869e6cdc-d689-401a-91b3-faa512e4fd8c",
@@ -142,7 +142,7 @@ cdn-files/
     <title>Publisher Website</title>
     <!-- Load Ocean Ads SDK with publisher-specific config -->
     <script
-      src="https://cdn.oceanads.com/p/869e6cdc-d689-401a-91b3-faa512e4fd8c/init.js"
+      src="http://localhost:3001/p/869e6cdc-d689-401a-91b3-faa512e4fd8c/init.js"
       integrity="sha384-CH9sPmu2gn/M+UAXabHOnjlEW0XVZq/O//0V0ISnizpcuHCL5b1fmxyu+HlY9B8m"
       crossorigin="anonymous"
     ></script>
@@ -242,7 +242,7 @@ fetch(config.settings.endpoints.bid, {
     <title>Ocean Ads SDK - Basic Example</title>
     <!-- Replace local SDK with CDN version -->
     <script
-      src="https://cdn.oceanads.com/p/869e6cdc-d689-401a-91b3-faa512e4fd8c/init.js"
+      src="http://localhost:3001/p/869e6cdc-d689-401a-91b3-faa512e4fd8c/init.js"
       integrity="sha384-CH9sPmu2gn/M+UAXabHOnjlEW0XVZq/O//0V0ISnizpcuHCL5b1fmxyu+HlY9B8m"
       crossorigin="anonymous"
     ></script>
@@ -272,7 +272,7 @@ fetch(config.settings.endpoints.bid, {
   <head>
     <title>Ocean Ads SDK - Multiple Slots</title>
     <script
-      src="https://cdn.oceanads.com/p/869e6cdc-d689-401a-91b3-faa512e4fd8c/init.js"
+      src="http://localhost:3001/p/869e6cdc-d689-401a-91b3-faa512e4fd8c/init.js"
       integrity="sha384-CH9sPmu2gn/M+UAXabHOnjlEW0XVZq/O//0V0ISnizpcuHCL5b1fmxyu+HlY9B8m"
       crossorigin="anonymous"
     ></script>
@@ -342,7 +342,7 @@ cat ./cdn-files/p/869e6cdc-d689-401a-91b3-faa512e4fd8c/init.js
 
 ```html
 <!-- Publisher just needs this one line -->
-<script src="https://cdn.oceanads.com/p/{publisherId}/init.js"></script>
+<script src="http://localhost:3001/p/{publisherId}/init.js"></script>
 
 <!-- SDK automatically:
      - Configures for their inventory
@@ -379,7 +379,7 @@ cat ./cdn-files/p/869e6cdc-d689-401a-91b3-faa512e4fd8c/init.js
 
 3. **Development vs Production URLs**
 
-   - CDN currently generates production URLs (`https://cdn.oceanads.com`)
+   - CDN currently generates production URLs (`http://localhost:3001`)
    - Need to configure for local development testing
    - Environment-specific endpoint configuration
 

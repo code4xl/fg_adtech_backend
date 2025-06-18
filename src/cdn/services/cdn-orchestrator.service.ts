@@ -313,10 +313,14 @@ export class CdnOrchestratorService {
    */
   private generateCdnHeaders(metadata: any): Record<string, string> {
     return {
-      'Content-Type': 'application/javascript',
+      'Content-Type': 'application/javascript; charset=utf-8',
       'Cache-Control': 'public, max-age=3600',
       'X-Content-Type-Options': 'nosniff',
       'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin, X-Requested-With',
+      'Access-Control-Max-Age': '86400',
+      'Cross-Origin-Resource-Policy': 'cross-origin',
       'ETag': metadata.integrity || metadata.etag || '',
       'Last-Modified': metadata.lastModified || new Date().toUTCString(),
     };

@@ -16,7 +16,7 @@ import { Type, Transform } from 'class-transformer';
 export class CreateCampaignBudgetTrackerDto {
     @ApiProperty({
         description: 'Campaign ID',
-        example: '550e8400-e29b-41d4-a716-446655440000',
+        example: 'b169383a-2369-4422-9094-bf0752ceed65',
     })
     @IsNotEmpty()
     @IsUUID('4')
@@ -96,13 +96,13 @@ export class UpdateCampaignBudgetTrackerDto extends PartialType(CreateCampaignBu
 export class CampaignBudgetTrackerResponseDto {
     @ApiProperty({
         description: 'Budget tracker ID',
-        example: '550e8400-e29b-41d4-a716-446655440000',
+        example: 'b169383a-2369-4422-9094-bf0752ceed65',
     })
     id: string;
 
     @ApiProperty({
         description: 'Campaign ID',
-        example: '550e8400-e29b-41d4-a716-446655440000',
+        example: 'b169383a-2369-4422-9094-bf0752ceed65',
     })
     campaignId: string;
 
@@ -186,7 +186,7 @@ export class UpdateSpentAmountDto {
 export class CampaignBudgetTrackerQueryDto {
     @ApiPropertyOptional({
         description: 'Filter by campaign ID',
-        example: '550e8400-e29b-41d4-a716-446655440000',
+        example: 'b169383a-2369-4422-9094-bf0752ceed65',
     })
     @IsOptional()
     @IsUUID('4')

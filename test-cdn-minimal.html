@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quick CDN Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .ad-slot {
+        background: #f0f0f0;
+        border: 2px dashed #ccc;
+        padding: 20px;
+        margin: 15px 0;
+        text-align: center;
+        min-height: 100px;
+      }
+      .debug {
+        background: #e6f3ff;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🚀 Quick Ocean Ads CDN Test</h1>
+
+    <div class="debug">
+      <h3>Debug Info:</h3>
+      <div id="debug-info">Loading...</div>
+    </div>
+
+    <!-- Test Ad Slots -->
+    <div class="ad-slot" data-ocean-slot="header-banner">
+      <strong>Header Banner (728x90)</strong><br />
+      data-ocean-slot="header-banner"
+    </div>
+
+    <div class="ad-slot" data-ocean-slot="sidebar-ad">
+      <strong>Sidebar Ad (300x250)</strong><br />
+      data-ocean-slot="sidebar-ad"
+    </div>
+
+    <div class="ad-slot" data-ocean-slot="footer-banner">
+      <strong>Footer Banner (728x90)</strong><br />
+      data-ocean-slot="footer-banner"
+    </div>
+
+    <!-- Load Fixed CDN -->
+    <script src="http://localhost:3001/cdn/p/869e6cdc-d689-401a-91b3-faa512e4fd8c/init.js"></script>
+
+    <script>
+      function updateDebugInfo() {
+        const debugDiv = document.getElementById('debug-info');
+
+        if (typeof window.__OCEAN_CONFIG__ === 'undefined') {
+          debugDiv.innerHTML = '❌ Ocean Config not found!';
+          return;
+        }
+
+        const config = window.__OCEAN_CONFIG__;
+        const info = [
+          `✅ Config loaded successfully`,
+          `📡 API URL: ${config.settings.apiUrl}`,
+          `🎯 Bid Endpoint: ${config.settings.endpoints?.bid || 'NOT SET'}`,
+          `📊 Inventory Count: ${config.inventory.length}`,
+          `🐛 Debug Mode: ${config.settings.debug}`,
+          `🆔 Publisher ID: ${config.publisher.id}`,
+        ];
+
+        debugDiv.innerHTML = info.join('<br>');
+
+        // Test if SDK is available
+        setTimeout(() => {
+          if (typeof OceanAds !== 'undefined') {
+            debugDiv.innerHTML += '<br>✅ Ocean Ads SDK available';
+            console.log('🎉 Ocean Ads SDK loaded successfully!', OceanAds);
+
+            // Check if ad slots are discovered
+            const slots = document.querySelectorAll('[data-ocean-slot]');
+            debugDiv.innerHTML += `<br>🎯 Found ${slots.length} ad slots on page`;
+          } else {
+            debugDiv.innerHTML += '<br>❌ Ocean Ads SDK not available';
+          }
+        }, 1000);
+      }
+
+      // Update debug info when page loads
+      setTimeout(updateDebugInfo, 500);
+
+      // Listen for Ocean Ads events
+      if (typeof window.addEventListener === 'function') {
+        window.addEventListener('message', function (event) {
+          console.log('CDN Event:', event.data);
+        });
+      }
+
+      // Log config for inspection
+      setTimeout(() => {
+        if (window.__OCEAN_CONFIG__) {
+          console.log('🔧 Ocean Config:', window.__OCEAN_CONFIG__);
+        }
+      }, 1000);
+    </script>
+  </body>
+</html>

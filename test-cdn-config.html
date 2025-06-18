@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test CDN Configuration</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background: #f5f5f5;
+      }
+      .config {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+      }
+      .success {
+        color: #28a745;
+      }
+      .error {
+        color: #dc3545;
+      }
+      .info {
+        color: #007bff;
+      }
+      pre {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        overflow-x: auto;
+      }
+      .test-section {
+        margin: 20px 0;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🌊 Ocean Ads CDN Configuration Test</h1>
+
+    <div class="test-section">
+      <h2>📋 Configuration Inspection</h2>
+      <div id="config-status">⏳ Loading CDN...</div>
+      <div id="config-display"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>🎯 RTB Endpoints Test</h2>
+      <div id="endpoint-tests">⏳ Waiting for configuration...</div>
+    </div>
+
+    <div class="test-section">
+      <h2>🔧 Debug Information</h2>
+      <div id="debug-info">⏳ Gathering debug info...</div>
+    </div>
+
+    <!-- Load the CDN -->
+    <script
+      src="http://localhost:3001/cdn/p/869e6cdc-d689-401a-91b3-faa512e4fd8c/init.js"
+      onload="handleCdnLoad()"
+      onerror="handleCdnError()"
+    ></script>
+
+    <script>
+      function handleCdnLoad() {
+        console.log('✅ CDN loaded successfully');
+        inspectConfiguration();
+        testEndpoints();
+        showDebugInfo();
+      }
+
+      function handleCdnError() {
+        console.error('❌ CDN failed to load');
+        document.getElementById('config-status').innerHTML =
+          '<span class="error">❌ CDN failed to load</span>';
+      }
+
+      function inspectConfiguration() {
+        const statusDiv = document.getElementById('config-status');
+        const displayDiv = document.getElementById('config-display');
+
+        if (window.__OCEAN_CONFIG__) {
+          statusDiv.innerHTML =
+            '<span class="success">✅ Ocean Config Found!</span>';
+
+          const config = window.__OCEAN_CONFIG__;
+          displayDiv.innerHTML = `
+                    <h3>📊 Configuration Details:</h3>
+                    <pre>${JSON.stringify(config, null, 2)}</pre>
+                    
+                    <h3>🔗 API Endpoints:</h3>
+                    <ul>
+                        <li><strong>Base API URL:</strong> <code>${config.settings?.apiUrl || 'Not configured'}</code></li>
+                        <li><strong>Bid Endpoint:</strong> <code>${config.settings?.endpoints?.bid || 'Not configured'}</code></li>
+                        <li><strong>Track Endpoint:</strong> <code>${config.settings?.endpoints?.track || 'Not configured'}</code></li>
+                        <li><strong>SSE Endpoint:</strong> <code>${config.settings?.endpoints?.sse || 'Not configured'}</code></li>
+                    </ul>
+                `;
+        } else {
+          statusDiv.innerHTML =
+            '<span class="error">❌ Ocean Config Not Found</span>';
+          displayDiv.innerHTML =
+            '<p class="error">window.__OCEAN_CONFIG__ is not available</p>';
+        }
+      }
+
+      function testEndpoints() {
+        const testsDiv = document.getElementById('endpoint-tests');
+        const config = window.__OCEAN_CONFIG__;
+
+        if (!config || !config.settings?.endpoints) {
+          testsDiv.innerHTML =
+            '<span class="error">❌ No endpoints to test</span>';
+          return;
+        }
+
+        let results = [];
+        const endpoints = config.settings.endpoints;
+
+        // Test bid endpoint
+        if (endpoints.bid) {
+          testEndpoint(endpoints.bid, 'Bid Endpoint', (result) => {
+            results.push(result);
+            updateEndpointResults(results);
+          });
+        }
+
+        // Test track endpoint
+        if (endpoints.track) {
+          testEndpoint(endpoints.track, 'Track Endpoint', (result) => {
+            results.push(result);
+            updateEndpointResults(results);
+          });
+        }
+
+        // Test SSE endpoint
+        if (endpoints.sse) {
+          testEndpoint(endpoints.sse + '/test', 'SSE Endpoint', (result) => {
+            results.push(result);
+            updateEndpointResults(results);
+          });
+        }
+
+        function updateEndpointResults(results) {
+          testsDiv.innerHTML =
+            '<h3>🧪 Endpoint Tests:</h3>' +
+            results
+              .map(
+                (r) =>
+                  `<div class="${r.success ? 'success' : 'error'}">${r.message}</div>`,
+              )
+              .join('');
+        }
+      }
+
+      function testEndpoint(url, name, callback) {
+        fetch(url, { method: 'OPTIONS' }) // Use OPTIONS to test connectivity
+          .then((response) => {
+            if (
+              response.ok ||
+              response.status === 404 ||
+              response.status === 405
+            ) {
+              callback({
+                success: true,
+                message: `✅ ${name}: Server responding (${response.status})`,
+              });
+            } else {
+              callback({
+                success: false,
+                message: `❌ ${name}: Server error (${response.status})`,
+              });
+            }
+          })
+          .catch((error) => {
+            callback({
+              success: false,
+              message: `❌ ${name}: Connection failed - ${error.message}`,
+            });
+          });
+      }
+
+      function showDebugInfo() {
+        const debugDiv = document.getElementById('debug-info');
+
+        const info = {
+          'Current URL': window.location.href,
+          'User Agent': navigator.userAgent,
+          Timestamp: new Date().toISOString(),
+          'Ocean Objects': Object.keys(window).filter(
+            (key) => key.includes('OCEAN') || key.includes('Ocean'),
+          ),
+          'CDN Load Time': new Date().toISOString(),
+        };
+
+        debugDiv.innerHTML = `
+                <h3>🔍 Debug Information:</h3>
+                <pre>${JSON.stringify(info, null, 2)}</pre>
+            `;
+      }
+
+      // Log everything to console for debugging
+      window.addEventListener('load', function () {
+        console.log('🚀 Page loaded');
+        console.log('Ocean Config:', window.__OCEAN_CONFIG__);
+      });
+    </script>
+  </body>
+</html>

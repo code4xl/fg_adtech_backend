@@ -30,8 +30,26 @@ async function bootstrap() {
   });
   const configService = app.get(ConfigService);
 
-  // Enable CORS
-  app.enableCors();
+  // Enable CORS with comprehensive configuration
+  app.enableCors({
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3001', 
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:3001',
+      'http://localhost:5500',
+      'http://127.0.0.1:5500',
+      'http://localhost:8080',
+      'http://127.0.0.1:8080',
+      /^http:\/\/localhost:\d+$/,
+      /^http:\/\/127\.0\.0\.1:\d+$/,
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+    credentials: false, // Set to true if you need to send cookies
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  });
 
   // Use Helmet for security headers
   app.use(
@@ -39,16 +57,29 @@ async function bootstrap() {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"], // Note the quotes around 'self'
-          scriptSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
+          scriptSrc: [
+            "'self'", 
+            "'unsafe-inline'", 
+            'cdn.jsdelivr.net',
+            'http://localhost:3001',
+            'http://127.0.0.1:3001',
+            'http://localhost:*',
+            'http://127.0.0.1:*'
+          ],
           styleSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
           imgSrc: ["'self'", 'data:', 'cdn.jsdelivr.net'],
           connectSrc: [
             "'self'",
+            'http://localhost:3001',
+            'http://127.0.0.1:3001',
+            'http://localhost:*',
+            'http://127.0.0.1:*',
             'https://5x2p27zf-3000.inc1.devtunnels.ms',
             'https://programmatic.api.oceanadnetwork.com',
           ],
         },
       },
+      crossOriginResourcePolicy: { policy: "cross-origin" },
     }),
   );
 

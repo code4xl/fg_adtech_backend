@@ -66,7 +66,7 @@ export class BroadcastNotificationDto {
     @ApiProperty({
         description: 'Optional additional data for the notification',
         required: false,
-        example: { campaignId: '550e8400-e29b-41d4-a716-446655440000' }
+        example: { campaignId: 'b169383a-2369-4422-9094-bf0752ceed65' }
     })
     @IsOptional()
     data?: Record<string, any>;

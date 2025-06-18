@@ -183,7 +183,7 @@ export class SelectorGeneratorService {
 ${snippets.join('\n')}
 
 <!-- Load Ocean Ads SDK -->
-<script src="https://cdn.oceanads.com/p/{publisherId}/init.js"></script>`;
+<script src="http://localhost:3001/p/{publisherId}/init.js"></script>`;
   }
 
   /**

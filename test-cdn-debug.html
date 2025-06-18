@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ocean Ads CDN Debug Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f5f5f5;
+      }
+      .debug-panel {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .status {
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+      }
+      .success {
+        background-color: #d4edda;
+        color: #155724;
+      }
+      .error {
+        background-color: #f8d7da;
+        color: #721c24;
+      }
+      .warning {
+        background-color: #fff3cd;
+        color: #856404;
+      }
+      .info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+      }
+      .ad-slot {
+        background: #e9ecef;
+        border: 2px dashed #6c757d;
+        padding: 20px;
+        margin: 10px 0;
+        text-align: center;
+        min-height: 100px;
+      }
+      pre {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 4px;
+        overflow-x: auto;
+        max-height: 300px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔍 Ocean Ads CDN Debug Test</h1>
+
+    <div class="debug-panel">
+      <h2>📡 CDN Script Loading</h2>
+      <div id="cdn-status" class="status info">Loading CDN script...</div>
+    </div>
+
+    <div class="debug-panel">
+      <h2>⚙️ Configuration Analysis</h2>
+      <div id="config-status" class="status info">
+        Checking configuration...
+      </div>
+      <pre id="config-display"></pre>
+    </div>
+
+    <div class="debug-panel">
+      <h2>📊 Inventory Analysis</h2>
+      <div id="inventory-status" class="status info">
+        Analyzing inventory...
+      </div>
+      <pre id="inventory-display"></pre>
+    </div>
+
+    <div class="debug-panel">
+      <h2>🎯 RTB Test</h2>
+      <div id="rtb-status" class="status info">Testing RTB endpoints...</div>
+      <button
+        onclick="testRtbEndpoint()"
+        style="padding: 10px 20px; margin: 10px 0"
+      >
+        🚀 Test RTB Bid Request
+      </button>
+      <pre id="rtb-display"></pre>
+    </div>
+
+    <div class="debug-panel">
+      <h2>📱 Ad Slots (for testing)</h2>
+      <div class="ad-slot" data-ocean-slot="header-banner">
+        Header Banner (728x90)
+        <br />data-ocean-slot="header-banner"
+      </div>
+      <div class="ad-slot" data-ocean-slot="sidebar-ad">
+        Sidebar Ad (300x250)
+        <br />data-ocean-slot="sidebar-ad"
+      </div>
+      <div class="ad-slot" data-ocean-slot="footer-banner">
+        Footer Banner (728x90)
+        <br />data-ocean-slot="footer-banner"
+      </div>
+    </div>
+
+    <!-- Load Ocean Ads CDN -->
+    <script
+      src="http://localhost:3001/cdn/p/869e6cdc-d689-401a-91b3-faa512e4fd8c/init.js"
+      onload="checkCdnLoaded()"
+      onerror="cdnLoadError()"
+    ></script>
+
+    <script>
+      function updateStatus(elementId, message, type = 'info') {
+        const element = document.getElementById(elementId);
+        element.textContent = message;
+        element.className = `status ${type}`;
+      }
+
+      function displayJson(elementId, data) {
+        const element = document.getElementById(elementId);
+        element.textContent = JSON.stringify(data, null, 2);
+      }
+
+      function cdnLoadError() {
+        updateStatus('cdn-status', '❌ CDN script failed to load!', 'error');
+        updateStatus(
+          'config-status',
+          '❌ Cannot check config - CDN not loaded',
+          'error',
+        );
+        updateStatus(
+          'inventory-status',
+          '❌ Cannot check inventory - CDN not loaded',
+          'error',
+        );
+        updateStatus(
+          'rtb-status',
+          '❌ Cannot test RTB - CDN not loaded',
+          'error',
+        );
+      }
+
+      function checkCdnLoaded() {
+        updateStatus(
+          'cdn-status',
+          '✅ CDN script loaded successfully!',
+          'success',
+        );
+        checkConfiguration();
+      }
+
+      function checkConfiguration() {
+        try {
+          if (typeof window.__OCEAN_CONFIG__ === 'undefined') {
+            updateStatus(
+              'config-status',
+              '❌ __OCEAN_CONFIG__ not found!',
+              'error',
+            );
+            return;
+          }
+
+          const config = window.__OCEAN_CONFIG__;
+          displayJson('config-display', config);
+
+          // Check critical configuration
+          if (!config.settings) {
+            updateStatus(
+              'config-status',
+              '❌ Missing settings in config!',
+              'error',
+            );
+            return;
+          }
+
+          if (!config.settings.apiUrl) {
+            updateStatus(
+              'config-status',
+              '❌ Missing apiUrl in settings!',
+              'error',
+            );
+            return;
+          }
+
+          if (!config.settings.endpoints) {
+            updateStatus(
+              'config-status',
+              '⚠️ Missing endpoints in settings!',
+              'warning',
+            );
+          } else {
+            if (!config.settings.endpoints.bid) {
+              updateStatus(
+                'config-status',
+                '❌ Missing bid endpoint!',
+                'error',
+              );
+              return;
+            }
+          }
+
+          // Check if pointing to localhost
+          if (config.settings.apiUrl.includes('localhost:3001')) {
+            updateStatus(
+              'config-status',
+              '✅ Configuration looks good - localhost detected!',
+              'success',
+            );
+          } else if (config.settings.apiUrl.includes('rtb.oceanads.com')) {
+            updateStatus(
+              'config-status',
+              '⚠️ Using production URL - should be localhost for development!',
+              'warning',
+            );
+          } else {
+            updateStatus(
+              'config-status',
+              '❓ Unknown API URL detected',
+              'warning',
+            );
+          }
+
+          checkInventory();
+        } catch (error) {
+          updateStatus(
+            'config-status',
+            `❌ Error checking config: ${error.message}`,
+            'error',
+          );
+        }
+      }
+
+      function checkInventory() {
+        try {
+          const config = window.__OCEAN_CONFIG__;
+
+          if (!config.inventory) {
+            updateStatus(
+              'inventory-status',
+              '❌ No inventory property in config!',
+              'error',
+            );
+            return;
+          }
+
+          if (!Array.isArray(config.inventory)) {
+            updateStatus(
+              'inventory-status',
+              '❌ Inventory is not an array!',
+              'error',
+            );
+            return;
+          }
+
+          if (config.inventory.length === 0) {
+            updateStatus(
+              'inventory-status',
+              '⚠️ Inventory array is empty - no ad slots configured!',
+              'warning',
+            );
+            displayJson('inventory-display', {
+              message:
+                'Empty inventory - this means no ad slots are configured in the database for this website.',
+              inventoryCount: 0,
+              adSlotsInPage:
+                document.querySelectorAll('[data-ocean-slot]').length,
+            });
+          } else {
+            updateStatus(
+              'inventory-status',
+              `✅ Found ${config.inventory.length} inventory items`,
+              'success',
+            );
+            displayJson('inventory-display', config.inventory);
+          }
+
+          checkRtbReadiness();
+        } catch (error) {
+          updateStatus(
+            'inventory-status',
+            `❌ Error checking inventory: ${error.message}`,
+            'error',
+          );
+        }
+      }
+
+      function checkRtbReadiness() {
+        try {
+          const config = window.__OCEAN_CONFIG__;
+
+          if (
+            config.settings &&
+            config.settings.endpoints &&
+            config.settings.endpoints.bid
+          ) {
+            updateStatus(
+              'rtb-status',
+              '✅ RTB endpoint configured - ready for testing',
+              'success',
+            );
+          } else {
+            updateStatus(
+              'rtb-status',
+              '❌ RTB endpoints not properly configured',
+              'error',
+            );
+          }
+        } catch (error) {
+          updateStatus(
+            'rtb-status',
+            `❌ Error checking RTB: ${error.message}`,
+            'error',
+          );
+        }
+      }
+
+      async function testRtbEndpoint() {
+        try {
+          const config = window.__OCEAN_CONFIG__;
+
+          if (
+            !config ||
+            !config.settings ||
+            !config.settings.endpoints ||
+            !config.settings.endpoints.bid
+          ) {
+            displayJson('rtb-display', {
+              error: 'RTB endpoint not configured',
+            });
+            return;
+          }
+
+          const bidEndpoint = config.settings.endpoints.bid;
+          updateStatus('rtb-status', '🔄 Testing RTB endpoint...', 'info');
+
+          const testRequest = {
+            externalRequestId: 'test-' + Date.now(),
+            publisherId: config.publisher.id,
+            websiteId: config.website.id,
+            inventoryId: 'test-inventory',
+            userContext: {
+              device: 'desktop',
+              browser: navigator.userAgent,
+            },
+            adSlotContext: {
+              width: 728,
+              height: 90,
+            },
+            enableSSE: true,
+            responseMode: 'sse',
+          };
+
+          console.log('Testing RTB with request:', testRequest);
+          console.log('Endpoint:', bidEndpoint);
+
+          const response = await fetch(bidEndpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(testRequest),
+          });
+
+          const result = await response.json();
+
+          if (response.ok) {
+            updateStatus(
+              'rtb-status',
+              '✅ RTB endpoint responding!',
+              'success',
+            );
+            displayJson('rtb-display', {
+              status: 'success',
+              response: result,
+              endpoint: bidEndpoint,
+            });
+          } else {
+            updateStatus('rtb-status', '❌ RTB endpoint error', 'error');
+            displayJson('rtb-display', {
+              status: 'error',
+              response: result,
+              endpoint: bidEndpoint,
+              httpStatus: response.status,
+            });
+          }
+        } catch (error) {
+          updateStatus('rtb-status', '❌ RTB test failed', 'error');
+          displayJson('rtb-display', {
+            status: 'error',
+            error: error.message,
+            stack: error.stack,
+          });
+        }
+      }
+
+      // Check if Ocean Ads SDK is available
+      setTimeout(() => {
+        if (typeof OceanAds !== 'undefined') {
+          console.log('✅ OceanAds SDK is available:', OceanAds);
+        } else {
+          console.log('❌ OceanAds SDK not available in global scope');
+        }
+      }, 1000);
+    </script>
+  </body>
+</html>

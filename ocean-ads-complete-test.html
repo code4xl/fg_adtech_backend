@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ocean Ads SDK - Complete RTB Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+        border-radius: 10px;
+        margin-bottom: 30px;
+      }
+
+      .status-dashboard {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .status-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid #6c757d;
+      }
+
+      .status-card.success {
+        border-left-color: #28a745;
+      }
+      .status-card.error {
+        border-left-color: #dc3545;
+      }
+      .status-card.info {
+        border-left-color: #17a2b8;
+      }
+
+      .controls {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .button-group {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.3s;
+      }
+
+      button:hover {
+        background: #0056b3;
+      }
+      button.success {
+        background: #28a745;
+      }
+      button.success:hover {
+        background: #218838;
+      }
+      button.danger {
+        background: #dc3545;
+      }
+      button.danger:hover {
+        background: #c82333;
+      }
+
+      .content-area {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 30px;
+        margin-bottom: 30px;
+      }
+
+      .main-content {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .sidebar {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Ad Slot Styles */
+      .ad-slot {
+        border: 2px dashed #6c757d;
+        background: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 20px 0;
+        position: relative;
+        transition: all 0.3s ease;
+        flex-direction: column;
+        color: #6c757d;
+        font-weight: 500;
+      }
+
+      .ad-slot:hover {
+        border-color: #007bff;
+        background: #e3f2fd;
+      }
+
+      .ad-slot.loaded {
+        border-color: #28a745;
+        background: #d4edda;
+        color: #155724;
+      }
+
+      .ad-slot.error {
+        border-color: #dc3545;
+        background: #f8d7da;
+        color: #721c24;
+      }
+
+      /* Specific ad dimensions */
+      .header-banner {
+        width: 100%;
+        max-width: 728px;
+        height: 90px;
+        margin: 20px auto;
+      }
+
+      .sidebar-ad {
+        width: 100%;
+        max-width: 300px;
+        height: 250px;
+        margin: 20px 0;
+      }
+
+      .footer-banner {
+        width: 100%;
+        max-width: 728px;
+        height: 90px;
+        margin: 20px auto;
+      }
+
+      .logs {
+        background: #2d3748;
+        color: #a0aec0;
+        padding: 20px;
+        border-radius: 8px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        max-height: 300px;
+        overflow-y: auto;
+        margin-top: 20px;
+      }
+
+      .logs .timestamp {
+        color: #4fd1c7;
+      }
+      .logs .success {
+        color: #68d391;
+      }
+      .logs .error {
+        color: #fc8181;
+      }
+      .logs .info {
+        color: #63b3ed;
+      }
+
+      .network-monitor {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 15px;
+        margin-top: 20px;
+      }
+
+      .network-request {
+        background: white;
+        border-left: 3px solid #6c757d;
+        padding: 8px 12px;
+        margin: 5px 0;
+        font-size: 11px;
+        font-family: monospace;
+      }
+
+      .network-request.success {
+        border-left-color: #28a745;
+      }
+      .network-request.error {
+        border-left-color: #dc3545;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin: 15px 0;
+      }
+
+      .stat-item {
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+        text-align: center;
+      }
+
+      .stat-value {
+        font-size: 1.5em;
+        font-weight: bold;
+        color: #007bff;
+      }
+
+      @media (max-width: 768px) {
+        .content-area {
+          grid-template-columns: 1fr;
+        }
+        .header-banner,
+        .footer-banner {
+          max-width: 320px;
+          height: 50px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>🌊 Ocean Ads SDK - Complete RTB Test</h1>
+      <p>Real-Time Bidding Integration Testing Environment</p>
+    </div>
+
+    <!-- Status Dashboard -->
+    <div class="status-dashboard">
+      <div class="status-card" id="sdk-status">
+        <h3>SDK Status</h3>
+        <div id="sdk-status-value">Loading...</div>
+      </div>
+      <div class="status-card" id="config-status">
+        <h3>Configuration</h3>
+        <div id="config-status-value">Checking...</div>
+      </div>
+      <div class="status-card" id="rtb-status">
+        <h3>RTB Connection</h3>
+        <div id="rtb-status-value">Not tested</div>
+      </div>
+      <div class="status-card" id="ads-status">
+        <h3>Ad Slots</h3>
+        <div id="ads-status-value">Detecting...</div>
+      </div>
+    </div>
+
+    <!-- Test Controls -->
+    <div class="controls">
+      <h3>🎮 Test Controls</h3>
+      <div class="button-group">
+        <button onclick="testRTBConnection()">Test RTB Connection</button>
+        <button onclick="refreshAds()" class="success">Refresh All Ads</button>
+        <button onclick="simulateAdRequest()">Simulate Ad Request</button>
+        <button onclick="clearLogs()" class="danger">Clear Logs</button>
+      </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="content-area">
+      <main class="main-content">
+        <!-- Header Banner Ad -->
+        <div class="ad-slot header-banner" data-ocean-slot="header-banner">
+          <div>Header Banner (728x90)</div>
+          <small>Premium placement</small>
+        </div>
+
+        <h2>Ocean Ads RTB Platform</h2>
+        <p>
+          Welcome to our Real-Time Bidding test environment. This page
+          demonstrates the complete Ocean Ads SDK integration with live RTB
+          endpoints and ad serving capabilities.
+        </p>
+
+        <p>
+          The SDK automatically detects ad slots using the
+          <code>data-ocean-slot</code> attribute and initiates bid requests to
+          our RTB engine at
+          <strong>http://localhost:3001/rtb/bid-request</strong>.
+        </p>
+
+        <h3>How It Works</h3>
+        <ol>
+          <li>
+            <strong>SDK Initialization:</strong> Loads configuration from CDN
+          </li>
+          <li>
+            <strong>Slot Detection:</strong> Finds all ad slots on the page
+          </li>
+          <li>
+            <strong>Bid Requests:</strong> Sends RTB requests for each slot
+          </li>
+          <li><strong>Ad Rendering:</strong> Displays winning creatives</li>
+          <li>
+            <strong>Tracking:</strong> Reports impressions and interactions
+          </li>
+        </ol>
+
+        <p>
+          Monitor the status dashboard above and logs below to see real-time RTB
+          activity, including bid requests, responses, and ad rendering events.
+        </p>
+
+        <!-- Footer Banner Ad -->
+        <div class="ad-slot footer-banner" data-ocean-slot="footer-banner">
+          <div>Footer Banner (728x90)</div>
+          <small>High visibility</small>
+        </div>
+      </main>
+
+      <aside class="sidebar">
+        <h3>📊 Live Statistics</h3>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-value" id="total-requests">0</div>
+            <div>Bid Requests</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="successful-bids">0</div>
+            <div>Successful Bids</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="fill-rate">0%</div>
+            <div>Fill Rate</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="avg-response">0ms</div>
+            <div>Avg Response</div>
+          </div>
+        </div>
+
+        <!-- Sidebar Ads -->
+        <div class="ad-slot sidebar-ad" data-ocean-slot="sidebar-ad">
+          <div>Sidebar Ad (300x250)</div>
+          <small>Medium Rectangle</small>
+        </div>
+
+        <div class="ad-slot sidebar-ad" data-ocean-slot="sidebar-bottom">
+          <div>Sidebar Bottom (300x250)</div>
+          <small>Secondary placement</small>
+        </div>
+
+        <!-- Network Monitor -->
+        <div class="network-monitor">
+          <h4>🌐 Network Activity</h4>
+          <div id="network-activity"></div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Debug Logs -->
+    <div class="controls">
+      <h3>📋 Debug Logs</h3>
+      <div class="logs" id="debug-logs"></div>
+    </div>
+
+    <!-- Ocean Ads SDK - This is the main CDN link -->
+    <script src="http://localhost:3001/cdn/p/869e6cdc-d689-401a-91b3-faa512e4fd8c/init.js"></script>
+
+    <script>
+      // Global tracking variables
+      let bidRequestCount = 0;
+      let successfulBids = 0;
+      let responseTimes = [];
+
+      // Logging function
+      function log(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const logElement = document.getElementById('debug-logs');
+        const logEntry = document.createElement('div');
+        logEntry.innerHTML = `<span class="timestamp">[${timestamp}]</span> <span class="${type}">${message}</span>`;
+        logElement.appendChild(logEntry);
+        logElement.scrollTop = logElement.scrollHeight;
+        console.log(`[Ocean Ads] ${message}`);
+      }
+
+      // Update status card
+      function updateStatus(cardId, value, type = 'info') {
+        const card = document.getElementById(cardId);
+        const valueElement = document.getElementById(cardId + '-value');
+        if (card && valueElement) {
+          card.className = `status-card ${type}`;
+          valueElement.textContent = value;
+        }
+      }
+
+      // Log network activity
+      function logNetworkActivity(url, method, status, responseTime = null) {
+        const networkElement = document.getElementById('network-activity');
+        const activityElement = document.createElement('div');
+        const className = status < 400 ? 'success' : 'error';
+        const time = responseTime ? ` (${responseTime}ms)` : '';
+        activityElement.className = `network-request ${className}`;
+        activityElement.textContent = `${method} ${url} - ${status}${time}`;
+        networkElement.appendChild(activityElement);
+
+        // Keep only last 8 entries
+        while (networkElement.children.length > 8) {
+          networkElement.removeChild(networkElement.firstChild);
+        }
+      }
+
+      // Update statistics
+      function updateStats() {
+        document.getElementById('total-requests').textContent = bidRequestCount;
+        document.getElementById('successful-bids').textContent = successfulBids;
+
+        const fillRate =
+          bidRequestCount > 0
+            ? Math.round((successfulBids / bidRequestCount) * 100)
+            : 0;
+        document.getElementById('fill-rate').textContent = fillRate + '%';
+
+        const avgResponse =
+          responseTimes.length > 0
+            ? Math.round(
+                responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length,
+              )
+            : 0;
+        document.getElementById('avg-response').textContent =
+          avgResponse + 'ms';
+      }
+
+      // Test RTB Connection
+      async function testRTBConnection() {
+        log('🔍 Testing RTB connection...', 'info');
+        updateStatus('rtb-status', 'Testing...', 'info');
+
+        const startTime = Date.now();
+
+        try {
+          const response = await fetch(
+            'http://localhost:3001/rtb/bid-request',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                id: 'test-request-' + Date.now(),
+                imp: [
+                  {
+                    id: '1',
+                    banner: {
+                      w: 728,
+                      h: 90,
+                    },
+                  },
+                ],
+                site: {
+                  id: 'test-site',
+                  domain: window.location.hostname,
+                },
+                device: {
+                  ua: navigator.userAgent,
+                  ip: '127.0.0.1',
+                },
+              }),
+            },
+          );
+
+          const responseTime = Date.now() - startTime;
+          logNetworkActivity(
+            '/rtb/bid-request',
+            'POST',
+            response.status,
+            responseTime,
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            log(
+              `✅ RTB connection successful! Request ID: ${data.requestId}`,
+              'success',
+            );
+            updateStatus('rtb-status', 'Connected ✓', 'success');
+
+            bidRequestCount++;
+            successfulBids++;
+            responseTimes.push(responseTime);
+            updateStats();
+
+            if (data.sseUrl) {
+              log(`📡 SSE URL available: ${data.sseUrl}`, 'info');
+            }
+          } else {
+            throw new Error(`HTTP ${response.status}`);
+          }
+        } catch (error) {
+          log(`❌ RTB connection failed: ${error.message}`, 'error');
+          updateStatus('rtb-status', 'Failed ✗', 'error');
+          bidRequestCount++;
+          updateStats();
+        }
+      }
+
+      // Refresh ads
+      function refreshAds() {
+        log('🔄 Refreshing all ads...', 'info');
+
+        const adSlots = document.querySelectorAll('[data-ocean-slot]');
+        adSlots.forEach((slot) => {
+          slot.className = slot.className.replace(/\b(loaded|error)\b/g, '');
+        });
+
+        if (
+          window.OceanAds &&
+          typeof window.OceanAds.refreshAds === 'function'
+        ) {
+          window.OceanAds.refreshAds();
+          log('✅ Ad refresh triggered via SDK', 'success');
+        } else {
+          log('⚠️ SDK refresh method not available, simulating...', 'info');
+          simulateAdFill();
+        }
+      }
+
+      // Simulate ad request
+      function simulateAdRequest() {
+        log('🎯 Simulating ad request...', 'info');
+        bidRequestCount++;
+        updateStats();
+
+        const startTime = Date.now();
+
+        // Simulate processing delay
+        setTimeout(
+          () => {
+            const responseTime = Date.now() - startTime;
+            responseTimes.push(responseTime);
+
+            if (Math.random() > 0.25) {
+              // 75% success rate
+              successfulBids++;
+              log(
+                `✅ Ad request filled successfully (${responseTime}ms)`,
+                'success',
+              );
+              logNetworkActivity('/rtb/bid-request', 'POST', 200, responseTime);
+            } else {
+              log(
+                `⚠️ Ad request not filled - no winning bid (${responseTime}ms)`,
+                'info',
+              );
+              logNetworkActivity('/rtb/bid-request', 'POST', 204, responseTime);
+            }
+            updateStats();
+          },
+          500 + Math.random() * 1500,
+        );
+      }
+
+      // Simulate ad filling for demonstration
+      function simulateAdFill() {
+        const adSlots = document.querySelectorAll('[data-ocean-slot]');
+        adSlots.forEach((slot, index) => {
+          setTimeout(() => {
+            if (Math.random() > 0.3) {
+              slot.classList.add('loaded');
+              slot.innerHTML = `
+                            <div>✅ Ad Loaded</div>
+                            <small>${slot.getAttribute('data-ocean-slot')}</small>
+                        `;
+              log(
+                `📺 Ad loaded in slot: ${slot.getAttribute('data-ocean-slot')}`,
+                'success',
+              );
+            } else {
+              slot.classList.add('error');
+              slot.innerHTML = `
+                            <div>⚠️ No Ad</div>
+                            <small>No bid received</small>
+                        `;
+            }
+          }, index * 200);
+        });
+      }
+
+      // Clear logs
+      function clearLogs() {
+        document.getElementById('debug-logs').innerHTML = '';
+        document.getElementById('network-activity').innerHTML = '';
+        log('🗑️ Logs cleared', 'info');
+      }
+
+      // Initialize page
+      document.addEventListener('DOMContentLoaded', function () {
+        log('🚀 Ocean Ads test page loaded', 'success');
+
+        // Count ad slots
+        const adSlots = document.querySelectorAll('[data-ocean-slot]');
+        updateStatus('ads-status', `${adSlots.length} slots found`, 'success');
+        log(
+          `📺 Detected ${adSlots.length} ad slots: ${Array.from(adSlots)
+            .map((s) => s.getAttribute('data-ocean-slot'))
+            .join(', ')}`,
+          'info',
+        );
+
+        // Check SDK after delay
+        setTimeout(() => {
+          if (typeof window.OceanAds !== 'undefined') {
+            updateStatus('sdk-status', 'Loaded ✓', 'success');
+            log('✅ Ocean Ads SDK loaded successfully', 'success');
+          } else {
+            updateStatus('sdk-status', 'Failed to load', 'error');
+            log(
+              '❌ Ocean Ads SDK failed to load - check console for errors',
+              'error',
+            );
+          }
+
+          // Check configuration
+          if (typeof window.__OCEAN_CONFIG__ !== 'undefined') {
+            updateStatus('config-status', 'Ready ✓', 'success');
+            log('⚙️ Ocean Ads configuration loaded', 'success');
+
+            const config = window.__OCEAN_CONFIG__;
+            if (config.publisher) {
+              log(`📍 Publisher ID: ${config.publisher.id}`, 'info');
+            }
+            if (config.website) {
+              log(`🏢 Website ID: ${config.website.id}`, 'info');
+            }
+            if (config.inventory) {
+              log(`📊 Inventory items: ${config.inventory.length}`, 'info');
+            }
+          } else {
+            updateStatus('config-status', 'Missing', 'error');
+            log('❌ Ocean Ads configuration not found', 'error');
+          }
+        }, 2000);
+
+        // Auto-test RTB connection
+        setTimeout(() => {
+          if (
+            document.getElementById('rtb-status-value').textContent ===
+            'Not tested'
+          ) {
+            testRTBConnection();
+          }
+        }, 3000);
+
+        // Initialize stats
+        updateStats();
+      });
+
+      // Monitor script loading errors
+      window.addEventListener('error', function (e) {
+        if (e.filename && e.filename.includes('init.js')) {
+          log(`❌ CDN script error: ${e.message}`, 'error');
+          updateStatus('sdk-status', 'Load error', 'error');
+        }
+      });
+
+      // Override fetch to monitor RTB requests
+      const originalFetch = window.fetch;
+      window.fetch = function (...args) {
+        const url = args[0];
+        const options = args[1] || {};
+        const method = options.method || 'GET';
+        const startTime = Date.now();
+
+        return originalFetch
+          .apply(this, args)
+          .then((response) => {
+            const responseTime = Date.now() - startTime;
+            if (typeof url === 'string' && url.includes('/rtb/')) {
+              logNetworkActivity(url, method, response.status, responseTime);
+              responseTimes.push(responseTime);
+              updateStats();
+            }
+            return response;
+          })
+          .catch((error) => {
+            if (typeof url === 'string' && url.includes('/rtb/')) {
+              logNetworkActivity(url, method, 'ERROR');
+            }
+            throw error;
+          });
+      };
+    </script>
+  </body>
+</html>

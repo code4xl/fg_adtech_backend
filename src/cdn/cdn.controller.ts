@@ -1,17 +1,18 @@
 import {
-    Controller,
-    Get,
-    Post,
-    Param,
-    Body,
-    UseGuards,
-    HttpException,
-    HttpStatus,
-    Res,
-    Query,
-    Logger,
-    Delete,
-  } from '@nestjs/common';
+  Controller,
+  Get,
+  Post,
+  Options,
+  Param,
+  Body,
+  UseGuards,
+  HttpException,
+  HttpStatus,
+  Res,
+  Query,
+  Logger,
+  Delete,
+} from '@nestjs/common';
   import { Response } from 'express';
   import { AuthGuard } from '@nestjs/passport';
   import { RoleGuard } from '../common/guards/role.guard';
@@ -374,6 +375,20 @@ import {
       }
     }
   
+        /**
+     * Handle OPTIONS preflight for CDN file
+     * OPTIONS /cdn/p/:publisherId/init.js
+     */
+    @Options('cdn/p/:publisherId/init.js')
+    async serveCdnOptions(@Res() res: Response): Promise<void> {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
+      res.setHeader('Access-Control-Max-Age', '86400');
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.status(204).send();
+    }
+
     /**
      * Serve CDN file
      * GET /cdn/p/:publisherId/init.js
@@ -387,34 +402,45 @@ import {
       @Res() res: Response,
     ): Promise<void> {
       this.logger.log(`Serve CDN for publisher ${publisherId}`);
-  
+
       try {
         const content = await this.cdnOrchestrator.serveCdnContent(
           publisherId,
           environment,
         );
-  
+
         if (!content) {
+          // Set CORS headers even for 404 responses
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+          res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+          
           res.status(404).json({
             statusCode: 404,
             message: 'CDN file not found',
           });
           return;
         }
-  
-        // Set headers
+
+        // Set all CDN headers (including CORS headers)
         Object.entries(content.headers).forEach(([key, value]) => {
           res.setHeader(key, value);
         });
-  
-        // Additional security headers
+
+        // Additional security headers (these might override some from content.headers)
         res.setHeader('X-Content-Type-Options', 'nosniff');
         res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  
+
         // Send content
         res.status(200).send(content.content);
       } catch (error) {
         this.logger.error(`Failed to serve CDN: ${error.message}`);
+        
+        // Set CORS headers even for error responses
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+        
         res.status(500).json({
           statusCode: 500,
           message: 'Failed to serve CDN file',

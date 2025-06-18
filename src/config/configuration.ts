@@ -66,7 +66,7 @@ export default () => ({
     // CDN Storage Path - where to store generated CDN files
     storagePath: process.env.CDN_STORAGE_PATH || './cdn-files',
     // CDN Base URL - for generating public CDN URLs
-    baseUrl: process.env.CDN_BASE_URL || 'https://cdn.oceanads.com',
+    baseUrl: process.env.CDN_BASE_URL || 'http://localhost:3001',
     // SDK Version for cache busting
     sdkVersion: process.env.SDK_VERSION || '1.0.0',
     // Development settings

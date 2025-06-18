@@ -22,7 +22,7 @@ const ENVIRONMENTS = {
   },
   production: {
     SDK_BUILD_PATH: './node_modules/@ocean-ads/sdk/dist/ocean-ads.min.js',
-    CDN_BASE_URL: 'https://cdn.oceanads.com',
+    CDN_BASE_URL: 'http://localhost:3001',
     CDN_INCLUDE_DEBUG: 'false',
     CDN_MINIFY: 'true',
     CDN_COMPRESSION: 'true',

@@ -41,7 +41,7 @@ export const CDN_URL_CONFIG = {
   
   // Production URLs
   PRODUCTION: {
-    BASE_URL: 'https://cdn.oceanads.com',
+    BASE_URL: 'http://localhost:3001',
     PATH_PREFIX: '',
   },
 } as const;

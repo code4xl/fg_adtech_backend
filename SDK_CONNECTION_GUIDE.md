@@ -198,7 +198,7 @@ When everything works correctly, you should see:
 
 3. **Working CDN URL**:
    ```
-   https://cdn.oceanads.com/p/869e6cdc-d689-401a-91b3-faa512e4fd8c/init.js
+   http://localhost:3001/p/869e6cdc-d689-401a-91b3-faa512e4fd8c/init.js
    ```
 
 Your setup is **PERFECT** - keep both projects separate! 🎯

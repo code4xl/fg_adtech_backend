@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simple RTB Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 50px auto;
+        padding: 20px;
+      }
+      .result {
+        margin: 20px 0;
+        padding: 15px;
+        border-radius: 5px;
+      }
+      .success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+      .error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+      .info {
+        background: #d1ecf1;
+        color: #0c5460;
+        border: 1px solid #bee5eb;
+      }
+      button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin: 10px 5px;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      pre {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        overflow-x: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🌊 Ocean Ads RTB Test - Simple Version</h1>
+    <p>
+      Testing RTB endpoint with correct
+      <strong>CreateBidRequestDto</strong> structure
+    </p>
+
+    <button onclick="testRTB()">Test RTB Request</button>
+    <button onclick="clearResults()">Clear Results</button>
+
+    <div id="results"></div>
+
+    <script>
+      function log(message, type = 'info') {
+        const resultsDiv = document.getElementById('results');
+        const resultElement = document.createElement('div');
+        resultElement.className = `result ${type}`;
+        resultElement.innerHTML = `<strong>[${new Date().toLocaleTimeString()}]</strong> ${message}`;
+        resultsDiv.appendChild(resultElement);
+        console.log(`[RTB Test] ${message}`);
+      }
+
+      async function testRTB() {
+        log('🔍 Starting RTB test with correct structure...', 'info');
+
+        const bidRequest = {
+          externalRequestId: 'simple-test-' + Date.now(),
+          inventoryId: 'b169383a-2369-4422-9094-bf0752ceed65', // UUID format
+          publisherId: '869e6cdc-d689-401a-91b3-faa512e4fd8c', // From URL
+          websiteId: '007116e2-c580-4739-90f8-1c62cbe493c4', // Mock UUID
+          userContext: {
+            userAgent: navigator.userAgent,
+            ipAddress: '127.0.0.1',
+          },
+          adSlotContext: {
+            width: 728,
+            height: 90,
+            format: 'BANNER',
+            position: 'ABOVE_FOLD',
+            pageUrl: window.location.href,
+          },
+          floorPrice: 0.5,
+        };
+
+        log('📤 Sending request with structure:', 'info');
+        log(`<pre>${JSON.stringify(bidRequest, null, 2)}</pre>`, 'info');
+
+        try {
+          const response = await fetch(
+            'http://localhost:3001/rtb/bid-request',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(bidRequest),
+            },
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            log('✅ RTB request successful!', 'success');
+            log(`<pre>${JSON.stringify(data, null, 2)}</pre>`, 'success');
+          } else {
+            const errorData = await response.json();
+            throw new Error(
+              `HTTP ${response.status}: ${errorData.message || 'Unknown error'}`,
+            );
+          }
+        } catch (error) {
+          log(`❌ RTB request failed: ${error.message}`, 'error');
+          if (error.message.includes('HTTP 400')) {
+            log(
+              '💡 This indicates a validation error. Check the backend logs for specific field errors.',
+              'info',
+            );
+          }
+        }
+      }
+
+      function clearResults() {
+        document.getElementById('results').innerHTML = '';
+      }
+
+      // Auto-run test on page load
+      document.addEventListener('DOMContentLoaded', function () {
+        log('🚀 Simple RTB test page loaded', 'info');
+        log('Click "Test RTB Request" to test the endpoint', 'info');
+      });
+    </script>
+  </body>
+</html>

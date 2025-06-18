@@ -38,7 +38,7 @@ export class CreateCampaignDto {
 
     @ApiProperty({
         description: 'Client ID for the campaign',
-        example: '550e8400-e29b-41d4-a716-446655440000',
+        example: 'b169383a-2369-4422-9094-bf0752ceed65',
     })
     @IsUUID('4')
     @IsNotEmpty()
@@ -138,7 +138,7 @@ export class UpdateCampaignDto {
 
     @ApiPropertyOptional({
         description: 'Client ID for the campaign',
-        example: '550e8400-e29b-41d4-a716-446655440000',
+        example: 'b169383a-2369-4422-9094-bf0752ceed65',
     })
     @IsOptional()
     @IsUUID('4')
@@ -231,7 +231,7 @@ export class UpdateCampaignDto {
 export class CampaignResponseDto {
     @ApiProperty({
         description: 'Campaign ID',
-        example: '550e8400-e29b-41d4-a716-446655440000',
+        example: 'b169383a-2369-4422-9094-bf0752ceed65',
     })
     id: string;
 

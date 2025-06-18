@@ -29,7 +29,7 @@ SDK_BUILD_PATH=../ocean-ads-sdk-v2/dist/ocean-ads.min.js
 
 # CDN Storage Configuration
 CDN_STORAGE_PATH=./cdn-files
-CDN_BASE_URL=https://cdn.oceanads.com
+CDN_BASE_URL=http://localhost:3001
 
 # Development Settings
 CDN_INCLUDE_DEBUG=true
@@ -112,7 +112,7 @@ npm install @ocean-ads/sdk@latest
 NODE_ENV=production
 SDK_BUILD_PATH=./node_modules/@ocean-ads/sdk/dist/ocean-ads.min.js
 CDN_STORAGE_PATH=/var/cdn/files
-CDN_BASE_URL=https://cdn.oceanads.com
+CDN_BASE_URL=http://localhost:3001
 CDN_INCLUDE_DEBUG=false
 CDN_MINIFY=true
 CDN_COMPRESSION=true

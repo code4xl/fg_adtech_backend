@@ -236,7 +236,7 @@ export class CampaignAnalysisResponseDto {
 export class RegenerateNamesRequestDto {
   @ApiProperty({
     description: 'Campaign ID to regenerate names for',
-    example: '550e8400-e29b-41d4-a716-446655440000',
+    example: 'b169383a-2369-4422-9094-bf0752ceed65',
   })
   @IsNotEmpty()
   @IsString()
