@@ -25,6 +25,8 @@ import { MailService } from 'src/mail/mail.service';
 import { MailModule } from 'src/mail/mail.module';
 import { AuthService } from 'src/auth/auth.service';
 import { JwtModule, JwtService } from '@nestjs/jwt';
+import { CampaignEligibilityService } from 'src/rtb/services/campaign-eligibility.service';
+import { CampaignTargetingService } from 'src/rtb/services/campaign-targeting.service';
 
 @Module({
   imports: [
@@ -57,6 +59,9 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
     AdvertiserClientService,
     CreativeNotificationService,
     CampaignBudgetTrackerService,
+    CampaignEligibilityService,
+    CampaignTargetingService,
+    RedisService,
     S3StorageService,
     MailService,
     AuthService,

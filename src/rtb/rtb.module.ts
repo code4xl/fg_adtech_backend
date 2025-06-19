@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module, OnModuleInit } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RedisModule } from '../redis/redis.module';
 import { KafkaModule } from '../kafka/kafka.module';
@@ -88,4 +88,21 @@ import { RTBMetricsService } from './services/rtb-metrics.service';
     ],
 })
 
-export class RTBModule { }
+export class RTBModule implements OnModuleInit {
+    private readonly logger = new Logger(RTBModule.name);
+
+    constructor(
+        private readonly campaignEligibilityService: CampaignEligibilityService,
+    ) { }
+
+    async onModuleInit() {
+        try {
+            await this.campaignEligibilityService.warmupCaches();
+        } catch (error) {
+            this.logger.error('RTB Module initialization failed', {
+                error: error.message,
+                stack: error.stack
+            });
+        }
+    }
+}

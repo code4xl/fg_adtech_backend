@@ -123,6 +123,13 @@ async function bootstrap() {
     //     theme: 'bluePlanet',
     //   }),
     // );
+
+    app.use("/api-swagger",
+      apiReference({
+        content: document,
+        theme: 'bluePlanet',
+      }),
+    );
   }
 
   const port = configService.get<number>('port') || 3000;

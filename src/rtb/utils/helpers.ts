@@ -191,7 +191,7 @@ export class RtbHelper {
     // Only send recoverable errors to DLQ
     if (errorCategory === 'transient' || errorCategory === 'timeout') {
       try {
-        await this.kafka.publish(kafkaTopics.DLQ_AUCTIONS, {
+        this.kafka.publish(kafkaTopics.DLQ_AUCTIONS, {
           key: payload.key,
           value: {
             originalMessage: payload.value,

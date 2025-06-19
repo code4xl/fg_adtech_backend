@@ -631,6 +631,11 @@ export class AuctionService {
 
     winningBid.processedAt = new Date();
 
+
+    if (winningBid) {
+      await this.recordAuctionWin(winningBid.campaignId, finalPrice);
+    }
+
     return {
       winner: {
         id: winningBid.id,
@@ -660,6 +665,13 @@ export class AuctionService {
       processedAt: winningBid.processedAt?.toISOString(),
       floorPrice: bidRequest.floorPrice,
     };
+  }
+
+  async recordAuctionWin(campaignId: string, finalPrice: number) {
+    // Update spend in DB
+    // await this.prisma.campaignBudgetTracker.update({ ...});
+
+    await this.campaignEligibility.invalidateBudgetCache(campaignId);
   }
 
   private async updateBidResponseStatuses(

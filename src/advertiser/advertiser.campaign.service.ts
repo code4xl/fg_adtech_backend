@@ -10,12 +10,14 @@ import {
     ForbiddenException,
 } from '../common/exceptions/custom.exception';
 import { AdvertiserHelper } from './advertiser.helper';
+import { CampaignEligibilityService } from 'src/rtb/services/campaign-eligibility.service';
 
 @Injectable()
 export class AdvertiserCampaignService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly advertiserHelper: AdvertiserHelper,
+        private readonly campaignEligibilityService: CampaignEligibilityService,
     ) { }
 
     /**
@@ -157,6 +159,8 @@ export class AdvertiserCampaignService {
                 client: true,
             },
         });
+
+        await this.campaignEligibilityService.invalidateCampaignPoolCache();
 
         return updatedCampaign;
     }

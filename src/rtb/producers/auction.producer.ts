@@ -25,7 +25,7 @@ export default class AuctionProducer {
         bidRequest,
       });
 
-      await this.kafka.publish(kafkaTopics.AUCTION_RESULTS, {
+      this.kafka.publish(kafkaTopics.AUCTION_RESULTS, {
         key: bidRequest.auctionId,
         value: {
           ...auctionResult,
@@ -85,7 +85,7 @@ export default class AuctionProducer {
         hasWinner: !!auctionCompletionData.winner
       });
 
-      await this.kafka.publish(kafkaTopics.AUCTION_COMPLETION, {
+      this.kafka.publish(kafkaTopics.AUCTION_COMPLETION, {
         key: bidRequest.auctionId || auctionResult.auctionId,
         value: auctionCompletionData,
       });
@@ -215,35 +215,9 @@ export default class AuctionProducer {
     };
   }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   public async publishToAnalyticsPipeline(auctionData: any): Promise<void> {
     try {
-      await this.kafka.publish(kafkaTopics.HOURLY_AGGREGATION, {
+      this.kafka.publish(kafkaTopics.HOURLY_AGGREGATION, {
         key: auctionData.auctionId,
         value: {
           type: 'auction_completed',
@@ -268,7 +242,7 @@ export default class AuctionProducer {
     remainingBudget: number,
   ): Promise<void> {
     try {
-      await this.kafka.publish(kafkaTopics.CAMPAIGN_BUDGET_ALERTS, {
+      this.kafka.publish(kafkaTopics.CAMPAIGN_BUDGET_ALERTS, {
         key: campaignId,
         value: {
           campaignId,
@@ -295,7 +269,7 @@ export default class AuctionProducer {
     bidRequest: BidRequestWithAuction,
   ): Promise<void> {
     try {
-      await this.kafka.publish(kafkaTopics.AUCTION_PROCESSING, {
+      this.kafka.publish(kafkaTopics.AUCTION_PROCESSING, {
         key: bidRequest.id,
         value: {
           bidRequest,
