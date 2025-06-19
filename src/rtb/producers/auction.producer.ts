@@ -20,13 +20,18 @@ export default class AuctionProducer {
     bidRequest: BidRequestWithAuction,
   ): Promise<void> {
     try {
+      this.logger.debug("Publishing Auction Result", {
+        auctionResult,
+        bidRequest,
+      });
+
       await this.kafka.publish(kafkaTopics.AUCTION_RESULTS, {
         key: bidRequest.auctionId,
         value: {
           ...auctionResult,
-          auctionId: bidRequest.auctionId,
-          originalBidRequest: bidRequest,
-          auctionStatus: auctionResult.auctionStatus,
+          // auctionId: bidRequest.auctionId,
+          // originalBidRequest: bidRequest,
+          // auctionStatus: auctionResult.auctionStatus,
           processedAt: new Date().toISOString(),
         },
       });

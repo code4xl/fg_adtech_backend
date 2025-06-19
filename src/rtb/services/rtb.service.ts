@@ -59,7 +59,6 @@ export class RtbService {
       await this.rtbCacheService.cacheBidRequest(bidRequest);
 
       // 5. Publish to Kafka for async auction processing
-
       await this.auctionProducer.publishBidRequestForProcessing(bidRequest);
 
       // 6. Record processing metrics

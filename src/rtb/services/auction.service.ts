@@ -2,7 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuctionStatusDto } from '../dto';
 import { BidRequestWithAuction } from '../types/bid-request.types';
-import { CAMPAIGN_KEYS, RTB_CACHE_TTL, RTB_KEYS } from '../constants/cache-keys';
+import { CAMPAIGN_KEYS, CREATIVE_KEYS, RTB_CACHE_TTL, RTB_KEYS } from '../constants/cache-keys';
 import { RedisService } from 'src/redis/redis.service';
 import { CampaignEligibilityService } from './campaign-eligibility.service';
 import { CampaignWithTargeting } from '../types/campaign.types';
@@ -231,13 +231,44 @@ export class AuctionService {
     return bidResults.filter((bid) => bid !== null);
   }
 
+  // private async selectCreative(
+  //   campaign: CampaignWithTargeting,
+  //   adSlotContext: any,
+  // ): Promise<CreativeWithTemplate> {
+  //   try {
+  //     // Find creative that matches ad slot requirements
+  //     const creative = await this.prisma.creative.findFirst({
+  //       where: {
+  //         campaignId: campaign.id,
+  //         status: 'APPROVED',
+  //         adSlotTemplate: {
+  //           width: adSlotContext.width,
+  //           height: adSlotContext.height,
+  //           format: adSlotContext.format,
+  //         },
+  //       },
+  //       include: {
+  //         adSlotTemplate: true,
+  //       },
+  //     });
+
+  //     return creative;
+  //   } catch (error) {
+  //     this.logger.error('Failed to select creative', {
+  //       campaignId: campaign.id,
+  //       error: error.message,
+  //     });
+  //     return null;
+  //   }
+  // }
+
   private async selectCreative(
     campaign: CampaignWithTargeting,
     adSlotContext: any,
   ): Promise<CreativeWithTemplate> {
     try {
-      // Find creative that matches ad slot requirements
-      const creative = await this.prisma.creative.findFirst({
+      // Get all matching creatives
+      const creatives = await this.prisma.creative.findMany({
         where: {
           campaignId: campaign.id,
           status: 'APPROVED',
@@ -250,15 +281,61 @@ export class AuctionService {
         include: {
           adSlotTemplate: true,
         },
+        orderBy: { id: 'asc' }, // Consistent ordering for round-robin
       });
 
-      return creative;
+      if (creatives.length === 0) return null;
+      if (creatives.length === 1) return creatives[0];
+
+      // Round-robin selection
+      const selectedCreative = await this.roundRobinSelect(campaign.id, creatives);
+      return selectedCreative;
+
     } catch (error) {
       this.logger.error('Failed to select creative', {
         campaignId: campaign.id,
         error: error.message,
       });
       return null;
+    }
+  }
+
+  private async roundRobinSelect(
+    campaignId: string,
+    creatives: CreativeWithTemplate[]
+  ): Promise<CreativeWithTemplate> {
+    // Redis key for round-robin counter
+    const counterKey = CREATIVE_KEYS.CREATIVE_ROUND_ROBIN(campaignId);
+
+    try {
+      // Get current counter value and increment atomically
+      const currentCount = await this.redis.incr(counterKey);
+
+      // Set expiry on first use (24 hours)
+      if (currentCount === 1) {
+        await this.redis.expire(counterKey, RTB_CACHE_TTL.CREATIVE_ROUND_ROBIN); // 24 hours
+      }
+
+      // Calculate index using modulo
+      const selectedIndex = (currentCount - 1) % creatives.length;
+
+      this.logger.debug('Round-robin creative selection', {
+        campaignId,
+        currentCount,
+        totalCreatives: creatives.length,
+        selectedIndex,
+        selectedCreativeId: creatives[selectedIndex].id,
+      });
+
+      return creatives[selectedIndex];
+
+    } catch (error) {
+      // Fallback to first creative if Redis fails
+      this.logger.warn('Round-robin selection failed, using fallback', {
+        campaignId,
+        error: error.message,
+      });
+      return creatives[0];
     }
   }
 

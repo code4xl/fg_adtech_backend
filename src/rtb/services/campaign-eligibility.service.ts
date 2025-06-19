@@ -27,27 +27,26 @@ export class CampaignEligibilityService {
     });
 
     try {
-      // 1. Check Redis cache first
-      const cacheKey = CAMPAIGN_KEYS.ELIGIBLE_CAMPAIGNS(
-        inventoryId,
-        userContext.deviceType,
-      );
-      const cached = await this.getCachedEligibility(cacheKey);
+      // 1. Check Redis cache first  --> Redundant as we are checking in the cache earlier
+      // const cacheKey = CAMPAIGN_KEYS.ELIGIBLE_CAMPAIGNS(
+      //   inventoryId,
+      //   userContext.deviceType,
+      // );
+      // const cached = await this.getCachedEligibility(cacheKey);
 
-      if (cached) {
-        this.logger.debug('Campaign eligibility cache hit', { inventoryId });
-        return cached;
-      }
+      // if (cached) {
+      //   this.logger.debug('Campaign eligibility cache hit', { inventoryId });
+      //   return cached;
+      // }
 
       // 2. Get basic campaign pool (active campaigns with budget)
       const campaignPool = await this.getBasicCampaignPool(
-        inventoryId,
         adSlotContext,
       );
 
       if (campaignPool.length === 0) {
         this.logger.debug('No campaigns in basic pool', { inventoryId });
-        return [];
+        return [];  // Google ka flow start (ig)
       }
 
       // 3. Apply targeting filters in order of selectivity
@@ -58,18 +57,18 @@ export class CampaignEligibilityService {
       );
 
       // 4. Final budget validation (real-time check)
-      const budgetValidated = await this.validateBudgets(campaignPool);
+      const budgetValidatedCampaigns = await this.validateBudgets(eligibleCampaigns);
 
-      // 5. Cache results for 5 minutes
-      await this.cacheEligibility(cacheKey, budgetValidated, RTB_CACHE_TTL.CAMPAIGN_ELIGIBILITY_BUDGET);
+      // 5. Cache results for 5 minutes --> Redundant as we are caching the result in the higher function
+      // await this.cacheEligibility(cacheKey, budgetValidatedCampaigns, RTB_CACHE_TTL.CAMPAIGN_ELIGIBILITY_BUDGET);
 
       this.logger.log('Campaign eligibility calculated', {
         inventoryId,
         totalCampaigns: campaignPool.length,
-        eligibleCampaigns: budgetValidated.length,
+        eligibleCampaigns: budgetValidatedCampaigns.length,
       });
 
-      return budgetValidated;
+      return budgetValidatedCampaigns;
     } catch (error) {
       this.logger.error('Failed to get eligible campaigns', {
         error: error.message,
@@ -79,22 +78,20 @@ export class CampaignEligibilityService {
     }
   }
 
-  private async getCachedEligibility(cacheKey: string): Promise<CampaignWithTargeting[] | null> {
-    try {
-      const cached = await this.redis.get<string>(cacheKey);
-      return cached ? JSON.parse(cached) : null;
-    } catch (error) {
-      this.logger.warn('Cache retrieval failed', {
-        error: error.message,
-        cacheKey,
-      });
-      return null;
-    }
-  }
+  // private async getCachedEligibility(cacheKey: string): Promise<CampaignWithTargeting[] | null> {
+  //   try {
+  //     const cached = await this.redis.get<string>(cacheKey);
+  //     return cached ? JSON.parse(cached) : null;
+  //   } catch (error) {
+  //     this.logger.warn('Cache retrieval failed', {
+  //       error: error.message,
+  //       cacheKey,
+  //     });
+  //     return null;
+  //   }
+  // }
 
-  // Ask Mit about this
   private async getBasicCampaignPool(
-    inventoryId: string,
     adSlotContext: any,
   ): Promise<CampaignWithTargeting[]> {
     const now = new Date();
@@ -169,26 +166,51 @@ export class CampaignEligibilityService {
     return results.filter((campaign) => campaign !== null);
   }
 
+  // private async applyTargetingFilters(
+  //   campaigns: CampaignWithTargeting[],
+  //   userContext: any,
+  //   adSlotContext: any,
+  // ): Promise<CampaignWithTargeting[]> {
+  //   const filteredCampaigns = [];
+
+  //   for (const campaign of campaigns) {
+  //     const isEligible = await this.checkTargetingRules(
+  //       campaign,
+  //       userContext,
+  //       adSlotContext,
+  //     );
+
+  //     if (isEligible) {
+  //       filteredCampaigns.push(campaign);
+  //     }
+  //   }
+
+  //   return filteredCampaigns;
+  // }
   private async applyTargetingFilters(
     campaigns: CampaignWithTargeting[],
     userContext: any,
     adSlotContext: any,
   ): Promise<CampaignWithTargeting[]> {
-    const filteredCampaigns = [];
 
-    for (const campaign of campaigns) {
-      const isEligible = await this.checkTargetingRules(
-        campaign,
-        userContext,
-        adSlotContext,
+    // Process in parallel batches of 10
+    const batchSize = 10;
+    const eligibleCampaigns: CampaignWithTargeting[] = [];
+
+    for (let i = 0; i < campaigns.length; i += batchSize) {
+      const batch = campaigns.slice(i, i + batchSize);
+
+      const batchResults = await Promise.all(
+        batch.map(async (campaign) => {
+          const isEligible = await this.checkTargetingRules(campaign, userContext, adSlotContext);
+          return isEligible ? campaign : null;
+        })
       );
 
-      if (isEligible) {
-        filteredCampaigns.push(campaign);
-      }
+      eligibleCampaigns.push(...batchResults.filter(Boolean));
     }
 
-    return filteredCampaigns;
+    return eligibleCampaigns;
   }
 
   async checkBudgetAvailability(campaignId: string): Promise<boolean> {
@@ -198,7 +220,7 @@ export class CampaignEligibilityService {
 
       // Get current spend from Redis with proper null handling
       const spentData = await this.redis.get<string>(spentKey);
-      const spentToday = spentData ? parseFloat(spentData) / 100 : 0; // Convert from cents, default to 0
+      const spentToday = spentData ? parseFloat(spentData) : 0; // Direct INR value, no conversion needed
 
       // Get campaign budget info
       const budgetInfo = await this.getCampaignBudgetInfo(campaignId, today);
@@ -210,14 +232,15 @@ export class CampaignEligibilityService {
       // Ensure proper number conversion
       const dailyBudget = Number(budgetInfo.dailyBudget);
       const remainingDaily = dailyBudget - spentToday;
-      const isWithinBudget = remainingDaily > 0.01; // Minimum $0.01 remaining
+      const isWithinBudget = remainingDaily > 1; // Minimum ₹1 remaining (INR)
 
       this.logger.debug('Budget availability checked', {
         campaignId,
-        dailyBudget,
-        spentToday,
-        remainingDaily,
+        dailyBudget: `₹${dailyBudget}`,
+        spentToday: `₹${spentToday}`,
+        remainingDaily: `₹${remainingDaily}`,
         isWithinBudget,
+        currency: 'INR',
         budgetInfoType: typeof budgetInfo.dailyBudget,
         spentTodayType: typeof spentToday,
       });
@@ -253,7 +276,7 @@ export class CampaignEligibilityService {
         where: {
           campaignId,
           date: {
-            equals: new Date(today + 'T00:00:00.000Z'), // Proper date matching
+            equals: new Date(today).toISOString(), // Proper date matching
           },
         },
         select: {
@@ -293,59 +316,86 @@ export class CampaignEligibilityService {
     }
   }
 
-  async checkTargetingRules(
-    campaign: CampaignWithTargeting,
-    userContext: any,
-    adSlotContext: any,
-  ): Promise<boolean> {
-    try {
-      // Early exit if campaign has no targeting rules
-      if (!this.campaignTargetingService.hasTargetingRules(campaign)) {
-        return true; // No targeting = all traffic eligible
-      }
+  // async checkTargetingRules(
+  //   campaign: CampaignWithTargeting,
+  //   userContext: any,
+  //   adSlotContext: any,
+  // ): Promise<boolean> {
+  //   try {
+  //     // Early exit if campaign has no targeting rules
+  //     if (!this.campaignTargetingService.hasTargetingRules(campaign)) {
+  //       return true; // No targeting = all traffic eligible
+  //     }
 
-      // Evaluate each targeting type (AND logic - all must pass)
-      const checks = await Promise.all([
-        this.campaignTargetingService.checkGeographicTargeting(
-          campaign.geographicTargeting,
-          userContext,
-        ),
-        this.campaignTargetingService.checkDeviceTargeting(campaign.deviceTargeting, userContext),
-        this.campaignTargetingService.checkDemographicTargeting(
-          campaign.demographicTargeting,
-          userContext,
-        ),
-        this.campaignTargetingService.checkTimeTargeting(campaign.timeTargeting, userContext),
-        this.campaignTargetingService.checkContextualTargeting(
-          campaign.contextualTargeting,
-          adSlotContext,
-        ),
-        this.campaignTargetingService.checkBehavioralTargeting(
-          campaign.behavioralTargeting,
-          userContext,
-        ),
-        this.campaignTargetingService.checkFrequencyTargeting(
-          campaign.frequencyTargeting,
-          userContext,
-          campaign.id,
-        ),
-      ]);
+  //     // Evaluate each targeting type (AND logic - all must pass)
+  //     const checks = await Promise.all([
+  //       this.campaignTargetingService.checkGeographicTargeting(
+  //         campaign.geographicTargeting,
+  //         userContext,
+  //       ),
+  //       this.campaignTargetingService.checkDeviceTargeting(campaign.deviceTargeting, userContext),
+  //       this.campaignTargetingService.checkDemographicTargeting(
+  //         campaign.demographicTargeting,
+  //         userContext,
+  //       ),
+  //       this.campaignTargetingService.checkTimeTargeting(campaign.timeTargeting, userContext),
+  //       this.campaignTargetingService.checkContextualTargeting(
+  //         campaign.contextualTargeting,
+  //         adSlotContext,
+  //       ),
+  //       this.campaignTargetingService.checkBehavioralTargeting(
+  //         campaign.behavioralTargeting,
+  //         userContext,
+  //       ),
+  //       this.campaignTargetingService.checkFrequencyTargeting(
+  //         campaign.frequencyTargeting,
+  //         userContext,
+  //         campaign.id,
+  //       ),
+  //     ]);
 
-      const allRulesPassed = checks.every((result) => result === true);
+  //     const allRulesPassed = checks.every((result) => result === true);
 
-      this.logger.debug('Targeting rules evaluated', {
-        campaignId: campaign.id,
-        rulesCount: checks.length,
-        allPassed: allRulesPassed,
-      });
+  //     this.logger.debug('Targeting rules evaluated', {
+  //       campaignId: campaign.id,
+  //       rulesCount: checks.length,
+  //       allPassed: allRulesPassed,
+  //     });
 
-      return allRulesPassed;
-    } catch (error) {
-      this.logger.error('Targeting rule evaluation failed', {
-        error: error.message,
-        campaignId: campaign.id,
-      });
-      return false;
+  //     return allRulesPassed;
+  //   } catch (error) {
+  //     this.logger.error('Targeting rule evaluation failed', {
+  //       error: error.message,
+  //       campaignId: campaign.id,
+  //     });
+  //     return false;
+  //   }
+  // }
+
+  async checkTargetingRules(campaign: CampaignWithTargeting, userContext: any, adSlotContext: any): Promise<boolean> {
+    if (!this.campaignTargetingService.hasTargetingRules(campaign)) {
+      return true;
     }
+
+    // Run all checks in parallel instead of sequential
+    const [
+      geoCheck,
+      deviceCheck,
+      demoCheck,
+      timeCheck,
+      contextCheck,
+      behaviorCheck,
+      frequencyCheck
+    ] = await Promise.all([
+      this.campaignTargetingService.checkGeographicTargeting(campaign.geographicTargeting, userContext),
+      this.campaignTargetingService.checkDeviceTargeting(campaign.deviceTargeting, userContext),
+      this.campaignTargetingService.checkDemographicTargeting(campaign.demographicTargeting, userContext),
+      this.campaignTargetingService.checkTimeTargeting(campaign.timeTargeting, userContext),
+      this.campaignTargetingService.checkContextualTargeting(campaign.contextualTargeting, adSlotContext),
+      this.campaignTargetingService.checkBehavioralTargeting(campaign.behavioralTargeting, userContext),
+      this.campaignTargetingService.checkFrequencyTargeting(campaign.frequencyTargeting, userContext, campaign.id)
+    ]);
+
+    return geoCheck && deviceCheck && demoCheck && timeCheck && contextCheck && behaviorCheck && frequencyCheck;
   }
 }

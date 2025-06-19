@@ -72,6 +72,9 @@ export const CREATIVE_KEYS = {
 
   // A/B Testing
   A_B_TEST: (testId: string) => `creative:abtest:${testId}`,
+
+  // Round Robin Creative Selection
+  CREATIVE_ROUND_ROBIN: (campaignId: string) => `campaign:${campaignId}:creative_counter`
 } as const;
 
 // Inventory & Publisher Management
@@ -278,11 +281,13 @@ export const RTB_CACHE_TTL = {
   AUCTION_STATE: 300, // 5 minutes
 
   // Campaign & Targeting
-  CAMPAIGN_ELIGIBILITY: 300, // 5 minutes
-  CAMPAIGN_ELIGIBILITY_BUDGET: 300, // 5 minutes
-  CAMPAIGN_BUDGET_INFO: 3600, // 1 hour
-  TARGETING_RULES_CACHE: 86400, // 24 hours
+  CAMPAIGN_ELIGIBILITY: 1800, // 5 minutes
+  CAMPAIGN_BUDGET_INFO: 7200, // 1 hour
+  TARGETING_RULES_CACHE: 3600, // 24 hours
   TARGETING_EVALUATION_RESULT: 1800, // 30 minutes
+
+  // Creative
+  CREATIVE_ROUND_ROBIN: 86400, // 24 hours
 
   // Performance Metrics
   CREATIVE_PERFORMANCE: 604800, // 7 days

@@ -11,4 +11,7 @@ model AdSlotTemplate {
   // This can be used to validate creative sizes and inventory creation
   adInventories AdInventory[]
   creatives     Creative[]
+
+  @@index([width, height, format])
+  @@index([format, width, height])
 }

@@ -20,12 +20,12 @@ model Publisher {
   mfaCodeExpiry        DateTime?
 
   // Relations
-  inventories AdInventory[]
-  bidRequests BidRequest[]
-
-  websites Website[]
-
+  inventories     AdInventory[]
+  bidRequests     BidRequest[]
+  websites        Website[]
   ImpressionEvent ImpressionEvent[]
+  ClickEvent      ClickEvent[]
 
-  ClickEvent ClickEvent[]
+  @@index([id, status])
+  @@index([status])
 }

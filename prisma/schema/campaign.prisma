@@ -36,6 +36,11 @@ model Campaign {
     ImpressionEvent ImpressionEvent[]
     ClickEvent      ClickEvent[]
     ClientCampaign  ClientCampaign[]
+
+    // Add these indexes for RTB performance
+    @@index([status, startDate, endDate])
+    @@index([status, advertiserId])
+    @@index([id, status])
 }
 
 model CampaignStatistics {
@@ -70,4 +75,7 @@ model CampaignBudgetTracker {
     campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
     @@unique([campaignId, date])
+    @@index([campaignId, date])
+    @@index([date, campaignId])
+    @@index([campaignId])
 }

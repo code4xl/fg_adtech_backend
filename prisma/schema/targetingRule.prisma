@@ -22,6 +22,7 @@ model DemographicTargeting {
   @@index([campaignId])
   @@index([inventoryId])
   @@index([ageMin, ageMax])
+  @@index([ageMin, ageMax, campaignId])
 }
 
 // GEOGRAPHIC TARGETING
@@ -52,6 +53,7 @@ model GeographicTargeting {
   @@index([campaignId])
   @@index([inventoryId])
   @@index([countries])
+  @@index([countries, campaignId])
 }
 
 // DEVICE TARGETING
@@ -84,6 +86,7 @@ model DeviceTargeting {
   @@index([campaignId])
   @@index([inventoryId])
   @@index([deviceTypes])
+  @@index([deviceTypes, campaignId])
 }
 
 // CONTEXTUAL TARGETING
@@ -186,6 +189,7 @@ model TimeTargeting {
   @@index([campaignId])
   @@index([inventoryId])
   @@index([startHour, endHour])
+  @@index([daysOfWeek, campaignId])
 }
 
 // FREQUENCY TARGETING

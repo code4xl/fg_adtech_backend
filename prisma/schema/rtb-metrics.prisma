@@ -9,4 +9,6 @@ model RTBMetrics {
     avgBidPrice    Decimal? @db.Decimal(10, 4)
 
     @@index([timestamp])
+    @@index([bidRequestId, timestamp])
+    @@index([timestamp, auctionLatency])
 }

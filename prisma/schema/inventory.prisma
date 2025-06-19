@@ -28,4 +28,8 @@ model AdInventory {
   ImpressionEvent ImpressionEvent[]
 
   ClickEvent ClickEvent[]
+
+  @@index([id, publisherId], name: "inventory_publisher_idx")
+  @@index([adSlotTemplateId, isActive], name: "inventory_template_active_idx")
+  @@index([publisherId, isActive, approvalStatus], name: "inventory_eligible_idx")
 }

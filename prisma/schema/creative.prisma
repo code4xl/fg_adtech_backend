@@ -15,10 +15,12 @@ model Creative {
     updatedAt              DateTime       @updatedAt
 
     // Relations
-    campaign     Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-    bidResponses BidResponse[]
-
+    campaign        Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+    bidResponses    BidResponse[]
     ImpressionEvent ImpressionEvent[]
+    ClickEvent      ClickEvent[]
 
-    ClickEvent ClickEvent[]
+    @@index([campaignId, status])
+    @@index([templateId, status])
+    @@index([status, campaignId, templateId])
 }
