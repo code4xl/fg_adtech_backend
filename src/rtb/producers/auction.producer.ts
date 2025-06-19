@@ -301,7 +301,7 @@ export default class AuctionProducer {
 
       this.logger.debug('Bid request published to Kafka', {
         requestId: bidRequest.id,
-        topic: kafkaTopics.BID_REQUESTS,
+        topic: kafkaTopics.AUCTION_PROCESSING,
       });
     } catch (error) {
       this.logger.error('Failed to publish bid request to Kafka', {

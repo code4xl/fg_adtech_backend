@@ -153,7 +153,7 @@ const exampleOutputConfig: IOceanConfig = {
     },
   ],
   settings: {
-    apiUrl: 'https://rtb.oceanads.com',
+    apiUrl: 'http://localhost:3001',
     sseTimeout: 200, // Premium tier setting
     debug: false,
     batchDelay: 35,
@@ -197,7 +197,7 @@ const exampleEnterpriseConfig: Partial<IOceanConfig> = {
     tier: PublisherTier.ENTERPRISE,
   },
   settings: {
-    apiUrl: 'https://rtb.oceanads.com',
+    apiUrl: 'http://localhost:3001',
     sseTimeout: 150, // Fastest for enterprise
     debug: false,
     batchDelay: 25,

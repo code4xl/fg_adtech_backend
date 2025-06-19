@@ -56,7 +56,7 @@ export class CreativeSeeder implements ISeeder {
       // Create creatives for campaigns
       for (const campaign of campaigns) {
         // Create 1-3 creatives per campaign
-        const creativeCount = faker.number.int({ min: 1, max: 3 });
+        const creativeCount = faker.number.int({ min: 2, max: 7 });
 
         for (let i = 0; i < creativeCount; i++) {
           // Select a random template that will determine dimensions and format
@@ -96,6 +96,17 @@ export class CreativeSeeder implements ISeeder {
               'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/object-promise-1749052140905-jpg',
               'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/Black+and+White+Bold+Modern+Simple+Geometric+New+Collection+Fashion+Mobile+Banner+Ad.png',
               'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/burger.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-9.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-10.webp',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-5.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-6.png',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-7.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-8.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-15.jpeg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-14.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-13.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-12.webp',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-11.jpg',
             ]),
             s3Key: this.generateS3Key(creativeType, template),
             landingUrl: faker.internet.url(),
@@ -172,8 +183,12 @@ export class CreativeSeeder implements ISeeder {
   }
 
   async isSeeded(): Promise<boolean> {
-    const count = await this.prisma.creative.count();
-    return count > 0;
+    // Temporarily return false to allow adding more creatives for RTB testing
+    return false;
+    
+    // Original logic (commented out):
+    // const count = await this.prisma.creative.count();
+    // return count > 0;
   }
 
   /**

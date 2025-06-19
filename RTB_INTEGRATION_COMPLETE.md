@@ -42,10 +42,10 @@ Your SDK was loading successfully, but the configuration had **wrong endpoints**
 ```javascript
 window.__OCEAN_CONFIG__ = {
   settings: {
-    apiUrl: 'https://rtb.oceanads.com', // ❌ Production URL (doesn't exist)
+    apiUrl: 'http://localhost:3001', // ❌ Production URL (doesn't exist)
     endpoints: {
-      bid: 'https://rtb.oceanads.com/bid', // ❌ Wrong URL
-      track: 'https://rtb.oceanads.com/track', // ❌ Wrong URL
+      bid: 'http://localhost:3001/bid', // ❌ Wrong URL
+      track: 'http://localhost:3001/track', // ❌ Wrong URL
     },
   },
 };
@@ -95,7 +95,7 @@ const isLocalDev = nodeEnv === 'development';
 if (isLocalDev) {
   this.defaultApiUrl = 'http://localhost:3001'; // ← Local backend
 } else {
-  this.defaultApiUrl = 'https://rtb.oceanads.com'; // ← Production
+  this.defaultApiUrl = 'http://localhost:3001'; // ← Production
 }
 
 // Build settings with correct endpoints

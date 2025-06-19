@@ -42,7 +42,7 @@ export class ConfigBuilderService {
       this.logger.log('🔧 Using local development API URL: ' + this.defaultApiUrl);
     } else {
       // Use production URLs
-      this.defaultApiUrl = this.configService.get<string>('CDN_API_URL', 'https://rtb.oceanads.com');
+      this.defaultApiUrl = this.configService.get<string>('CDN_API_URL', 'http://localhost:3001');
       this.logger.log('🚀 Using production API URL: ' + this.defaultApiUrl);
     }
     

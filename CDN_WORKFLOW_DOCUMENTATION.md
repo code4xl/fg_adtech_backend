@@ -114,8 +114,8 @@ cdn-files/
     settings: {
       debug: false,
       endpoints: {
-        bid: 'https://rtb.oceanads.com/bid',
-        track: 'https://rtb.oceanads.com/track',
+        bid: 'http://localhost:3001/bid',
+        track: 'http://localhost:3001/track',
       },
     },
   };

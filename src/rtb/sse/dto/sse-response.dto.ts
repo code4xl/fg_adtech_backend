@@ -16,7 +16,7 @@ export class SSEConnectionResponseDto {
 
   @ApiProperty({
     description: 'SSE stream URL for real-time updates',
-    example: 'https://rtb.oceanads.com/rtb/stream/b169383a-2369-4422-9094-bf0752ceed65'
+    example: 'http://localhost:3001/rtb/stream/b169383a-2369-4422-9094-bf0752ceed65'
   })
   @IsUrl()
   sseUrl: string;

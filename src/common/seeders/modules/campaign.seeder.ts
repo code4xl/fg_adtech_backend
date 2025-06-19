@@ -27,7 +27,7 @@ export class CampaignSeeder implements ISeeder {
     return ['Advertiser', 'Client'];
   }
 
-  async seed(count: number = 50): Promise<void> {
+  async seed(count: number = 500): Promise<void> {
     this.logger.log(`Seeding ${count} campaigns...`);
 
     try {
@@ -223,8 +223,12 @@ export class CampaignSeeder implements ISeeder {
   }
 
   async isSeeded(): Promise<boolean> {
-    const count = await this.prisma.campaign.count();
-    return count > 0;
+    // Temporarily return false to allow adding more campaigns for RTB testing
+    return false;
+    
+    // Original logic (commented out):
+    // const count = await this.prisma.campaign.count();
+    // return count > 0;
   }
 
   /**
