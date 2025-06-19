@@ -17,6 +17,7 @@ import { CdnOrchestratorService } from './services/cdn-orchestrator.service';
 
 // Guards
 import { CdnAccessGuard } from './guards/cdn-access.guard';
+import { RoleGuard } from '../common/guards/role.guard';
 
 /**
  * CDN Module
@@ -43,6 +44,7 @@ import { CdnAccessGuard } from './guards/cdn-access.guard';
   providers: [
     // Guards
     CdnAccessGuard,
+    RoleGuard,
     
     // Part 2 Services - Configuration Building
     ConfigBuilderService,

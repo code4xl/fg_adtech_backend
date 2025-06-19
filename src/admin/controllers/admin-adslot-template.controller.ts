@@ -26,7 +26,7 @@ import {
   @ApiTags('Admin - Ad Slot Templates')
   @ApiBearerAuth()
   @UseGuards(AdminGuard)
-  @Controller('admin/adslot-templates')
+  @Controller('api/admin/adslot-templates')
   export class AdminAdSlotTemplateController {
     constructor(
       private readonly adSlotTemplateService: AdminAdSlotTemplateService

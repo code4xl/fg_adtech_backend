@@ -13,7 +13,7 @@ import {
     Delete,
   } from '@nestjs/common';
   import { Response } from 'express';
-  import { PublisherAuthenticationGuard } from '../common/guards/authentication.guard';
+  import { AuthGuard } from '@nestjs/passport';
   import { RoleGuard } from '../common/guards/role.guard';
   import { Roles } from '../common/decorators/roles.decorator';
   import { CdnAccessGuard } from './guards/cdn-access.guard';
@@ -54,7 +54,7 @@ import {
      * GET /api/publishers/:publisherId/websites/:websiteId/sdk-config
      */
     @Get('api/publishers/:publisherId/websites/:websiteId/sdk-config')
-    @UseGuards(PublisherAuthenticationGuard, RoleGuard, CdnAccessGuard)
+    @UseGuards(AuthGuard('jwt'), RoleGuard, CdnAccessGuard)
     @Roles('PUBLISHER', 'ADMIN')
     async previewSdkConfig(
       @Param('publisherId') publisherId: string,
@@ -103,7 +103,7 @@ import {
      * POST /api/publishers/:publisherId/websites/:websiteId/generate-cdn
      */
     @Post('api/publishers/:publisherId/websites/:websiteId/generate-cdn')
-    @UseGuards(PublisherAuthenticationGuard, RoleGuard, CdnAccessGuard)
+    @UseGuards(AuthGuard('jwt'), RoleGuard, CdnAccessGuard)
     @Roles('PUBLISHER', 'ADMIN')
     async generateCdn(
       @Param('publisherId') publisherId: string,
@@ -165,7 +165,7 @@ import {
      * POST /api/publishers/:publisherId/regenerate-cdn
      */
     @Post('api/publishers/:publisherId/regenerate-cdn')
-    @UseGuards(PublisherAuthenticationGuard, RoleGuard, CdnAccessGuard)
+    @UseGuards(AuthGuard('jwt'), RoleGuard, CdnAccessGuard)
     @Roles('PUBLISHER', 'ADMIN')
     async regenerateAllCdn(
       @Param('publisherId') publisherId: string,
@@ -217,7 +217,7 @@ import {
      * GET /api/publishers/:publisherId/cdn-status
      */
     @Get('api/publishers/:publisherId/cdn-status')
-    @UseGuards(PublisherAuthenticationGuard, RoleGuard, CdnAccessGuard)
+    @UseGuards(AuthGuard('jwt'), RoleGuard, CdnAccessGuard)
     @Roles('PUBLISHER', 'ADMIN')
     async getCdnStatus(
       @Param('publisherId') publisherId: string,
@@ -258,7 +258,7 @@ import {
      * POST /api/publishers/:publisherId/invalidate-cdn
      */
     @Post('api/publishers/:publisherId/invalidate-cdn')
-    @UseGuards(PublisherAuthenticationGuard, RoleGuard, CdnAccessGuard)
+    @UseGuards(AuthGuard('jwt'), RoleGuard, CdnAccessGuard)
     @Roles('PUBLISHER', 'ADMIN')
     async invalidateCdn(
       @Param('publisherId') publisherId: string,
@@ -338,11 +338,11 @@ import {
   
     /**
      * Get cache statistics
-     * GET /api/admin/cdn/cache-stats
+     * GET /api/cdn/cache/stats
      */
-    @Get('api/admin/cdn/cache-stats')
-    @UseGuards(PublisherAuthenticationGuard, RoleGuard)
-    @Roles('ADMIN')
+    @Get('api/cdn/cache/stats')
+    @UseGuards(AuthGuard('jwt'), RoleGuard)
+    @Roles('PUBLISHER', 'ADMIN')
     async getCacheStats(): Promise<any> {
       this.logger.log('Get CDN cache statistics');
   
@@ -362,11 +362,11 @@ import {
   
     /**
      * Clear all CDN caches
-     * DELETE /api/admin/cdn/cache
+     * DELETE /api/cdn/cache/clear
      */
-    @Delete('api/admin/cdn/cache')
-    @UseGuards(PublisherAuthenticationGuard, RoleGuard)
-    @Roles('ADMIN')
+    @Delete('api/cdn/cache/clear')
+    @UseGuards(AuthGuard('jwt'), RoleGuard)
+    @Roles('PUBLISHER', 'ADMIN')
     async clearCache(): Promise<{ message: string }> {
       this.logger.log('Clear all CDN caches');
   

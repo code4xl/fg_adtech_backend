@@ -71,8 +71,8 @@ import {
     position?: string;
   }
   
-  @ApiTags('Ad Slot Templates')
-  @Controller('adslot-templates')
+  @ApiTags('Public - Ad Slot Templates')
+  @Controller('api/adslot-templates')
   export class AdSlotTemplatePublicController {
     constructor(private readonly prisma: PrismaService) {}
   
@@ -178,11 +178,11 @@ import {
     }
   }
   
-  // Protected endpoints for authenticated publishers/advertisers
-  @ApiTags('Ad Slot Templates - Protected')
+  // Protected endpoints for authenticated publishers
+  @ApiTags('Publishers - Ad Slot Templates')
   @ApiBearerAuth()
-  @Controller('protected/adslot-templates')
-  export class AdSlotTemplateProtectedController {
+  @Controller('api/publisher/adslot-templates')
+  export class AdSlotTemplatePublisherController {
     constructor(private readonly prisma: PrismaService) {}
   
     @Get()
@@ -209,7 +209,15 @@ import {
       const controller = new AdSlotTemplatePublicController(this.prisma);
       return controller.findOne(id);
     }
-  
+  }
+
+  // Protected endpoints for authenticated advertisers
+  @ApiTags('Advertisers - Ad Slot Templates')
+  @ApiBearerAuth()
+  @Controller('api/advertiser/adslot-templates')
+  export class AdSlotTemplateAdvertiserController {
+    constructor(private readonly prisma: PrismaService) {}
+
     @Get()
     @UseGuards(AdvertiserGuard)
     @ApiOperation({ summary: 'Get all active ad slot templates for advertisers' })

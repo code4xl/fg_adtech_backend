@@ -55,8 +55,8 @@ import {
     search?: string;
   }
   
-  @ApiTags('Content Categories')
-  @Controller('content-categories')
+  @ApiTags('Public - Content Categories')
+  @Controller('api/content-categories')
   export class ContentCategoryPublicController {
     constructor(private readonly prisma: PrismaService) {}
   
@@ -159,11 +159,11 @@ import {
     }
   }
   
-  // Protected endpoints for authenticated publishers/advertisers
-  @ApiTags('Content Categories - Protected')
+  // Protected endpoints for authenticated publishers
+  @ApiTags('Publishers - Content Categories')
   @ApiBearerAuth()
-  @Controller('protected/content-categories')
-  export class ContentCategoryProtectedController {
+  @Controller('api/publisher/content-categories')
+  export class ContentCategoryPublisherController {
     constructor(private readonly prisma: PrismaService) {}
   
     @Get()
@@ -190,7 +190,15 @@ import {
       const controller = new ContentCategoryPublicController(this.prisma);
       return controller.findOne(id);
     }
-  
+  }
+
+  // Protected endpoints for authenticated advertisers
+  @ApiTags('Advertisers - Content Categories')
+  @ApiBearerAuth()
+  @Controller('api/advertiser/content-categories')
+  export class ContentCategoryAdvertiserController {
+    constructor(private readonly prisma: PrismaService) {}
+
     @Get()
     @UseGuards(AdvertiserGuard)
     @ApiOperation({ summary: 'Get all active content categories for advertisers' })
