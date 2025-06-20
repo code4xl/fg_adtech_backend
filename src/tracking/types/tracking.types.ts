@@ -97,3 +97,83 @@ interface ClickEvent {
     region?: string | null;
     city?: string | null;
 }
+
+interface ImpressionData {
+    id: string;
+    bidResponseId: string;
+    creativeId: string;
+    campaignId: string;
+    advertiserId: string;
+    inventoryId: string;
+    publisherId: string;
+    websiteId: string;
+    adSlotId: string | null;
+    timestamp: string;
+
+    // User data
+    userAgent: string | null;
+    ipAddress: string | null;
+    deviceType: string | null;
+
+    // Viewability data
+    viewable: boolean | null;
+    viewTime: number | null; // assuming it's in milliseconds or seconds
+
+    // Fraud data
+    isBot: boolean;
+    fraudScore: number | null;
+
+    // Financial data
+    bidPrice: number;
+
+    // Additional fields
+    referrer: string | null;
+    country: string | null;
+    region: string | null;
+    city: string | null;
+
+    // Metadata
+    syncedToTimescale: boolean;
+    syncedAt: Date | null;
+}
+
+interface ClickData {
+    id: string;
+    impressionId: string | null;
+    bidResponseId: string;
+    creativeId: string;
+    campaignId: string;
+    advertiserId: string;
+    inventoryId: string;
+    publisherId: string;
+    websiteId: string;
+    adSlotId: string | null;
+    timestamp: string;
+
+    // User data
+    userAgent: string | null;
+    ipAddress: string | null;
+    deviceType: string | null;
+
+    // Click-specific data
+    clickX: number | null;
+    clickY: number | null;
+    clickArea: string | null;
+    landingUrl: string | null;
+
+    // Fraud data
+    isBot: boolean;
+    fraudScore: number | null;
+    timeFromImpression: number | null; // in milliseconds or seconds, depending on system
+
+    // Additional fields
+    referrer: string | null;
+    country: string | null;
+    region: string | null;
+    city: string | null;
+
+    // Metadata
+    syncedToTimescale: boolean;
+    syncedAt: Date | null;
+}
+

@@ -150,6 +150,10 @@ export class RedisService {
     return this.pubClient.ping();
   }
 
+  async lpop(key: string, count: number): Promise<string[] | null> {
+    return this.pubClient.lpop(key, count);
+  }
+
   pipeline() {
     return this.pubClient.pipeline();
   }

@@ -1,23 +1,27 @@
 import { Module } from '@nestjs/common';
-import { TrackingController } from './tracking.controller';
-import { TrackingService } from './tracking.service';
-import { FraudDetectionService } from './fraud-detection.service';
-import { RedisModule } from '../redis/redis.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { RedisPostgresSyncService } from './services/redis-postgres-sync.service';
+import { TimescaleService } from '../timescale/timescale.service';
 import { PrismaModule } from '../prisma/prisma.module';
-import { BudgetValidationService } from './services/budget-validation.service';
+import { RedisModule } from '../redis/redis.module';
+import { TimescaleSyncService } from './services/timescale-sync.service';
 
 @Module({
-  imports: [RedisModule, PrismaModule],
-  controllers: [TrackingController],
+  imports: [
+    ScheduleModule.forRoot(),
+    PrismaModule,
+    RedisModule,
+  ],
+  // controllers: [BatchSyncController],
   providers: [
-    TrackingService,
-    BudgetValidationService,
-    FraudDetectionService,
+    RedisPostgresSyncService,
+    TimescaleSyncService,
+    TimescaleService,
   ],
   exports: [
-    TrackingService,
-    BudgetValidationService,
-    FraudDetectionService,
+    RedisPostgresSyncService,
+    TimescaleSyncService,
+    TimescaleService,
   ],
 })
 export class TrackingModule { }

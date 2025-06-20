@@ -458,3 +458,553 @@
 //     return this.query(sql);
 //   }
 // }
+
+
+
+// src/timescale/timescale.service.ts
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Pool, PoolClient } from 'pg';
+
+export interface WriteResult {
+    success: boolean;
+    processedCount: number;
+    errors?: string[];
+}
+
+export interface TimescaleImpressionData {
+    timestamp: Date;
+    impression_id: string;
+    creative_id: string;
+    campaign_id: string;
+    advertiser_id: string;
+    inventory_id: string;
+    publisher_id: string;
+    website_id?: string;
+    price: number;
+    publisher_revenue: number;
+    user_id?: string;
+    session_id?: string;
+    user_agent?: string;
+    ip_address?: string;
+    device_type?: string;
+    browser_type?: string;
+    os_type?: string;
+    country?: string;
+    region?: string;
+    city?: string;
+    viewable?: boolean;
+    view_time?: number;
+    viewable_pixels?: number;
+    ad_size_pixels?: string;
+    is_bot?: boolean;
+    fraud_score?: number;
+    referrer_url?: string;
+    page_url?: string;
+    page_category?: string;
+}
+
+export interface TimescaleClickData {
+    timestamp: Date;
+    click_id: string;
+    impression_id?: string;
+    creative_id: string;
+    campaign_id: string;
+    advertiser_id: string;
+    inventory_id: string;
+    publisher_id: string;
+    click_x?: number;
+    click_y?: number;
+    time_from_impression?: number;
+    user_id?: string;
+    session_id?: string;
+    user_agent?: string;
+    ip_address?: string;
+    device_type?: string;
+    country?: string;
+    region?: string;
+    city?: string;
+    is_bot?: boolean;
+    fraud_score?: number;
+}
+
+@Injectable()
+export class TimescaleService implements OnModuleInit {
+    private readonly logger = new Logger(TimescaleService.name);
+    private pool: Pool;
+
+    constructor(private readonly configService: ConfigService) { }
+
+    async onModuleInit() {
+        await this.initializeConnection();
+    }
+
+    /**
+     * Initialize TimescaleDB connection pool
+     */
+    private async initializeConnection(): Promise<void> {
+        try {
+            // Get TimescaleDB configuration
+            const timescaleConfig = {
+                host: this.configService.get<string>('TIMESCALEDB_HOST', 'localhost'),
+                port: this.configService.get<number>('TIMESCALEDB_PORT', 5432),
+                database: this.configService.get<string>('TIMESCALEDB_DATABASE', 'rtb_analytics'),
+                user: this.configService.get<string>('TIMESCALEDB_USER', 'postgres'),
+                password: this.configService.get<string>('TIMESCALEDB_PASSWORD', 'password'),
+            };
+
+            this.logger.log('🔄 Initializing TimescaleDB connection', {
+                host: timescaleConfig.host,
+                port: timescaleConfig.port,
+                database: timescaleConfig.database,
+                user: timescaleConfig.user,
+            });
+
+            this.pool = new Pool({
+                ...timescaleConfig,
+                // Optimized for time-series workloads
+                max: this.configService.get<number>('TIMESCALEDB_POOL_SIZE', 20),
+                idleTimeoutMillis: 30000,
+                connectionTimeoutMillis: this.configService.get<number>('TIMESCALEDB_POOL_TIMEOUT', 5000),
+
+                // Application name for monitoring
+                application_name: 'rtb-timescale-client',
+
+                // SSL configuration for production
+                ssl: this.configService.get('NODE_ENV') === 'production'
+                    ? { rejectUnauthorized: false }
+                    : false,
+            });
+
+            // Test connection
+            const client = await this.pool.connect();
+            const result = await client.query('SELECT NOW() as current_time, version() as version');
+            client.release();
+
+            this.logger.log('✅ TimescaleDB connection established successfully', {
+                currentTime: result.rows[0].current_time,
+                version: result.rows[0].version,
+            });
+
+        } catch (error) {
+            this.logger.error('❌ Failed to initialize TimescaleDB connection:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get a database client from the pool
+     */
+    async getClient(): Promise<PoolClient> {
+        return this.pool.connect();
+    }
+
+    /**
+     * Execute a query with automatic client management
+     */
+    async query(text: string, params?: any[]): Promise<any> {
+        const client = await this.getClient();
+        try {
+            const start = Date.now();
+            const result = await client.query(text, params);
+            const duration = Date.now() - start;
+
+            this.logger.debug('TimescaleDB query executed', {
+                duration: `${duration}ms`,
+                rows: result.rowCount,
+            });
+
+            return result;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Execute a transaction with automatic rollback on error
+     */
+    async transaction<T>(
+        callback: (client: PoolClient) => Promise<T>,
+    ): Promise<T> {
+        const client = await this.getClient();
+        try {
+            await client.query('BEGIN');
+            const result = await callback(client);
+            await client.query('COMMIT');
+            return result;
+        } catch (error) {
+            await client.query('ROLLBACK');
+            this.logger.error('TimescaleDB transaction rolled back:', error);
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    /**
+     * Write impressions to TimescaleDB in bulk
+     */
+    async writeImpressions(impressions: TimescaleImpressionData[]): Promise<WriteResult> {
+        if (impressions.length === 0) {
+            return { success: true, processedCount: 0 };
+        }
+
+        const startTime = Date.now();
+
+        try {
+            const insertQuery = `
+        INSERT INTO rtb_impressions (
+          timestamp, impression_id, creative_id, campaign_id, advertiser_id,
+          inventory_id, publisher_id, website_id, price, publisher_revenue,
+          user_id, session_id, user_agent, ip_address, device_type,
+          browser_type, os_type, country, region, city, viewable,
+          view_time, viewable_pixels, ad_size_pixels, is_bot, fraud_score,
+          referrer_url, page_url, page_category
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29)
+        ON CONFLICT (timestamp, impression_id) DO NOTHING
+      `;
+
+            const result = await this.transaction(async (client) => {
+                let insertedCount = 0;
+
+                for (const impression of impressions) {
+                    const values = [
+                        impression.timestamp,
+                        impression.impression_id,
+                        impression.creative_id,
+                        impression.campaign_id,
+                        impression.advertiser_id,
+                        impression.inventory_id,
+                        impression.publisher_id,
+                        impression.website_id || null,
+                        impression.price,
+                        impression.publisher_revenue,
+                        impression.user_id || null,
+                        impression.session_id || null,
+                        impression.user_agent || null,
+                        impression.ip_address || null,
+                        impression.device_type || null,
+                        impression.browser_type || null,
+                        impression.os_type || null,
+                        impression.country || null,
+                        impression.region || null,
+                        impression.city || null,
+                        impression.viewable || false,
+                        impression.view_time || null,
+                        impression.viewable_pixels || null,
+                        impression.ad_size_pixels || null,
+                        impression.is_bot || false,
+                        impression.fraud_score || null,
+                        impression.referrer_url || null,
+                        impression.page_url || null,
+                        impression.page_category || null,
+                    ];
+
+                    const insertResult = await client.query(insertQuery, values);
+                    insertedCount += insertResult.rowCount || 0;
+                }
+
+                return insertedCount;
+            });
+
+            const processingTime = Date.now() - startTime;
+
+            this.logger.log('✅ Impressions written to TimescaleDB', {
+                requested: impressions.length,
+                inserted: result,
+                processingTimeMs: processingTime,
+            });
+
+            return {
+                success: true,
+                processedCount: result,
+            };
+
+        } catch (error) {
+            const processingTime = Date.now() - startTime;
+
+            this.logger.error('❌ Failed to write impressions to TimescaleDB:', {
+                error: error.message,
+                requestedCount: impressions.length,
+                processingTimeMs: processingTime,
+            });
+
+            return {
+                success: false,
+                processedCount: 0,
+                errors: [error.message],
+            };
+        }
+    }
+
+    /**
+     * Write clicks to TimescaleDB in bulk
+     */
+    async writeClicks(clicks: TimescaleClickData[]): Promise<WriteResult> {
+        if (clicks.length === 0) {
+            return { success: true, processedCount: 0 };
+        }
+
+        const startTime = Date.now();
+
+        try {
+            const insertQuery = `
+        INSERT INTO rtb_clicks (
+          timestamp, click_id, impression_id, creative_id, campaign_id,
+          advertiser_id, inventory_id, publisher_id, click_x, click_y,
+          time_from_impression, user_id, session_id, user_agent, ip_address,
+          device_type, country, region, city, is_bot, fraud_score
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+        ON CONFLICT (timestamp, click_id) DO NOTHING
+      `;
+
+            const result = await this.transaction(async (client) => {
+                let insertedCount = 0;
+
+                for (const click of clicks) {
+                    const values = [
+                        click.timestamp,
+                        click.click_id,
+                        click.impression_id || null,
+                        click.creative_id,
+                        click.campaign_id,
+                        click.advertiser_id,
+                        click.inventory_id,
+                        click.publisher_id,
+                        click.click_x || null,
+                        click.click_y || null,
+                        click.time_from_impression || null,
+                        click.user_id || null,
+                        click.session_id || null,
+                        click.user_agent || null,
+                        click.ip_address || null,
+                        click.device_type || null,
+                        click.country || null,
+                        click.region || null,
+                        click.city || null,
+                        click.is_bot || false,
+                        click.fraud_score || null,
+                    ];
+
+                    const insertResult = await client.query(insertQuery, values);
+                    insertedCount += insertResult.rowCount || 0;
+                }
+
+                return insertedCount;
+            });
+
+            const processingTime = Date.now() - startTime;
+
+            this.logger.log('✅ Clicks written to TimescaleDB', {
+                requested: clicks.length,
+                inserted: result,
+                processingTimeMs: processingTime,
+            });
+
+            return {
+                success: true,
+                processedCount: result,
+            };
+
+        } catch (error) {
+            const processingTime = Date.now() - startTime;
+
+            this.logger.error('❌ Failed to write clicks to TimescaleDB:', {
+                error: error.message,
+                requestedCount: clicks.length,
+                processingTimeMs: processingTime,
+            });
+
+            return {
+                success: false,
+                processedCount: 0,
+                errors: [error.message],
+            };
+        }
+    }
+
+    /**
+     * Get campaign metrics from TimescaleDB
+     */
+    async getCampaignMetrics(
+        campaignId: string,
+        startDate: Date,
+        endDate: Date,
+    ): Promise<any> {
+        const query = `
+      SELECT
+        campaign_id,
+        COUNT(*) as impression_count,
+        SUM(price) as total_spend,
+        AVG(view_time) as avg_view_time,
+        COUNT(*) FILTER (WHERE viewable = true) as viewable_impressions,
+        COUNT(DISTINCT user_id) as unique_users
+      FROM rtb_impressions
+      WHERE campaign_id = $1
+        AND timestamp BETWEEN $2 AND $3
+      GROUP BY campaign_id
+    `;
+
+        try {
+            const result = await this.query(query, [campaignId, startDate, endDate]);
+            return result.rows[0] || null;
+        } catch (error) {
+            this.logger.error('Failed to get campaign metrics:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get real-time metrics for dashboard
+     */
+    async getRealtimeMetrics(interval: string = '1 hour'): Promise<any> {
+        const query = `
+      SELECT
+        DATE_TRUNC('hour', timestamp) as hour,
+        COUNT(*) as impression_count,
+        SUM(price) as total_spend,
+        COUNT(DISTINCT campaign_id) as active_campaigns
+      FROM rtb_impressions
+      WHERE timestamp >= NOW() - INTERVAL '${interval}'
+      GROUP BY hour
+      ORDER BY hour DESC
+      LIMIT 24
+    `;
+
+        try {
+            const result = await this.query(query);
+            return result.rows;
+        } catch (error) {
+            this.logger.error('Failed to get realtime metrics:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get click-through rates by campaign
+     */
+    async getCampaignCTR(campaignId: string, hours: number = 24): Promise<any> {
+        const query = `
+      WITH impression_counts AS (
+        SELECT campaign_id, COUNT(*) as impressions
+        FROM rtb_impressions
+        WHERE campaign_id = $1 
+          AND timestamp >= NOW() - INTERVAL '${hours} hours'
+        GROUP BY campaign_id
+      ),
+      click_counts AS (
+        SELECT campaign_id, COUNT(*) as clicks
+        FROM rtb_clicks
+        WHERE campaign_id = $1 
+          AND timestamp >= NOW() - INTERVAL '${hours} hours'
+        GROUP BY campaign_id
+      )
+      SELECT 
+        i.campaign_id,
+        i.impressions,
+        COALESCE(c.clicks, 0) as clicks,
+        CASE 
+          WHEN i.impressions > 0 THEN ROUND((COALESCE(c.clicks, 0)::decimal / i.impressions) * 100, 2)
+          ELSE 0
+        END as ctr_percentage
+      FROM impression_counts i
+      LEFT JOIN click_counts c ON i.campaign_id = c.campaign_id
+    `;
+
+        try {
+            const result = await this.query(query, [campaignId]);
+            return result.rows[0] || null;
+        } catch (error) {
+            this.logger.error('Failed to get campaign CTR:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Health check for TimescaleDB
+     */
+    async healthCheck(): Promise<{ status: string; details?: any }> {
+        try {
+            const result = await this.query(
+                'SELECT NOW() as current_time, version() as version'
+            );
+
+            const poolStats = {
+                totalConnections: this.pool.totalCount,
+                idleConnections: this.pool.idleCount,
+                waitingConnections: this.pool.waitingCount,
+            };
+
+            return {
+                status: 'healthy',
+                details: {
+                    currentTime: result.rows[0].current_time,
+                    version: result.rows[0].version,
+                    connectionPool: poolStats,
+                },
+            };
+        } catch (error) {
+            this.logger.error('TimescaleDB health check failed:', error);
+            return {
+                status: 'unhealthy',
+                details: { error: error.message },
+            };
+        }
+    }
+
+    /**
+     * Get data retention status
+     */
+    async getRetentionStatus(): Promise<any> {
+        const query = `
+      SELECT 
+        schemaname,
+        tablename,
+        pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size
+      FROM pg_tables 
+      WHERE tablename IN ('rtb_impressions', 'rtb_clicks')
+    `;
+
+        try {
+            const result = await this.query(query);
+            return result.rows;
+        } catch (error) {
+            this.logger.error('Failed to get retention status:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Clean up old data (if needed)
+     */
+    async cleanupOldData(daysToKeep: number = 90): Promise<void> {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+
+        try {
+            await this.transaction(async (client) => {
+                // Delete old impressions
+                const impressionResult = await client.query(
+                    'DELETE FROM rtb_impressions WHERE timestamp < $1',
+                    [cutoffDate]
+                );
+
+                // Delete old clicks
+                const clickResult = await client.query(
+                    'DELETE FROM rtb_clicks WHERE timestamp < $1',
+                    [cutoffDate]
+                );
+
+                this.logger.log('✅ Old data cleanup completed', {
+                    cutoffDate: cutoffDate.toISOString(),
+                    deletedImpressions: impressionResult.rowCount,
+                    deletedClicks: clickResult.rowCount,
+                });
+            });
+
+        } catch (error) {
+            this.logger.error('❌ Failed to cleanup old data:', error);
+            throw error;
+        }
+    }
+}

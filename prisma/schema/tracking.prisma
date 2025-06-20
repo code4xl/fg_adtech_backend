@@ -44,6 +44,8 @@ model ImpressionEvent {
     syncedToTimescale Boolean   @default(false)
     syncedAt          DateTime?
 
+    createdAt DateTime @default(now()) // Record creation time
+
     // RELATIONS
     creative   Creative     @relation(fields: [creativeId], references: [id])
     campaign   Campaign     @relation(fields: [campaignId], references: [id])
@@ -99,6 +101,8 @@ model ClickEvent {
     // SYNC STATUS
     syncedToTimescale Boolean   @default(false)
     syncedAt          DateTime?
+
+    createdAt DateTime @default(now()) // Record creation time
 
     // RELATIONS
     impression ImpressionEvent? @relation(fields: [impressionId], references: [id])

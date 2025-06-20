@@ -25,6 +25,7 @@ import { RTBModule } from './rtb/rtb.module';
 import { CdnModule } from './cdn/cdn.module';
 import { SharedModule } from './shared/shared.module';
 import { TrackingModule } from './tracking/tracking.module';
+import { TimescaleModule } from './timescale/timescale.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -77,7 +78,8 @@ import { TrackingModule } from './tracking/tracking.module';
     ResilienceModule,
     NotificationModule,
     RTBModule,
-    // TimescaleModule,
+    TrackingModule,
+    TimescaleModule,
     CdnModule,
     SharedModule,
     TrackingModule,

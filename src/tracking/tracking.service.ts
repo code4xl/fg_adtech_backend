@@ -55,7 +55,7 @@ export class TrackingService {
 
         try {
             // 1. Store COMPLETE event data in pending queue for batch processing
-            const impressionData = {
+            const impressionData: ImpressionData = {
                 id: impression.id,
                 bidResponseId: impression.bidResponseId,
                 creativeId: impression.creativeId,
@@ -109,7 +109,7 @@ export class TrackingService {
                 impression.bidPrice
             );
 
-            // 4. Update revenue tracking
+            // 4. Update revenue tracking --> asif work 
             const publisherRevenue = impression.bidPrice * 0.7; // 70% to publisher
             const platformRevenue = impression.bidPrice * 0.3; // 30% to platform
 
@@ -147,7 +147,7 @@ export class TrackingService {
 
         try {
             // 1. Store COMPLETE click data in pending queue for batch processing
-            const clickData = {
+            const clickData: ClickData = {
                 id: click.id,
                 impressionId: click.impressionId || null,
                 bidResponseId: click.bidResponseId,
