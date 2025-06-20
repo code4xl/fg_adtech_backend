@@ -15,6 +15,19 @@ export class RedisService {
       host: this.configService.get<string>('redis.host', 'localhost'),
       port: this.configService.get<number>('redis.port', 6379),
       password: this.configService.get<string>('redis.password'),
+      // PERFORMANCE OPTIMIZATIONS
+      maxRetriesPerRequest: 2,
+      retryDelayOnFailover: 50,
+      connectTimeout: 1000,
+      commandTimeout: 500, // Very important for RTB - 500ms max
+      lazyConnect: true,
+
+      // Connection Pool Settings
+      maxmemoryPolicy: 'allkeys-lru',
+
+      // Disable some features for performance
+      // enableOfflineQueue: false,
+      enableReadyCheck: false,
     };
 
     this.pubClient = new Redis(redisOptions);
@@ -121,9 +134,30 @@ export class RedisService {
     return this.pubClient.set(key, value, 'EX', ttl);
   }
 
+  async sadd(key: string, value: string): Promise<number> {
+    return this.pubClient.sadd(key, value);
+  }
+
+  async sismember(key: string, value: string): Promise<number> {
+    return this.pubClient.sismember(key, value);
+  }
+
+  async scard(key: string): Promise<number> {
+    return this.pubClient.scard(key);
+  }
+
+  async ping(): Promise<string> {
+    return this.pubClient.ping();
+  }
+
   pipeline() {
     return this.pubClient.pipeline();
   }
+
+  getClient(): Redis {
+    return this.pubClient;
+  }
+
   // Pub/Sub methods
   async publish(channel: string, message: any): Promise<number> {
     return this.pubClient.publish(

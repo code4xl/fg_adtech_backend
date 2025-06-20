@@ -33,6 +33,8 @@ import AuctionProducer from './producers/auction.producer';
 import { RtbCacheService } from './cache/rtb-cache.service';
 import { RtbHelper } from './utils/helpers';
 import { RTBMetricsService } from './services/rtb-metrics.service';
+import { BudgetValidationService } from 'src/tracking/services/budget-validation.service';
+import { BudgetInitializationService } from 'src/tracking/services/budget-initialization.service';
 
 @Module({
     imports: [
@@ -55,6 +57,8 @@ import { RTBMetricsService } from './services/rtb-metrics.service';
         BidAdjustmentService,
         bidStrategyService,
         HealthService,
+        BudgetValidationService,
+        BudgetInitializationService,
 
         // === PROCESSORS ===
         BidRequestProcessor,

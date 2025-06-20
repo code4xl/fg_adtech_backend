@@ -27,6 +27,8 @@ import { AuthService } from 'src/auth/auth.service';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { CampaignEligibilityService } from 'src/rtb/services/campaign-eligibility.service';
 import { CampaignTargetingService } from 'src/rtb/services/campaign-targeting.service';
+import { BudgetValidationService } from 'src/tracking/services/budget-validation.service';
+import { BudgetInitializationService } from 'src/tracking/services/budget-initialization.service';
 
 @Module({
   imports: [
@@ -61,6 +63,8 @@ import { CampaignTargetingService } from 'src/rtb/services/campaign-targeting.se
     CampaignBudgetTrackerService,
     CampaignEligibilityService,
     CampaignTargetingService,
+    BudgetValidationService,
+    BudgetInitializationService,
     RedisService,
     S3StorageService,
     MailService,

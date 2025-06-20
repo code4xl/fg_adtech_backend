@@ -49,7 +49,7 @@ export class TargetingOptimizationService {
     private readonly prisma: PrismaService,
     private readonly openAIService: OpenAIService,
     private readonly historicalDataService: HistoricalDataService,
-  ) {}
+  ) { }
 
   async refineTargeting(
     campaignId: string,
@@ -154,10 +154,10 @@ export class TargetingOptimizationService {
         regions: geo.states, // Map states to regions
         cities: geo.cities,
         postalCodes: geo.postalCodes,
-        radiusTargets: geo.radius ? [{ 
-          latitude: geo.latitude || 0, 
-          longitude: geo.longitude || 0, 
-          radius: geo.radius 
+        radiusTargets: geo.radius ? [{
+          latitude: geo.latitude || 0,
+          longitude: geo.longitude || 0,
+          radius: geo.radius
         }] : [],
         excludedCountries: geo.isInclude ? [] : geo.countries,
       };
@@ -200,8 +200,8 @@ export class TargetingOptimizationService {
       const time = campaign.timeTargeting[0];
       targeting.time = {
         timezone: time.timezone,
-        hoursOfDay: time.startHour && time.endHour ? 
-          Array.from({length: time.endHour - time.startHour + 1}, (_, i) => time.startHour + i) : [],
+        hoursOfDay: time.startHour && time.endHour ?
+          Array.from({ length: time.endHour - time.startHour + 1 }, (_, i) => time.startHour + i) : [],
         daysOfWeek: time.daysOfWeek?.map((day: any) => {
           // Convert enum values to numbers if needed
           if (typeof day === 'string') {
@@ -283,7 +283,7 @@ export class TargetingOptimizationService {
         status: 'COMPLETED',
         statistics: { some: { ctr: { gte: 2.0 } } },
       },
-      include: { 
+      include: {
         geographicTargeting: true,
         timeTargeting: true,
       },
@@ -327,7 +327,7 @@ export class TargetingOptimizationService {
         status: 'ACTIVE',
         createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
       },
-      include: { 
+      include: {
         geographicTargeting: true,
         deviceTargeting: true,
         campaignBudgetTracker: {
@@ -349,7 +349,7 @@ export class TargetingOptimizationService {
       // Get budget from budget tracker
       const latestBudgetTracker = campaign.campaignBudgetTracker?.[0];
       targetingPatterns.avgBudget += Number(latestBudgetTracker?.totalBudget || 5000);
-      
+
       const targeting = this.extractCurrentTargeting(campaign);
 
       if (targeting.geo?.cities) {
@@ -413,12 +413,12 @@ ${JSON.stringify(currentTargeting, null, 2)}
 
 Performance by Segment (Top 10):
 ${performanceData
-  .slice(0, 10)
-  .map(
-    (seg) =>
-      `- ${seg.segment}: CTR ${seg.ctr.toFixed(2)}%, Volume: ${seg.volume}`,
-  )
-  .join('\n')}
+        .slice(0, 10)
+        .map(
+          (seg) =>
+            `- ${seg.segment}: CTR ${seg.ctr.toFixed(2)}%, Volume: ${seg.volume}`,
+        )
+        .join('\n')}
 
 Market Opportunities:
 - Untapped Geos: ${opportunities.untappedGeos.slice(0, 5).join(', ')}

@@ -251,6 +251,41 @@ export const PATTERN_KEYS = {
   RTB_METRICS_BY_HOUR: (hour: number) => `rtb:metrics:*:*:${hour}`,
 } as const;
 
+export const CLICK_AND_IMPRESSION_KEYS = {
+  // Budget tracking (real-time)
+  DAILY_BUDGET_SPEND: (campaignId: string, date: string) => `budget:daily:${campaignId}:${date}`,
+  DAILY_BUDGET_LIMIT: (campaignId: string) => `budget:limit:${campaignId}`,
+  CAMPAIGN_STATUS: (campaignId: string) => `campaign:status:${campaignId}`,
+
+  // Event queues (before database flush)
+  PENDING_IMPRESSIONS: 'events:impressions:pending',
+  PENDING_CLICKS: 'events:clicks:pending',
+
+  // Real-time metrics
+  CAMPAIGN_IMPRESSIONS: (campaignId: string, date: string) => `metrics:campaign:${campaignId}:impressions:${date}`,
+  CAMPAIGN_CLICKS: (campaignId: string, date: string) => `metrics:campaign:${campaignId}:clicks:${date}`,
+  CREATIVE_IMPRESSIONS: (creativeId: string, date: string) => `metrics:creative:${creativeId}:impressions:${date}`,
+  CREATIVE_CLICKS: (creativeId: string, date: string) => `metrics:creative:${creativeId}:clicks:${date}`,
+
+  // Revenue tracking
+  PUBLISHER_REVENUE: (publisherId: string, date: string) => `revenue:publisher:${publisherId}:${date}`,
+  PLATFORM_REVENUE: (date: string) => `revenue:platform:${date}`,
+
+  // Bid Response
+  BID_RESPONSE: (bidResponseId: string) =>
+    `bid:response:${bidResponseId}`,
+
+  // Click Fraud Detection
+  IP_IMPRESSION_COUNT: (ip: string, date: string) => `fraud:ip:impressions:${ip}:${date}`,
+  IP_CLICK_COUNT: (ip: string, date: string) => `fraud:ip:clicks:${ip}:${date}`,
+  CAMPAIGN_IP_COUNT: (campaignId: string, ip: string, date: string) =>
+    `fraud:campaign:${campaignId}:ip:${ip}:${date}`,
+  USER_AGENT_COUNT: (uaHash: string, date: string) => `fraud:ua:${uaHash}:${date}`,
+  IMPRESSION_TIMESTAMP: (impressionId: string) => `fraud:impression:${impressionId}:timestamp`,
+  BLOCKED_IPS: 'fraud:blocked:ips',
+  BLOCKED_USER_AGENTS: 'fraud:blocked:uas',
+}
+
 // Health Check Keys
 export const HEALTH_KEYS = {
   REDIS_HEALTH_CHECK: 'redis:health:check',
@@ -351,6 +386,13 @@ export const RTB_CACHE_TTL = {
   // Fraud Detection
   FRAUD_SCORES: 3600, // 1 hour
   FRAUD_PATTERNS: 86400, // 24 hours
+  MAX_IMPRESSIONS_PER_IP_PER_DAY: 1000,
+  MAX_CLICKS_PER_IP_PER_DAY: 50,
+  MAX_IMPRESSIONS_PER_CAMPAIGN_IP_PER_DAY: 100,
+  MIN_TIME_BETWEEN_IMPRESSION_CLICK: 100, // milliseconds
+  MAX_TIME_BETWEEN_IMPRESSION_CLICK: 300000, // 5 minutes
+  HIGH_FRAUD_SCORE_THRESHOLD: 0.8,
+  CRITICAL_FRAUD_SCORE_THRESHOLD: 0.9,
 
   // A/B Testing
   AB_TEST_RESULTS: 86400, // 24 hours

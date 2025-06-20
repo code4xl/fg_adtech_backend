@@ -413,6 +413,8 @@ import { CAMPAIGN_KEYS, REDIS_KEYS, RTB_CACHE_TTL } from "../constants/cache-key
 import { CampaignBudgetInfo, CampaignBudgetTracker, CampaignWithTargeting } from "../types/campaign.types";
 import { CampaignTargetingService } from "./campaign-targeting.service";
 import { InventoryFormat } from "@prisma/client";
+import { BudgetInitializationService } from "src/tracking/services/budget-initialization.service";
+import { BudgetValidationService } from "src/tracking/services/budget-validation.service";
 
 interface BudgetStatus {
   dailyBudget: number;
@@ -428,6 +430,8 @@ export class CampaignEligibilityService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly campaignTargetingService: CampaignTargetingService,
+    private readonly budgetValidation: BudgetValidationService,
+    private readonly budgetInit: BudgetInitializationService,
   ) { }
 
   async getEligibleCampaigns(
@@ -661,23 +665,31 @@ export class CampaignEligibilityService {
   private async batchValidateBudgets(campaigns: CampaignWithTargeting[]): Promise<CampaignWithTargeting[]> {
     if (campaigns.length === 0) return [];
 
-    const campaignIds = campaigns.map(c => c.id);
-
-    // Check all budgets in parallel using cache
     const budgetChecks = await Promise.all(
-      campaignIds.map(async (campaignId) => {
-        const hasValidBudget = await this.checkBudgetAvailability(campaignId);
-        return { campaignId, hasValidBudget };
+      campaigns.map(async (campaign: CampaignWithTargeting) => {
+        try {
+          // FIX: Safe bid amount extraction
+          let bidAmount = 1.0;
+          if (campaign.bidAmount && campaign.bidAmount.toNumber) {
+            bidAmount = campaign.bidAmount.toNumber();
+          } else if (campaign.bidAmount) {
+            bidAmount = Number(campaign.bidAmount) || 1.0;
+          }
+
+          const hasValidBudget = await this.checkBudgetAvailability(campaign.id, bidAmount);
+          return { campaignId: campaign.id, hasValidBudget };
+        } catch (error) {
+          this.logger.warn(`Budget check failed for campaign ${campaign.id}:`, error);
+          return { campaignId: campaign.id, hasValidBudget: false };
+        }
       })
     );
 
-    // Create a Map for fast lookup
     const budgetMap = new Map<string, boolean>();
     budgetChecks.forEach(({ campaignId, hasValidBudget }) => {
       budgetMap.set(campaignId, hasValidBudget);
     });
 
-    // Filter campaigns that have valid budget
     const validCampaigns = campaigns.filter(campaign =>
       budgetMap.get(campaign.id) === true
     );
@@ -691,37 +703,41 @@ export class CampaignEligibilityService {
     return validCampaigns;
   }
 
-  async checkBudgetAvailability(campaignId: string): Promise<boolean> {
-    try {
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  // async checkBudgetAvailability(campaignId: string): Promise<boolean> {
+  //   try {
+  //     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
-      // Check cached budget status first
-      const budgetStatus = await this.getCachedBudgetStatus(campaignId, today);
-      if (!budgetStatus) {
-        this.logger.warn('Campaign budget info not found', { campaignId });
-        return false;
-      }
+  //     // Check cached budget status first
+  //     const budgetStatus = await this.getCachedBudgetStatus(campaignId, today);
+  //     if (!budgetStatus) {
+  //       this.logger.warn('Campaign budget info not found', { campaignId });
+  //       return false;
+  //     }
 
-      const remainingBudget = budgetStatus.dailyBudget - budgetStatus.spentToday;
-      const isWithinBudget = remainingBudget > 1; // Minimum ₹1 remaining
+  //     const remainingBudget = budgetStatus.dailyBudget - budgetStatus.spentToday;
+  //     const isWithinBudget = remainingBudget > 1; // Minimum ₹1 remaining
 
-      this.logger.debug('Budget availability checked (CACHED)', {
-        campaignId,
-        dailyBudget: `₹${budgetStatus.dailyBudget}`,
-        spentToday: `₹${budgetStatus.spentToday}`,
-        remainingBudget: `₹${remainingBudget}`,
-        isWithinBudget,
-      });
+  //     this.logger.debug('Budget availability checked (CACHED)', {
+  //       campaignId,
+  //       dailyBudget: `₹${budgetStatus.dailyBudget}`,
+  //       spentToday: `₹${budgetStatus.spentToday}`,
+  //       remainingBudget: `₹${remainingBudget}`,
+  //       isWithinBudget,
+  //     });
 
-      return isWithinBudget;
+  //     return isWithinBudget;
 
-    } catch (error) {
-      this.logger.error('Budget availability check failed', {
-        error: error.message,
-        campaignId,
-      });
-      return false;
-    }
+  //   } catch (error) {
+  //     this.logger.error('Budget availability check failed', {
+  //       error: error.message,
+  //       campaignId,
+  //     });
+  //     return false;
+  //   }
+  // }
+
+  async checkBudgetAvailability(campaignId: string, bidAmount: number): Promise<boolean> {
+    return await this.budgetValidation.validateCampaignBudget(campaignId, bidAmount);
   }
 
   private async getCachedBudgetStatus(campaignId: string, today: string): Promise<BudgetStatus | null> {

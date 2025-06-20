@@ -11,7 +11,6 @@ model TimescaleSyncLog {
     @@index([tableName, lastSyncTime])
 }
 
-// Enhanced tracking for PostgreSQL (before Timescale sync)
 model ImpressionEvent {
     id String @id @default(uuid()) @db.Uuid
 
@@ -27,41 +26,19 @@ model ImpressionEvent {
     websiteId    String  @db.Uuid
     adSlotId     String? @db.Uuid // Specific slot on the website
 
-    // FINANCIAL: Revenue/cost tracking
-    price            Decimal? @db.Decimal(10, 4) // What advertiser paid
-    publisherRevenue Decimal? @db.Decimal(10, 4) // What publisher earned
-
-    // USER CONTEXT: For attribution and analytics
-    userId    String? // If available (cookie/device ID)
-    sessionId String? // User session identifier
-
     // TECHNICAL DETAILS
-    timestamp   DateTime @default(now())
-    userAgent   String?
-    ipAddress   String?
-    deviceType  String?
-    browserType String?
-    osType      String?
-
-    // GEO CONTEXT
-    country String?
-    region  String?
-    city    String?
+    timestamp  DateTime @default(now())
+    userAgent  String?
+    ipAddress  String?
+    deviceType String?
 
     // VIEWABILITY METRICS (IAB standards)
-    viewable       Boolean? // Was it viewable per IAB standards
-    viewTime       Int? // Milliseconds in view
-    viewablePixels Int? // Pixels visible
-    adSizePixels   String? // "300x250"
+    viewable Boolean? // Was it viewable per IAB standards
+    viewTime Int? // Milliseconds in view
 
     // FRAUD DETECTION
     isBot      Boolean? @default(false)
     fraudScore Float? // 0.0 to 1.0
-
-    // ATTRIBUTION
-    referrerUrl  String?
-    pageUrl      String?
-    pageCategory String?
 
     // SYNC STATUS
     syncedToTimescale Boolean   @default(false)
@@ -80,7 +57,6 @@ model ImpressionEvent {
     @@index([publisherId, timestamp]) // Publisher earnings
     @@index([timestamp]) // Time-based queries
     @@index([syncedToTimescale]) // Sync management
-    @@index([userId, campaignId]) // Frequency capping
 }
 
 model ClickEvent {
@@ -101,22 +77,11 @@ model ClickEvent {
     websiteId    String  @db.Uuid
     adSlotId     String? @db.Uuid
 
-    // USER CONTEXT
-    userId    String?
-    sessionId String?
-
     // TECHNICAL DETAILS
-    timestamp   DateTime @default(now())
-    userAgent   String?
-    ipAddress   String?
-    deviceType  String?
-    browserType String?
-    osType      String?
-
-    // GEO CONTEXT
-    country String?
-    region  String?
-    city    String?
+    timestamp  DateTime @default(now())
+    userAgent  String?
+    ipAddress  String?
+    deviceType String?
 
     // CLICK DETAILS
     clickX    Int? // X coordinate of click
@@ -124,17 +89,11 @@ model ClickEvent {
     clickArea String? // Which part of ad was clicked
 
     // LANDING PAGE
-    landingUrl    String? // Where user was redirected
-    landingLoaded Boolean? // Did landing page load successfully
+    landingUrl String? // Where user was redirected
 
     // FRAUD DETECTION
-    isBot        Boolean? @default(false)
-    fraudScore   Float?
-    clickPattern String? // rapid_fire, normal, suspicious
-
-    // ATTRIBUTION
-    referrerUrl        String?
-    pageUrl            String?
+    isBot              Boolean? @default(false)
+    fraudScore         Float?
     timeFromImpression Int? // Milliseconds from impression to click
 
     // SYNC STATUS
@@ -155,5 +114,4 @@ model ClickEvent {
     @@index([impressionId]) // Link to impression
     @@index([timestamp]) // Time-based queries
     @@index([syncedToTimescale]) // Sync management
-    @@index([userId, campaignId]) // User behavior analysis
 }

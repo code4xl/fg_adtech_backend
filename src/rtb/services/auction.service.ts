@@ -174,7 +174,7 @@ export class AuctionService {
       try {
         // 1. Check budget availability
         const hasBudget =
-          await this.campaignEligibility.checkBudgetAvailability(campaign.id);
+          await this.campaignEligibility.checkBudgetAvailability(campaign.id, campaign.bidAmount.toNumber());
         if (!hasBudget) {
           this.logger.debug('Campaign excluded due to budget exhaustion', {
             campaignId: campaign.id,

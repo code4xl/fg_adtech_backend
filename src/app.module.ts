@@ -24,6 +24,7 @@ import { NotificationModule } from './notification/notification.module';
 import { RTBModule } from './rtb/rtb.module';
 import { CdnModule } from './cdn/cdn.module';
 import { SharedModule } from './shared/shared.module';
+import { TrackingModule } from './tracking/tracking.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -79,6 +80,7 @@ import { SharedModule } from './shared/shared.module';
     // TimescaleModule,
     CdnModule,
     SharedModule,
+    TrackingModule,
   ],
   controllers: [AppController],
   providers: [
