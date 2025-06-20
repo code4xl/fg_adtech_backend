@@ -8,7 +8,7 @@ import { ISeeder } from '../interfaces/seeder.interface';
 export class CreativeSeeder implements ISeeder {
   private readonly logger = new Logger(CreativeSeeder.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   getModuleName(): string {
     return 'Creative';
@@ -96,6 +96,17 @@ export class CreativeSeeder implements ISeeder {
               'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/object-promise-1749052140905-jpg',
               'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/Black+and+White+Bold+Modern+Simple+Geometric+New+Collection+Fashion+Mobile+Banner+Ad.png',
               'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/burger.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-11.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-12.webp',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-13.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-14.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-15.jpeg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-8.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-7.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-6.png',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-5.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-10.webp',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-9.jpg',
             ]),
             s3Key: this.generateS3Key(creativeType, template),
             landingUrl: faker.internet.url(),

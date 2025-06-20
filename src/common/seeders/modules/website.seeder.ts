@@ -7,7 +7,7 @@ import { ISeeder } from '../interfaces/seeder.interface';
 export class WebsiteSeeder implements ISeeder {
   private readonly logger = new Logger(WebsiteSeeder.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   getModuleName(): string {
     return 'Website';
@@ -18,7 +18,7 @@ export class WebsiteSeeder implements ISeeder {
     return ['Publisher', 'ContentCategory'];
   }
 
-  async seed(count: number = 50): Promise<void> {
+  async seed(count: number = 100): Promise<void> {
     this.logger.log(`Seeding ${count} websites...`);
 
     try {

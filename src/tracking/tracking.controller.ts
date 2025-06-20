@@ -4,7 +4,10 @@ import { Request, Response } from 'express';
 import { TrackingService } from './tracking.service';
 import { BudgetValidationService } from './services/budget-validation.service';
 import { FraudDetectionService } from './fraud-detection.service';
+import { ApiTags } from '@nestjs/swagger';
+import { ImpressionClickLinkingService } from './services/impression-click-linking.service';
 
+@ApiTags('Impression and Click Tracking')
 @Controller('track')
 export class TrackingController {
     private readonly logger = new Logger(TrackingController.name);
@@ -13,6 +16,7 @@ export class TrackingController {
         private readonly trackingService: TrackingService,
         private readonly budgetValidation: BudgetValidationService,
         private readonly fraudDetection: FraudDetectionService,
+        private readonly impressionClickLinking: ImpressionClickLinkingService,
     ) { }
 
     /**
@@ -29,6 +33,9 @@ export class TrackingController {
     ) {
         try {
             const startTime = Date.now();
+            const impressionId = this.trackingService.generateId();
+            const userFingerprint = this.impressionClickLinking.generateUserFingerprint(req);
+            const slotId = query.slot;
 
             // 🎯 EXTRACT ALL USER DATA from HTTP request + query params
             const userData = this.extractUserData(req, query);
@@ -94,6 +101,12 @@ export class TrackingController {
                 city: userData.city,
             });
 
+            await Promise.all([
+                this.impressionClickLinking.storeSlotMapping(slotId, impressionId),
+                this.impressionClickLinking.storeUserMapping(bidResponseId, userFingerprint, impressionId),
+                this.impressionClickLinking.storeTimeBasedMapping(bidResponseId, impressionId),
+            ]);
+
             const processingTime = Date.now() - startTime;
             this.logger.debug(`Impression tracked in ${processingTime}ms: ${bidResponseId}`);
 
@@ -117,6 +130,8 @@ export class TrackingController {
     ) {
         try {
             const startTime = Date.now();
+            const userFingerprint = this.impressionClickLinking.generateUserFingerprint(req);
+            const slotId = query.slot;
 
             // 🎯 EXTRACT ALL USER DATA from HTTP request + query params
             const userData = this.extractUserData(req, query);
@@ -126,6 +141,21 @@ export class TrackingController {
             if (!clickData) {
                 this.logger.warn(`Invalid click bid response: ${bidResponseId}`);
                 return res.redirect(query.url || 'https://example.com');
+            }
+
+            const impressionResult = await this.impressionClickLinking.findImpressionId(
+                bidResponseId,
+                userFingerprint,
+                slotId
+            );
+
+            if (!impressionResult) {
+                this.logger.warn('Click without impression detected - potential fraud', {
+                    bidResponseId,
+                    userFingerprint,
+                    slotId,
+                    ip: this.impressionClickLinking.getClientIP(req),
+                });
             }
 
             // Fraud detection for clicks
@@ -147,7 +177,7 @@ export class TrackingController {
             // 💾 Process click in Redis with ALL user data
             await this.trackingService.processClick({
                 id: this.trackingService.generateId(),
-                impressionId: query.imp_id || null,  // ← Handle optional fields
+                impressionId: impressionResult?.impressionId || null,  // ← Handle optional fields
                 bidResponseId,
                 creativeId: clickData.creativeId,
                 campaignId: clickData.campaignId,

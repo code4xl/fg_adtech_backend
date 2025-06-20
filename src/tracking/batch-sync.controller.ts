@@ -58,7 +58,7 @@ export class BatchSyncController {
                     postgresToTimescale: {
                         status: timescaleSyncStatus,
                         description: 'PostgreSQL to TimescaleDB sync (every 30 minutes)',
-                        nextSyncEstimate: this.getNextSyncTime(30), // Next sync in 30 minutes
+                        nextSyncEstimate: this.getNextSyncTime(5), // Next sync in 30 minutes
                     },
                     timescaleHealth: {
                         health: timescaleHealth,

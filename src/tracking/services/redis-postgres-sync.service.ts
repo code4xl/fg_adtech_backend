@@ -60,6 +60,10 @@ export class RedisPostgresSyncService {
                     break;
                 }
 
+                this.logger.debug("Chunk Please", {
+                    chunk,
+                })
+
                 try {
                     const processed = await this.insertImpressionBatch(chunk);
                     totalProcessed += processed;
@@ -314,7 +318,6 @@ export class RedisPostgresSyncService {
                 advertiserId: impression.advertiserId,
                 bidResponseId: impression.bidResponseId,
                 websiteId: impression.websiteId,
-                bidPrice: impression.bidPrice ? parseFloat(impression.bidPrice.toString()) : 0,
                 timestamp: impression.timestamp ? new Date(impression.timestamp) : new Date(),
                 userAgent: impression.userAgent || null,
                 ipAddress: impression.ipAddress || null,
@@ -369,6 +372,8 @@ export class RedisPostgresSyncService {
                 ipAddress: click.ipAddress || null,
                 deviceType: click.deviceType || null,
                 country: click.country || null,
+                region: click.region || null,
+                city: click.city || null,
                 isBot: click.isBot || false,
                 fraudScore: click.fraudScore ? parseFloat(click.fraudScore.toString()) : null,
                 syncedToTimescale: false,

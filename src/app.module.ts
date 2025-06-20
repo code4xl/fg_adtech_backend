@@ -82,7 +82,6 @@ import { TimescaleModule } from './timescale/timescale.module';
     TimescaleModule,
     CdnModule,
     SharedModule,
-    TrackingModule,
   ],
   controllers: [AppController],
   providers: [

@@ -42,7 +42,7 @@ export class TimescaleSyncService {
     /**
      * Sync impressions from PostgreSQL to TimescaleDB every 30 minutes
      */
-    @Cron('*/30 * * * *') // Every 30 minutes
+    @Cron('*/5 * * * *') // Every 30 minutes
     async syncImpressionsToTimescale(): Promise<void> {
         if (this.circuitBreaker.isOpen) {
             if (this.shouldRetryAfterCircuitBreaker()) {
@@ -103,7 +103,7 @@ export class TimescaleSyncService {
     /**
      * Sync clicks from PostgreSQL to TimescaleDB every 30 minutes
      */
-    @Cron('*/30 * * * *') // Every 30 minutes
+    @Cron('*/5 * * * *') // Every 30 minutes
     async syncClicksToTimescale(): Promise<void> {
         if (this.circuitBreaker.isOpen) {
             if (this.shouldRetryAfterCircuitBreaker()) {

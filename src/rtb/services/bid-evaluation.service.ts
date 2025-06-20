@@ -113,7 +113,7 @@ export class BidEvaluationService {
 
   private async getBaseBidAmount(campaign: CampaignWithTargeting): Promise<number> {
     // Use campaign's bid amount or derive from budget
-    if (campaign.bidAmount && campaign.bidAmount.toNumber() > 0) {
+    if (campaign.bidAmount && Number(campaign.bidAmount) > 0) {
       return Number(campaign.bidAmount);
     }
 

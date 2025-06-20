@@ -8,7 +8,7 @@ import { ISeeder } from '../interfaces/seeder.interface';
 export class AdInventorySeeder implements ISeeder {
   private readonly logger = new Logger(AdInventorySeeder.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   getModuleName(): string {
     return 'AdInventory';
@@ -19,7 +19,7 @@ export class AdInventorySeeder implements ISeeder {
     return ['Publisher', 'Website', 'AdSlotTemplate'];
   }
 
-  async seed(count: number = 80): Promise<void> {
+  async seed(count: number = 120): Promise<void> {
     this.logger.log(`Seeding ${count} ad inventory slots...`);
 
     try {

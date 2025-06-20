@@ -154,6 +154,77 @@ export class RedisService {
     return this.pubClient.lpop(key, count);
   }
 
+  async zadd(key: string, score: number, member: string): Promise<number> {
+    return this.pubClient.zadd(key, score, member);
+  }
+
+  // Get members from sorted set in reverse order (highest score first)
+  async zrevrange(key: string, start: number, stop: number, withScores?: string): Promise<string[]> {
+    try {
+      if (withScores === 'WITHSCORES') {
+        return await this.pubClient.zrevrange(key, start, stop, 'WITHSCORES');
+      }
+      return await this.pubClient.zrevrange(key, start, stop);
+    } catch (error) {
+      this.logger.error(
+        `Error getting reverse range from sorted set ${key}: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
+  // Get members from sorted set by score range in reverse order
+  async zrevrangebyscore(
+    key: string,
+    max: number | string,
+    min: number | string,
+    withScores?: string,
+    limitKeyword?: string,
+    offset?: number,
+    count?: number
+  ): Promise<string[]> {
+    try {
+      // ✅ CORRECTED: Build command with proper Redis syntax
+      if (limitKeyword === 'LIMIT' && offset !== undefined && count !== undefined) {
+        if (withScores === 'WITHSCORES') {
+          // With scores and limit
+          return await this.pubClient.zrevrangebyscore(
+            key,
+            max,
+            min,
+            'WITHSCORES',
+            'LIMIT',
+            offset,
+            count
+          );
+        } else {
+          // Without scores but with limit
+          return await this.pubClient.zrevrangebyscore(
+            key,
+            max,
+            min,
+            'LIMIT',
+            offset,
+            count
+          );
+        }
+      } else {
+        if (withScores === 'WITHSCORES') {
+          // With scores, no limit
+          return await this.pubClient.zrevrangebyscore(key, max, min, 'WITHSCORES');
+        } else {
+          // Basic command
+          return await this.pubClient.zrevrangebyscore(key, max, min);
+        }
+      }
+    } catch (error) {
+      this.logger.error(
+        `Error getting reverse range by score from sorted set ${key}: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
   pipeline() {
     return this.pubClient.pipeline();
   }

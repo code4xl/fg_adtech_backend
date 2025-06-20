@@ -462,21 +462,21 @@ export class CampaignEligibilityService {
       }
 
       // 2. Apply targeting filters in parallel batches
-      const targetingFilteredCampaigns = await this.applyTargetingFiltersOptimized(
-        campaignPool,
-        userContext,
-        adSlotContext,
-      );
+      // const targetingFilteredCampaigns = await this.applyTargetingFiltersOptimized(
+      //   campaignPool,
+      //   userContext,
+      //   adSlotContext,
+      // );
 
       // 3. Batch validate budgets using cache
-      const budgetValidatedCampaigns = await this.batchValidateBudgets(targetingFilteredCampaigns);
+      const budgetValidatedCampaigns = await this.batchValidateBudgets(campaignPool);
 
       const processingTime = Date.now() - startTime;
 
       this.logger.log('Campaign eligibility calculated (CACHED)', {
         inventoryId,
         totalCampaigns: campaignPool.length,
-        targetingFiltered: targetingFilteredCampaigns.length,
+        // targetingFiltered: targetingFilteredCampaigns.length,
         budgetFiltered: budgetValidatedCampaigns.length,
         processingTime: `${processingTime}ms`
       });
@@ -670,9 +670,7 @@ export class CampaignEligibilityService {
         try {
           // FIX: Safe bid amount extraction
           let bidAmount = 1.0;
-          if (campaign.bidAmount && campaign.bidAmount.toNumber) {
-            bidAmount = campaign.bidAmount.toNumber();
-          } else if (campaign.bidAmount) {
+          if (campaign.bidAmount) {
             bidAmount = Number(campaign.bidAmount) || 1.0;
           }
 

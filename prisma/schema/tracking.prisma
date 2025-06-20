@@ -26,11 +26,19 @@ model ImpressionEvent {
     websiteId    String  @db.Uuid
     adSlotId     String? @db.Uuid // Specific slot on the website
 
+    // Financial
+    bidPrice Float? // Price paid for the impression
+
     // TECHNICAL DETAILS
     timestamp  DateTime @default(now())
     userAgent  String?
     ipAddress  String?
     deviceType String?
+
+    // Geo LOCATION
+    country String? // Country of the user
+    region  String? // Region or state of the user
+    city    String? // City of the user
 
     // VIEWABILITY METRICS (IAB standards)
     viewable Boolean? // Was it viewable per IAB standards
@@ -39,6 +47,9 @@ model ImpressionEvent {
     // FRAUD DETECTION
     isBot      Boolean? @default(false)
     fraudScore Float? // 0.0 to 1.0
+
+    slotId          String? @db.VarChar(50) // Impression slot for linking
+    userFingerprint String? @db.VarChar(50) // User fingerprint for fallback linking
 
     // SYNC STATUS
     syncedToTimescale Boolean   @default(false)
@@ -97,6 +108,14 @@ model ClickEvent {
     isBot              Boolean? @default(false)
     fraudScore         Float?
     timeFromImpression Int? // Milliseconds from impression to click
+
+    // GEO LOCATION
+    country String? // Country of the user
+    region  String? // Region or state of the user
+    city    String? // City of the user
+
+    slotId          String? @db.VarChar(50) // Impression slot for linking
+    userFingerprint String? @db.VarChar(50) // User fingerprint for fallback linking
 
     // SYNC STATUS
     syncedToTimescale Boolean   @default(false)

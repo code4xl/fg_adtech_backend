@@ -16,7 +16,7 @@ import { ISeeder } from '../interfaces/seeder.interface';
 export class CampaignSeeder implements ISeeder {
   private readonly logger = new Logger(CampaignSeeder.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   getModuleName(): string {
     return 'Campaign';
@@ -27,7 +27,7 @@ export class CampaignSeeder implements ISeeder {
     return ['Advertiser', 'Client'];
   }
 
-  async seed(count: number = 50): Promise<void> {
+  async seed(count: number = 200): Promise<void> {
     this.logger.log(`Seeding ${count} campaigns...`);
 
     try {
@@ -100,12 +100,12 @@ export class CampaignSeeder implements ISeeder {
         const bidStrategy = faker.helpers.arrayElement(bidStrategies);
         const bidAmount =
           bidStrategy === BidStrategy.BID_CAP ||
-          bidStrategy === BidStrategy.TARGET_COST
+            bidStrategy === BidStrategy.TARGET_COST
             ? faker.number.float({
-                min: 0.5,
-                max: 50.0,
-                fractionDigits: 2,
-              })
+              min: 0.5,
+              max: 50.0,
+              fractionDigits: 2,
+            })
             : null;
 
         // Generate targeting arrays

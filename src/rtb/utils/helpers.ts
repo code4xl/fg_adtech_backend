@@ -35,6 +35,28 @@ export class RtbHelper {
     ) {
       throw new BadRequestException('Ad slot dimensions are required');
     }
+
+    // Check whether the websiteId, invetoryId and publisherId are valid
+    const inventory = await this.prisma.adInventory.findUnique({
+      where: { id: bidRequestDto.inventoryId },
+      select: {
+        id: true,
+        websiteId: true,
+        publisherId: true,
+      },
+    });
+
+    if (!inventory) {
+      throw new BadRequestException(`Inventory not found: ${bidRequestDto.inventoryId}`);
+    }
+
+    if (!inventory.websiteId) {
+      throw new BadRequestException(`Inventory ${bidRequestDto.inventoryId} has no associated website`);
+    }
+
+    if (!inventory.publisherId) {
+      throw new BadRequestException(`Inventory ${bidRequestDto.inventoryId} has no associated publisher`);
+    }
   }
 
   public async validateInventoryAdSlotContext(

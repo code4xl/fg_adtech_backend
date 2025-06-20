@@ -10,6 +10,8 @@ import { BidEvaluationService } from './bid-evaluation.service';
 import { CreativeWithTemplate } from '../types/creative.types';
 import { CreatedBidResponse } from '../types/bid-response.types';
 import { AuctionBidResult } from '../types/auction-result.types';
+import { v4 as uuidv4 } from 'uuid';
+import { ImpressionClickLinkingService } from 'src/tracking/services/impression-click-linking.service';
 
 @Injectable()
 export class AuctionService {
@@ -21,9 +23,10 @@ export class AuctionService {
     private readonly redis: RedisService,
     private readonly campaignEligibility: CampaignEligibilityService,
     private readonly bidEvaluationService: BidEvaluationService,
+    private readonly impressionClickLinking: ImpressionClickLinkingService,
   ) {
     this.trackingBaseUrl = process.env.TRACKING_URL ||
-      'https://track.oceanadtech.com';
+      'http://localhost:3000';
   }
 
   async getAuctionStatus(requestId: string): Promise<AuctionStatusDto | null> {
@@ -173,8 +176,14 @@ export class AuctionService {
     const bidPromises = eligibleCampaigns.map(async (campaign) => {
       try {
         // 1. Check budget availability
+        // FIX: Safe bid amount extraction
+        let bidAmount = 1.0;
+        if (campaign.bidAmount) {
+          bidAmount = Number(campaign.bidAmount) || 1.0;
+        }
+
         const hasBudget =
-          await this.campaignEligibility.checkBudgetAvailability(campaign.id, campaign.bidAmount.toNumber());
+          await this.campaignEligibility.checkBudgetAvailability(campaign.id, bidAmount);
         if (!hasBudget) {
           this.logger.debug('Campaign excluded due to budget exhaustion', {
             campaignId: campaign.id,
@@ -221,7 +230,7 @@ export class AuctionService {
       } catch (error) {
         this.logger.warn('Failed to generate bid for campaign', {
           campaignId: campaign.id,
-          error: error.message,
+          error: error,
         });
         return null;
       }
@@ -346,8 +355,10 @@ export class AuctionService {
     bidPrice: number,
     auctionId: string,
   ): Promise<any> {
+    let bidResponseId = uuidv4();
+
     // Generate comprehensive tracking URLs
-    const trackingUrls = this.generateTrackingUrls(auctionId);
+    const trackingUrls = this.generateTrackingUrls(auctionId, bidResponseId);
 
     // Generate comprehensive ad markup
     const adMarkup = this.generateAdMarkup(creative, trackingUrls, {
@@ -357,13 +368,14 @@ export class AuctionService {
     });
 
     this.logger.debug('Creating bid response', {
-      id: bidRequest.id,
+      id: bidResponseId,
     });
 
     // Ask mit about this, store the admarkup, impression and click urls in the bid response for the winner only.
     // Not for all the bids. (This is to avoid storing unnecessary data for lost bids)
     return await this.prisma.bidResponse.create({
       data: {
+        id: bidResponseId,
         bidRequestId: bidRequest.id,
         campaignId: campaign.id,
         creativeId: creative.id,
@@ -381,30 +393,23 @@ export class AuctionService {
 
   generateTrackingUrls(
     auctionId: string,
-    bidResponseId?: string,
+    bidResponseId: string,
   ): {
     impression: string[];
     click: string[];
   } {
     const baseUrl = this.trackingBaseUrl;
 
-    if (bidResponseId) {
-      // Detailed tracking with bidResponseId and timestamp
-      return {
-        impression: [
-          `${baseUrl}/track/impression/${bidResponseId}?auction=${auctionId}&t=${Date.now()}`,
-        ],
-        click: [
-          `${baseUrl}/track/click/${bidResponseId}?auction=${auctionId}&t=${Date.now()}`,
-        ],
-      };
-    } else {
-      // Simple tracking for backward compatibility
-      return {
-        impression: [`${baseUrl}/track/impression/${auctionId}`],
-        click: [`${baseUrl}/track/click/${auctionId}`],
-      };
-    }
+    const impressionSlot = this.impressionClickLinking.generateImpressionSlot();
+
+    return {
+      impression: [
+        `${baseUrl}/track/impression/${bidResponseId}?slot=${impressionSlot}&auction=${auctionId}&t=${Date.now()}`,
+      ],
+      click: [
+        `${baseUrl}/track/click/${bidResponseId}?slot=${impressionSlot}&auction=${auctionId}&t=${Date.now()}`,
+      ],
+    };
   }
 
   generateAdMarkup(
