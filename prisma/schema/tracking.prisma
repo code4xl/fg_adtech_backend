@@ -114,8 +114,10 @@ model ClickEvent {
     region  String? // Region or state of the user
     city    String? // City of the user
 
-    slotId          String? @db.VarChar(50) // Impression slot for linking
-    userFingerprint String? @db.VarChar(50) // User fingerprint for fallback linking
+    slotId          String?  @db.VarChar(50) // Impression slot for linking
+    userFingerprint String?  @db.VarChar(50) // User fingerprint for fallback linking
+    clickNumber     Int? // Which click this is (1, 2, 3, etc.)
+    isFirstClick    Boolean? @default(false)
 
     // SYNC STATUS
     syncedToTimescale Boolean   @default(false)

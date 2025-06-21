@@ -400,7 +400,7 @@ export class AuctionService {
   } {
     const baseUrl = this.trackingBaseUrl;
 
-    const impressionSlot = this.impressionClickLinking.generateImpressionSlot();
+    const impressionSlot = this.impressionClickLinking.generateImpressionSlot(bidResponseId);
 
     return {
       impression: [

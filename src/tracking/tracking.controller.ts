@@ -83,6 +83,8 @@ export class TrackingController {
                 websiteId: impressionData.websiteId,
                 adSlotId: impressionData.adSlotId || null,  // ← Handle optional fields
                 timestamp: new Date(),
+                slotId,                                                 // ✅ Include slot ID
+                userFingerprint,
 
                 // 🎯 COMPLETE USER DATA:
                 userAgent: userData.userAgent,
@@ -101,11 +103,12 @@ export class TrackingController {
                 city: userData.city,
             });
 
-            await Promise.all([
-                this.impressionClickLinking.storeSlotMapping(slotId, impressionId),
-                this.impressionClickLinking.storeUserMapping(bidResponseId, userFingerprint, impressionId),
-                this.impressionClickLinking.storeTimeBasedMapping(bidResponseId, impressionId),
-            ]);
+            await this.impressionClickLinking.storeImpressionMappings(
+                slotId,
+                bidResponseId,
+                userFingerprint,
+                impressionId
+            );
 
             const processingTime = Date.now() - startTime;
             this.logger.debug(`Impression tracked in ${processingTime}ms: ${bidResponseId}`);
@@ -130,6 +133,7 @@ export class TrackingController {
     ) {
         try {
             const startTime = Date.now();
+            const clickId = this.trackingService.generateId(); // ✅ Generate click ID upfront
             const userFingerprint = this.impressionClickLinking.generateUserFingerprint(req);
             const slotId = query.slot;
 
@@ -143,20 +147,12 @@ export class TrackingController {
                 return res.redirect(query.url || 'https://example.com');
             }
 
-            const impressionResult = await this.impressionClickLinking.findImpressionId(
+            const impressionResult = await this.impressionClickLinking.findImpressionAndRegisterClick(
                 bidResponseId,
                 userFingerprint,
+                clickId,
                 slotId
             );
-
-            if (!impressionResult) {
-                this.logger.warn('Click without impression detected - potential fraud', {
-                    bidResponseId,
-                    userFingerprint,
-                    slotId,
-                    ip: this.impressionClickLinking.getClientIP(req),
-                });
-            }
 
             // Fraud detection for clicks
             const isFraud = await this.fraudDetection.checkClick({
@@ -174,6 +170,8 @@ export class TrackingController {
                 return res.redirect(query.url || clickData.landingUrl || 'https://example.com');
             }
 
+
+
             // 💾 Process click in Redis with ALL user data
             await this.trackingService.processClick({
                 id: this.trackingService.generateId(),
@@ -187,6 +185,8 @@ export class TrackingController {
                 websiteId: clickData.websiteId,
                 adSlotId: clickData.adSlotId || null,  // ← Handle optional fields
                 timestamp: new Date(),
+                slotId,                                                 // ✅ Include slot ID
+                userFingerprint,
 
                 // 🎯 COMPLETE USER DATA:
                 userAgent: userData.userAgent,
@@ -205,6 +205,9 @@ export class TrackingController {
                 country: userData.country,
                 region: userData.region,
                 city: userData.city,
+
+                clickNumber: impressionResult?.clickNumber || null,      // Which click this is (1st, 2nd, etc.)
+                isFirstClick: impressionResult?.isFirstClick || false,
             });
 
             const processingTime = Date.now() - startTime;

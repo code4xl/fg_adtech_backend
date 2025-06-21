@@ -35,6 +35,7 @@ import { RtbHelper } from './utils/helpers';
 import { RTBMetricsService } from './services/rtb-metrics.service';
 import { BudgetValidationService } from 'src/tracking/services/budget-validation.service';
 import { BudgetInitializationService } from 'src/tracking/services/budget-initialization.service';
+import { ImpressionClickLinkingService } from 'src/tracking/services/impression-click-linking.service';
 
 @Module({
     imports: [
@@ -59,6 +60,7 @@ import { BudgetInitializationService } from 'src/tracking/services/budget-initia
         HealthService,
         BudgetValidationService,
         BudgetInitializationService,
+        ImpressionClickLinkingService,
 
         // === PROCESSORS ===
         BidRequestProcessor,

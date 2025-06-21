@@ -60,6 +60,8 @@ interface ImpressionEvent {
     isBot?: boolean | null;
     fraudScore?: number | null;
     bidPrice: number;
+    slotId?: string,                                                 // ✅ Include slot ID
+    userFingerprint?: string,
 
     // Additional fields to match Prisma model:
     referrer?: string | null;
@@ -90,6 +92,13 @@ interface ClickEvent {
     isBot?: boolean | null;
     fraudScore?: number | null;
     timeFromImpression?: number | null;
+    slotId?: string,                                                 // ✅ Include slot ID
+    userFingerprint?: string,
+
+    clickNumber?: number | null;      // Which click this is (1st, 2nd, etc.)
+    isFirstClick?: boolean | null;
+
+
 
     // Additional fields:
     referrer?: string | null;
@@ -165,6 +174,10 @@ interface ClickData {
     isBot: boolean;
     fraudScore: number | null;
     timeFromImpression: number | null; // in milliseconds or seconds, depending on system
+
+    clickNumber?: number | null;      // Which click this is (1st, 2nd, etc.)
+    isFirstClick?: boolean | null;
+
 
     // Additional fields
     referrer: string | null;
