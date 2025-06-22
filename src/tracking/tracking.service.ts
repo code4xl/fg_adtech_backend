@@ -28,6 +28,7 @@ export class TrackingService {
 
             if (!cachedData) {
                 // Fallback to database lookup
+                this.logger.debug("Fallback to database lookup");
                 return await this.getBidResponseFromDatabase(bidResponseId);
             }
 
@@ -64,8 +65,16 @@ export class TrackingService {
                 inventoryId: impression.inventoryId,
                 publisherId: impression.publisherId,
                 websiteId: impression.websiteId,
-                adSlotId: impression.adSlotId || null,
+                templateId: impression.templateId,
                 timestamp: impression.timestamp.toISOString(),
+
+                // FIX: Include slotId and userFingerprint
+                slotId: impression.slotId || null,
+                userFingerprint: impression.userFingerprint || null,
+
+                // FIX: Include bidPrice 
+                bidPrice: impression.bidPrice || 0,
+                finalPrice: impression.finalPrice || 0,
 
                 // User data (properly handle null values):
                 userAgent: impression.userAgent || null,
@@ -78,10 +87,7 @@ export class TrackingService {
 
                 // Fraud data:
                 isBot: impression.isBot !== undefined ? impression.isBot : false,
-                fraudScore: impression.fraudScore || null,
-
-                // Financial data:
-                bidPrice: impression.bidPrice,
+                fraudScore: impression.fraudScore,
 
                 // Additional fields:
                 referrer: impression.referrer || null,
@@ -93,6 +99,10 @@ export class TrackingService {
                 syncedToTimescale: false,
                 syncedAt: null,
             };
+
+            this.logger.debug("Impression Data", {
+                impressionData,
+            })
 
             pipeline.lpush(
                 CLICK_AND_IMPRESSION_KEYS.PENDING_IMPRESSIONS,
@@ -106,12 +116,12 @@ export class TrackingService {
             // 3. Update budget spending (critical for budget control)
             pipeline.incrbyfloat(
                 CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_SPEND(impression.campaignId, today),
-                impression.bidPrice
+                impression.finalPrice
             );
 
             // 4. Update revenue tracking --> asif work 
-            const publisherRevenue = impression.bidPrice * 0.7; // 70% to publisher
-            const platformRevenue = impression.bidPrice * 0.3; // 30% to platform
+            const publisherRevenue = impression.finalPrice * 0.7; // 70% to publisher
+            const platformRevenue = impression.finalPrice * 0.3; // 30% to platform
 
             pipeline.incrbyfloat(
                 CLICK_AND_IMPRESSION_KEYS.PUBLISHER_REVENUE(impression.publisherId, today),
@@ -130,7 +140,7 @@ export class TrackingService {
             // Execute all operations atomically
             await pipeline.exec();
 
-            this.logger.debug(`Impression processed with complete data: ${impression.id}`);
+            this.logger.debug(`Impression processed with complete data (budget, campaign & creative impression stored): ${impression.id}`);
         } catch (error) {
             this.logger.error(`Failed to process impression: ${error.message}`, error.stack);
             throw error;
@@ -157,18 +167,17 @@ export class TrackingService {
                 inventoryId: click.inventoryId,
                 publisherId: click.publisherId,
                 websiteId: click.websiteId,
-                adSlotId: click.adSlotId || null,
+                templateId: click.templateId || null,
                 timestamp: click.timestamp.toISOString(),
+
+                slotId: click.slotId || null,
+                userFingerprint: click.userFingerprint || null,
 
                 // User data:
                 userAgent: click.userAgent || null,
                 ipAddress: click.ipAddress || null,
                 deviceType: click.deviceType || null,
 
-                // Click-specific data:
-                clickX: click.clickX || null,
-                clickY: click.clickY || null,
-                clickArea: click.clickArea || null,
                 landingUrl: click.landingUrl || null,
 
                 // Fraud data:
@@ -238,6 +247,20 @@ export class TrackingService {
                 return null;
             }
 
+            this.logger.debug("Please", {
+                bidResponseId: bidResponse.id,
+                creativeId: bidResponse.creativeId,
+                campaignId: bidResponse.campaignId,
+                advertiserId: bidResponse.advertiserId,
+                inventoryId: bidResponse.bidRequest.inventory?.id,
+                publisherId: bidResponse.bidRequest.inventory?.publisherId,
+                websiteId: bidResponse.bidRequest.inventory?.websiteId,
+                templateId: bidResponse.bidRequest.inventory.adSlotTemplateId,
+                bidPrice: parseFloat(bidResponse.bidPrice.toString()),
+                finalPrice: parseFloat(bidResponse.finalPrice.toString()),
+                landingUrl: bidResponse.landingUrl,
+            })
+
             // Return data in expected format
             return {
                 bidResponseId: bidResponse.id,
@@ -247,8 +270,9 @@ export class TrackingService {
                 inventoryId: bidResponse.bidRequest.inventory?.id,
                 publisherId: bidResponse.bidRequest.inventory?.publisherId,
                 websiteId: bidResponse.bidRequest.inventory?.websiteId,
-                adSlotId: bidResponse.bidRequest.inventory?.adSlotTemplateId || null,
+                templateId: bidResponse.bidRequest.inventory.adSlotTemplateId,
                 bidPrice: parseFloat(bidResponse.bidPrice.toString()),
+                finalPrice: parseFloat(bidResponse.finalPrice.toString()),
                 landingUrl: bidResponse.landingUrl,
             };
         } catch (error) {

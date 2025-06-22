@@ -50,7 +50,7 @@ interface ImpressionEvent {
     inventoryId: string;
     publisherId: string;
     websiteId: string;
-    adSlotId?: string | null;  // ← Handle optional fields properly
+    templateId?: string | null;  // ← Handle optional fields properly
     timestamp: Date;
     userAgent?: string | null;
     ipAddress?: string | null;
@@ -59,9 +59,10 @@ interface ImpressionEvent {
     viewTime?: number | null;
     isBot?: boolean | null;
     fraudScore?: number | null;
-    bidPrice: number;
-    slotId?: string,                                                 // ✅ Include slot ID
-    userFingerprint?: string,
+    slotId?: string | null;
+    userFingerprint?: string | null;
+    bidPrice?: number;
+    finalPrice?: number;
 
     // Additional fields to match Prisma model:
     referrer?: string | null;
@@ -80,25 +81,19 @@ interface ClickEvent {
     inventoryId: string;
     publisherId: string;
     websiteId: string;
-    adSlotId?: string | null;
+    templateId?: string | null;
     timestamp: Date;
     userAgent?: string | null;
     ipAddress?: string | null;
     deviceType?: string | null;
-    clickX?: number | null;
-    clickY?: number | null;
-    clickArea?: string | null;
     landingUrl?: string | null;
     isBot?: boolean | null;
     fraudScore?: number | null;
     timeFromImpression?: number | null;
-    slotId?: string,                                                 // ✅ Include slot ID
-    userFingerprint?: string,
 
-    clickNumber?: number | null;      // Which click this is (1st, 2nd, etc.)
-    isFirstClick?: boolean | null;
-
-
+    // ✅ FIX: Add missing fields
+    slotId?: string | null;
+    userFingerprint?: string | null;
 
     // Additional fields:
     referrer?: string | null;
@@ -116,8 +111,11 @@ interface ImpressionData {
     inventoryId: string;
     publisherId: string;
     websiteId: string;
-    adSlotId: string | null;
+    templateId: string | null;
     timestamp: string;
+
+    slotId?: string | null;
+    userFingerprint?: string | null;
 
     // User data
     userAgent: string | null;
@@ -134,6 +132,7 @@ interface ImpressionData {
 
     // Financial data
     bidPrice: number;
+    finalPrice: number;
 
     // Additional fields
     referrer: string | null;
@@ -156,7 +155,7 @@ interface ClickData {
     inventoryId: string;
     publisherId: string;
     websiteId: string;
-    adSlotId: string | null;
+    templateId: string | null;
     timestamp: string;
 
     // User data
@@ -165,9 +164,6 @@ interface ClickData {
     deviceType: string | null;
 
     // Click-specific data
-    clickX: number | null;
-    clickY: number | null;
-    clickArea: string | null;
     landingUrl: string | null;
 
     // Fraud data
@@ -175,8 +171,8 @@ interface ClickData {
     fraudScore: number | null;
     timeFromImpression: number | null; // in milliseconds or seconds, depending on system
 
-    clickNumber?: number | null;      // Which click this is (1st, 2nd, etc.)
-    isFirstClick?: boolean | null;
+    slotId?: string | null;
+    userFingerprint?: string | null;
 
 
     // Additional fields

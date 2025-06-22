@@ -6,6 +6,7 @@ import { BudgetValidationService } from './services/budget-validation.service';
 import { FraudDetectionService } from './fraud-detection.service';
 import { ApiTags } from '@nestjs/swagger';
 import { ImpressionClickLinkingService } from './services/impression-click-linking.service';
+import { v4 as uuidv4 } from 'uuid';
 
 @ApiTags('Impression and Click Tracking')
 @Controller('track')
@@ -28,20 +29,35 @@ export class TrackingController {
     async trackImpression(
         @Param('bidResponseId') bidResponseId: string,
         @Query() query: any,
-        @Req() req: Request,  // ← ADDED: Need this to get user data
+        @Req() req: Request,
         @Res() res: Response,
     ) {
         try {
             const startTime = Date.now();
-            const impressionId = this.trackingService.generateId();
-            const userFingerprint = this.impressionClickLinking.generateUserFingerprint(req);
-            const slotId = query.slot;
-
-            // 🎯 EXTRACT ALL USER DATA from HTTP request + query params
+            const impressionId = uuidv4();
             const userData = this.extractUserData(req, query);
+            const userFingerprint = this.impressionClickLinking.generateUserFingerprint(req, userData);
+
+            const slotId = query.slotId;
+
+
+            this.logger.debug("Prep for impression tracking", {
+                startTime,
+                impressionId,
+                userFingerprint,
+                userData,
+                slotId,
+            })
 
             // Get impression data from bid response
             const impressionData = await this.trackingService.getImpressionData(bidResponseId);
+
+
+            this.logger.debug("Impression Data by bidResponseId", {
+                impressionData,
+                bidResponseId,
+            })
+
             if (!impressionData) {
                 this.logger.warn(`Invalid bid response: ${bidResponseId}`);
                 return this.return1x1Pixel(res);
@@ -49,11 +65,15 @@ export class TrackingController {
 
             // Fraud detection (fast Redis-based checks)
             const isFraud = await this.fraudDetection.checkImpression({
-                userAgent: userData.userAgent,      // ← Use extracted data
-                ipAddress: userData.ipAddress,      // ← Use extracted data
+                userAgent: userData.userAgent,
+                ipAddress: userData.ipAddress,
                 bidResponseId,
                 campaignId: impressionData.campaignId,
             });
+
+            this.logger.debug("Fraud & Fraud Score", {
+                isFraud,
+            })
 
             if (isFraud.isBot || isFraud.fraudScore > 0.8) {
                 this.logger.debug(`Fraudulent impression blocked: ${bidResponseId}`);
@@ -73,7 +93,7 @@ export class TrackingController {
 
             // 💾 Process impression in Redis with ALL user data
             await this.trackingService.processImpression({
-                id: this.trackingService.generateId(),
+                id: impressionId,
                 bidResponseId,
                 creativeId: impressionData.creativeId,
                 campaignId: impressionData.campaignId,
@@ -81,10 +101,13 @@ export class TrackingController {
                 inventoryId: impressionData.inventoryId,
                 publisherId: impressionData.publisherId,
                 websiteId: impressionData.websiteId,
-                adSlotId: impressionData.adSlotId || null,  // ← Handle optional fields
+                templateId: impressionData.templateId,  // ← Handle optional fields
                 timestamp: new Date(),
-                slotId,                                                 // ✅ Include slot ID
+                slotId,
                 userFingerprint,
+
+                bidPrice: impressionData.bidPrice || 0,
+                finalPrice: impressionData.finalPrice || 0,
 
                 // 🎯 COMPLETE USER DATA:
                 userAgent: userData.userAgent,
@@ -94,7 +117,6 @@ export class TrackingController {
                 viewTime: userData.viewTime,
                 isBot: isFraud.isBot,
                 fraudScore: isFraud.fraudScore,
-                bidPrice: impressionData.bidPrice,
 
                 // Additional fields for your Prisma model:
                 referrer: userData.referrer,
@@ -102,6 +124,13 @@ export class TrackingController {
                 region: userData.region,
                 city: userData.city,
             });
+
+            this.logger.debug("Before storing impression mappings", {
+                slotId,
+                bidResponseId,
+                userFingerprint,
+                impressionId,
+            })
 
             await this.impressionClickLinking.storeImpressionMappings(
                 slotId,
@@ -112,9 +141,9 @@ export class TrackingController {
 
             const processingTime = Date.now() - startTime;
             this.logger.debug(`Impression tracked in ${processingTime}ms: ${bidResponseId}`);
+            this.logger.debug("Hurrayy!! Impression tracked successfully");
 
             return this.return1x1Pixel(res);
-
         } catch (error) {
             this.logger.error('Failed to track impression:', error);
             return this.return1x1Pixel(res);
@@ -134,11 +163,12 @@ export class TrackingController {
         try {
             const startTime = Date.now();
             const clickId = this.trackingService.generateId(); // ✅ Generate click ID upfront
-            const userFingerprint = this.impressionClickLinking.generateUserFingerprint(req);
-            const slotId = query.slot;
-
-            // 🎯 EXTRACT ALL USER DATA from HTTP request + query params
             const userData = this.extractUserData(req, query);
+            const userFingerprint = this.impressionClickLinking.generateUserFingerprint(req, userData);
+            const slotId = query.slotId;
+
+            await this.impressionClickLinking.debugLinking(bidResponseId, slotId, userFingerprint);
+
 
             // Get click data from bid response
             const clickData = await this.trackingService.getClickData(bidResponseId);
@@ -147,12 +177,20 @@ export class TrackingController {
                 return res.redirect(query.url || 'https://example.com');
             }
 
+            this.logger.debug("Click Data", {
+                clickData,
+            })
+
             const impressionResult = await this.impressionClickLinking.findImpressionAndRegisterClick(
                 bidResponseId,
                 userFingerprint,
                 clickId,
                 slotId
             );
+
+            this.logger.debug("Impression Result", {
+                impressionResult
+            })
 
             // Fraud detection for clicks
             const isFraud = await this.fraudDetection.checkClick({
@@ -170,7 +208,9 @@ export class TrackingController {
                 return res.redirect(query.url || clickData.landingUrl || 'https://example.com');
             }
 
-
+            this.logger.debug("Fraud Result", {
+                isFraud,
+            })
 
             // 💾 Process click in Redis with ALL user data
             await this.trackingService.processClick({
@@ -183,31 +223,22 @@ export class TrackingController {
                 inventoryId: clickData.inventoryId,
                 publisherId: clickData.publisherId,
                 websiteId: clickData.websiteId,
-                adSlotId: clickData.adSlotId || null,  // ← Handle optional fields
+                templateId: clickData.templateId || null,  // ← Handle optional fields
                 timestamp: new Date(),
-                slotId,                                                 // ✅ Include slot ID
+                slotId,
                 userFingerprint,
-
-                // 🎯 COMPLETE USER DATA:
                 userAgent: userData.userAgent,
                 ipAddress: userData.ipAddress,
                 deviceType: userData.deviceType,
-                clickX: parseInt(query.x) || null,      // ← Handle optional coordinates
-                clickY: parseInt(query.y) || null,      // ← Handle optional coordinates
-                clickArea: query.area || null,
                 landingUrl: query.url || clickData.landingUrl,
                 isBot: isFraud.isBot,
                 fraudScore: isFraud.fraudScore,
-                timeFromImpression: isFraud.timeFromImpression || null,
-
+                timeFromImpression: impressionResult.timeFromImpression || null,
                 // Additional fields:
                 referrer: userData.referrer,
                 country: userData.country,
                 region: userData.region,
                 city: userData.city,
-
-                clickNumber: impressionResult?.clickNumber || null,      // Which click this is (1st, 2nd, etc.)
-                isFirstClick: impressionResult?.isFirstClick || false,
             });
 
             const processingTime = Date.now() - startTime;
@@ -222,6 +253,7 @@ export class TrackingController {
         }
     }
 
+
     /**
      * 🎯 EXTRACT ALL USER DATA FROM HTTP REQUEST
      * This ensures no Prisma model fields are null/undefined
@@ -229,6 +261,9 @@ export class TrackingController {
     private extractUserData(req: Request, query: any) {
         const userAgent = req.headers['user-agent'] || '';
         const ipAddress = this.getClientIP(req);
+
+        const timestamp = new Date();
+        const serverTime = timestamp.getTime(); // ms since epoch
 
         return {
             // From HTTP headers (primary source):
@@ -246,8 +281,8 @@ export class TrackingController {
             os: this.detectOS(userAgent),
 
             // From URL query parameters or defaults:
-            viewable: query.viewable === 'true' || false,
-            viewTime: parseInt(query.viewTime) || 0,
+            viewable: true,
+            viewTime: serverTime,
 
             // Geolocation (you can enhance this with GeoIP service):
             country: this.detectCountry(ipAddress),
@@ -264,16 +299,27 @@ export class TrackingController {
      * Get real client IP (handles proxies, load balancers)
      */
     private getClientIP(req: Request): string {
-        const forwarded = req.headers['x-forwarded-for'] as string;
-        const realIp = req.headers['x-real-ip'] as string;
-        const remoteAddress = req.connection?.remoteAddress || req.socket?.remoteAddress;
+        const xForwardedFor = req.headers['x-forwarded-for'];
+        const realIp = req.headers['x-real-ip'] as string | undefined;
 
-        let ip = forwarded || realIp || remoteAddress || req.ip || 'unknown';
+        let ip = '';
 
-        // Handle comma-separated IPs (take first one)
-        if (ip.includes(',')) {
-            ip = ip.split(',')[0].trim();
+        if (typeof xForwardedFor === 'string') {
+            ip = xForwardedFor.split(',')[0].trim(); // Get first IP from list
+        } else if (realIp) {
+            ip = realIp;
+        } else if (req.connection?.remoteAddress) {
+            ip = req.connection.remoteAddress;
+        } else if (req.socket?.remoteAddress) {
+            ip = req.socket.remoteAddress;
+        } else if (req.ip) {
+            ip = req.ip;
+        } else {
+            ip = 'unknown';
         }
+
+        // Normalize localhost IPv6
+        if (ip === '::1' || ip === '::ffff:127.0.0.1') ip = '127.0.0.1';
 
         return ip;
     }

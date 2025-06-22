@@ -32,37 +32,59 @@ export class RedisPostgresSyncService {
     ) { }
 
     /**
-     * Sync impressions from Redis to PostgreSQL every 2 minutes
-     * Uses atomic operations to prevent data loss
+     * 🎯 FIXED: Single cron job that syncs impressions THEN clicks
      */
-    @Cron('*/2 * * * *') // Every 2 minutes
-    async syncImpressions(): Promise<void> {
-        const startTime = Date.now();
+    @Cron('*/1 * * * *') // Every minute
+    async syncImpressionsThenClicks(): Promise<void> {
         const batchId = uuidv4();
+        const startTime = Date.now();
 
-        this.logger.debug('🔄 Starting impressions sync from Redis to PostgreSQL', {
-            batchId,
-            timestamp: new Date().toISOString(),
-        });
+        this.logger.log('🔄 Starting sequential sync: impressions → clicks', { batchId });
+
+        try {
+            // ✅ STEP 1: Sync impressions FIRST
+            await this.syncImpressionsOnly();
+
+            // ✅ STEP 2: Then sync clicks (impressions are now in PostgreSQL)
+            await this.syncClicksOnly();
+
+            const processingTime = Date.now() - startTime;
+            this.logger.log('✅ Sequential sync completed', {
+                batchId,
+                processingTimeMs: processingTime,
+            });
+
+        } catch (error) {
+            const processingTime = Date.now() - startTime;
+            this.logger.error('❌ Sequential sync failed:', {
+                error: error.message,
+                batchId,
+                processingTimeMs: processingTime,
+            });
+        }
+    }
+
+    /**
+     * 🔧 Convert existing syncImpressions to internal method
+     */
+    private async syncImpressionsOnly(): Promise<number> {
+        const startTime = Date.now();
+        const batchId = uuidv4().substring(0, 8);
+
+        this.logger.debug('🔄 Syncing impressions', { batchId });
 
         try {
             let totalProcessed = 0;
             const errors: any[] = [];
             const chunkSize = 500;
 
-            // Process data in atomic chunks to prevent data loss
             while (true) {
-                // Atomically get and remove a chunk from Redis
                 const chunk = await this.getPendingImpressions(chunkSize);
 
                 if (chunk.length === 0) {
-                    this.logger.debug('✅ No more pending impressions to sync');
+                    this.logger.debug('✅ No more pending impressions');
                     break;
                 }
-
-                this.logger.debug("Chunk Please", {
-                    chunk,
-                })
 
                 try {
                     const processed = await this.insertImpressionBatch(chunk);
@@ -82,72 +104,54 @@ export class RedisPostgresSyncService {
                         chunkSize: chunk.length,
                     });
 
-                    // Put failed items back to Redis for retry
                     await this.returnFailedItems(CLICK_AND_IMPRESSION_KEYS.PENDING_IMPRESSIONS, chunk);
-
-                    errors.push({
-                        chunkSize: chunk.length,
-                        error: chunkError.message,
-                    });
-
-                    break; // Stop processing on error to prevent cascade failures
+                    errors.push({ chunkSize: chunk.length, error: chunkError.message });
+                    break;
                 }
 
-                // Small delay between chunks to prevent overwhelming the database
-                await new Promise((resolve) => setTimeout(resolve, 100));
+                await new Promise((resolve) => setTimeout(resolve, 50));
             }
 
             const processingTime = Date.now() - startTime;
             this.updateSyncMetrics(processingTime, totalProcessed, errors.length > 0);
 
-            this.logger.log('✅ Impressions sync completed', {
+            this.logger.debug('✅ Impressions sync completed', {
                 batchId,
                 totalProcessed,
                 errors: errors.length,
                 processingTimeMs: processingTime,
             });
 
-            // Update Redis metrics
             await this.updateRedisMetrics('impressions', totalProcessed, processingTime);
+            return totalProcessed;
 
         } catch (error) {
             const processingTime = Date.now() - startTime;
             this.updateSyncMetrics(processingTime, 0, true);
-
-            this.logger.error('❌ Impressions sync failed:', {
-                error: error.message,
-                batchId,
-                processingTimeMs: processingTime,
-            });
+            this.logger.error('❌ Impressions sync failed:', { error: error.message, batchId });
+            return 0;
         }
     }
 
     /**
-     * Sync clicks from Redis to PostgreSQL every 2 minutes
-     * Uses atomic operations to prevent data loss
+     * 🔧 Convert existing syncClicks to internal method  
      */
-    @Cron('*/2 * * * *') // Every 2 minutes
-    async syncClicks(): Promise<void> {
+    private async syncClicksOnly(): Promise<number> {
         const startTime = Date.now();
-        const batchId = uuidv4();
+        const batchId = uuidv4().substring(0, 8);
 
-        this.logger.debug('🔄 Starting clicks sync from Redis to PostgreSQL', {
-            batchId,
-            timestamp: new Date().toISOString(),
-        });
+        this.logger.debug('🔄 Syncing clicks', { batchId });
 
         try {
             let totalProcessed = 0;
             const errors: any[] = [];
             const chunkSize = 500;
 
-            // Process data in atomic chunks to prevent data loss
             while (true) {
-                // Atomically get and remove a chunk from Redis
                 const chunk = await this.getPendingClicks(chunkSize);
 
                 if (chunk.length === 0) {
-                    this.logger.debug('✅ No more pending clicks to sync');
+                    this.logger.debug('✅ No more pending clicks');
                     break;
                 }
 
@@ -169,43 +173,32 @@ export class RedisPostgresSyncService {
                         chunkSize: chunk.length,
                     });
 
-                    // Put failed items back to Redis for retry
                     await this.returnFailedItems(CLICK_AND_IMPRESSION_KEYS.PENDING_CLICKS, chunk);
-
-                    errors.push({
-                        chunkSize: chunk.length,
-                        error: chunkError.message,
-                    });
-
-                    break; // Stop processing on error
+                    errors.push({ chunkSize: chunk.length, error: chunkError.message });
+                    break;
                 }
 
-                // Small delay between chunks
-                await new Promise((resolve) => setTimeout(resolve, 100));
+                await new Promise((resolve) => setTimeout(resolve, 50));
             }
 
             const processingTime = Date.now() - startTime;
             this.updateSyncMetrics(processingTime, totalProcessed, errors.length > 0);
 
-            this.logger.log('✅ Clicks sync completed', {
+            this.logger.debug('✅ Clicks sync completed', {
                 batchId,
                 totalProcessed,
                 errors: errors.length,
                 processingTimeMs: processingTime,
             });
 
-            // Update Redis metrics
             await this.updateRedisMetrics('clicks', totalProcessed, processingTime);
+            return totalProcessed;
 
         } catch (error) {
             const processingTime = Date.now() - startTime;
             this.updateSyncMetrics(processingTime, 0, true);
-
-            this.logger.error('❌ Clicks sync failed:', {
-                error: error.message,
-                batchId,
-                processingTimeMs: processingTime,
-            });
+            this.logger.error('❌ Clicks sync failed:', { error: error.message, batchId });
+            return 0;
         }
     }
 
@@ -308,6 +301,11 @@ export class RedisPostgresSyncService {
      */
     private async insertImpressionBatch(impressions: ImpressionData[]): Promise<number> {
         try {
+            this.logger.debug("Inserting impression batch", {
+                impressions,
+                count: impressions.length,
+            })
+
             // Transform Redis data to PostgreSQL format
             const impressionData = impressions.map((impression) => ({
                 id: impression.id || uuidv4(),
@@ -318,6 +316,7 @@ export class RedisPostgresSyncService {
                 advertiserId: impression.advertiserId,
                 bidResponseId: impression.bidResponseId,
                 websiteId: impression.websiteId,
+                templateId: impression.templateId || null,
                 timestamp: impression.timestamp ? new Date(impression.timestamp) : new Date(),
                 userAgent: impression.userAgent || null,
                 ipAddress: impression.ipAddress || null,
@@ -328,8 +327,12 @@ export class RedisPostgresSyncService {
                 viewable: impression.viewable || false,
                 viewTime: impression.viewTime ? parseInt(impression.viewTime.toString()) : null,
                 isBot: impression.isBot || false,
-                fraudScore: impression.fraudScore ? parseFloat(impression.fraudScore.toString()) : null,
+                fraudScore: impression.fraudScore ? parseFloat(impression.fraudScore.toString()) : 0,
                 syncedToTimescale: false,
+                slotId: impression.slotId || null,
+                userFingerprint: impression.userFingerprint || null,
+                bidPrice: impression.bidPrice ? parseFloat(impression.bidPrice.toString()) : 0,
+                finalPrice: impression.finalPrice ? parseFloat(impression.finalPrice.toString()) : 0,
                 createdAt: new Date(),
             }));
 
@@ -352,6 +355,11 @@ export class RedisPostgresSyncService {
      */
     private async insertClickBatch(clicks: ClickData[]): Promise<number> {
         try {
+            this.logger.debug("Inserting click batch", {
+                clicks,
+                count: clicks.length,
+            });
+
             // Transform Redis data to PostgreSQL format
             const clickData = clicks.map((click) => ({
                 id: click.id || uuidv4(),
@@ -363,8 +371,7 @@ export class RedisPostgresSyncService {
                 advertiserId: click.advertiserId,
                 bidResponseId: click.bidResponseId || null,
                 websiteId: click.websiteId || null,
-                clickX: click.clickX ? parseInt(click.clickX.toString()) : null,
-                clickY: click.clickY ? parseInt(click.clickY.toString()) : null,
+                templateId: click.templateId || null,
                 landingUrl: click.landingUrl || null,
                 timeFromImpression: click.timeFromImpression ? parseInt(click.timeFromImpression.toString()) : null,
                 timestamp: click.timestamp ? new Date(click.timestamp) : new Date(),
@@ -377,6 +384,8 @@ export class RedisPostgresSyncService {
                 isBot: click.isBot || false,
                 fraudScore: click.fraudScore ? parseFloat(click.fraudScore.toString()) : null,
                 syncedToTimescale: false,
+                slotId: click.slotId || null,
+                userFingerprint: click.userFingerprint || null,
                 createdAt: new Date(),
             }));
 
@@ -476,10 +485,10 @@ export class RedisPostgresSyncService {
         this.logger.log('🔄 Manual sync triggered');
 
         const impressionsStart = Date.now();
-        await this.syncImpressions();
+        await this.syncImpressionsOnly();
 
         const clicksStart = Date.now();
-        await this.syncClicks();
+        await this.syncClicksOnly();
 
         return {
             impressions: Date.now() - impressionsStart,

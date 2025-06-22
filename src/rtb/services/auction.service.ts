@@ -400,14 +400,14 @@ export class AuctionService {
   } {
     const baseUrl = this.trackingBaseUrl;
 
-    const impressionSlot = this.impressionClickLinking.generateImpressionSlot(bidResponseId);
+    const slotId = this.impressionClickLinking.generateImpressionSlot(bidResponseId);
 
     return {
       impression: [
-        `${baseUrl}/track/impression/${bidResponseId}?slot=${impressionSlot}&auction=${auctionId}&t=${Date.now()}`,
+        `${baseUrl}/track/impression/${bidResponseId}?slotId=${slotId}&auctionId=${auctionId}&t=${Date.now()}`,
       ],
       click: [
-        `${baseUrl}/track/click/${bidResponseId}?slot=${impressionSlot}&auction=${auctionId}&t=${Date.now()}`,
+        `${baseUrl}/track/click/${bidResponseId}?slotId=${slotId}&auctionId=${auctionId}&t=${Date.now()}`,
       ],
     };
   }

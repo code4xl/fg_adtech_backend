@@ -43,6 +43,13 @@ export class BudgetValidationService {
             const currentSpend = parseFloat(dailySpend || '0');
             const remainingBudget = limit - currentSpend;
 
+            this.logger.debug("In validate Campaign budget", {
+                campaignId,
+                limit,
+                currentSpend,
+                remainingBudget,
+            })
+
             // Check if there's enough budget for this bid
             return remainingBudget >= bidAmount;
 

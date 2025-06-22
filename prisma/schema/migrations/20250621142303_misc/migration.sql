@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "ClickEvent" ALTER COLUMN "slotId" SET DATA TYPE VARCHAR(100);
+
+-- AlterTable
+ALTER TABLE "ImpressionEvent" ALTER COLUMN "slotId" SET DATA TYPE VARCHAR(100);

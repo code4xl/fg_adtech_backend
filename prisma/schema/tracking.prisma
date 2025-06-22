@@ -24,10 +24,11 @@ model ImpressionEvent {
     inventoryId  String  @db.Uuid
     publisherId  String  @db.Uuid
     websiteId    String  @db.Uuid
-    adSlotId     String? @db.Uuid // Specific slot on the website
+    templateId   String? @db.Uuid // Specific slot on the website
 
     // Financial
-    bidPrice Float? // Price paid for the impression
+    bidPrice   Float? // Price paid for the impression
+    finalPrice Float? // Final price after any adjustments
 
     // TECHNICAL DETAILS
     timestamp  DateTime @default(now())
@@ -42,13 +43,13 @@ model ImpressionEvent {
 
     // VIEWABILITY METRICS (IAB standards)
     viewable Boolean? // Was it viewable per IAB standards
-    viewTime Int? // Milliseconds in view
+    viewTime BigInt? // Milliseconds in view
 
     // FRAUD DETECTION
     isBot      Boolean? @default(false)
     fraudScore Float? // 0.0 to 1.0
 
-    slotId          String? @db.VarChar(50) // Impression slot for linking
+    slotId          String? @db.VarChar(100) // Impression slot for linking
     userFingerprint String? @db.VarChar(50) // User fingerprint for fallback linking
 
     // SYNC STATUS
@@ -88,18 +89,13 @@ model ClickEvent {
     inventoryId  String  @db.Uuid
     publisherId  String  @db.Uuid
     websiteId    String  @db.Uuid
-    adSlotId     String? @db.Uuid
+    templateId   String? @db.Uuid
 
     // TECHNICAL DETAILS
     timestamp  DateTime @default(now())
     userAgent  String?
     ipAddress  String?
     deviceType String?
-
-    // CLICK DETAILS
-    clickX    Int? // X coordinate of click
-    clickY    Int? // Y coordinate of click
-    clickArea String? // Which part of ad was clicked
 
     // LANDING PAGE
     landingUrl String? // Where user was redirected
@@ -114,10 +110,8 @@ model ClickEvent {
     region  String? // Region or state of the user
     city    String? // City of the user
 
-    slotId          String?  @db.VarChar(50) // Impression slot for linking
-    userFingerprint String?  @db.VarChar(50) // User fingerprint for fallback linking
-    clickNumber     Int? // Which click this is (1, 2, 3, etc.)
-    isFirstClick    Boolean? @default(false)
+    slotId          String? @db.VarChar(100) // Impression slot for linking
+    userFingerprint String? @db.VarChar(50) // User fingerprint for fallback linking
 
     // SYNC STATUS
     syncedToTimescale Boolean   @default(false)

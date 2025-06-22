@@ -229,6 +229,29 @@ export class RedisService {
     return this.pubClient.pipeline();
   }
 
+  zcard(key: string): Promise<number> {
+    return this.pubClient.zcard(key);
+  }
+
+  async watch(key: string): Promise<void> {
+    this.pubClient.watch(key);
+  }
+
+  async unwatch(): Promise<void> {
+    this.pubClient.unwatch();
+  }
+
+  async exists(key: string): Promise<number> {
+    try {
+      return await this.pubClient.exists(key);
+    } catch (error) {
+      this.logger.error(`Error checking existence of key ${key}: ${error.message}`);
+      throw error;
+    }
+  }
+
+
+
   getClient(): Redis {
     return this.pubClient;
   }
