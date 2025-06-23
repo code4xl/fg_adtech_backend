@@ -1007,4 +1007,217 @@ export class TimescaleService implements OnModuleInit {
             throw error;
         }
     }
+
+    /**
+ * Bulk insert impressions to TimescaleDB (matching your PostgreSQL schema)
+ */
+    async bulkInsertImpressions(impressions: any[]): Promise<WriteResult> {
+        if (impressions.length === 0) {
+            return { success: true, processedCount: 0 };
+        }
+
+        const startTime = Date.now();
+
+        try {
+            const result = await this.transaction(async (client) => {
+                let insertedCount = 0;
+
+                // Use batch insert for better performance
+                const batchSize = 1000;
+                for (let i = 0; i < impressions.length; i += batchSize) {
+                    const batch = impressions.slice(i, i + batchSize);
+
+                    const values = batch.map((imp, index) => {
+                        const baseIndex = i * 29 + index * 29; // 29 fields per record
+                        return `($${baseIndex + 1}, $${baseIndex + 2}, $${baseIndex + 3}, $${baseIndex + 4}, $${baseIndex + 5}, 
+                            $${baseIndex + 6}, $${baseIndex + 7}, $${baseIndex + 8}, $${baseIndex + 9}, $${baseIndex + 10}, 
+                            $${baseIndex + 11}, $${baseIndex + 12}, $${baseIndex + 13}, $${baseIndex + 14}, $${baseIndex + 15}, 
+                            $${baseIndex + 16}, $${baseIndex + 17}, $${baseIndex + 18}, $${baseIndex + 19}, $${baseIndex + 20}, 
+                            $${baseIndex + 21}, $${baseIndex + 22}, $${baseIndex + 23}, $${baseIndex + 24}, $${baseIndex + 25}, 
+                            $${baseIndex + 26}, $${baseIndex + 27}, $${baseIndex + 28}, $${baseIndex + 29})`;
+                    }).join(',');
+
+                    const insertQuery = `
+                    INSERT INTO impression_events (
+                        id, creative_id, bid_response_id, campaign_id, advertiser_id,
+                        inventory_id, publisher_id, website_id, template_id, bid_price,
+                        final_price, timestamp, user_agent, ip_address, device_type,
+                        country, region, city, viewable, view_time, is_bot, fraud_score,
+                        slot_id, user_fingerprint, synced_to_timescale, synced_at, created_at
+                    ) VALUES ${values}
+                    ON CONFLICT (timestamp, id) DO NOTHING
+                `;
+
+                    const params = batch.flatMap(imp => [
+                        imp.id,
+                        imp.creative_id,
+                        imp.bid_response_id,
+                        imp.campaign_id,
+                        imp.advertiser_id,
+                        imp.inventory_id,
+                        imp.publisher_id,
+                        imp.website_id,
+                        imp.template_id,
+                        imp.bid_price,
+                        imp.final_price,
+                        imp.timestamp,
+                        imp.user_agent,
+                        imp.ip_address,
+                        imp.device_type,
+                        imp.country,
+                        imp.region,
+                        imp.city,
+                        imp.viewable,
+                        imp.view_time,
+                        imp.is_bot,
+                        imp.fraud_score,
+                        imp.slot_id,
+                        imp.user_fingerprint,
+                        imp.synced_to_timescale,
+                        imp.synced_at,
+                        imp.created_at
+                    ]);
+
+                    const batchResult = await client.query(insertQuery, params);
+                    insertedCount += batchResult.rowCount || 0;
+                }
+
+                return insertedCount;
+            });
+
+            const processingTime = Date.now() - startTime;
+
+            this.logger.log('✅ Impressions bulk inserted to TimescaleDB', {
+                requested: impressions.length,
+                inserted: result,
+                processingTimeMs: processingTime,
+            });
+
+            return {
+                success: true,
+                processedCount: result,
+            };
+
+        } catch (error) {
+            const processingTime = Date.now() - startTime;
+
+            this.logger.error('❌ Failed to bulk insert impressions to TimescaleDB:', {
+                error: error.message,
+                requestedCount: impressions.length,
+                processingTimeMs: processingTime,
+            });
+
+            return {
+                success: false,
+                processedCount: 0,
+                errors: [error.message],
+            };
+        }
+    }
+
+    /**
+     * Bulk insert clicks to TimescaleDB (matching your PostgreSQL schema)
+     */
+    async bulkInsertClicks(clicks: any[]): Promise<WriteResult> {
+        if (clicks.length === 0) {
+            return { success: true, processedCount: 0 };
+        }
+
+        const startTime = Date.now();
+
+        try {
+            const result = await this.transaction(async (client) => {
+                let insertedCount = 0;
+
+                // Use batch insert for better performance
+                const batchSize = 1000;
+                for (let i = 0; i < clicks.length; i += batchSize) {
+                    const batch = clicks.slice(i, i + batchSize);
+
+                    const values = batch.map((click, index) => {
+                        const baseIndex = i * 26 + index * 26; // 26 fields per record
+                        return `($${baseIndex + 1}, $${baseIndex + 2}, $${baseIndex + 3}, $${baseIndex + 4}, $${baseIndex + 5}, 
+                            $${baseIndex + 6}, $${baseIndex + 7}, $${baseIndex + 8}, $${baseIndex + 9}, $${baseIndex + 10}, 
+                            $${baseIndex + 11}, $${baseIndex + 12}, $${baseIndex + 13}, $${baseIndex + 14}, $${baseIndex + 15}, 
+                            $${baseIndex + 16}, $${baseIndex + 17}, $${baseIndex + 18}, $${baseIndex + 19}, $${baseIndex + 20}, 
+                            $${baseIndex + 21}, $${baseIndex + 22}, $${baseIndex + 23}, $${baseIndex + 24}, $${baseIndex + 25}, 
+                            $${baseIndex + 26})`;
+                    }).join(',');
+
+                    const insertQuery = `
+                    INSERT INTO click_events (
+                        id, impression_id, creative_id, bid_response_id, campaign_id,
+                        advertiser_id, inventory_id, publisher_id, website_id, template_id,
+                        timestamp, user_agent, ip_address, device_type, landing_url,
+                        is_bot, fraud_score, time_from_impression, country, region, city,
+                        slot_id, user_fingerprint, synced_to_timescale, synced_at, created_at
+                    ) VALUES ${values}
+                    ON CONFLICT (timestamp, id) DO NOTHING
+                `;
+
+                    const params = batch.flatMap(click => [
+                        click.id,
+                        click.impression_id,
+                        click.creative_id,
+                        click.bid_response_id,
+                        click.campaign_id,
+                        click.advertiser_id,
+                        click.inventory_id,
+                        click.publisher_id,
+                        click.website_id,
+                        click.template_id,
+                        click.timestamp,
+                        click.user_agent,
+                        click.ip_address,
+                        click.device_type,
+                        click.landing_url,
+                        click.is_bot,
+                        click.fraud_score,
+                        click.time_from_impression,
+                        click.country,
+                        click.region,
+                        click.city,
+                        click.slot_id,
+                        click.user_fingerprint,
+                        click.synced_to_timescale,
+                        click.synced_at,
+                        click.created_at
+                    ]);
+
+                    const batchResult = await client.query(insertQuery, params);
+                    insertedCount += batchResult.rowCount || 0;
+                }
+
+                return insertedCount;
+            });
+
+            const processingTime = Date.now() - startTime;
+
+            this.logger.log('✅ Clicks bulk inserted to TimescaleDB', {
+                requested: clicks.length,
+                inserted: result,
+                processingTimeMs: processingTime,
+            });
+
+            return {
+                success: true,
+                processedCount: result,
+            };
+
+        } catch (error) {
+            const processingTime = Date.now() - startTime;
+
+            this.logger.error('❌ Failed to bulk insert clicks to TimescaleDB:', {
+                error: error.message,
+                requestedCount: clicks.length,
+                processingTimeMs: processingTime,
+            });
+
+            return {
+                success: false,
+                processedCount: 0,
+                errors: [error.message],
+            };
+        }
+    }
 }
