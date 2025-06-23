@@ -1,8 +1,11 @@
 import { Controller, Get, Post } from "@nestjs/common";
 import { PostgresTimescaleSyncService } from "src/tracking/services/postgre-timescale-sync.service";
 import { TimescaleService } from "./timescale.service";
+import { ApiExcludeController, ApiTags } from "@nestjs/swagger";
 
 // Create a test controller
+@ApiExcludeController()
+@ApiTags('Timescale')
 @Controller('test-sync')
 export class TimeScaleController {
     constructor(
