@@ -4,10 +4,11 @@ import { Request, Response } from 'express';
 import { TrackingService } from './tracking.service';
 import { BudgetValidationService } from './services/budget-validation.service';
 import { FraudDetectionService } from './fraud-detection.service';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiExcludeController, ApiTags } from '@nestjs/swagger';
 import { ImpressionClickLinkingService } from './services/impression-click-linking.service';
 import { v4 as uuidv4 } from 'uuid';
 
+@ApiExcludeController()
 @ApiTags('Impression and Click Tracking')
 @Controller('track')
 export class TrackingController {
