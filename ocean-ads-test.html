@@ -217,7 +217,7 @@
       </div>
       <div class="status-card" id="ads-status">
         <h3>Ad Slots</h3>
-        <div id="ads-status-value">Detecting...</div>
+        <div id="ads-status-value">Discovering...</div>
       </div>
     </div>
 
@@ -234,9 +234,17 @@
     <div class="content-area">
       <main class="main-content">
         <!-- Header Banner Ad -->
-        <div class="ad-slot header-banner" data-ocean-slot="header-banner">
-          <div>Header Banner (728x90)</div>
-          <small>Premium placement</small>
+        <div
+          id="header-banner"
+          class="ad-slot ocean-ad"
+          data-ocean-slot="header-banner"
+          data-ocean-inventory="b169383a-2369-4422-9094-bf0752ceed65"
+          data-ocean-template="d2773053-a63c-48d8-bffc-bb4024f6d452"
+          data-ocean-size="728x90"
+          data-ocean-format="BANNER"
+          data-ocean-position="HEADER"
+        >
+          Header Banner (728x90)
         </div>
 
         <h2>Ocean Ads RTB Platform</h2>
@@ -247,10 +255,8 @@
         </p>
 
         <p>
-          The SDK automatically detects ad slots using the
-          <code>data-ocean-slot</code> attribute and initiates bid requests to
-          our RTB engine at
-          <strong>http://localhost:3001/rtb/bid-request</strong>.
+          The SDK automatically discovers ad slots and requests relevant
+          advertisements through our programmatic advertising platform.
         </p>
 
         <h3>How It Works</h3>
@@ -271,9 +277,17 @@
         </ol>
 
         <!-- Footer Banner Ad -->
-        <div class="ad-slot footer-banner" data-ocean-slot="footer-banner">
-          <div>Footer Banner (728x90)</div>
-          <small>High visibility</small>
+        <div
+          id="footer-banner"
+          class="ad-slot ocean-ad"
+          data-ocean-slot="footer-banner"
+          data-ocean-inventory="b169383a-2369-4422-9094-bf0752ceed65"
+          data-ocean-template="d2773053-a63c-48d8-bffc-bb4024f6d452"
+          data-ocean-size="728x90"
+          data-ocean-format="BANNER"
+          data-ocean-position="FOOTER"
+        >
+          Footer Banner (728x90)
         </div>
       </main>
 
@@ -299,14 +313,30 @@
         </div>
 
         <!-- Sidebar Ads -->
-        <div class="ad-slot sidebar-ad" data-ocean-slot="sidebar-ad">
-          <div>Sidebar Ad (300x250)</div>
-          <small>Medium Rectangle</small>
+        <div
+          id="sidebar-ad"
+          class="ad-slot ocean-ad"
+          data-ocean-slot="sidebar-ad"
+          data-ocean-inventory="b169383a-2369-4422-9094-bf0752ceed65"
+          data-ocean-template="d2773053-a63c-48d8-bffc-bb4024f6d452"
+          data-ocean-size="300x250"
+          data-ocean-format="BANNER"
+          data-ocean-position="SIDEBAR"
+        >
+          Sidebar Ad (300x250)
         </div>
 
-        <div class="ad-slot sidebar-ad" data-ocean-slot="sidebar-bottom">
-          <div>Sidebar Bottom (300x250)</div>
-          <small>Secondary placement</small>
+        <div
+          id="sidebar-bottom"
+          class="ad-slot ocean-ad"
+          data-ocean-slot="sidebar-bottom"
+          data-ocean-inventory="b169383a-2369-4422-9094-bf0752ceed65"
+          data-ocean-template="d2773053-a63c-48d8-bffc-bb4024f6d452"
+          data-ocean-size="300x250"
+          data-ocean-format="BANNER"
+          data-ocean-position="SIDEBAR"
+        >
+          Sidebar Bottom (300x250)
         </div>
       </aside>
     </div>
@@ -319,6 +349,41 @@
 
     <!-- Ocean Ads SDK - This is the main CDN link -->
     <script src="http://localhost:3001/cdn/p/869e6cdc-d689-401a-91b3-faa512e4fd8c/init.js"></script>
+
+    <!-- SDK readiness helper -->
+    <script>
+      /*
+       * The CDN bundle dispatches a custom `OceanAdsReady` event when the SDK
+       * has finished boot-strapping.  We listen for that event and also add a
+       * tiny polling fallback so the test page never marks SDK as failed just
+       * because it took >2 s to load in dev mode.
+       */
+      function onSdkReady() {
+        if (window.__OCEAN_SDK_INITIALISED__) return; // guard against double-fire
+        window.__OCEAN_SDK_INITIALISED__ = true;
+
+        updateStatus('sdk-status', 'Loaded ✓', 'success');
+        log('✅ Ocean Ads SDK loaded', 'success');
+
+        // Kick-off automatic slot discovery + RTB
+        if (window.OceanAds && typeof window.OceanAds.init === 'function') {
+          window.OceanAds.init();
+          log('⚙️ OceanAds.init() called', 'info');
+        }
+      }
+
+      // primary: event emitted by CDN bundle
+      window.addEventListener('OceanAdsReady', onSdkReady);
+
+      // fallback: poll every 200 ms, max 10 s
+      (function pollSdk(i = 0) {
+        if (window.OceanAds) {
+          onSdkReady();
+          return;
+        }
+        if (i < 50) setTimeout(() => pollSdk(i + 1), 200);
+      })();
+    </script>
 
     <script>
       // Global tracking variables
@@ -433,7 +498,9 @@
           const responseTime = Date.now() - startTime;
 
           if (response.ok) {
-            const data = await response.json();
+            const apiResp = await response.json();
+            // Backend wraps payload in { success:true, data:{} }
+            const data = apiResp.data || apiResp;
             log(
               `✅ RTB connection successful! Request ID: ${data.requestId}`,
               'success',
@@ -564,15 +631,20 @@
 
         // Check SDK after delay
         setTimeout(() => {
-          if (typeof window.OceanAds !== 'undefined') {
+          if (typeof window.__OCEAN_SDK_INITIALISED__ !== 'undefined') {
             updateStatus('sdk-status', 'Loaded ✓', 'success');
             log('✅ Ocean Ads SDK loaded successfully', 'success');
           } else {
-            updateStatus('sdk-status', 'Failed to load', 'error');
-            log(
-              '❌ Ocean Ads SDK failed to load - check console for errors',
-              'error',
-            );
+            // give it a bit more time before marking as failed – real load may take >2 s in dev
+            setTimeout(() => {
+              if (!window.__OCEAN_SDK_INITIALISED__) {
+                updateStatus('sdk-status', 'Failed to load', 'error');
+                log(
+                  '❌ Ocean Ads SDK failed to load - check console for errors',
+                  'error',
+                );
+              }
+            }, 8000);
           }
 
           // Check configuration

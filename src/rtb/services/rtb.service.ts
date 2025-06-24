@@ -119,7 +119,7 @@ export class RtbService {
       });
 
       return {
-        requestId: requestId,
+        requestId: bidRequest.id,
         auctionId,
         status: 'processing',
       };
