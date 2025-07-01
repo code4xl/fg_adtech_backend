@@ -101,4 +101,4 @@ import { TimescaleModule } from './timescale/timescale.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

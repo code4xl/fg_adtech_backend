@@ -2,7 +2,12 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuctionStatusDto } from '../dto';
 import { BidRequestWithAuction } from '../types/bid-request.types';
-import { CAMPAIGN_KEYS, CREATIVE_KEYS, RTB_CACHE_TTL, RTB_KEYS } from '../constants/cache-keys';
+import {
+  CAMPAIGN_KEYS,
+  CREATIVE_KEYS,
+  RTB_CACHE_TTL,
+  RTB_KEYS,
+} from '../constants/cache-keys';
 import { RedisService } from 'src/redis/redis.service';
 import { CampaignEligibilityService } from './campaign-eligibility.service';
 import { CampaignWithTargeting } from '../types/campaign.types';
@@ -25,8 +30,7 @@ export class AuctionService {
     private readonly bidEvaluationService: BidEvaluationService,
     private readonly impressionClickLinking: ImpressionClickLinkingService,
   ) {
-    this.trackingBaseUrl = process.env.TRACKING_URL ||
-      'http://localhost:3000';
+    this.trackingBaseUrl = process.env.TRACKING_URL || 'http://localhost:3000';
   }
 
   async getAuctionStatus(requestId: string): Promise<AuctionStatusDto | null> {
@@ -126,8 +130,9 @@ export class AuctionService {
     }
   }
 
-
-  async findEligibleCampaigns(bidRequest: BidRequestWithAuction): Promise<CampaignWithTargeting[]> {
+  async findEligibleCampaigns(
+    bidRequest: BidRequestWithAuction,
+  ): Promise<CampaignWithTargeting[]> {
     const cacheKey = CAMPAIGN_KEYS.ELIGIBLE_CAMPAIGNS(
       bidRequest.inventoryId,
       bidRequest.userContext.deviceType,
@@ -156,7 +161,11 @@ export class AuctionService {
         );
 
       // 3. Cache results for 5 minutes
-      await this.redis.set(cacheKey, JSON.stringify(eligibleCampaigns), RTB_CACHE_TTL.CAMPAIGN_ELIGIBILITY);
+      await this.redis.set(
+        cacheKey,
+        JSON.stringify(eligibleCampaigns),
+        RTB_CACHE_TTL.CAMPAIGN_ELIGIBILITY,
+      );
 
       return eligibleCampaigns;
     } catch (error) {
@@ -183,7 +192,10 @@ export class AuctionService {
         }
 
         const hasBudget =
-          await this.campaignEligibility.checkBudgetAvailability(campaign.id, bidAmount);
+          await this.campaignEligibility.checkBudgetAvailability(
+            campaign.id,
+            bidAmount,
+          );
         if (!hasBudget) {
           this.logger.debug('Campaign excluded due to budget exhaustion', {
             campaignId: campaign.id,
@@ -297,9 +309,11 @@ export class AuctionService {
       if (creatives.length === 1) return creatives[0];
 
       // Round-robin selection
-      const selectedCreative = await this.roundRobinSelect(campaign.id, creatives);
+      const selectedCreative = await this.roundRobinSelect(
+        campaign.id,
+        creatives,
+      );
       return selectedCreative;
-
     } catch (error) {
       this.logger.error('Failed to select creative', {
         campaignId: campaign.id,
@@ -311,7 +325,7 @@ export class AuctionService {
 
   private async roundRobinSelect(
     campaignId: string,
-    creatives: CreativeWithTemplate[]
+    creatives: CreativeWithTemplate[],
   ): Promise<CreativeWithTemplate> {
     // Redis key for round-robin counter
     const counterKey = CREATIVE_KEYS.CREATIVE_ROUND_ROBIN(campaignId);
@@ -337,7 +351,6 @@ export class AuctionService {
       });
 
       return creatives[selectedIndex];
-
     } catch (error) {
       // Fallback to first creative if Redis fails
       this.logger.warn('Round-robin selection failed, using fallback', {
@@ -400,7 +413,8 @@ export class AuctionService {
   } {
     const baseUrl = this.trackingBaseUrl;
 
-    const slotId = this.impressionClickLinking.generateImpressionSlot(bidResponseId);
+    const slotId =
+      this.impressionClickLinking.generateImpressionSlot(bidResponseId);
 
     return {
       impression: [
@@ -636,7 +650,6 @@ export class AuctionService {
 
     winningBid.processedAt = new Date();
 
-
     if (winningBid) {
       await this.recordAuctionWin(winningBid.campaignId, finalPrice);
     }
@@ -690,6 +703,7 @@ export class AuctionService {
         where: { id: winnerId },
         data: {
           finalPrice,
+          cpi: finalPrice / 1000, // Assuming finalPrice is in CPM, convert to CPI
           status: 'WON',
           processedAt: new Date(),
         },

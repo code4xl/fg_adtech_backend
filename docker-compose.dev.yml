@@ -78,7 +78,7 @@ services:
     ports:
       - '5433:5432'
     environment:
-      - POSTGRES_DB=rtb_timeseries              # ← Change this
+      - POSTGRES_DB=rtb_timeseries
       - POSTGRES_USER=timescale_user
       - POSTGRES_PASSWORD=timescale_pass
       - POSTGRES_HOST_AUTH_METHOD=md5
@@ -88,7 +88,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U timescale_user -d rtb_timeseries']  # ← Already correct
+      test: ['CMD-SHELL', 'pg_isready -U timescale_user -d rtb_timeseries']
       interval: 10s
       timeout: 5s
       retries: 5
