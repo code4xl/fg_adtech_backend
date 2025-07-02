@@ -6,11 +6,7 @@ import {
   REDIS_KEYS,
   RTB_CACHE_TTL,
 } from '../constants/cache-keys';
-import {
-  CampaignBudgetInfo,
-  CampaignBudgetTracker,
-  CampaignWithTargeting,
-} from '../types/campaign.types';
+import { CampaignWithTargeting } from '../types/campaign.types';
 import { CampaignTargetingService } from './campaign-targeting.service';
 import { InventoryFormat } from '@prisma/client';
 import { BudgetInitializationService } from 'src/tracking/services/budget-initialization.service';
@@ -20,6 +16,12 @@ interface BudgetStatus {
   dailyBudget: number;
   spentToday: number;
   isExhausted: boolean;
+}
+
+// Updated interface to match new schema
+interface CampaignBudgetInfo {
+  dailyBudget: number;
+  totalBudget: number;
 }
 
 @Injectable()
@@ -338,6 +340,16 @@ export class CampaignEligibilityService {
     return validCampaigns;
   }
 
+  async checkBudgetAvailability(
+    campaignId: string,
+    bidAmount: number,
+  ): Promise<boolean> {
+    return await this.budgetValidation.validateCampaignBudget(
+      campaignId,
+      bidAmount,
+    );
+  }
+
   private async getCachedBudgetStatus(
     campaignId: string,
     today: string,
@@ -355,29 +367,28 @@ export class CampaignEligibilityService {
       campaignId,
     });
 
-    // Fallback to database
-    const budgetTracker = await this.prisma.campaignBudgetTracker.findFirst({
+    // Fallback to database - UPDATED to use CampaignDailyBudget
+    const dailyBudget = await this.prisma.campaignDailyBudget.findFirst({
       where: {
         campaignId,
-        date: {
-          equals: new Date(today).toISOString(),
-        },
+        date: new Date(today),
       },
       select: {
-        dailyBudget: true,
         spentToday: true,
+        remainingToday: true,
         isExhausted: true,
       },
     });
 
-    if (!budgetTracker) {
+    if (!dailyBudget) {
       return null;
     }
 
     const budgetStatus: BudgetStatus = {
-      dailyBudget: Number(budgetTracker.dailyBudget),
-      spentToday: Number(budgetTracker.spentToday),
-      isExhausted: budgetTracker.isExhausted,
+      dailyBudget:
+        Number(dailyBudget.spentToday) + Number(dailyBudget.remainingToday), // Calculate total from spent + remaining
+      spentToday: Number(dailyBudget.spentToday),
+      isExhausted: dailyBudget.isExhausted,
     };
 
     // Cache for 30 seconds (budget changes frequently)
@@ -390,6 +401,66 @@ export class CampaignEligibilityService {
     });
 
     return budgetStatus;
+  }
+
+  // UPDATED: This method is no longer needed as we're using the new budget structure
+  // But keeping it for reference or if you need it elsewhere
+  private async getCampaignBudgetInfo(
+    campaignId: string,
+    today: string,
+  ): Promise<CampaignBudgetInfo | null> {
+    try {
+      const cacheKey = CAMPAIGN_KEYS.CAMPAIGN_BUDGET_INFO(campaignId, today);
+      const cached = await this.redis.get<string>(cacheKey);
+
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        return {
+          dailyBudget: parsed.dailyBudget,
+          totalBudget: parsed.totalBudget,
+        };
+      }
+
+      // UPDATED: Query both CampaignBudget and CampaignDailyBudget
+      const [campaignBudget, dailyBudget] = await Promise.all([
+        this.prisma.campaignBudget.findUnique({
+          where: { campaignId },
+          select: { totalBudget: true, dailyBudget: true },
+        }),
+        this.prisma.campaignDailyBudget.findFirst({
+          where: {
+            campaignId,
+            date: new Date(today),
+          },
+          select: { spentToday: true, remainingToday: true },
+        }),
+      ]);
+
+      if (!campaignBudget) {
+        this.logger.warn('No campaign budget found', { campaignId, today });
+        return null;
+      }
+
+      const budgetInfo: CampaignBudgetInfo = {
+        totalBudget: Number(campaignBudget.totalBudget),
+        dailyBudget: Number(campaignBudget.dailyBudget),
+      };
+
+      await this.redis.set(
+        cacheKey,
+        JSON.stringify(budgetInfo),
+        RTB_CACHE_TTL.CAMPAIGN_BUDGET_INFO,
+      );
+
+      return budgetInfo;
+    } catch (error) {
+      this.logger.error('Failed to get campaign budget info', {
+        error: error.message,
+        campaignId,
+        today,
+      });
+      return null;
+    }
   }
 
   async invalidateCampaignPoolCache(
@@ -420,6 +491,19 @@ export class CampaignEligibilityService {
       }
     } catch (error) {
       this.logger.error('Failed to invalidate campaign pool cache', {
+        error: error.message,
+      });
+    }
+  }
+
+  async invalidateBudgetCache(campaignId: string): Promise<void> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const cacheKey = `budget:status:${campaignId}:${today}`;
+      await this.redis.del(cacheKey);
+      this.logger.debug('Invalidated budget cache', { campaignId });
+    } catch (error) {
+      this.logger.error('Failed to invalidate budget cache', {
         error: error.message,
       });
     }
@@ -560,7 +644,7 @@ export class CampaignEligibilityService {
       const activeCampaigns = await this.prisma.campaign.findMany({
         where: { status: 'ACTIVE' },
         select: { id: true },
-        take: 20, // Limit to top 100 active campaigns to avoid overload
+        take: 20, // Limit to top 20 active campaigns to avoid overload
       });
 
       const today = new Date().toISOString().split('T')[0];
@@ -612,159 +696,6 @@ export class CampaignEligibilityService {
         stack: error.stack,
       });
       throw error;
-    }
-  }
-
-  // Update this method in your CampaignEligibilityService class
-
-  async checkBudgetAvailability(
-    campaignId: string,
-    bidAmount: number,
-  ): Promise<boolean> {
-    try {
-      // REASON: Use new CampaignDailyBudget table instead of old budget tracking
-      // LOGIC: New payment flow uses daily budget tracking with proper date indexing
-      const today = new Date();
-      today.setHours(0, 0, 0, 0); // Start of day for proper comparison
-
-      // REASON: Query the new budget tracking table
-      // LOGIC: CampaignDailyBudget stores daily budget allocation and current spend
-      const dailyBudget = await this.prisma.campaignDailyBudget.findUnique({
-        where: {
-          campaignId_date: {
-            campaignId,
-            date: today,
-          },
-        },
-        select: {
-          remainingToday: true,
-          isExhausted: true,
-          spentToday: true,
-        },
-      });
-
-      if (!dailyBudget) {
-        this.logger.warn('Daily budget not found for campaign', {
-          campaignId,
-          date: today.toISOString().split('T')[0],
-        });
-        return false;
-      }
-
-      // REASON: Check exhaustion flag first (performance optimization)
-      // LOGIC: If marked as exhausted, don't bother with calculations
-      if (dailyBudget.isExhausted) {
-        this.logger.debug('Campaign marked as budget exhausted', {
-          campaignId,
-          spentToday: Number(dailyBudget.spentToday),
-        });
-        return false;
-      }
-
-      // REASON: Convert CPM bid to per-impression cost for comparison
-      // LOGIC: bidAmount is likely CPM ($2.50), need cost per impression ($0.0025)
-      const costPerImpression = bidAmount > 1 ? bidAmount / 1000 : bidAmount;
-      const remainingBudget = Number(dailyBudget.remainingToday);
-
-      // REASON: Ensure enough budget for at least this impression
-      // LOGIC: Need remaining budget >= cost of one impression
-      const hasEnoughBudget = remainingBudget >= costPerImpression;
-
-      this.logger.debug('Budget availability check (NEW SYSTEM)', {
-        campaignId,
-        bidAmountInput: bidAmount,
-        costPerImpression: costPerImpression,
-        remainingBudget: remainingBudget,
-        spentToday: Number(dailyBudget.spentToday),
-        hasEnoughBudget: hasEnoughBudget,
-        isExhausted: dailyBudget.isExhausted,
-      });
-
-      return hasEnoughBudget;
-    } catch (error) {
-      this.logger.error('Budget availability check failed', {
-        error: error.message,
-        campaignId,
-        bidAmount,
-      });
-      return false; // Fail safely
-    }
-  }
-
-  // REASON: Add method to get campaign budget info using new structure
-  // LOGIC: Replacement for old getCampaignBudgetInfo method
-  private async getCampaignBudgetInfo(campaignId: string): Promise<{
-    dailyBudget: number;
-    remainingBudget: number;
-    spentToday: number;
-    isExhausted: boolean;
-  } | null> {
-    try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const budgetInfo = await this.prisma.campaignDailyBudget.findUnique({
-        where: {
-          campaignId_date: {
-            campaignId,
-            date: today,
-          },
-        },
-        select: {
-          remainingToday: true,
-          spentToday: true,
-          isExhausted: true,
-        },
-      });
-
-      if (!budgetInfo) {
-        return null;
-      }
-
-      const spentToday = Number(budgetInfo.spentToday);
-      const remainingToday = Number(budgetInfo.remainingToday);
-      const dailyBudget = spentToday + remainingToday;
-
-      return {
-        dailyBudget,
-        remainingBudget: remainingToday,
-        spentToday,
-        isExhausted: budgetInfo.isExhausted,
-      };
-    } catch (error) {
-      this.logger.error('Failed to get campaign budget info', {
-        error: error.message,
-        campaignId,
-      });
-      return null;
-    }
-  }
-
-  // REASON: Update cache invalidation to work with new budget structure
-  // LOGIC: Invalidate budget cache when daily budget records change
-  async invalidateBudgetCache(campaignId: string): Promise<void> {
-    try {
-      const today = new Date().toISOString().split('T')[0];
-
-      // REASON: Clear multiple cache keys related to budget
-      // LOGIC: New system may cache budget at different levels
-      const cacheKeys = [
-        `budget:status:${campaignId}:${today}`,
-        `budget:daily:${campaignId}:${today}`,
-        `campaign:budget:info:${campaignId}:${today}`,
-      ];
-
-      await Promise.all(cacheKeys.map((key) => this.redis.del(key)));
-
-      this.logger.debug('Budget cache invalidated for new system', {
-        campaignId,
-        keysCleared: cacheKeys.length,
-      });
-    } catch (error) {
-      this.logger.error('Failed to invalidate budget cache', {
-        error: error.message,
-        campaignId,
-      });
     }
   }
 }
