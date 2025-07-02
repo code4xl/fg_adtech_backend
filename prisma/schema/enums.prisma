@@ -19,6 +19,17 @@ enum ClientStatus {
   INACTIVE
 }
 
+enum PublisherTier {
+  STANDARD // 40% commission
+  PREMIUM // 30% commission
+  ELITE // 20% commission
+}
+
+enum RevenueEventType {
+  IMPRESSION
+  CLICK
+}
+
 enum InventoryFormat {
   BANNER
   NATIVE

@@ -29,15 +29,17 @@ model Campaign {
     timeTargeting        TimeTargeting[]
     frequencyTargeting   FrequencyTargeting[]
     bidResponses         BidResponse[]
+    hourlyMetrics        HourlyMetrics[]
+    ImpressionEvent      ImpressionEvent[]
+    ClickEvent           ClickEvent[]
+    ClientCampaign       ClientCampaign[]
+    campaignBudgetId     String?                @db.Uuid
+    campaignBudget       CampaignBudget?        @relation(fields: [campaignBudgetId], references: [id])
+    dailyBudgets         CampaignDailyBudget[]  @relation("CampaignDailyBudgets")
+    SystemRevenue        SystemRevenue[]
+    BudgetTransaction    BudgetTransaction[]
 
-    campaignBudgetTracker CampaignBudgetTracker[]
-    hourlyMetrics         HourlyMetrics[]
-
-    ImpressionEvent ImpressionEvent[]
-    ClickEvent      ClickEvent[]
-    ClientCampaign  ClientCampaign[]
-
-    // Add these indexes for RTB performance
+    // indexes for RTB performance
     @@index([status, startDate, endDate])
     @@index([status, advertiserId])
     @@index([id, status])
@@ -60,19 +62,29 @@ model CampaignStatistics {
     @@unique([campaignId, date])
 }
 
-model CampaignBudgetTracker {
-    id              String   @id @default(uuid()) @db.Uuid
-    campaignId      String   @db.Uuid
-    date            DateTime @db.Date
-    totalBudget     Decimal  @db.Decimal(10, 2)
-    dailyBudget     Decimal  @db.Decimal(10, 2)
-    spentToday      Decimal  @default(0) @db.Decimal(10, 2)
-    remainingBudget Decimal  @db.Decimal(10, 2)
-    isExhausted     Boolean  @default(false)
-    lastUpdated     DateTime @default(now())
+model CampaignBudget {
+    id          String     @id @default(uuid()) @db.Uuid
+    campaignId  String     @unique @db.Uuid
+    totalBudget Decimal    @db.Decimal(10, 2)
+    dailyBudget Decimal    @db.Decimal(10, 2)
+    isExhausted Boolean    @default(false)
+    lastUpdated DateTime   @default(now())
+    campaigns   Campaign[]
+
+    @@index([campaignId])
+}
+
+model CampaignDailyBudget {
+    id             String   @id @default(uuid()) @db.Uuid
+    campaignId     String   @db.Uuid
+    date           DateTime @db.Date
+    spentToday     Decimal  @default(0) @db.Decimal(10, 2)
+    remainingToday Decimal  @db.Decimal(10, 2)
+    isExhausted    Boolean  @default(false)
+    lastUpdated    DateTime @default(now())
 
     // Relations
-    campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+    campaign Campaign @relation("CampaignDailyBudgets", fields: [campaignId], references: [id], onDelete: Cascade)
 
     @@unique([campaignId, date])
     @@index([campaignId, date])

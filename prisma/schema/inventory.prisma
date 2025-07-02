@@ -27,7 +27,8 @@ model AdInventory {
 
   ImpressionEvent ImpressionEvent[]
 
-  ClickEvent ClickEvent[]
+  ClickEvent    ClickEvent[]
+  SystemRevenue SystemRevenue[]
 
   @@index([id, publisherId], name: "inventory_publisher_idx")
   @@index([adSlotTemplateId, isActive], name: "inventory_template_active_idx")

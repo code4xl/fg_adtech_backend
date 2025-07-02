@@ -1,72 +1,72 @@
-// Payment models for both advertisers and publishers
+// // Payment models for both advertisers and publishers
 
-model PaymentMethod {
-  id         String      @id @default(uuid()) @db.Uuid
-  userId     String      @db.Uuid
-  userType   UserType // ADVERTISER, PUBLISHER
-  type       PaymentType
-  isDefault  Boolean     @default(false)
-  isVerified Boolean     @default(false)
+// model PaymentMethod {
+//   id         String      @id @default(uuid()) @db.Uuid
+//   userId     String      @db.Uuid
+//   userType   UserType // ADVERTISER, PUBLISHER
+//   type       PaymentType
+//   isDefault  Boolean     @default(false)
+//   isVerified Boolean     @default(false)
 
-  // Card details (encrypted)
-  cardLast4  String?
-  cardBrand  String?
-  cardExpiry String?
+//   // Card details (encrypted)
+//   cardLast4  String?
+//   cardBrand  String?
+//   cardExpiry String?
 
-  // Bank details
-  bankName     String?
-  accountLast4 String?
-  ifscCode     String?
+//   // Bank details
+//   bankName     String?
+//   accountLast4 String?
+//   ifscCode     String?
 
-  // UPI details
-  upiId String?
+//   // UPI details
+//   upiId String?
 
-  // Razorpay/payment gateway IDs
-  gatewayCustomerId String?
-  gatewayMethodId   String?
+//   // Razorpay/payment gateway IDs
+//   gatewayCustomerId String?
+//   gatewayMethodId   String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
 
-  // Relations
-  transactions Transaction[]
-}
+//   // Relations
+//   transactions Transaction[]
+// }
 
-model Transaction {
-  id              String            @id @default(uuid()) @db.Uuid
-  userId          String            @db.Uuid
-  userType        UserType
-  paymentMethodId String?           @db.Uuid
-  type            TransactionType // CREDIT, DEBIT, REFUND
-  amount          Decimal           @db.Decimal(10, 2)
-  currency        String            @default("INR")
-  status          TransactionStatus
-  description     String?
+// model Transaction {
+//   id              String            @id @default(uuid()) @db.Uuid
+//   userId          String            @db.Uuid
+//   userType        UserType
+//   paymentMethodId String?           @db.Uuid
+//   type            TransactionType // CREDIT, DEBIT, REFUND
+//   amount          Decimal           @db.Decimal(10, 2)
+//   currency        String            @default("INR")
+//   status          TransactionStatus
+//   description     String?
 
-  // Gateway details
-  gatewayTransactionId String?
-  gatewayOrderId       String?
-  gatewayPaymentId     String?
+//   // Gateway details
+//   gatewayTransactionId String?
+//   gatewayOrderId       String?
+//   gatewayPaymentId     String?
 
-  // Metadata
-  campaignId         String?   @db.Uuid
-  billingPeriodStart DateTime?
-  billingPeriodEnd   DateTime?
+//   // Metadata
+//   campaignId         String?   @db.Uuid
+//   billingPeriodStart DateTime?
+//   billingPeriodEnd   DateTime?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
 
-  // Relations
-  paymentMethod PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
-}
+//   // Relations
+//   paymentMethod PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+// }
 
-model Wallet {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @unique @db.Uuid
-  userType  UserType
-  balance   Decimal  @default(0) @db.Decimal(10, 2)
-  currency  String   @default("INR")
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
+// model Wallet {
+//   id        String   @id @default(uuid()) @db.Uuid
+//   userId    String   @unique @db.Uuid
+//   userType  UserType
+//   balance   Decimal  @default(0) @db.Decimal(10, 2)
+//   currency  String   @default("INR")
+//   isActive  Boolean  @default(true)
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+// }
