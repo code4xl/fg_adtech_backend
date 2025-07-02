@@ -16,7 +16,7 @@ import { ISeeder } from '../interfaces/seeder.interface';
 export class CampaignSeeder implements ISeeder {
   private readonly logger = new Logger(CampaignSeeder.name);
 
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   getModuleName(): string {
     return 'Campaign';
@@ -100,12 +100,12 @@ export class CampaignSeeder implements ISeeder {
         const bidStrategy = faker.helpers.arrayElement(bidStrategies);
         const bidAmount =
           bidStrategy === BidStrategy.BID_CAP ||
-            bidStrategy === BidStrategy.TARGET_COST
+          bidStrategy === BidStrategy.TARGET_COST
             ? faker.number.float({
-              min: 0.5,
-              max: 50.0,
-              fractionDigits: 2,
-            })
+                min: 0.5,
+                max: 50.0,
+                fractionDigits: 2,
+              })
             : null;
 
         // Generate targeting arrays
@@ -174,20 +174,29 @@ export class CampaignSeeder implements ISeeder {
         });
       }
 
-      // Insert all campaigns
-      await this.prisma.campaign.createMany({
-        data: campaignData,
-        skipDuplicates: true,
-      });
+      // Insert campaigns first
+      const createdCampaigns = [];
+      for (const data of campaignData) {
+        try {
+          const campaign = await this.prisma.campaign.create({ data });
+          createdCampaigns.push(campaign);
+        } catch (error) {
+          this.logger.warn(`Failed to create campaign: ${error.message}`);
+          continue;
+        }
+      }
 
       const campaignCount = await this.prisma.campaign.count();
       this.logger.log(`Successfully seeded ${campaignCount} campaigns`);
 
       // Seed related campaign statistics
-      await this.seedCampaignStatistics();
+      await this.seedCampaignStatistics(createdCampaigns);
 
-      // Fixed: Seed campaign budget tracking
-      await this.seedCampaignBudgetTracking();
+      // Seed campaign budgets
+      await this.seedCampaignBudgets(createdCampaigns);
+
+      // Seed daily budget tracking
+      await this.seedCampaignDailyBudgets(createdCampaigns);
     } catch (error) {
       this.logger.error('Error seeding campaigns');
       this.logger.error(error);
@@ -201,7 +210,8 @@ export class CampaignSeeder implements ISeeder {
     try {
       // Clean related tables first (respecting foreign key constraints)
       await this.prisma.campaignStatistics.deleteMany({});
-      await this.prisma.campaignBudgetTracker.deleteMany({});
+      await this.prisma.campaignDailyBudget.deleteMany({});
+      await this.prisma.campaignBudget.deleteMany({});
       await this.prisma.creative.deleteMany({});
       await this.prisma.demographicTargeting.deleteMany({});
       await this.prisma.geographicTargeting.deleteMany({});
@@ -211,6 +221,11 @@ export class CampaignSeeder implements ISeeder {
       await this.prisma.timeTargeting.deleteMany({});
       await this.prisma.frequencyTargeting.deleteMany({});
       await this.prisma.hourlyMetrics.deleteMany({});
+      await this.prisma.budgetTransaction.deleteMany({});
+      await this.prisma.systemRevenue.deleteMany({});
+      await this.prisma.bidResponse.deleteMany({});
+      await this.prisma.impressionEvent.deleteMany({});
+      await this.prisma.clickEvent.deleteMany({});
 
       // Clean main table
       const deleted = await this.prisma.campaign.deleteMany({});
@@ -230,16 +245,14 @@ export class CampaignSeeder implements ISeeder {
   /**
    * Seed related campaign statistics for the last 7 days
    */
-  private async seedCampaignStatistics(): Promise<void> {
+  private async seedCampaignStatistics(campaigns: any[]): Promise<void> {
     try {
-      const campaigns = await this.prisma.campaign.findMany({
-        select: { id: true },
-        take: 10, // Only seed stats for first 10 campaigns
-      });
-
       const statisticsData: any = [];
 
-      for (const campaign of campaigns) {
+      // Only seed stats for first 10 campaigns to avoid too much data
+      const campaignsToSeed = campaigns.slice(0, 10);
+
+      for (const campaign of campaignsToSeed) {
         for (let i = 0; i < 7; i++) {
           const date = new Date();
           date.setDate(date.getDate() - i);
@@ -284,30 +297,64 @@ export class CampaignSeeder implements ISeeder {
   }
 
   /**
-   * Fixed: Added method to seed campaign budget tracking data
+   * Seed campaign budgets
    */
-  private async seedCampaignBudgetTracking(): Promise<void> {
+  private async seedCampaignBudgets(campaigns: any[]): Promise<void> {
     try {
-      const campaigns = await this.prisma.campaign.findMany({
-        select: { id: true },
-      });
-
       const budgetData: any = [];
 
       for (const campaign of campaigns) {
-        // Create budget tracking for the last 30 days
+        const totalBudget = faker.number.float({
+          min: 1000,
+          max: 50000,
+          fractionDigits: 2,
+        });
+        const dailyBudget = faker.number.float({
+          min: totalBudget * 0.01, // 1% of total budget per day minimum
+          max: totalBudget * 0.1, // 10% of total budget per day maximum
+          fractionDigits: 2,
+        });
+
+        budgetData.push({
+          campaignId: campaign.id,
+          totalBudget: totalBudget,
+          dailyBudget: dailyBudget,
+          isExhausted: faker.datatype.boolean(0.1), // 10% chance of being exhausted
+          lastUpdated: faker.date.recent(),
+        });
+      }
+
+      await this.prisma.campaignBudget.createMany({
+        data: budgetData,
+        skipDuplicates: true,
+      });
+
+      this.logger.log(`Seeded ${budgetData.length} campaign budgets`);
+    } catch (error) {
+      this.logger.warn('Error seeding campaign budgets, but continuing...');
+      this.logger.error(error);
+    }
+  }
+
+  /**
+   * Seed campaign daily budget tracking
+   */
+  private async seedCampaignDailyBudgets(campaigns: any[]): Promise<void> {
+    try {
+      const dailyBudgetData: any = [];
+
+      // Only seed for first 10 campaigns to avoid too much data
+      const campaignsToSeed = campaigns.slice(0, 10);
+
+      for (const campaign of campaignsToSeed) {
+        // Create daily budget tracking for the last 30 days
         for (let i = 0; i < 30; i++) {
           const date = new Date();
           date.setDate(date.getDate() - i);
 
-          const totalBudget = faker.number.float({
-            min: 1000,
-            max: 10000,
-            fractionDigits: 2,
-          });
           const dailyBudget = faker.number.float({
-            min: totalBudget * 0.01, // 1% of total budget per day minimum
-            max: totalBudget * 0.1, // 10% of total budget per day maximum
+            min: 50,
+            max: 500,
             fractionDigits: 2,
           });
           const spentToday = faker.number.float({
@@ -315,36 +362,31 @@ export class CampaignSeeder implements ISeeder {
             max: dailyBudget * 1.2, // Can slightly exceed daily budget
             fractionDigits: 2,
           });
-          const remainingBudget = Math.max(
-            0,
-            totalBudget - spentToday * (i + 1),
-          );
-          const isExhausted = remainingBudget <= 0 || spentToday >= dailyBudget;
+          const remainingToday = Math.max(0, dailyBudget - spentToday);
+          const isExhausted = spentToday >= dailyBudget;
 
-          budgetData.push({
+          dailyBudgetData.push({
             campaignId: campaign.id,
             date: date,
-            totalBudget: totalBudget,
-            dailyBudget: dailyBudget,
             spentToday: spentToday,
-            remainingBudget: remainingBudget,
+            remainingToday: remainingToday,
             isExhausted: isExhausted,
             lastUpdated: faker.date.recent(),
           });
         }
       }
 
-      await this.prisma.campaignBudgetTracker.createMany({
-        data: budgetData,
+      await this.prisma.campaignDailyBudget.createMany({
+        data: dailyBudgetData,
         skipDuplicates: true,
       });
 
       this.logger.log(
-        `Seeded ${budgetData.length} campaign budget tracking records`,
+        `Seeded ${dailyBudgetData.length} campaign daily budget tracking records`,
       );
     } catch (error) {
       this.logger.warn(
-        'Error seeding campaign budget tracking, but continuing...',
+        'Error seeding campaign daily budget tracking, but continuing...',
       );
       this.logger.error(error);
     }

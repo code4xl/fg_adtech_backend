@@ -190,8 +190,8 @@ enum PaymentType {
 }
 
 enum TransactionType {
-  CREDIT
-  DEBIT
+  IMPRESSION_COST
+  CLICK_COST
   REFUND
   ADJUSTMENT
 }
