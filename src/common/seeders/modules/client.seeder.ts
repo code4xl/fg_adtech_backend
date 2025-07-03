@@ -20,13 +20,15 @@ export class ClientSeeder implements ISeeder {
     return ['Advertiser'];
   }
 
-  async seed(count: number = 30): Promise<void> {
-    this.logger.log(`Seeding ${count} clients...`);
+  async seed(count: number = 80): Promise<void> {
+    this.logger.log(
+      `Seeding clients (ensuring every advertiser has at least one client)...`,
+    );
 
     try {
       // Get all advertisers to assign clients to
       const advertisers = await this.prisma.advertiser.findMany({
-        select: { id: true },
+        select: { id: true, email: true, name: true },
       });
 
       if (advertisers.length === 0) {
@@ -35,11 +37,12 @@ export class ClientSeeder implements ISeeder {
 
       const clientData: any = [];
 
-      // Generate fake clients
-      for (let i = 0; i < count; i++) {
-        // Randomly assign to an advertiser
-        const advertiser = faker.helpers.arrayElement(advertisers);
+      // STEP 1: Ensure every advertiser gets at least one client
+      this.logger.log(
+        `Ensuring each of ${advertisers.length} advertisers gets at least one client...`,
+      );
 
+      for (const advertiser of advertisers) {
         const companyName = faker.company.name();
         const firstName = faker.person.firstName();
         const lastName = faker.person.lastName();
@@ -61,7 +64,7 @@ export class ClientSeeder implements ISeeder {
             lastName: lastName.toLowerCase(),
             provider: 'example.com',
           }),
-          mobile: faker.phone.number(), // Indian mobile format
+          mobile: faker.phone.number(),
           companyName: companyName,
           hqLocation: `${faker.location.city()}, ${faker.location.state()}`,
           companySize: faker.helpers.arrayElement(Object.values(CompanySize)),
@@ -73,7 +76,7 @@ export class ClientSeeder implements ISeeder {
           CIN: cin,
           website: faker.internet.url(),
           password: hashedPassword,
-          advertiserId: advertiser.id,
+          advertiserId: advertiser.id, // Assign to this specific advertiser
           emailVerifiedAt: faker.datatype.boolean(0.7)
             ? faker.date.past()
             : null, // 70% verified
@@ -86,7 +89,66 @@ export class ClientSeeder implements ISeeder {
         });
       }
 
-      // Add a default test client
+      // STEP 2: Create additional clients if count is higher than number of advertisers
+      const remainingClientsToCreate = Math.max(0, count - advertisers.length);
+
+      if (remainingClientsToCreate > 0) {
+        this.logger.log(
+          `Creating ${remainingClientsToCreate} additional clients randomly distributed among advertisers...`,
+        );
+
+        for (let i = 0; i < remainingClientsToCreate; i++) {
+          // Randomly assign to an advertiser
+          const advertiser = faker.helpers.arrayElement(advertisers);
+
+          const companyName = faker.company.name();
+          const firstName = faker.person.firstName();
+          const lastName = faker.person.lastName();
+          const fullName = `${firstName} ${lastName}`;
+
+          // Generate unique identifiers
+          const companyGSTIN = this.generateGSTIN();
+          const pan = this.generatePAN();
+          const cin = this.generateCIN();
+
+          // Hash password
+          const plainPassword = 'password123';
+          const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+          clientData.push({
+            name: fullName,
+            email: faker.internet.email({
+              firstName: firstName.toLowerCase(),
+              lastName: lastName.toLowerCase(),
+              provider: 'example.com',
+            }),
+            mobile: faker.phone.number(),
+            companyName: companyName,
+            hqLocation: `${faker.location.city()}, ${faker.location.state()}`,
+            companySize: faker.helpers.arrayElement(Object.values(CompanySize)),
+            registeredAddress: faker.location.streetAddress({
+              useFullAddress: true,
+            }),
+            companyGSTIN: companyGSTIN,
+            PAN: pan,
+            CIN: cin,
+            website: faker.internet.url(),
+            password: hashedPassword,
+            advertiserId: advertiser.id,
+            emailVerifiedAt: faker.datatype.boolean(0.7)
+              ? faker.date.past()
+              : null,
+            verificationToken: faker.datatype.boolean(0.3)
+              ? faker.string.uuid()
+              : null,
+            status: faker.helpers.arrayElement(Object.values(ClientStatus)),
+            createdAt: faker.date.past(),
+            updatedAt: faker.date.recent(),
+          });
+        }
+      }
+
+      // STEP 3: Add the default test client
       const testAdvertiser = await this.prisma.advertiser.findFirst({
         where: { email: 'advertiser@example.com' },
       });
@@ -94,35 +156,44 @@ export class ClientSeeder implements ISeeder {
       if (testAdvertiser) {
         const testHashedPassword = await bcrypt.hash('password123', 10);
 
-        clientData.push({
-          name: 'Test Client',
-          email: 'client@example.com',
-          mobile: '+919876543210',
-          companyName: 'Test Client Company Pvt Ltd',
-          hqLocation: 'Mumbai, Maharashtra',
-          companySize: CompanySize.FIFTY_ONE_TO_TWO_HUNDRED, // Adjust based on your enum values
-          registeredAddress:
-            '123 Test Street, Test Area, Mumbai, Maharashtra, 400001',
-          companyGSTIN: '27ABCDE1234F1Z5',
-          PAN: 'ABCDE1234F',
-          CIN: 'U72900MH2020PTC123456',
-          website: 'https://testclient.com',
-          password: testHashedPassword,
-          advertiserId: testAdvertiser.id,
-          emailVerifiedAt: new Date(),
-          verificationToken: null,
-          status: ClientStatus.ACTIVE,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
+        // Check if test client already exists in our data
+        const existingTestClient = clientData.find(
+          (client) => client.email === 'client@example.com',
+        );
+
+        if (!existingTestClient) {
+          clientData.push({
+            name: 'Test Client',
+            email: 'client@example.com',
+            mobile: '+919876543210',
+            companyName: 'Test Client Company Pvt Ltd',
+            hqLocation: 'Mumbai, Maharashtra',
+            companySize: CompanySize.FIFTY_ONE_TO_TWO_HUNDRED,
+            registeredAddress:
+              '123 Test Street, Test Area, Mumbai, Maharashtra, 400001',
+            companyGSTIN: '27ABCDE1234F1Z5',
+            PAN: 'ABCDE1234F',
+            CIN: 'U72900MH2020PTC123456',
+            website: 'https://testclient.com',
+            password: testHashedPassword,
+            advertiserId: testAdvertiser.id,
+            emailVerifiedAt: new Date(),
+            verificationToken: null,
+            status: ClientStatus.ACTIVE,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+        }
       }
 
-      // Insert all clients using individual creates to handle unique constraints better
+      // STEP 4: Insert all clients using individual creates to handle unique constraints better
+      let successfullyCreated = 0;
       for (const client of clientData) {
         try {
           await this.prisma.client.create({
             data: client,
           });
+          successfullyCreated++;
         } catch (error) {
           // Skip duplicates and continue
           if (error.code === 'P2002') {
@@ -133,8 +204,50 @@ export class ClientSeeder implements ISeeder {
         }
       }
 
-      const clientCount = await this.prisma.client.count();
-      this.logger.log(`Successfully seeded ${clientCount} clients`);
+      const totalClientCount = await this.prisma.client.count();
+
+      // STEP 5: Verify every advertiser has at least one client
+      const advertiserClientCounts = await this.prisma.advertiser.findMany({
+        select: {
+          id: true,
+          email: true,
+          _count: {
+            select: {
+              clients: true,
+            },
+          },
+        },
+      });
+
+      const advertisersWithoutClients = advertiserClientCounts.filter(
+        (advertiser) => advertiser._count.clients === 0,
+      );
+
+      if (advertisersWithoutClients.length > 0) {
+        this.logger.warn(
+          `Warning: ${advertisersWithoutClients.length} advertisers still have no clients:`,
+        );
+        advertisersWithoutClients.forEach((advertiser) => {
+          this.logger.warn(`- ${advertiser.email} (ID: ${advertiser.id})`);
+        });
+      } else {
+        this.logger.log('✅ All advertisers now have at least one client!');
+      }
+
+      this.logger.log(
+        `Successfully seeded ${successfullyCreated} new clients (total: ${totalClientCount})`,
+      );
+
+      // Log distribution summary
+      const distributionSummary = advertiserClientCounts.map((advertiser) => ({
+        email: advertiser.email,
+        clientCount: advertiser._count.clients,
+      }));
+
+      this.logger.log('Client distribution per advertiser:');
+      distributionSummary.forEach((summary) => {
+        this.logger.log(`  ${summary.email}: ${summary.clientCount} clients`);
+      });
     } catch (error) {
       this.logger.error('Error seeding clients');
       this.logger.error(error);

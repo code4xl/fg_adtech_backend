@@ -31,25 +31,44 @@ export class CampaignSeeder implements ISeeder {
     this.logger.log(`Seeding ${count} campaigns...`);
 
     try {
-      // Get all advertisers to assign campaigns to
-      const advertisers = await this.prisma.advertiser.findMany({
-        select: { id: true },
+      // Get all advertisers with their clients in one query
+      const advertisersWithClients = await this.prisma.advertiser.findMany({
+        select: {
+          id: true,
+          email: true,
+          clients: {
+            select: {
+              id: true,
+              email: true,
+            },
+          },
+        },
       });
 
-      if (advertisers.length === 0) {
+      if (advertisersWithClients.length === 0) {
         throw new Error('No advertisers found. Please seed advertisers first.');
       }
 
-      // Get all clients (campaigns require a client)
-      const clients = await this.prisma.client.findMany({
-        select: { id: true, advertiserId: true },
+      // Filter out advertisers with no clients and log warnings
+      const validAdvertisers = advertisersWithClients.filter((advertiser) => {
+        if (advertiser.clients.length === 0) {
+          this.logger.warn(
+            `Advertiser ${advertiser.email} has no clients, skipping campaign creation for this advertiser`,
+          );
+          return false;
+        }
+        return true;
       });
 
-      if (clients.length === 0) {
+      if (validAdvertisers.length === 0) {
         throw new Error(
-          'No clients found. Please seed clients first since campaigns require a client.',
+          'No advertisers with clients found. Please ensure the client seeder runs successfully first.',
         );
       }
+
+      this.logger.log(
+        `Found ${validAdvertisers.length} advertisers with clients. Creating campaigns...`,
+      );
 
       const campaignData: any = [];
 
@@ -62,24 +81,11 @@ export class CampaignSeeder implements ISeeder {
 
       // Generate fake campaigns
       for (let i = 0; i < count; i++) {
-        // Randomly assign to an advertiser
-        const advertiser = faker.helpers.arrayElement(advertisers);
-
-        // Get clients for this advertiser
-        const advertiserClients = clients.filter(
-          (c) => c.advertiserId === advertiser.id,
-        );
-
-        // Must assign to a client - if advertiser has no clients, skip this iteration
-        if (advertiserClients.length === 0) {
-          this.logger.warn(
-            `Advertiser ${advertiser.id} has no clients, skipping campaign creation`,
-          );
-          continue;
-        }
+        // Randomly select an advertiser that has clients
+        const advertiser = faker.helpers.arrayElement(validAdvertisers);
 
         // Select a random client from this advertiser's clients
-        const selectedClient = faker.helpers.arrayElement(advertiserClients);
+        const selectedClient = faker.helpers.arrayElement(advertiser.clients);
 
         const now = new Date();
         const thirtyDaysAgo = new Date(now);
@@ -117,10 +123,10 @@ export class CampaignSeeder implements ISeeder {
         campaignData.push({
           name: `${faker.company.catchPhrase()} Campaign`,
           advertiserId: advertiser.id,
-          clientId: selectedClient.id, // Always assign a valid client
+          clientId: selectedClient.id,
           startDate: startDate,
           endDate: endDate,
-          status: CampaignStatus.ACTIVE, // Fixed: Always ACTIVE
+          status: CampaignStatus.ACTIVE, // Always ACTIVE
           objective: faker.helpers.arrayElement(objectives),
           bidStrategy: bidStrategy,
           bidAmount: bidAmount,
@@ -134,52 +140,89 @@ export class CampaignSeeder implements ISeeder {
       }
 
       // Add a default test campaign
-      const defaultAdvertiser = await this.prisma.advertiser.findFirst({
-        where: { email: 'advertiser@example.com' },
-      });
+      const defaultAdvertiser = validAdvertisers.find(
+        (advertiser) => advertiser.email === 'advertiser@example.com',
+      );
 
       if (defaultAdvertiser) {
-        const defaultClient = await this.prisma.client.findFirst({
-          where: {
-            email: 'client@example.com',
-            advertiserId: defaultAdvertiser.id,
-          },
-        });
+        const defaultClient = defaultAdvertiser.clients.find(
+          (client) => client.email === 'client@example.com',
+        );
 
-        if (!defaultClient) {
-          throw new Error(
-            'Default client not found for default advertiser. Please ensure client seeder creates a client for advertiser@example.com',
+        if (defaultClient) {
+          campaignData.push({
+            name: 'Test Campaign',
+            advertiserId: defaultAdvertiser.id,
+            clientId: defaultClient.id,
+            startDate: new Date(),
+            endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+            status: CampaignStatus.ACTIVE,
+            objective: CampaignObjective.AWARENESS,
+            bidStrategy: BidStrategy.LOWEST_COST,
+            bidAmount: null,
+            pacing: CampaignPacing.STANDARD,
+            businessCategory: BusinessCategory.TECHNOLOGY,
+            websiteUrl: 'https://example.com',
+            interests: [
+              CampaignInterest.TECHNOLOGY,
+              CampaignInterest.BUSINESS_AND_FINANCE,
+            ],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+        } else {
+          this.logger.warn(
+            'Default test client not found for default advertiser',
           );
         }
-
-        campaignData.push({
-          name: 'Test Campaign',
-          advertiserId: defaultAdvertiser.id,
-          clientId: defaultClient.id, // Guaranteed to be non-null
-          startDate: new Date(),
-          endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-          status: CampaignStatus.ACTIVE, // Fixed: Always ACTIVE
-          objective: CampaignObjective.AWARENESS,
-          bidStrategy: BidStrategy.LOWEST_COST,
-          bidAmount: null,
-          pacing: CampaignPacing.STANDARD,
-          businessCategory: BusinessCategory.TECHNOLOGY,
-          websiteUrl: 'https://example.com',
-          interests: [
-            CampaignInterest.TECHNOLOGY,
-            CampaignInterest.BUSINESS_AND_FINANCE,
-          ],
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
+      } else {
+        this.logger.warn('Default test advertiser not found or has no clients');
       }
 
-      // Insert campaigns first
+      // Insert campaigns with budgets (campaigns require budget IDs)
       const createdCampaigns = [];
+      let successfullyCreated = 0;
+
       for (const data of campaignData) {
         try {
-          const campaign = await this.prisma.campaign.create({ data });
-          createdCampaigns.push(campaign);
+          // First create the campaign without the budget relationship
+          const campaignWithoutBudget = { ...data };
+          delete campaignWithoutBudget.campaignBudgetId; // Remove this temporarily
+
+          const campaign = await this.prisma.campaign.create({
+            data: campaignWithoutBudget,
+          });
+
+          // Now create the budget with the campaign ID
+          const totalBudget = faker.number.float({
+            min: 1000,
+            max: 50000,
+            fractionDigits: 2,
+          });
+          const dailyBudget = faker.number.float({
+            min: totalBudget * 0.01, // 1% of total budget per day minimum
+            max: totalBudget * 0.1, // 10% of total budget per day maximum
+            fractionDigits: 2,
+          });
+
+          const campaignBudget = await this.prisma.campaignBudget.create({
+            data: {
+              campaignId: campaign.id, // Now we have the campaign ID
+              totalBudget: totalBudget,
+              dailyBudget: dailyBudget,
+              isExhausted: faker.datatype.boolean(0.1), // 10% chance of being exhausted
+              lastUpdated: faker.date.recent(),
+            },
+          });
+
+          // Update the campaign with the budget ID
+          const updatedCampaign = await this.prisma.campaign.update({
+            where: { id: campaign.id },
+            data: { campaignBudgetId: campaignBudget.id },
+          });
+
+          createdCampaigns.push(updatedCampaign);
+          successfullyCreated++;
         } catch (error) {
           this.logger.warn(`Failed to create campaign: ${error.message}`);
           continue;
@@ -187,13 +230,31 @@ export class CampaignSeeder implements ISeeder {
       }
 
       const campaignCount = await this.prisma.campaign.count();
-      this.logger.log(`Successfully seeded ${campaignCount} campaigns`);
+      this.logger.log(
+        `Successfully seeded ${successfullyCreated} new campaigns (total: ${campaignCount})`,
+      );
+
+      // Log campaign distribution per advertiser
+      const campaignDistribution = await this.prisma.advertiser.findMany({
+        select: {
+          email: true,
+          _count: {
+            select: {
+              Campaign: true,
+            },
+          },
+        },
+      });
+
+      this.logger.log('Campaign distribution per advertiser:');
+      campaignDistribution.forEach((advertiser) => {
+        this.logger.log(
+          `  ${advertiser.email}: ${advertiser._count.Campaign} campaigns`,
+        );
+      });
 
       // Seed related campaign statistics
       await this.seedCampaignStatistics(createdCampaigns);
-
-      // Seed campaign budgets
-      await this.seedCampaignBudgets(createdCampaigns);
 
       // Seed daily budget tracking
       await this.seedCampaignDailyBudgets(createdCampaigns);
@@ -297,58 +358,15 @@ export class CampaignSeeder implements ISeeder {
   }
 
   /**
-   * Seed campaign budgets
-   */
-  private async seedCampaignBudgets(campaigns: any[]): Promise<void> {
-    try {
-      const budgetData: any = [];
-
-      for (const campaign of campaigns) {
-        const totalBudget = faker.number.float({
-          min: 1000,
-          max: 50000,
-          fractionDigits: 2,
-        });
-        const dailyBudget = faker.number.float({
-          min: totalBudget * 0.01, // 1% of total budget per day minimum
-          max: totalBudget * 0.1, // 10% of total budget per day maximum
-          fractionDigits: 2,
-        });
-
-        budgetData.push({
-          campaignId: campaign.id,
-          totalBudget: totalBudget,
-          dailyBudget: dailyBudget,
-          isExhausted: faker.datatype.boolean(0.1), // 10% chance of being exhausted
-          lastUpdated: faker.date.recent(),
-        });
-      }
-
-      await this.prisma.campaignBudget.createMany({
-        data: budgetData,
-        skipDuplicates: true,
-      });
-
-      this.logger.log(`Seeded ${budgetData.length} campaign budgets`);
-    } catch (error) {
-      this.logger.warn('Error seeding campaign budgets, but continuing...');
-      this.logger.error(error);
-    }
-  }
-
-  /**
    * Seed campaign daily budget tracking
    */
   private async seedCampaignDailyBudgets(campaigns: any[]): Promise<void> {
     try {
       const dailyBudgetData: any = [];
 
-      // Only seed for first 10 campaigns to avoid too much data
-      const campaignsToSeed = campaigns.slice(0, 10);
-
-      for (const campaign of campaignsToSeed) {
-        // Create daily budget tracking for the last 30 days
-
+      // Seed for ALL campaigns (not just first 10)
+      for (const campaign of campaigns) {
+        // Create daily budget tracking for today
         const date = new Date();
         date.setDate(date.getDate());
 
@@ -359,7 +377,7 @@ export class CampaignSeeder implements ISeeder {
         });
         const spentToday = faker.number.float({
           min: 0,
-          max: dailyBudget * 0.2, // Can slightly exceed daily budget
+          max: dailyBudget * 0.2, // Can spend up to 20% of daily budget
           fractionDigits: 2,
         });
         const remainingToday = Math.max(0, dailyBudget - spentToday);
@@ -381,7 +399,7 @@ export class CampaignSeeder implements ISeeder {
       });
 
       this.logger.log(
-        `Seeded ${dailyBudgetData.length} campaign daily budget tracking records`,
+        `Seeded ${dailyBudgetData.length} campaign daily budget tracking records for all campaigns`,
       );
     } catch (error) {
       this.logger.warn(
