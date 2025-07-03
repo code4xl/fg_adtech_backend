@@ -9,7 +9,7 @@ import { ISeeder } from '../interfaces/seeder.interface';
 export class PublisherSeeder implements ISeeder {
   private readonly logger = new Logger(PublisherSeeder.name);
 
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   getModuleName(): string {
     return 'Publisher';
@@ -20,7 +20,7 @@ export class PublisherSeeder implements ISeeder {
     return [];
   }
 
-  async seed(count: number = 100): Promise<void> {
+  async seed(count: number = 200): Promise<void> {
     this.logger.log(`Seeding ${count} publishers...`);
 
     try {

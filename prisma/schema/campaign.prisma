@@ -33,8 +33,8 @@ model Campaign {
     ImpressionEvent      ImpressionEvent[]
     ClickEvent           ClickEvent[]
     ClientCampaign       ClientCampaign[]
-    campaignBudgetId     String                 @db.Uuid
-    campaignBudget       CampaignBudget         @relation(fields: [campaignBudgetId], references: [id])
+    campaignBudgetId     String?                @db.Uuid
+    campaignBudget       CampaignBudget?        @relation(fields: [campaignBudgetId], references: [id])
     dailyBudgets         CampaignDailyBudget[]  @relation("CampaignDailyBudgets")
     SystemRevenue        SystemRevenue[]
     BudgetTransaction    BudgetTransaction[]
@@ -69,7 +69,7 @@ model CampaignBudget {
     dailyBudget Decimal    @db.Decimal(10, 2)
     isExhausted Boolean    @default(false)
     lastUpdated DateTime   @default(now())
-    campaigns   Campaign[]
+    Campaign    Campaign[]
 
     @@index([campaignId])
 }

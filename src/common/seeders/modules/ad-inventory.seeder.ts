@@ -19,7 +19,7 @@ export class AdInventorySeeder implements ISeeder {
     return ['Publisher', 'Website', 'AdSlotTemplate'];
   }
 
-  async seed(count: number = 120): Promise<void> {
+  async seed(count: number = 1000): Promise<void> {
     this.logger.log(`Seeding ${count} ad inventory slots...`);
 
     try {

@@ -7,7 +7,6 @@ import {
   CampaignPacing,
   BusinessCategory,
   CampaignInterest,
-  Currency,
 } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ISeeder } from '../interfaces/seeder.interface';
@@ -72,7 +71,7 @@ export class CampaignSeeder implements ISeeder {
 
       const campaignData: any = [];
 
-      // All possible values for enums (excluding status since we only want ACTIVE)
+      // All possible values for enums
       const objectives = Object.values(CampaignObjective);
       const bidStrategies = Object.values(BidStrategy);
       const pacingOptions = Object.values(CampaignPacing);
@@ -179,49 +178,54 @@ export class CampaignSeeder implements ISeeder {
         this.logger.warn('Default test advertiser not found or has no clients');
       }
 
-      // Insert campaigns with budgets (campaigns require budget IDs)
+      // Create campaigns and budgets using transactions (Option A: Every campaign gets a budget)
       const createdCampaigns = [];
       let successfullyCreated = 0;
 
       for (const data of campaignData) {
         try {
-          // First create the campaign without the budget relationship
-          const campaignWithoutBudget = { ...data };
-          delete campaignWithoutBudget.campaignBudgetId; // Remove this temporarily
+          // Use a transaction to ensure data consistency
+          const result = await this.prisma.$transaction(async (tx) => {
+            // Step 1: Create campaign without budget reference (temporarily null)
+            const campaign = await tx.campaign.create({
+              data: {
+                ...data,
+                campaignBudgetId: null, // Initially null
+              },
+            });
 
-          const campaign = await this.prisma.campaign.create({
-            data: campaignWithoutBudget,
+            // Step 2: Create the budget with campaign reference
+            const totalBudget = faker.number.float({
+              min: 1000,
+              max: 50000,
+              fractionDigits: 2,
+            });
+            const dailyBudget = faker.number.float({
+              min: totalBudget * 0.01, // 1% of total budget per day minimum
+              max: totalBudget * 0.1, // 10% of total budget per day maximum
+              fractionDigits: 2,
+            });
+
+            const campaignBudget = await tx.campaignBudget.create({
+              data: {
+                campaignId: campaign.id,
+                totalBudget: totalBudget,
+                dailyBudget: dailyBudget,
+                isExhausted: faker.datatype.boolean(0.1), // 10% chance of being exhausted
+                lastUpdated: faker.date.recent(),
+              },
+            });
+
+            // Step 3: Update campaign with budget reference
+            const updatedCampaign = await tx.campaign.update({
+              where: { id: campaign.id },
+              data: { campaignBudgetId: campaignBudget.id },
+            });
+
+            return updatedCampaign;
           });
 
-          // Now create the budget with the campaign ID
-          const totalBudget = faker.number.float({
-            min: 1000,
-            max: 50000,
-            fractionDigits: 2,
-          });
-          const dailyBudget = faker.number.float({
-            min: totalBudget * 0.01, // 1% of total budget per day minimum
-            max: totalBudget * 0.1, // 10% of total budget per day maximum
-            fractionDigits: 2,
-          });
-
-          const campaignBudget = await this.prisma.campaignBudget.create({
-            data: {
-              campaignId: campaign.id, // Now we have the campaign ID
-              totalBudget: totalBudget,
-              dailyBudget: dailyBudget,
-              isExhausted: faker.datatype.boolean(0.1), // 10% chance of being exhausted
-              lastUpdated: faker.date.recent(),
-            },
-          });
-
-          // Update the campaign with the budget ID
-          const updatedCampaign = await this.prisma.campaign.update({
-            where: { id: campaign.id },
-            data: { campaignBudgetId: campaignBudget.id },
-          });
-
-          createdCampaigns.push(updatedCampaign);
+          createdCampaigns.push(result);
           successfullyCreated++;
         } catch (error) {
           this.logger.warn(`Failed to create campaign: ${error.message}`);
@@ -272,7 +276,6 @@ export class CampaignSeeder implements ISeeder {
       // Clean related tables first (respecting foreign key constraints)
       await this.prisma.campaignStatistics.deleteMany({});
       await this.prisma.campaignDailyBudget.deleteMany({});
-      await this.prisma.campaignBudget.deleteMany({});
       await this.prisma.creative.deleteMany({});
       await this.prisma.demographicTargeting.deleteMany({});
       await this.prisma.geographicTargeting.deleteMany({});
@@ -288,9 +291,15 @@ export class CampaignSeeder implements ISeeder {
       await this.prisma.impressionEvent.deleteMany({});
       await this.prisma.clickEvent.deleteMany({});
 
-      // Clean main table
-      const deleted = await this.prisma.campaign.deleteMany({});
-      this.logger.log(`Deleted ${deleted.count} campaigns`);
+      // Clean campaigns first (this will set campaignBudgetId to null due to foreign key)
+      const deletedCampaigns = await this.prisma.campaign.deleteMany({});
+
+      // Clean campaign budgets
+      const deletedBudgets = await this.prisma.campaignBudget.deleteMany({});
+
+      this.logger.log(
+        `Deleted ${deletedCampaigns.count} campaigns and ${deletedBudgets.count} budgets`,
+      );
     } catch (error) {
       this.logger.error('Error cleaning campaigns table');
       this.logger.error(error);
@@ -358,7 +367,7 @@ export class CampaignSeeder implements ISeeder {
   }
 
   /**
-   * Seed campaign daily budget tracking
+   * Seed campaign daily budget tracking for all campaigns
    */
   private async seedCampaignDailyBudgets(campaigns: any[]): Promise<void> {
     try {
@@ -368,29 +377,34 @@ export class CampaignSeeder implements ISeeder {
       for (const campaign of campaigns) {
         // Create daily budget tracking for today
         const date = new Date();
-        date.setDate(date.getDate());
 
-        const dailyBudget = faker.number.float({
-          min: 50,
-          max: 500,
-          fractionDigits: 2,
+        // Get the campaign's actual daily budget from the campaignBudget
+        const campaignWithBudget = await this.prisma.campaign.findUnique({
+          where: { id: campaign.id },
+          include: { campaignBudget: true },
         });
-        const spentToday = faker.number.float({
-          min: 0,
-          max: dailyBudget * 0.2, // Can spend up to 20% of daily budget
-          fractionDigits: 2,
-        });
-        const remainingToday = Math.max(0, dailyBudget - spentToday);
-        const isExhausted = spentToday >= dailyBudget;
 
-        dailyBudgetData.push({
-          campaignId: campaign.id,
-          date: date,
-          spentToday: spentToday,
-          remainingToday: remainingToday,
-          isExhausted: isExhausted,
-          lastUpdated: faker.date.recent(),
-        });
+        if (campaignWithBudget?.campaignBudget) {
+          const dailyBudget = Number(
+            campaignWithBudget.campaignBudget.dailyBudget,
+          );
+          const spentToday = faker.number.float({
+            min: 0,
+            max: dailyBudget * 0.3, // Can spend up to 30% of daily budget so far
+            fractionDigits: 2,
+          });
+          const remainingToday = Math.max(0, dailyBudget - spentToday);
+          const isExhausted = spentToday >= dailyBudget;
+
+          dailyBudgetData.push({
+            campaignId: campaign.id,
+            date: date,
+            spentToday: spentToday,
+            remainingToday: remainingToday,
+            isExhausted: isExhausted,
+            lastUpdated: faker.date.recent(),
+          });
+        }
       }
 
       await this.prisma.campaignDailyBudget.createMany({
@@ -399,7 +413,7 @@ export class CampaignSeeder implements ISeeder {
       });
 
       this.logger.log(
-        `Seeded ${dailyBudgetData.length} campaign daily budget tracking records for all campaigns`,
+        `Seeded ${dailyBudgetData.length} campaign daily budget tracking records`,
       );
     } catch (error) {
       this.logger.warn(

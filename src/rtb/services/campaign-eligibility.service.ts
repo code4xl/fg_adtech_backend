@@ -218,6 +218,7 @@ export class CampaignEligibilityService {
 
     this.logger.debug('Batch budget validation completed', {
       totalCampaigns: campaigns.length,
+      campaignIds: campaigns.map((c) => c.id),
       validBudgets: validCampaigns.length,
       rejectedBudgets: campaigns.length - validCampaigns.length,
     });
@@ -264,7 +265,7 @@ export class CampaignEligibilityService {
         isExhausted: true,
       },
     });
-
+    this.logger.debug('Fetched daily budget from DB', { dailyBudget });
     if (!dailyBudget) {
       return null;
     }
