@@ -48,7 +48,7 @@ export class HistoricalDataService {
       },
       include: {
         statistics: true,
-        campaignBudgetTracker: true,
+        // campaignBudgetTracker: true, -- ASIF PLS CHECK
         // targetingRules: true,
       },
       orderBy: {
@@ -63,10 +63,11 @@ export class HistoricalDataService {
 
     // Get budgets from budget trackers
     const budgets = campaigns.map((c) => {
-      const latestBudgetTracker = c.campaignBudgetTracker?.[0];
+      // const latestBudgetTracker = c.campaignBudgetTracker?.[0];
+      const latestBudgetTracker = null; // -- ASIF PLS CHECK
       return Number(latestBudgetTracker?.totalBudget || 5000);
     });
-    
+
     const durations = campaigns.map((c) => {
       const start = new Date(c.startDate);
       const end = new Date(c.endDate);

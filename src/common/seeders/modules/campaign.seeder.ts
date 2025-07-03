@@ -348,32 +348,31 @@ export class CampaignSeeder implements ISeeder {
 
       for (const campaign of campaignsToSeed) {
         // Create daily budget tracking for the last 30 days
-        for (let i = 0; i < 30; i++) {
-          const date = new Date();
-          date.setDate(date.getDate() - i);
 
-          const dailyBudget = faker.number.float({
-            min: 50,
-            max: 500,
-            fractionDigits: 2,
-          });
-          const spentToday = faker.number.float({
-            min: 0,
-            max: dailyBudget * 1.2, // Can slightly exceed daily budget
-            fractionDigits: 2,
-          });
-          const remainingToday = Math.max(0, dailyBudget - spentToday);
-          const isExhausted = spentToday >= dailyBudget;
+        const date = new Date();
+        date.setDate(date.getDate());
 
-          dailyBudgetData.push({
-            campaignId: campaign.id,
-            date: date,
-            spentToday: spentToday,
-            remainingToday: remainingToday,
-            isExhausted: isExhausted,
-            lastUpdated: faker.date.recent(),
-          });
-        }
+        const dailyBudget = faker.number.float({
+          min: 50,
+          max: 500,
+          fractionDigits: 2,
+        });
+        const spentToday = faker.number.float({
+          min: 0,
+          max: dailyBudget * 0.2, // Can slightly exceed daily budget
+          fractionDigits: 2,
+        });
+        const remainingToday = Math.max(0, dailyBudget - spentToday);
+        const isExhausted = spentToday >= dailyBudget;
+
+        dailyBudgetData.push({
+          campaignId: campaign.id,
+          date: date,
+          spentToday: spentToday,
+          remainingToday: remainingToday,
+          isExhausted: isExhausted,
+          lastUpdated: faker.date.recent(),
+        });
       }
 
       await this.prisma.campaignDailyBudget.createMany({

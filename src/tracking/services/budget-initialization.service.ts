@@ -1,481 +1,811 @@
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { PrismaService } from '../../prisma/prisma.service';
-import { RedisService } from '../../redis/redis.service';
-import { CLICK_AND_IMPRESSION_KEYS } from 'src/rtb/constants/cache-keys';
-import { CampaignBudgetInfo, CampaignBudgetStatus, BudgetInitializationStats } from '../interfaces/budget.interface';
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { RedisService } from 'src/redis/redis.service';
+import { CAMPAIGN_KEYS } from 'src/rtb/constants/cache-keys';
 
 @Injectable()
-export class BudgetInitializationService implements OnModuleInit {
-    private readonly logger = new Logger(BudgetInitializationService.name);
+export class BudgetInitializationService {
+  private readonly logger = new Logger(BudgetInitializationService.name);
 
-    constructor(
-        private readonly prisma: PrismaService,
-        private readonly redis: RedisService,
-    ) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
-    async onModuleInit() {
-        // Initialize budgets when service starts
-        await this.initializeAllCampaignBudgets();
+  /**
+   * Initialize campaign budget when campaign is created
+   * Creates both CampaignBudget and CampaignDailyBudget records
+   */
+  async initializeCampaignBudget(
+    campaignId: string,
+    totalBudget: number,
+    dailyBudget: number,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<void> {
+    try {
+      this.logger.log('Initializing campaign budget', {
+        campaignId,
+        totalBudget,
+        dailyBudget,
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
+      });
+
+      // 1. Create or update main campaign budget record
+      await this.prisma.campaignBudget.upsert({
+        where: { campaignId },
+        create: {
+          campaignId,
+          totalBudget,
+          dailyBudget,
+          isExhausted: false,
+          lastUpdated: new Date(),
+        },
+        update: {
+          totalBudget,
+          dailyBudget,
+          isExhausted: false,
+          lastUpdated: new Date(),
+        },
+      });
+
+      // 2. Create daily budget records for campaign duration
+      await this.createDailyBudgetRecords(
+        campaignId,
+        dailyBudget,
+        startDate,
+        endDate,
+      );
+
+      // 3. Clear any existing budget cache
+      await this.clearBudgetCache(campaignId);
+
+      this.logger.log('✅ Campaign budget initialized successfully', {
+        campaignId,
+        totalBudget,
+        dailyBudget,
+      });
+    } catch (error) {
+      this.logger.error('❌ Failed to initialize campaign budget', {
+        error: error.message,
+        campaignId,
+        totalBudget,
+        dailyBudget,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Create daily budget records for each day of the campaign
+   */
+  private async createDailyBudgetRecords(
+    campaignId: string,
+    dailyBudget: number,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<void> {
+    const dailyRecords = [];
+    const currentDate = new Date(startDate);
+    currentDate.setHours(0, 0, 0, 0);
+
+    // Generate daily budget records for each day of the campaign
+    while (currentDate <= endDate) {
+      dailyRecords.push({
+        campaignId,
+        date: new Date(currentDate),
+        spentToday: 0,
+        remainingToday: dailyBudget,
+        isExhausted: false,
+        lastUpdated: new Date(),
+      });
+
+      currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    async initializeAllCampaignBudgets(): Promise<void> {
-        this.logger.log('🚀 Initializing all campaign budgets into Redis...');
+    // Batch create all daily budget records
+    if (dailyRecords.length > 0) {
+      await this.prisma.campaignDailyBudget.createMany({
+        data: dailyRecords,
+        skipDuplicates: true, // Skip if record already exists
+      });
 
-        try {
-            const startTime = Date.now();
-
-            // Get all active campaigns with their budget info
-            const activeCampaigns = await this.prisma.campaign.findMany({
-                where: {
-                    status: 'ACTIVE',
-                    startDate: { lte: new Date() },
-                    endDate: { gte: new Date() }, // Campaign should not be expired
-                },
-                select: {
-                    id: true,
-                    campaignBudgetTracker: {
-                        where: {
-                            date: new Date().toISOString(),
-                        },
-                        select: {
-                            dailyBudget: true,
-                            totalBudget: true,
-                        },
-                        take: 1
-                    },
-                    status: true,
-                    createdAt: true,
-                }
-            });
-
-            if (activeCampaigns.length === 0) {
-                this.logger.warn('No active campaigns found for budget initialization');
-                return;
-            }
-
-            this.logger.log(`Found ${activeCampaigns.length} active campaigns to initialize`);
-
-            // Process campaigns in batches to avoid overwhelming Redis
-            const batchSize = 50;
-            let successCount = 0;
-            let errorCount = 0;
-
-            for (let i = 0; i < activeCampaigns.length; i += batchSize) {
-                const batch = activeCampaigns.slice(i, i + batchSize);
-
-                const batchPromises = batch.map(async (campaign) => {
-                    try {
-                        // Check if campaign has budget tracker for today
-                        if (!campaign.campaignBudgetTracker || campaign.campaignBudgetTracker.length === 0) {
-                            this.logger.warn(`No budget tracker found for campaign ${campaign.id}`);
-                            return;
-                        }
-
-                        const budgetTracker = campaign.campaignBudgetTracker[0];
-
-                        // Map campaign to CampaignBudgetInfo
-                        const budgetInfo: CampaignBudgetInfo = {
-                            id: campaign.id,
-                            dailyBudget: Number(budgetTracker.dailyBudget),
-                            totalBudget: Number(budgetTracker.totalBudget),
-                            bidPrice: 0, // Not needed for initialization, will be set during auction
-                            status: campaign.status,
-                        };
-
-                        await this.initializeCampaignBudget(budgetInfo);
-                        successCount++;
-                    } catch (error) {
-                        this.logger.error(`Failed to initialize budget for campaign ${campaign.id}:`, error);
-                        errorCount++;
-                    }
-                });
-
-                await Promise.all(batchPromises);
-
-                // Small delay between batches to prevent overwhelming Redis
-                if (i + batchSize < activeCampaigns.length) {
-                    await new Promise(resolve => setTimeout(resolve, 10));
-                }
-            }
-
-            const duration = Date.now() - startTime;
-
-            this.logger.log('✅ Campaign budget initialization completed', {
-                totalCampaigns: activeCampaigns.length,
-                successful: successCount,
-                errors: errorCount,
-                durationMs: duration,
-                averageTimePerCampaign: Math.round(duration / activeCampaigns.length)
-            });
-
-        } catch (error) {
-            this.logger.error('❌ Failed to initialize campaign budgets:', error);
-            throw error;
-        }
+      this.logger.debug('Created daily budget records', {
+        campaignId,
+        recordsCreated: dailyRecords.length,
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
+      });
     }
+  }
 
-    private async initializeCampaignBudget(campaign: CampaignBudgetInfo): Promise<void> {
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  /**
+   * Validate if campaign has sufficient budget for a bid
+   * Used by RTB system before allowing campaign to participate in auction
+   */
+  async validateCampaignBudget(
+    campaignId: string,
+    estimatedCost: number,
+  ): Promise<boolean> {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-        try {
-            // Use raw Redis client for pipeline operations
-            const redisClient = this.redis.getClient();
-            const pipeline = redisClient.pipeline();
+      // Get today's budget status
+      const dailyBudget = await this.prisma.campaignDailyBudget.findUnique({
+        where: {
+          campaignId_date: {
+            campaignId,
+            date: today,
+          },
+        },
+        select: {
+          remainingToday: true,
+          isExhausted: true,
+        },
+      });
 
-            // 1. Set daily budget limit
-            pipeline.set(
-                CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_LIMIT(campaign.id),
-                campaign.dailyBudget.toString()
-            );
+      if (!dailyBudget) {
+        this.logger.warn('No daily budget record found', {
+          campaignId,
+          date: today.toISOString().split('T')[0],
+        });
+        return false;
+      }
 
-            // 2. Initialize daily spend to 0 if not exists
-            const spendKey = CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_SPEND(campaign.id, today);
-            pipeline.setnx(spendKey, '0');
+      if (dailyBudget.isExhausted) {
+        this.logger.debug('Campaign daily budget is exhausted', {
+          campaignId,
+        });
+        return false;
+      }
 
-            // 3. Set campaign status
-            pipeline.set(
-                CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_STATUS(campaign.id),
-                campaign.status
-            );
+      // Convert CPM to per-impression cost if needed
+      const costPerImpression =
+        estimatedCost > 1 ? estimatedCost / 1000 : estimatedCost;
+      const remainingBudget = Number(dailyBudget.remainingToday);
 
-            // 4. Initialize metrics counters for today
-            pipeline.setnx(CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_IMPRESSIONS(campaign.id, today), '0');
-            pipeline.setnx(CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_CLICKS(campaign.id, today), '0');
+      const hasValidBudget = remainingBudget >= costPerImpression;
 
-            // 5. Set expiration for daily metrics (expire at midnight + 1 day)
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            tomorrow.setHours(0, 0, 0, 0);
-            const secondsUntilMidnight = Math.floor((tomorrow.getTime() - Date.now()) / 1000);
+      this.logger.debug('Budget validation result', {
+        campaignId,
+        estimatedCost,
+        costPerImpression,
+        remainingBudget,
+        hasValidBudget,
+      });
 
-            pipeline.expire(spendKey, secondsUntilMidnight + 86400); // +24 hours for safety
-            pipeline.expire(CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_IMPRESSIONS(campaign.id, today), secondsUntilMidnight + 86400);
-            pipeline.expire(CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_CLICKS(campaign.id, today), secondsUntilMidnight + 86400);
-
-            // Execute all Redis operations atomically
-            await pipeline.exec();
-
-            this.logger.debug(`✅ Budget initialized for campaign ${campaign.id}`, {
-                campaignId: campaign.id,
-                dailyBudget: campaign.dailyBudget,
-                status: campaign.status,
-                spendKey,
-            });
-
-        } catch (error) {
-            this.logger.error(`Failed to initialize budget for campaign ${campaign.id}:`, error);
-            throw error;
-        }
+      return hasValidBudget;
+    } catch (error) {
+      this.logger.error('Budget validation failed', {
+        error: error.message,
+        campaignId,
+        estimatedCost,
+      });
+      return false;
     }
+  }
 
-    @Cron('*/5 * * * *') // Every 5 minutes
-    async syncCampaignBudgetUpdates(): Promise<void> {
-        this.logger.debug('🔄 Syncing campaign budget updates from database...');
+  /**
+   * Get current daily budget status for a campaign
+   */
+  async getDailyBudgetStatus(campaignId: string): Promise<{
+    spentToday: number;
+    remainingToday: number;
+    dailyBudget: number;
+    isExhausted: boolean;
+    spendPercentage: number;
+  } | null> {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-        try {
-            const startTime = Date.now();
-            const today = new Date().toISOString().split('T')[0];
+      const dailyBudget = await this.prisma.campaignDailyBudget.findUnique({
+        where: {
+          campaignId_date: {
+            campaignId,
+            date: today,
+          },
+        },
+        select: {
+          spentToday: true,
+          remainingToday: true,
+          isExhausted: true,
+        },
+      });
 
-            // Get campaigns updated in last 10 minutes (with buffer)
-            const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+      if (!dailyBudget) {
+        return null;
+      }
 
-            const updatedCampaigns = await this.prisma.campaign.findMany({
-                where: {
-                    updatedAt: {
-                        gte: tenMinutesAgo
-                    },
-                    status: {
-                        in: ['ACTIVE', 'PAUSED']
-                    }
-                },
-                select: {
-                    id: true,
-                    campaignBudgetTracker: {
-                        where: {
-                            date: new Date().toISOString(), // Use today in YYYY-MM-DD format
-                        },
-                        select: {
-                            dailyBudget: true,
-                            totalBudget: true,
-                        },
-                        take: 1
-                    },
-                    status: true,
-                    updatedAt: true,
-                }
-            });
+      const spentToday = Number(dailyBudget.spentToday);
+      const remainingToday = Number(dailyBudget.remainingToday);
+      const totalDailyBudget = spentToday + remainingToday;
+      const spendPercentage =
+        totalDailyBudget > 0 ? (spentToday / totalDailyBudget) * 100 : 0;
 
-            if (updatedCampaigns.length === 0) {
-                this.logger.debug('No campaign budget updates to sync');
-                return;
-            }
-
-            this.logger.log(`Syncing ${updatedCampaigns.length} updated campaigns to Redis`);
-
-            let syncedCount = 0;
-            const syncPromises = updatedCampaigns.map(async (campaign) => {
-                try {
-                    if (campaign.campaignBudgetTracker && campaign.campaignBudgetTracker.length > 0) {
-                        const budgetTracker = campaign.campaignBudgetTracker[0];
-                        const campaignData = {
-                            id: campaign.id,
-                            dailyBudget: Number(budgetTracker.dailyBudget),
-                            status: campaign.status,
-                            updatedAt: campaign.updatedAt,
-                        };
-                        await this.updateCampaignBudgetInRedis(campaignData);
-                        syncedCount++;
-                    }
-                } catch (error) {
-                    this.logger.error(`Failed to sync campaign ${campaign.id}:`, error);
-                }
-            });
-
-            await Promise.all(syncPromises);
-
-            const duration = Date.now() - startTime;
-
-            this.logger.log('✅ Campaign budget sync completed', {
-                updatedCampaigns: updatedCampaigns.length,
-                syncedSuccessfully: syncedCount,
-                durationMs: duration,
-            });
-
-        } catch (error) {
-            this.logger.error('❌ Campaign budget sync failed:', error);
-        }
+      return {
+        spentToday,
+        remainingToday,
+        dailyBudget: totalDailyBudget,
+        isExhausted: dailyBudget.isExhausted,
+        spendPercentage: Math.round(spendPercentage * 100) / 100,
+      };
+    } catch (error) {
+      this.logger.error('Failed to get daily budget status', {
+        error: error.message,
+        campaignId,
+      });
+      return null;
     }
+  }
 
-    private async updateCampaignBudgetInRedis(campaign: any): Promise<void> {
-        try {
-            // Use raw Redis client for pipeline operations
-            const redisClient = this.redis.getClient();
-            const pipeline = redisClient.pipeline();
+  /**
+   * Get campaign's total budget information
+   */
+  async getCampaignBudgetInfo(campaignId: string): Promise<{
+    totalBudget: number;
+    dailyBudget: number;
+    isExhausted: boolean;
+  } | null> {
+    try {
+      const campaignBudget = await this.prisma.campaignBudget.findUnique({
+        where: { campaignId },
+        select: {
+          totalBudget: true,
+          dailyBudget: true,
+          isExhausted: true,
+        },
+      });
 
-            // 1. Update daily budget limit
-            pipeline.set(
-                CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_LIMIT(campaign.id),
-                campaign.dailyBudget.toString()
-            );
+      if (!campaignBudget) {
+        return null;
+      }
 
-            // 2. Update campaign status
-            pipeline.set(
-                CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_STATUS(campaign.id),
-                campaign.status
-            );
-
-            await pipeline.exec();
-
-            this.logger.debug(`Updated campaign budget in Redis: ${campaign.id}`, {
-                campaignId: campaign.id,
-                dailyBudget: campaign.dailyBudget,
-                status: campaign.status,
-                updatedAt: campaign.updatedAt,
-            });
-
-        } catch (error) {
-            this.logger.error(`Failed to update campaign ${campaign.id} in Redis:`, error);
-            throw error;
-        }
+      return {
+        totalBudget: Number(campaignBudget.totalBudget),
+        dailyBudget: Number(campaignBudget.dailyBudget),
+        isExhausted: campaignBudget.isExhausted,
+      };
+    } catch (error) {
+      this.logger.error('Failed to get campaign budget info', {
+        error: error.message,
+        campaignId,
+      });
+      return null;
     }
+  }
 
-    async getCampaignBudgetStatus(campaignId: string): Promise<CampaignBudgetStatus | null> {
-        try {
-            const today = new Date().toISOString().split('T')[0];
+  /**
+   * Reset daily budgets for new day (cron job)
+   * Called daily at midnight to reset daily spend counters
+   */
+  async resetDailyBudgets(): Promise<void> {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-            // Use raw Redis client to avoid JSON parsing issues
-            const redisClient = this.redis.getClient();
+      this.logger.log('Starting daily budget reset', {
+        date: today.toISOString().split('T')[0],
+      });
 
-            const [dailyLimit, dailySpend, status] = await Promise.all([
-                redisClient.get(CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_LIMIT(campaignId)),
-                redisClient.get(CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_SPEND(campaignId, today)),
-                redisClient.get(CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_STATUS(campaignId)),
-            ]);
-
-            if (!dailyLimit) {
-                // Budget not initialized, try to initialize it
-                const campaign = await this.prisma.campaign.findUnique({
-                    where: { id: campaignId },
-                    select: {
-                        id: true,
-                        campaignBudgetTracker: {
-                            where: {
-                                date: today
-                            },
-                            select: {
-                                dailyBudget: true,
-                                totalBudget: true,
-                            },
-                            take: 1
-                        },
-                        status: true,
-                    }
-                });
-
-                if (campaign && campaign.status === 'ACTIVE' && campaign.campaignBudgetTracker.length > 0) {
-                    const budgetTracker = campaign.campaignBudgetTracker[0];
-                    const budgetInfo: CampaignBudgetInfo = {
-                        id: campaign.id,
-                        dailyBudget: Number(budgetTracker.dailyBudget),
-                        totalBudget: Number(budgetTracker.totalBudget),
-                        bidPrice: 0,
-                        status: campaign.status,
-                    };
-
-                    await this.initializeCampaignBudget(budgetInfo);
-                    return this.getCampaignBudgetStatus(campaignId); // Recursive call after initialization
-                }
-
-                return null;
-            }
-
-            const limit = parseFloat(dailyLimit);
-            const spend = parseFloat(dailySpend || '0');
-            const remaining = Math.max(0, limit - spend);
-            const canSpend = remaining > 0 && status === 'ACTIVE';
-
-            return {
-                dailyLimit: limit,
-                dailySpend: spend,
-                remaining,
-                status: status || 'UNKNOWN',
-                canSpend,
-            };
-
-        } catch (error) {
-            this.logger.error(`Failed to get budget status for campaign ${campaignId}:`, error);
-            return null;
-        }
-    }
-
-    async canCampaignSpend(campaignId: string, amount: number): Promise<boolean> {
-        const budgetStatus = await this.getCampaignBudgetStatus(campaignId);
-        if (!budgetStatus) return false;
-
-        return budgetStatus.canSpend && budgetStatus.remaining >= amount;
-    }
-
-    async getBatchCampaignBudgetStatus(campaignIds: string[]): Promise<Map<string, boolean>> {
-        const results = new Map<string, boolean>();
-
-        if (campaignIds.length === 0) return results;
-
-        try {
-            const today = new Date().toISOString().split('T')[0];
-
-            // Use raw Redis client for batch operations
-            const redisClient = this.redis.getClient();
-            const pipeline = redisClient.pipeline();
-
-            campaignIds.forEach(campaignId => {
-                pipeline.get(CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_LIMIT(campaignId));
-                pipeline.get(CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_SPEND(campaignId, today));
-                pipeline.get(CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_STATUS(campaignId));
-            });
-
-            const redisResults = await pipeline.exec();
-
-            // Process results in groups of 3 (limit, spend, status)
-            for (let i = 0; i < campaignIds.length; i++) {
-                const campaignId = campaignIds[i];
-                const baseIndex = i * 3;
-
-                const dailyLimit = redisResults[baseIndex]?.[1] as string;
-                const dailySpend = redisResults[baseIndex + 1]?.[1] as string;
-                const status = redisResults[baseIndex + 2]?.[1] as string;
-
-                if (dailyLimit && status === 'ACTIVE') {
-                    const limit = parseFloat(dailyLimit);
-                    const spend = parseFloat(dailySpend || '0');
-                    const canSpend = (limit - spend) > 0;
-                    results.set(campaignId, canSpend);
-                } else {
-                    results.set(campaignId, false);
-                }
-            }
-
-        } catch (error) {
-            this.logger.error('Failed to get batch budget status:', error);
-            // Return all false in case of error
-            campaignIds.forEach(campaignId => {
-                results.set(campaignId, false);
-            });
-        }
-
-        return results;
-    }
-
-    async refreshCampaignBudget(campaignId: string): Promise<void> {
-        this.logger.log(`Manually refreshing budget for campaign: ${campaignId}`);
-        const today = new Date().toISOString().split('T')[0];
-
-        const campaign = await this.prisma.campaign.findUnique({
-            where: { id: campaignId },
+      // Get all campaigns with daily budgets for today
+      const dailyBudgets = await this.prisma.campaignDailyBudget.findMany({
+        where: {
+          date: today,
+        },
+        include: {
+          campaign: {
             select: {
-                id: true,
-                campaignBudgetTracker: {
-                    where: {
-                        date: today
-                    },
-                    select: {
-                        dailyBudget: true,
-                        totalBudget: true,
-                    },
-                    take: 1
-                },
-                status: true,
-            }
+              id: true,
+              status: true,
+            },
+          },
+        },
+      });
+
+      let resetCount = 0;
+      let pausedCount = 0;
+
+      for (const budget of dailyBudgets) {
+        try {
+          // Get campaign budget info
+          const campaignBudget = await this.prisma.campaignBudget.findUnique({
+            where: { campaignId: budget.campaignId },
+            select: { dailyBudget: true },
+          });
+
+          if (!campaignBudget) continue;
+
+          // Reset daily spend counters
+          await this.prisma.campaignDailyBudget.update({
+            where: {
+              campaignId_date: {
+                campaignId: budget.campaignId,
+                date: today,
+              },
+            },
+            data: {
+              spentToday: 0,
+              remainingToday: campaignBudget.dailyBudget,
+              isExhausted: false,
+              lastUpdated: new Date(),
+            },
+          });
+
+          // Reactivate campaign if it was paused due to budget exhaustion
+          if (budget.campaign.status === 'BUDGET_EXHAUSTED') {
+            await this.prisma.campaign.update({
+              where: { id: budget.campaignId },
+              data: {
+                status: 'ACTIVE',
+                updatedAt: new Date(),
+              },
+            });
+            pausedCount++;
+          }
+
+          resetCount++;
+        } catch (error) {
+          this.logger.error('Failed to reset budget for campaign', {
+            error: error.message,
+            campaignId: budget.campaignId,
+          });
+        }
+      }
+
+      // Clear all budget caches
+      await this.clearAllBudgetCaches();
+
+      this.logger.log('✅ Daily budget reset completed', {
+        date: today.toISOString().split('T')[0],
+        campaignsReset: resetCount,
+        campaignsReactivated: pausedCount,
+      });
+    } catch (error) {
+      this.logger.error('❌ Daily budget reset failed', {
+        error: error.message,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Update campaign budget amounts (when advertiser adds more budget)
+   */
+  async updateCampaignBudget(
+    campaignId: string,
+    newTotalBudget: number,
+    newDailyBudget: number,
+  ): Promise<void> {
+    try {
+      this.logger.log('Updating campaign budget', {
+        campaignId,
+        newTotalBudget,
+        newDailyBudget,
+      });
+
+      // Update main budget record
+      await this.prisma.campaignBudget.update({
+        where: { campaignId },
+        data: {
+          totalBudget: newTotalBudget,
+          dailyBudget: newDailyBudget,
+          isExhausted: false, // Reset exhaustion flag
+          lastUpdated: new Date(),
+        },
+      });
+
+      // Update future daily budget records (don't affect today's spent amount)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      await this.prisma.campaignDailyBudget.updateMany({
+        where: {
+          campaignId,
+          date: {
+            gte: tomorrow, // Only update future dates
+          },
+        },
+        data: {
+          remainingToday: newDailyBudget,
+          isExhausted: false,
+          lastUpdated: new Date(),
+        },
+      });
+
+      // Clear budget cache
+      await this.clearBudgetCache(campaignId);
+
+      this.logger.log('✅ Campaign budget updated successfully', {
+        campaignId,
+        newTotalBudget,
+        newDailyBudget,
+      });
+    } catch (error) {
+      this.logger.error('❌ Failed to update campaign budget', {
+        error: error.message,
+        campaignId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Create daily budget record for a specific date (if missing)
+   */
+  async ensureDailyBudgetExists(campaignId: string, date: Date): Promise<void> {
+    try {
+      date.setHours(0, 0, 0, 0);
+
+      const existing = await this.prisma.campaignDailyBudget.findUnique({
+        where: {
+          campaignId_date: {
+            campaignId,
+            date,
+          },
+        },
+      });
+
+      if (existing) {
+        return; // Already exists
+      }
+
+      // Get campaign's daily budget amount
+      const campaignBudget = await this.prisma.campaignBudget.findUnique({
+        where: { campaignId },
+        select: { dailyBudget: true },
+      });
+
+      if (!campaignBudget) {
+        throw new Error(
+          `Campaign budget not found for campaign: ${campaignId}`,
+        );
+      }
+
+      // Create missing daily budget record
+      await this.prisma.campaignDailyBudget.create({
+        data: {
+          campaignId,
+          date,
+          spentToday: 0,
+          remainingToday: campaignBudget.dailyBudget,
+          isExhausted: false,
+          lastUpdated: new Date(),
+        },
+      });
+
+      this.logger.debug('Created missing daily budget record', {
+        campaignId,
+        date: date.toISOString().split('T')[0],
+      });
+    } catch (error) {
+      this.logger.error('Failed to ensure daily budget exists', {
+        error: error.message,
+        campaignId,
+        date,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Clear budget cache for specific campaign
+   */
+  private async clearBudgetCache(campaignId: string): Promise<void> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const cacheKey = CAMPAIGN_KEYS.CAMPAIGN_BUDGET_INFO(campaignId, today);
+      await this.redis.del(cacheKey);
+
+      this.logger.debug('Cleared budget cache', { campaignId });
+    } catch (error) {
+      this.logger.warn('Failed to clear budget cache', {
+        error: error.message,
+        campaignId,
+      });
+    }
+  }
+
+  /**
+   * Clear all budget caches (used during daily reset)
+   */
+  private async clearAllBudgetCaches(): Promise<void> {
+    try {
+      const pattern = 'campaign:budget:info:*';
+      const keys = await this.redis.keys(pattern);
+
+      if (keys.length > 0) {
+        await Promise.all(keys.map((key) => this.redis.del(key)));
+        this.logger.debug('Cleared all budget caches', {
+          keysCleared: keys.length,
+        });
+      }
+    } catch (error) {
+      this.logger.warn('Failed to clear all budget caches', {
+        error: error.message,
+      });
+    }
+  }
+
+  /**
+   * Refresh campaign budget data from database and update cache
+   * Used when budget data might be stale or after external budget updates
+   */
+  async refreshCampaignBudget(campaignId: string): Promise<{
+    totalBudget: number;
+    dailyBudget: number;
+    spentToday: number;
+    remainingToday: number;
+    isExhausted: boolean;
+    lastUpdated: Date;
+  } | null> {
+    try {
+      this.logger.debug('Refreshing campaign budget data', { campaignId });
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // 1. Clear existing cache first
+      await this.clearBudgetCache(campaignId);
+
+      // 2. Fetch fresh data from database
+      const [campaignBudget, dailyBudget] = await Promise.all([
+        this.prisma.campaignBudget.findUnique({
+          where: { campaignId },
+          select: {
+            totalBudget: true,
+            dailyBudget: true,
+            isExhausted: true,
+            lastUpdated: true,
+          },
+        }),
+        this.prisma.campaignDailyBudget.findUnique({
+          where: {
+            campaignId_date: {
+              campaignId,
+              date: today,
+            },
+          },
+          select: {
+            spentToday: true,
+            remainingToday: true,
+            isExhausted: true,
+            lastUpdated: true,
+          },
+        }),
+      ]);
+
+      if (!campaignBudget) {
+        this.logger.warn('Campaign budget not found during refresh', {
+          campaignId,
+        });
+        return null;
+      }
+
+      // 3. Ensure daily budget exists for today
+      if (!dailyBudget) {
+        this.logger.warn('Daily budget missing, creating for today', {
+          campaignId,
+          date: today.toISOString().split('T')[0],
         });
 
-        if (campaign && campaign.campaignBudgetTracker.length > 0) {
-            const budgetTracker = campaign.campaignBudgetTracker[0];
-            const budgetInfo: CampaignBudgetInfo = {
-                id: campaign.id,
-                dailyBudget: Number(budgetTracker.dailyBudget),
-                totalBudget: Number(budgetTracker.totalBudget),
-                bidPrice: 0,
-                status: campaign.status,
-            };
+        await this.ensureDailyBudgetExists(campaignId, today);
 
-            await this.initializeCampaignBudget(budgetInfo);
-            this.logger.log(`✅ Budget refreshed for campaign: ${campaignId}`);
-        } else {
-            this.logger.warn(`Campaign not found or no budget tracker: ${campaignId}`);
-        }
+        // Fetch the newly created daily budget
+        const newDailyBudget = await this.prisma.campaignDailyBudget.findUnique(
+          {
+            where: {
+              campaignId_date: {
+                campaignId,
+                date: today,
+              },
+            },
+            select: {
+              spentToday: true,
+              remainingToday: true,
+              isExhausted: true,
+              lastUpdated: true,
+            },
+          },
+        );
+
+        const refreshedData = {
+          totalBudget: Number(campaignBudget.totalBudget),
+          dailyBudget: Number(campaignBudget.dailyBudget),
+          spentToday: newDailyBudget ? Number(newDailyBudget.spentToday) : 0,
+          remainingToday: newDailyBudget
+            ? Number(newDailyBudget.remainingToday)
+            : Number(campaignBudget.dailyBudget),
+          isExhausted:
+            campaignBudget.isExhausted ||
+            (newDailyBudget?.isExhausted ?? false),
+          lastUpdated:
+            newDailyBudget?.lastUpdated || campaignBudget.lastUpdated,
+        };
+
+        this.logger.log(
+          '✅ Campaign budget refreshed (with daily budget creation)',
+          {
+            campaignId,
+            refreshedData,
+          },
+        );
+
+        return refreshedData;
+      }
+
+      // 4. Return refreshed budget data
+      const refreshedData = {
+        totalBudget: Number(campaignBudget.totalBudget),
+        dailyBudget: Number(campaignBudget.dailyBudget),
+        spentToday: Number(dailyBudget.spentToday),
+        remainingToday: Number(dailyBudget.remainingToday),
+        isExhausted: campaignBudget.isExhausted || dailyBudget.isExhausted,
+        lastUpdated:
+          dailyBudget.lastUpdated > campaignBudget.lastUpdated
+            ? dailyBudget.lastUpdated
+            : campaignBudget.lastUpdated,
+      };
+
+      // 5. Update cache with fresh data
+      const cacheKey = CAMPAIGN_KEYS.CAMPAIGN_BUDGET_INFO(
+        campaignId,
+        today.toISOString().split('T')[0],
+      );
+      await this.redis.set(cacheKey, JSON.stringify(refreshedData), 3600); // Cache for 1 hour
+
+      this.logger.log('✅ Campaign budget refreshed successfully', {
+        campaignId,
+        refreshedData,
+      });
+
+      return refreshedData;
+    } catch (error) {
+      this.logger.error('❌ Failed to refresh campaign budget', {
+        error: error.message,
+        campaignId,
+      });
+      throw error;
     }
+  }
 
-    async getBudgetInitializationStats(): Promise<BudgetInitializationStats> {
-        try {
-            const [activeCampaignsCount, redisInfo] = await Promise.all([
-                this.prisma.campaign.count({
-                    where: { status: 'ACTIVE' }
-                }),
-                this.redis.getClient().info('memory')
-            ]);
+  /**
+   * Bulk refresh multiple campaign budgets
+   * Useful for dashboard or reporting that needs fresh data for multiple campaigns
+   */
+  async refreshMultipleCampaignBudgets(
+    campaignIds: string[],
+  ): Promise<Map<string, any>> {
+    try {
+      this.logger.debug('Bulk refreshing campaign budgets', {
+        campaignCount: campaignIds.length,
+      });
 
-            // Use raw Redis client to get keys
-            const budgetKeys = await this.redis.getClient().keys('budget:limit:*');
+      const refreshResults = new Map();
 
+      // Process in batches to avoid overwhelming the database
+      const batchSize = 10;
+      for (let i = 0; i < campaignIds.length; i += batchSize) {
+        const batch = campaignIds.slice(i, i + batchSize);
+
+        const batchPromises = batch.map(async (campaignId) => {
+          try {
+            const refreshed = await this.refreshCampaignBudget(campaignId);
+            return { campaignId, data: refreshed, success: true };
+          } catch (error) {
+            this.logger.warn('Failed to refresh budget for campaign', {
+              campaignId,
+              error: error.message,
+            });
             return {
-                activeCampaigns: activeCampaignsCount,
-                budgetsInRedis: budgetKeys.length,
-                redisMemoryUsage: this.extractMemoryUsage(redisInfo),
+              campaignId,
+              data: null,
+              success: false,
+              error: error.message,
             };
+          }
+        });
 
-        } catch (error) {
-            this.logger.error('Failed to get budget initialization stats:', error);
-            return {
-                activeCampaigns: 0,
-                budgetsInRedis: 0,
-                redisMemoryUsage: 'unknown',
-            };
-        }
-    }
+        const batchResults = await Promise.all(batchPromises);
 
-    private extractMemoryUsage(redisInfo: string): string {
-        const lines = redisInfo.split('\r\n');
-        const usedMemoryLine = lines.find(line => line.startsWith('used_memory_human:'));
-        return usedMemoryLine ? usedMemoryLine.split(':')[1] : 'unknown';
+        batchResults.forEach(({ campaignId, data, success, error }) => {
+          refreshResults.set(campaignId, { data, success, error });
+        });
+      }
+
+      this.logger.log('✅ Bulk budget refresh completed', {
+        totalCampaigns: campaignIds.length,
+        successCount: Array.from(refreshResults.values()).filter(
+          (r) => r.success,
+        ).length,
+        failureCount: Array.from(refreshResults.values()).filter(
+          (r) => !r.success,
+        ).length,
+      });
+
+      return refreshResults;
+    } catch (error) {
+      this.logger.error('❌ Bulk budget refresh failed', {
+        error: error.message,
+        campaignIds,
+      });
+      throw error;
     }
+  }
+
+  /**
+   * Get budget summary for multiple campaigns (dashboard view)
+   */
+  async getCampaignsBudgetSummary(campaignIds: string[]): Promise<
+    Array<{
+      campaignId: string;
+      totalBudget: number;
+      dailyBudget: number;
+      spentToday: number;
+      remainingToday: number;
+      isExhausted: boolean;
+    }>
+  > {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const budgetSummaries = await Promise.all(
+        campaignIds.map(async (campaignId) => {
+          const [campaignBudget, dailyBudget] = await Promise.all([
+            this.prisma.campaignBudget.findUnique({
+              where: { campaignId },
+              select: {
+                totalBudget: true,
+                dailyBudget: true,
+                isExhausted: true,
+              },
+            }),
+            this.prisma.campaignDailyBudget.findUnique({
+              where: {
+                campaignId_date: {
+                  campaignId,
+                  date: today,
+                },
+              },
+              select: {
+                spentToday: true,
+                remainingToday: true,
+                isExhausted: true,
+              },
+            }),
+          ]);
+
+          return {
+            campaignId,
+            totalBudget: campaignBudget
+              ? Number(campaignBudget.totalBudget)
+              : 0,
+            dailyBudget: campaignBudget
+              ? Number(campaignBudget.dailyBudget)
+              : 0,
+            spentToday: dailyBudget ? Number(dailyBudget.spentToday) : 0,
+            remainingToday: dailyBudget
+              ? Number(dailyBudget.remainingToday)
+              : 0,
+            isExhausted:
+              (campaignBudget?.isExhausted || dailyBudget?.isExhausted) ??
+              false,
+          };
+        }),
+      );
+
+      return budgetSummaries;
+    } catch (error) {
+      this.logger.error('Failed to get campaigns budget summary', {
+        error: error.message,
+        campaignIds,
+      });
+      return [];
+    }
+  }
 }

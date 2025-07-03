@@ -8,7 +8,7 @@ import { ISeeder } from '../interfaces/seeder.interface';
 export class AdInventorySeeder implements ISeeder {
   private readonly logger = new Logger(AdInventorySeeder.name);
 
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   getModuleName(): string {
     return 'AdInventory';
@@ -76,7 +76,7 @@ export class AdInventorySeeder implements ISeeder {
           publisherId: website.publisherId,
           websiteId: website.id,
           name: inventoryName,
-          isActive: faker.datatype.boolean(0.8), // 80% chance of being active
+          isActive: faker.datatype.boolean(1), // 100% chance of being active
           adSlotTemplateId: template.id,
           viewabilityScore: faker.number.float({
             min: 0.4,

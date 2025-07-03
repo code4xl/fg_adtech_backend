@@ -173,16 +173,16 @@ export class BudgetIntelligenceService {
             behavioralTargeting: true,
             timeTargeting: true,
             frequencyTargeting: true,
-            campaignBudgetTracker: {
-              orderBy: { date: 'desc' },
-              take: 1,
-            },
+            // campaignBudgetTracker: { // -- ASIF PLS CHECK
+            //   orderBy: { date: 'desc' },
+            //   take: 1,
+            // },
             statistics: {
               orderBy: { date: 'desc' },
               take: 30,
             },
           }
-        : { 
+        : {
             demographicTargeting: true,
             geographicTargeting: true,
             deviceTargeting: true,
@@ -190,10 +190,10 @@ export class BudgetIntelligenceService {
             behavioralTargeting: true,
             timeTargeting: true,
             frequencyTargeting: true,
-            campaignBudgetTracker: {
-              orderBy: { date: 'desc' },
-              take: 1,
-            },
+            // campaignBudgetTracker: { // -- ASIF PLS CHECK
+            //   orderBy: { date: 'desc' },
+            //   take: 1,
+            // },
           },
     });
 
@@ -252,16 +252,16 @@ export class BudgetIntelligenceService {
     });
 
     // Get average budget from campaign budget trackers
-    const avgBudgetData = await this.prisma.campaignBudgetTracker.aggregate({
-      where: {
-        campaign: {
-          businessCategory: businessCategory as any,
-          status: { in: [CampaignStatus.ACTIVE, CampaignStatus.COMPLETED] },
-        },
-      },
-      _avg: { totalBudget: true, dailyBudget: true },
-    });
-
+    // const avgBudgetData = await this.prisma.campaignBudgetTracker.aggregate({
+    //   where: {
+    //     campaign: {
+    //       businessCategory: businessCategory as any,
+    //       status: { in: [CampaignStatus.ACTIVE, CampaignStatus.COMPLETED] },
+    //     },
+    //   },
+    //   _avg: { totalBudget: true, dailyBudget: true },
+    // });
+    const avgBudgetData = null; // -- ASIF PLS CHECK
     return {
       activeCompetitors: competitorCampaigns,
       averageBudget: Number(avgBudgetData._avg.totalBudget || 5000),
@@ -281,7 +281,7 @@ export class BudgetIntelligenceService {
     const currentBudgetTracker = campaign.campaignBudgetTracker?.[0];
     const currentBudget = Number(currentBudgetTracker?.totalBudget || 5000);
     const currentDaily = Number(currentBudgetTracker?.dailyBudget || 200);
-    
+
     const duration = Math.ceil(
       (new Date(campaign.endDate).getTime() -
         new Date(campaign.startDate).getTime()) /

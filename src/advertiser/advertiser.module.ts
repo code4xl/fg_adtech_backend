@@ -17,8 +17,8 @@ import { S3Module } from 'src/common/services/s3.module';
 import { MulterModule } from '@nestjs/platform-express';
 import { NotificationModule } from 'src/notification/notification.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
-import { CampaignBudgetTrackerController } from './advertiser.campaign-budget.controller';
-import { CampaignBudgetTrackerService } from './advertiser.campaign-budget.service';
+// import { CampaignBudgetTrackerController } from './advertiser.campaign-budget.controller';
+// import { CampaignBudgetTrackerService } from './advertiser.campaign-budget.service';
 import { AdvertiserClientController } from './advertiser.client.controller';
 import { AdvertiserClientService } from './advertiser.client.service';
 import { MailService } from 'src/mail/mail.service';
@@ -49,7 +49,7 @@ import { BudgetInitializationService } from 'src/tracking/services/budget-initia
     AdvertiserTargetingController,
     AdvertiserCampaignController,
     AdvertiserCreativeController,
-    CampaignBudgetTrackerController,
+    // CampaignBudgetTrackerController,
     AdvertiserClientController,
   ],
   providers: [
@@ -60,7 +60,7 @@ import { BudgetInitializationService } from 'src/tracking/services/budget-initia
     AdvertiserCreativeService,
     AdvertiserClientService,
     CreativeNotificationService,
-    CampaignBudgetTrackerService,
+    // CampaignBudgetTrackerService,
     CampaignEligibilityService,
     CampaignTargetingService,
     BudgetValidationService,
@@ -73,5 +73,4 @@ import { BudgetInitializationService } from 'src/tracking/services/budget-initia
   ],
   exports: [AdvertiserService],
 })
-
-export class AdvertiserModule { }
+export class AdvertiserModule {}
