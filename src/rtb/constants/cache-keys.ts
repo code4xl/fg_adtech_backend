@@ -53,7 +53,8 @@ export const CAMPAIGN_KEYS = {
   // Campaign Budget
   CAMPAIGN_BUDGET: (campaignId: string, date: string) =>
     `budget:campaign:${campaignId}:${date}`,
-  CAMPAIGN_BUDGET_INFO: (campaignId: string, today: string) => `campaign:budget:info:${campaignId}:${today}`
+  CAMPAIGN_BUDGET_INFO: (campaignId: string, today: string) =>
+    `campaign:budget:info:${campaignId}:${today}`,
 } as const;
 
 // Creative Management
@@ -74,7 +75,8 @@ export const CREATIVE_KEYS = {
   A_B_TEST: (testId: string) => `creative:abtest:${testId}`,
 
   // Round Robin Creative Selection
-  CREATIVE_ROUND_ROBIN: (campaignId: string) => `campaign:${campaignId}:creative_counter`
+  CREATIVE_ROUND_ROBIN: (campaignId: string) =>
+    `campaign:${campaignId}:creative_counter`,
 } as const;
 
 // Inventory & Publisher Management
@@ -128,7 +130,6 @@ export const PRICING_KEYS = {
     `bid:strategy:perf:${campaignId}:${strategy}`,
   OPTIMIZATION_FACTORS: (campaignId: string) =>
     `bid:optimization:factors:${campaignId}`,
-
 } as const;
 
 // Metrics & Analytics - COMPLETE IMPLEMENTATION
@@ -176,64 +177,115 @@ export const METRICS_KEYS = {
   WIN_COUNT: (hour: string) => `metrics:wins:${hour}`,
 
   // Legacy Existing Metrics (Keep for backward compatibility)
-  HOURLY_TOTAL_AUCTION_METRICS: (hour: number) => `metrics:auctions:total:${hour}`,
-  HOURLY_AUCTION_WINNER_METRICS: (winner: boolean, hour: number) => `metrics:auctions:${winner ? 'filled' : 'unfilled'}:${hour}`,
-  HOURLY_PROCESSING_TIME_METRICS: (hour: number) => `metrics:processing-time:${hour}`,
-  HOURLY_INVENTORY_REQUEST_METRICS: (inventoryId: string, hour: number) => `metrics:inventory:${inventoryId}:requests:${hour}`,
+  HOURLY_TOTAL_AUCTION_METRICS: (hour: number) =>
+    `metrics:auctions:total:${hour}`,
+  HOURLY_AUCTION_WINNER_METRICS: (winner: boolean, hour: number) =>
+    `metrics:auctions:${winner ? 'filled' : 'unfilled'}:${hour}`,
+  HOURLY_PROCESSING_TIME_METRICS: (hour: number) =>
+    `metrics:processing-time:${hour}`,
+  HOURLY_INVENTORY_REQUEST_METRICS: (inventoryId: string, hour: number) =>
+    `metrics:inventory:${inventoryId}:requests:${hour}`,
 
   // ===== NEW RTB METRICS IMPLEMENTATION =====
 
   // RTB Hourly Metrics
-  RTB_HOURLY_TOTAL_AUCTIONS: (hour: number, date: string) => `rtb:metrics:auctions:total:${date}:${hour}`,
-  RTB_HOURLY_AUCTION_STATUS: (status: string, hour: number, date: string) => `rtb:metrics:auctions:${status}:${date}:${hour}`,
-  RTB_HOURLY_PROCESSING_TIME: (hour: number, date: string) => `rtb:metrics:processing-time:${date}:${hour}`,
-  RTB_HOURLY_BID_COUNT: (hour: number, date: string) => `rtb:metrics:bids:total:${date}:${hour}`,
+  RTB_HOURLY_TOTAL_AUCTIONS: (hour: number, date: string) =>
+    `rtb:metrics:auctions:total:${date}:${hour}`,
+  RTB_HOURLY_AUCTION_STATUS: (status: string, hour: number, date: string) =>
+    `rtb:metrics:auctions:${status}:${date}:${hour}`,
+  RTB_HOURLY_PROCESSING_TIME: (hour: number, date: string) =>
+    `rtb:metrics:processing-time:${date}:${hour}`,
+  RTB_HOURLY_BID_COUNT: (hour: number, date: string) =>
+    `rtb:metrics:bids:total:${date}:${hour}`,
 
   // Real-time Throughput Metrics (minute-level)
-  RTB_THROUGHPUT_PER_MINUTE: (dateHourMinute: string) => `rtb:metrics:throughput:${dateHourMinute}`,
-  RTB_THROUGHPUT_BY_STATUS: (dateHourMinute: string, status: string) => `rtb:metrics:throughput:${status}:${dateHourMinute}`,
+  RTB_THROUGHPUT_PER_MINUTE: (dateHourMinute: string) =>
+    `rtb:metrics:throughput:${dateHourMinute}`,
+  RTB_THROUGHPUT_BY_STATUS: (dateHourMinute: string, status: string) =>
+    `rtb:metrics:throughput:${status}:${dateHourMinute}`,
 
   // Processing Time Distribution (performance buckets)
-  RTB_PROCESSING_TIME_BUCKET: (bucket: string, hour: number) => `rtb:metrics:processing-time:bucket:${bucket}:${hour}`,
+  RTB_PROCESSING_TIME_BUCKET: (bucket: string, hour: number) =>
+    `rtb:metrics:processing-time:bucket:${bucket}:${hour}`,
 
   // Error Tracking
-  RTB_ERROR_BY_TYPE: (errorType: string, hour: number, date: string) => `rtb:metrics:errors:${errorType}:${date}:${hour}`,
+  RTB_ERROR_BY_TYPE: (errorType: string, hour: number, date: string) =>
+    `rtb:metrics:errors:${errorType}:${date}:${hour}`,
   RTB_RECENT_ERRORS: () => `rtb:metrics:errors:recent`,
 
   // Real-time Counters (for live dashboards)
   RTB_REALTIME_COUNTER: (minute: number) => `rtb:metrics:realtime:${minute}`,
 
   // Campaign Specific Metrics
-  CAMPAIGN_HOURLY_IMPRESSIONS: (campaignId: string, hour: number, date: string) => `rtb:metrics:campaign:${campaignId}:impressions:${date}:${hour}`,
-  CAMPAIGN_HOURLY_CLICKS: (campaignId: string, hour: number, date: string) => `rtb:metrics:campaign:${campaignId}:clicks:${date}:${hour}`,
-  CAMPAIGN_HOURLY_SPEND: (campaignId: string, hour: number, date: string) => `rtb:metrics:campaign:${campaignId}:spend:${date}:${hour}`,
-  CAMPAIGN_HOURLY_CONVERSIONS: (campaignId: string, hour: number, date: string) => `rtb:metrics:campaign:${campaignId}:conversions:${date}:${hour}`,
+  CAMPAIGN_HOURLY_IMPRESSIONS: (
+    campaignId: string,
+    hour: number,
+    date: string,
+  ) => `rtb:metrics:campaign:${campaignId}:impressions:${date}:${hour}`,
+  CAMPAIGN_HOURLY_CLICKS: (campaignId: string, hour: number, date: string) =>
+    `rtb:metrics:campaign:${campaignId}:clicks:${date}:${hour}`,
+  CAMPAIGN_HOURLY_SPEND: (campaignId: string, hour: number, date: string) =>
+    `rtb:metrics:campaign:${campaignId}:spend:${date}:${hour}`,
+  CAMPAIGN_HOURLY_CONVERSIONS: (
+    campaignId: string,
+    hour: number,
+    date: string,
+  ) => `rtb:metrics:campaign:${campaignId}:conversions:${date}:${hour}`,
 
   // Inventory Specific Metrics
-  INVENTORY_HOURLY_REQUESTS: (inventoryId: string, hour: number, date: string) => `rtb:metrics:inventory:${inventoryId}:requests:${date}:${hour}`,
-  INVENTORY_HOURLY_REVENUE: (inventoryId: string, hour: number, date: string) => `rtb:metrics:inventory:${inventoryId}:revenue:${date}:${hour}`,
-  INVENTORY_HOURLY_FILL_RATE: (inventoryId: string, hour: number, date: string) => `rtb:metrics:inventory:${inventoryId}:fill-rate:${date}:${hour}`,
+  INVENTORY_HOURLY_REQUESTS: (
+    inventoryId: string,
+    hour: number,
+    date: string,
+  ) => `rtb:metrics:inventory:${inventoryId}:requests:${date}:${hour}`,
+  INVENTORY_HOURLY_REVENUE: (inventoryId: string, hour: number, date: string) =>
+    `rtb:metrics:inventory:${inventoryId}:revenue:${date}:${hour}`,
+  INVENTORY_HOURLY_FILL_RATE: (
+    inventoryId: string,
+    hour: number,
+    date: string,
+  ) => `rtb:metrics:inventory:${inventoryId}:fill-rate:${date}:${hour}`,
 
   // Publisher Specific Metrics
-  PUBLISHER_HOURLY_REVENUE: (publisherId: string, hour: number, date: string) => `rtb:metrics:publisher:${publisherId}:revenue:${date}:${hour}`,
-  PUBLISHER_HOURLY_REQUESTS: (publisherId: string, hour: number, date: string) => `rtb:metrics:publisher:${publisherId}:requests:${date}:${hour}`,
+  PUBLISHER_HOURLY_REVENUE: (publisherId: string, hour: number, date: string) =>
+    `rtb:metrics:publisher:${publisherId}:revenue:${date}:${hour}`,
+  PUBLISHER_HOURLY_REQUESTS: (
+    publisherId: string,
+    hour: number,
+    date: string,
+  ) => `rtb:metrics:publisher:${publisherId}:requests:${date}:${hour}`,
 
   // Advertiser Specific Metrics
-  ADVERTISER_HOURLY_SPEND: (advertiserId: string, hour: number, date: string) => `rtb:metrics:advertiser:${advertiserId}:spend:${date}:${hour}`,
-  ADVERTISER_HOURLY_IMPRESSIONS: (advertiserId: string, hour: number, date: string) => `rtb:metrics:advertiser:${advertiserId}:impressions:${date}:${hour}`,
+  ADVERTISER_HOURLY_SPEND: (advertiserId: string, hour: number, date: string) =>
+    `rtb:metrics:advertiser:${advertiserId}:spend:${date}:${hour}`,
+  ADVERTISER_HOURLY_IMPRESSIONS: (
+    advertiserId: string,
+    hour: number,
+    date: string,
+  ) => `rtb:metrics:advertiser:${advertiserId}:impressions:${date}:${hour}`,
 
   // Creative Performance Metrics
-  CREATIVE_HOURLY_IMPRESSIONS: (creativeId: string, hour: number, date: string) => `rtb:metrics:creative:${creativeId}:impressions:${date}:${hour}`,
-  CREATIVE_HOURLY_CLICKS: (creativeId: string, hour: number, date: string) => `rtb:metrics:creative:${creativeId}:clicks:${date}:${hour}`,
-  CREATIVE_HOURLY_CTR: (creativeId: string, hour: number, date: string) => `rtb:metrics:creative:${creativeId}:ctr:${date}:${hour}`,
+  CREATIVE_HOURLY_IMPRESSIONS: (
+    creativeId: string,
+    hour: number,
+    date: string,
+  ) => `rtb:metrics:creative:${creativeId}:impressions:${date}:${hour}`,
+  CREATIVE_HOURLY_CLICKS: (creativeId: string, hour: number, date: string) =>
+    `rtb:metrics:creative:${creativeId}:clicks:${date}:${hour}`,
+  CREATIVE_HOURLY_CTR: (creativeId: string, hour: number, date: string) =>
+    `rtb:metrics:creative:${creativeId}:ctr:${date}:${hour}`,
 
   // Geo Performance Metrics
-  GEO_HOURLY_REQUESTS: (country: string, hour: number, date: string) => `rtb:metrics:geo:${country}:requests:${date}:${hour}`,
-  GEO_HOURLY_REVENUE: (country: string, hour: number, date: string) => `rtb:metrics:geo:${country}:revenue:${date}:${hour}`,
+  GEO_HOURLY_REQUESTS: (country: string, hour: number, date: string) =>
+    `rtb:metrics:geo:${country}:requests:${date}:${hour}`,
+  GEO_HOURLY_REVENUE: (country: string, hour: number, date: string) =>
+    `rtb:metrics:geo:${country}:revenue:${date}:${hour}`,
 
   // Device Performance Metrics
-  DEVICE_HOURLY_REQUESTS: (deviceType: string, hour: number, date: string) => `rtb:metrics:device:${deviceType}:requests:${date}:${hour}`,
-  DEVICE_HOURLY_REVENUE: (deviceType: string, hour: number, date: string) => `rtb:metrics:device:${deviceType}:revenue:${date}:${hour}`,
+  DEVICE_HOURLY_REQUESTS: (deviceType: string, hour: number, date: string) =>
+    `rtb:metrics:device:${deviceType}:requests:${date}:${hour}`,
+  DEVICE_HOURLY_REVENUE: (deviceType: string, hour: number, date: string) =>
+    `rtb:metrics:device:${deviceType}:revenue:${date}:${hour}`,
 
   // System Health Metrics
   SYSTEM_HEALTH_STATUS: () => `rtb:metrics:system:health`,
@@ -253,8 +305,10 @@ export const PATTERN_KEYS = {
 
 export const CLICK_AND_IMPRESSION_KEYS = {
   // Budget tracking (real-time)
-  DAILY_BUDGET_SPEND: (campaignId: string, date: string) => `budget:daily:${campaignId}:${date}`,
-  DAILY_BUDGET_LIMIT: (campaignId: string) => `budget:limit:${campaignId}`,
+  DAILY_BUDGET_SPEND: (campaignId: string, date: string) =>
+    `campaign:budget:daily:${campaignId}:${date}`,
+  DAILY_BUDGET_LIMIT: (campaignId: string) =>
+    `campaign:budget:limit:${campaignId}`,
   CAMPAIGN_STATUS: (campaignId: string) => `campaign:status:${campaignId}`,
 
   // Event queues (before database flush)
@@ -262,29 +316,36 @@ export const CLICK_AND_IMPRESSION_KEYS = {
   PENDING_CLICKS: 'events:clicks:pending',
 
   // Real-time metrics
-  CAMPAIGN_IMPRESSIONS: (campaignId: string, date: string) => `metrics:campaign:${campaignId}:impressions:${date}`,
-  CAMPAIGN_CLICKS: (campaignId: string, date: string) => `metrics:campaign:${campaignId}:clicks:${date}`,
-  CREATIVE_IMPRESSIONS: (creativeId: string, date: string) => `metrics:creative:${creativeId}:impressions:${date}`,
-  CREATIVE_CLICKS: (creativeId: string, date: string) => `metrics:creative:${creativeId}:clicks:${date}`,
+  CAMPAIGN_IMPRESSIONS: (campaignId: string, date: string) =>
+    `metrics:campaign:${campaignId}:impressions:${date}`,
+  CAMPAIGN_CLICKS: (campaignId: string, date: string) =>
+    `metrics:campaign:${campaignId}:clicks:${date}`,
+  CREATIVE_IMPRESSIONS: (creativeId: string, date: string) =>
+    `metrics:creative:${creativeId}:impressions:${date}`,
+  CREATIVE_CLICKS: (creativeId: string, date: string) =>
+    `metrics:creative:${creativeId}:clicks:${date}`,
 
   // Revenue tracking
-  PUBLISHER_REVENUE: (publisherId: string, date: string) => `revenue:publisher:${publisherId}:${date}`,
+  PUBLISHER_REVENUE: (publisherId: string, date: string) =>
+    `revenue:publisher:${publisherId}:${date}`,
   PLATFORM_REVENUE: (date: string) => `revenue:platform:${date}`,
 
   // Bid Response
-  BID_RESPONSE: (bidResponseId: string) =>
-    `bid:response:${bidResponseId}`,
+  BID_RESPONSE: (bidResponseId: string) => `bid:response:${bidResponseId}`,
 
   // Click Fraud Detection
-  IP_IMPRESSION_COUNT: (ip: string, date: string) => `fraud:ip:impressions:${ip}:${date}`,
+  IP_IMPRESSION_COUNT: (ip: string, date: string) =>
+    `fraud:ip:impressions:${ip}:${date}`,
   IP_CLICK_COUNT: (ip: string, date: string) => `fraud:ip:clicks:${ip}:${date}`,
   CAMPAIGN_IP_COUNT: (campaignId: string, ip: string, date: string) =>
     `fraud:campaign:${campaignId}:ip:${ip}:${date}`,
-  USER_AGENT_COUNT: (uaHash: string, date: string) => `fraud:ua:${uaHash}:${date}`,
-  IMPRESSION_TIMESTAMP: (impressionId: string) => `fraud:impression:${impressionId}:timestamp`,
+  USER_AGENT_COUNT: (uaHash: string, date: string) =>
+    `fraud:ua:${uaHash}:${date}`,
+  IMPRESSION_TIMESTAMP: (impressionId: string) =>
+    `fraud:impression:${impressionId}:timestamp`,
   BLOCKED_IPS: 'fraud:blocked:ips',
   BLOCKED_USER_AGENTS: 'fraud:blocked:uas',
-}
+};
 
 // Health Check Keys
 export const HEALTH_KEYS = {
