@@ -56,3 +56,16 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Project documentation and guides
+CDN_WORKFLOW_DOCUMENTATION.md
+CORS_FIX_SUMMARY.md
+DOCKER_LOCAL_TESTING_GUIDE.md
+helper-commands.md
+LOCAL_TESTING_SETUP.md
+Ocean_Ads_SDK_v2_Documentation.md
+README-SDK-SETUP.md
+RTB_INTEGRATION_COMPLETE.md
+RTB_FIX_SUMMARY.md
+SDK_CONNECTION_GUIDE.md
+SDK_INTEGRATION_GUIDE.md
