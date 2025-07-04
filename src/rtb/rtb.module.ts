@@ -24,6 +24,7 @@ import { BudgetValidationService } from 'src/tracking/services/budget-validation
 import { BudgetInitializationService } from 'src/tracking/services/budget-initialization.service';
 import { ImpressionClickLinkingService } from 'src/tracking/services/impression-click-linking.service';
 import { TrackingModule } from 'src/tracking/tracking.module';
+import { BudgetRedisSyncService } from 'src/tracking/services/budget-redis-sync.service';
 
 @Module({
   imports: [PrismaModule, RedisModule, KafkaModule, TrackingModule],
@@ -50,6 +51,7 @@ import { TrackingModule } from 'src/tracking/tracking.module';
     RtbCacheService,
     RtbHelper,
     BudgetValidationService,
+    BudgetRedisSyncService,
   ],
   exports: [
     RtbService,
@@ -64,6 +66,7 @@ import { TrackingModule } from 'src/tracking/tracking.module';
     AuctionProducer,
     RtbHelper,
     BudgetValidationService,
+    BudgetRedisSyncService,
   ],
 })
 export class RTBModule implements OnModuleInit {

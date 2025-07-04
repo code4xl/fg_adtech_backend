@@ -26,14 +26,12 @@ import { BudgetRedisSyncService } from './services/budget-redis-sync.service';
     RedisPostgresSyncService,
     TimescaleService,
     TrackingService,
-
-    // ADD THESE MISSING PROVIDERS:
     BudgetValidationService,
     FraudDetectionService,
     BudgetInitializationService,
     ImpressionClickLinkingService,
     BudgetRedisSyncService,
-    PostgresTimescaleSyncService, // Add this
+    PostgresTimescaleSyncService,
   ],
   exports: [
     TrackingService,
@@ -41,7 +39,6 @@ import { BudgetRedisSyncService } from './services/budget-redis-sync.service';
     TimescaleService,
     PostgresTimescaleSyncService,
     BudgetRedisSyncService,
-    // OPTIONALLY EXPORT THESE TOO:
     BudgetValidationService,
     FraudDetectionService,
     BudgetInitializationService,

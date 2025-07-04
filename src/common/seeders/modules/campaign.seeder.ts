@@ -108,10 +108,10 @@ export class CampaignSeeder implements ISeeder {
           bidStrategy === BidStrategy.TARGET_COST
             ? faker.number.float({
                 min: 0.5,
-                max: 50.0,
+                max: 3,
                 fractionDigits: 2,
               })
-            : null;
+            : 1.0;
 
         // Generate targeting arrays
         const selectedInterests = faker.helpers.arrayElements(interests, {
@@ -158,7 +158,7 @@ export class CampaignSeeder implements ISeeder {
             status: CampaignStatus.ACTIVE,
             objective: CampaignObjective.AWARENESS,
             bidStrategy: BidStrategy.LOWEST_COST,
-            bidAmount: null,
+            bidAmount: 1.0,
             pacing: CampaignPacing.STANDARD,
             businessCategory: BusinessCategory.TECHNOLOGY,
             websiteUrl: 'https://example.com',
