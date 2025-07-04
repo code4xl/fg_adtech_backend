@@ -20,7 +20,7 @@ export class AdvertiserSeeder implements ISeeder {
     return [];
   }
 
-  async seed(count: number = 30): Promise<void> {
+  async seed(count: number = 150): Promise<void> {
     this.logger.log(`Seeding ${count} advertisers...`);
 
     try {

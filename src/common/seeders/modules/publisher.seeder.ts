@@ -20,7 +20,7 @@ export class PublisherSeeder implements ISeeder {
     return [];
   }
 
-  async seed(count: number = 50): Promise<void> {
+  async seed(count: number = 200): Promise<void> {
     this.logger.log(`Seeding ${count} publishers...`);
 
     try {

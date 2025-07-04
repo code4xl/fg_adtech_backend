@@ -17,14 +17,18 @@ import { S3Module } from 'src/common/services/s3.module';
 import { MulterModule } from '@nestjs/platform-express';
 import { NotificationModule } from 'src/notification/notification.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
-import { CampaignBudgetTrackerController } from './advertiser.campaign-budget.controller';
-import { CampaignBudgetTrackerService } from './advertiser.campaign-budget.service';
+// import { CampaignBudgetTrackerController } from './advertiser.campaign-budget.controller';
+// import { CampaignBudgetTrackerService } from './advertiser.campaign-budget.service';
 import { AdvertiserClientController } from './advertiser.client.controller';
 import { AdvertiserClientService } from './advertiser.client.service';
 import { MailService } from 'src/mail/mail.service';
 import { MailModule } from 'src/mail/mail.module';
 import { AuthService } from 'src/auth/auth.service';
 import { JwtModule, JwtService } from '@nestjs/jwt';
+import { CampaignEligibilityService } from 'src/rtb/services/campaign-eligibility.service';
+import { CampaignTargetingService } from 'src/rtb/services/campaign-targeting.service';
+import { BudgetValidationService } from 'src/tracking/services/budget-validation.service';
+import { BudgetInitializationService } from 'src/tracking/services/budget-initialization.service';
 
 @Module({
   imports: [
@@ -45,7 +49,7 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
     AdvertiserTargetingController,
     AdvertiserCampaignController,
     AdvertiserCreativeController,
-    CampaignBudgetTrackerController,
+    // CampaignBudgetTrackerController,
     AdvertiserClientController,
   ],
   providers: [
@@ -56,7 +60,12 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
     AdvertiserCreativeService,
     AdvertiserClientService,
     CreativeNotificationService,
-    CampaignBudgetTrackerService,
+    // CampaignBudgetTrackerService,
+    CampaignEligibilityService,
+    CampaignTargetingService,
+    BudgetValidationService,
+    BudgetInitializationService,
+    RedisService,
     S3StorageService,
     MailService,
     AuthService,
@@ -64,5 +73,4 @@ import { JwtModule, JwtService } from '@nestjs/jwt';
   ],
   exports: [AdvertiserService],
 })
-
-export class AdvertiserModule { }
+export class AdvertiserModule {}

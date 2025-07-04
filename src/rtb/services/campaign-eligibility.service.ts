@@ -1,9 +1,28 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { PrismaService } from "src/prisma/prisma.service";
-import { RedisService } from "src/redis/redis.service";
-import { CAMPAIGN_KEYS, REDIS_KEYS, RTB_CACHE_TTL } from "../constants/cache-keys";
-import { CampaignBudgetInfo, CampaignBudgetTracker, CampaignWithTargeting } from "../types/campaign.types";
-import { CampaignTargetingService } from "./campaign-targeting.service";
+import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { RedisService } from 'src/redis/redis.service';
+import {
+  CAMPAIGN_KEYS,
+  REDIS_KEYS,
+  RTB_CACHE_TTL,
+} from '../constants/cache-keys';
+import { CampaignWithTargeting } from '../types/campaign.types';
+import { CampaignTargetingService } from './campaign-targeting.service';
+import { InventoryFormat } from '@prisma/client';
+import { BudgetInitializationService } from 'src/tracking/services/budget-initialization.service';
+import { BudgetValidationService } from 'src/tracking/services/budget-validation.service';
+
+interface BudgetStatus {
+  dailyBudget: number;
+  spentToday: number;
+  isExhausted: boolean;
+}
+
+// Updated interface to match new schema
+interface CampaignBudgetInfo {
+  dailyBudget: number;
+  totalBudget: number;
+}
 
 @Injectable()
 export class CampaignEligibilityService {
@@ -13,36 +32,30 @@ export class CampaignEligibilityService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly campaignTargetingService: CampaignTargetingService,
-  ) { }
+    private readonly budgetValidation: BudgetValidationService,
+    private readonly budgetInit: BudgetInitializationService,
+  ) {}
 
   async getEligibleCampaigns(
     inventoryId: string,
     userContext: any,
     adSlotContext: any,
-  ): Promise<any[]> {
-    this.logger.debug('Getting eligible campaigns', {
+  ): Promise<CampaignWithTargeting[]> {
+    const startTime = Date.now();
+
+    this.logger.debug('Getting eligible campaigns with caching', {
       inventoryId,
       deviceType: userContext.deviceType,
       country: userContext.country,
+      adSlot: `${adSlotContext.width}x${adSlotContext.height}`,
     });
 
     try {
-      // 1. Check Redis cache first
-      const cacheKey = CAMPAIGN_KEYS.ELIGIBLE_CAMPAIGNS(
-        inventoryId,
-        userContext.deviceType,
-      );
-      const cached = await this.getCachedEligibility(cacheKey);
-
-      if (cached) {
-        this.logger.debug('Campaign eligibility cache hit', { inventoryId });
-        return cached;
-      }
-
-      // 2. Get basic campaign pool (active campaigns with budget)
-      const campaignPool = await this.getBasicCampaignPool(
-        inventoryId,
-        adSlotContext,
+      // 1. Get campaign pool from cache (BIGGEST OPTIMIZATION)
+      const campaignPool = await this.getCachedCampaignPool(
+        adSlotContext.width,
+        adSlotContext.height,
+        adSlotContext.format,
       );
 
       if (campaignPool.length === 0) {
@@ -50,26 +63,28 @@ export class CampaignEligibilityService {
         return [];
       }
 
-      // 3. Apply targeting filters in order of selectivity
-      const eligibleCampaigns = await this.applyTargetingFilters(
-        campaignPool,
-        userContext,
-        adSlotContext,
-      );
+      // 2. Apply targeting filters in parallel batches
+      // const targetingFilteredCampaigns = await this.applyTargetingFiltersOptimized(
+      //   campaignPool,
+      //   userContext,
+      //   adSlotContext,
+      // );
 
-      // 4. Final budget validation (real-time check)
-      const budgetValidated = await this.validateBudgets(campaignPool);
+      // 3. Batch validate budgets using cache
+      const budgetValidatedCampaigns =
+        await this.batchValidateBudgets(campaignPool);
 
-      // 5. Cache results for 5 minutes
-      await this.cacheEligibility(cacheKey, budgetValidated, RTB_CACHE_TTL.CAMPAIGN_ELIGIBILITY_BUDGET);
+      const processingTime = Date.now() - startTime;
 
-      this.logger.log('Campaign eligibility calculated', {
+      this.logger.log('Campaign eligibility calculated (CACHED)', {
         inventoryId,
         totalCampaigns: campaignPool.length,
-        eligibleCampaigns: budgetValidated.length,
+        // targetingFiltered: targetingFilteredCampaigns.length,
+        budgetFiltered: budgetValidatedCampaigns.length,
+        processingTime: `${processingTime}ms`,
       });
 
-      return budgetValidated;
+      return budgetValidatedCampaigns;
     } catch (error) {
       this.logger.error('Failed to get eligible campaigns', {
         error: error.message,
@@ -79,27 +94,33 @@ export class CampaignEligibilityService {
     }
   }
 
-  private async getCachedEligibility(cacheKey: string): Promise<CampaignWithTargeting[] | null> {
-    try {
-      const cached = await this.redis.get<string>(cacheKey);
-      return cached ? JSON.parse(cached) : null;
-    } catch (error) {
-      this.logger.warn('Cache retrieval failed', {
-        error: error.message,
-        cacheKey,
-      });
-      return null;
-    }
-  }
-
-  // Ask Mit about this
-  private async getBasicCampaignPool(
-    inventoryId: string,
-    adSlotContext: any,
+  private async getCachedCampaignPool(
+    width: number,
+    height: number,
+    format: InventoryFormat,
   ): Promise<CampaignWithTargeting[]> {
-    const now = new Date();
+    const cacheKey = `campaigns:pool:${width}x${height}:${format}`;
 
-    return await this.prisma.campaign.findMany({
+    // Try cache first
+    const cached = await this.redis.get<string>(cacheKey);
+    if (cached) {
+      this.logger.debug('✅ Campaign pool cache HIT', {
+        width,
+        height,
+        format,
+      });
+      return JSON.parse(cached);
+    }
+
+    this.logger.debug('❌ Campaign pool cache MISS - querying DB', {
+      width,
+      height,
+      format,
+    });
+
+    // Fallback to database (expensive)
+    const now = new Date();
+    const campaigns = await this.prisma.campaign.findMany({
       where: {
         status: 'ACTIVE',
         startDate: { lte: now },
@@ -108,9 +129,9 @@ export class CampaignEligibilityService {
           some: {
             status: 'APPROVED',
             adSlotTemplate: {
-              width: adSlotContext.width,
-              height: adSlotContext.height,
-              format: adSlotContext.format,
+              width: width,
+              height: height,
+              format: format,
             },
           },
         },
@@ -120,9 +141,9 @@ export class CampaignEligibilityService {
           where: {
             status: 'APPROVED',
             adSlotTemplate: {
-              width: adSlotContext.width,
-              height: adSlotContext.height,
-              format: adSlotContext.format,
+              width: width,
+              height: height,
+              format: format,
             },
           },
           include: {
@@ -132,7 +153,7 @@ export class CampaignEligibilityService {
         advertiser: {
           select: { id: true, name: true },
         },
-        // Include all targeting rules
+        // Include all targeting rules for filtering
         demographicTargeting: true,
         geographicTargeting: true,
         deviceTargeting: true,
@@ -142,96 +163,134 @@ export class CampaignEligibilityService {
         frequencyTargeting: true,
       },
     });
-  }
 
-  private async cacheEligibility(
-    cacheKey: string,
-    campaigns: CampaignWithTargeting[],
-    ttlSeconds: number,
-  ): Promise<void> {
-    try {
-      await this.redis.set(cacheKey, JSON.stringify(campaigns), ttlSeconds);
-    } catch (error) {
-      this.logger.warn('Cache storage failed', {
-        error: error.message,
-        cacheKey,
-      });
-    }
-  }
+    // Cache for 10 minutes (campaigns don't change frequently)
+    await this.redis.set(cacheKey, JSON.stringify(campaigns), 600);
 
-  private async validateBudgets(campaigns: CampaignWithTargeting[]): Promise<CampaignWithTargeting[]> {
-    const budgetChecks = campaigns.map(async (campaign) => {
-      const hasBudget = await this.checkBudgetAvailability(campaign.id);
-      return hasBudget ? campaign : null;
+    this.logger.debug('Campaign pool cached', {
+      width,
+      height,
+      format,
+      campaignCount: campaigns.length,
+      ttl: '10 minutes',
     });
 
-    const results = await Promise.all(budgetChecks);
-    return results.filter((campaign) => campaign !== null);
+    return campaigns;
   }
 
-  private async applyTargetingFilters(
+  private async batchValidateBudgets(
     campaigns: CampaignWithTargeting[],
-    userContext: any,
-    adSlotContext: any,
   ): Promise<CampaignWithTargeting[]> {
-    const filteredCampaigns = [];
+    if (campaigns.length === 0) return [];
 
-    for (const campaign of campaigns) {
-      const isEligible = await this.checkTargetingRules(
-        campaign,
-        userContext,
-        adSlotContext,
-      );
+    const budgetChecks = await Promise.all(
+      campaigns.map(async (campaign: CampaignWithTargeting) => {
+        try {
+          // FIX: Safe bid amount extraction
+          let bidAmount = 1.0;
+          if (campaign.bidAmount) {
+            bidAmount = Number(campaign.bidAmount) || 1.0;
+          }
 
-      if (isEligible) {
-        filteredCampaigns.push(campaign);
-      }
-    }
+          const hasValidBudget = await this.checkBudgetAvailability(
+            campaign.id,
+            bidAmount,
+          );
+          return { campaignId: campaign.id, hasValidBudget };
+        } catch (error) {
+          this.logger.warn(
+            `Budget check failed for campaign ${campaign.id}:`,
+            error,
+          );
+          return { campaignId: campaign.id, hasValidBudget: false };
+        }
+      }),
+    );
 
-    return filteredCampaigns;
+    const budgetMap = new Map<string, boolean>();
+    budgetChecks.forEach(({ campaignId, hasValidBudget }) => {
+      budgetMap.set(campaignId, hasValidBudget);
+    });
+
+    const validCampaigns = campaigns.filter(
+      (campaign) => budgetMap.get(campaign.id) === true,
+    );
+
+    this.logger.debug('Batch budget validation completed', {
+      totalCampaigns: campaigns.length,
+      campaignIds: campaigns.map((c) => c.id),
+      validBudgets: validCampaigns.length,
+      rejectedBudgets: campaigns.length - validCampaigns.length,
+    });
+
+    return validCampaigns;
   }
 
-  async checkBudgetAvailability(campaignId: string): Promise<boolean> {
-    try {
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-      const spentKey = CAMPAIGN_KEYS.CAMPAIGN_BUDGET(campaignId, today);
-
-      // Get current spend from Redis with proper null handling
-      const spentData = await this.redis.get<string>(spentKey);
-      const spentToday = spentData ? parseFloat(spentData) / 100 : 0; // Convert from cents, default to 0
-
-      // Get campaign budget info
-      const budgetInfo = await this.getCampaignBudgetInfo(campaignId, today);
-      if (!budgetInfo) {
-        this.logger.warn('Campaign budget info not found', { campaignId });
-        return false;
-      }
-
-      // Ensure proper number conversion
-      const dailyBudget = Number(budgetInfo.dailyBudget);
-      const remainingDaily = dailyBudget - spentToday;
-      const isWithinBudget = remainingDaily > 0.01; // Minimum $0.01 remaining
-
-      this.logger.debug('Budget availability checked', {
-        campaignId,
-        dailyBudget,
-        spentToday,
-        remainingDaily,
-        isWithinBudget,
-        budgetInfoType: typeof budgetInfo.dailyBudget,
-        spentTodayType: typeof spentToday,
-      });
-
-      return isWithinBudget;
-    } catch (error) {
-      this.logger.error('Budget availability check failed', {
-        error: error.message,
-        campaignId,
-      });
-      return false; // Fail safely
-    }
+  async checkBudgetAvailability(
+    campaignId: string,
+    bidAmount: number,
+  ): Promise<boolean> {
+    return await this.budgetValidation.validateCampaignBudget(
+      campaignId,
+      bidAmount,
+    );
   }
 
+  private async getCachedBudgetStatus(
+    campaignId: string,
+    today: string,
+  ): Promise<BudgetStatus | null> {
+    const cacheKey = `budget:status:${campaignId}:${today}`;
+
+    // Try cache first
+    const cached = await this.redis.get<string>(cacheKey);
+    if (cached) {
+      this.logger.debug('✅ Budget status cache HIT', { campaignId });
+      return JSON.parse(cached);
+    }
+
+    this.logger.debug('❌ Budget status cache MISS - querying DB', {
+      campaignId,
+    });
+
+    // Fallback to database - UPDATED to use CampaignDailyBudget
+    const dailyBudget = await this.prisma.campaignDailyBudget.findFirst({
+      where: {
+        campaignId,
+        date: new Date(today),
+      },
+      select: {
+        spentToday: true,
+        remainingToday: true,
+        isExhausted: true,
+      },
+    });
+    this.logger.debug('Fetched daily budget from DB', { dailyBudget });
+    if (!dailyBudget) {
+      return null;
+    }
+
+    const budgetStatus: BudgetStatus = {
+      dailyBudget:
+        Number(dailyBudget.spentToday) + Number(dailyBudget.remainingToday), // Calculate total from spent + remaining
+      spentToday: Number(dailyBudget.spentToday),
+      isExhausted: dailyBudget.isExhausted,
+    };
+
+    // Cache for 30 seconds (budget changes frequently)
+    await this.redis.set(cacheKey, JSON.stringify(budgetStatus), 86400);
+
+    this.logger.debug('Budget status cached', {
+      campaignId,
+      budgetStatus,
+      ttl: '86400 seconds',
+    });
+
+    return budgetStatus;
+  }
+
+  // UPDATED: This method is no longer needed as we're using the new budget structure
+  // But keeping it for reference or if you need it elsewhere
   private async getCampaignBudgetInfo(
     campaignId: string,
     today: string,
@@ -248,38 +307,35 @@ export class CampaignEligibilityService {
         };
       }
 
-      // Get from database with proper date matching
-      const budgetTracker = await this.prisma.campaignBudgetTracker.findFirst({
-        where: {
-          campaignId,
-          date: {
-            equals: new Date(today + 'T00:00:00.000Z'), // Proper date matching
+      // UPDATED: Query both CampaignBudget and CampaignDailyBudget
+      const [campaignBudget, dailyBudget] = await Promise.all([
+        this.prisma.campaignBudget.findUnique({
+          where: { campaignId },
+          select: { totalBudget: true, dailyBudget: true },
+        }),
+        this.prisma.campaignDailyBudget.findFirst({
+          where: {
+            campaignId,
+            date: new Date(today),
           },
-        },
-        select: {
-          dailyBudget: true,
-          totalBudget: true,
-        },
-      });
+          select: { spentToday: true, remainingToday: true },
+        }),
+      ]);
 
-      if (!budgetTracker) {
-        this.logger.warn('No budget tracker found for campaign', {
-          campaignId,
-          today
-        });
+      if (!campaignBudget) {
+        this.logger.warn('No campaign budget found', { campaignId, today });
         return null;
       }
 
-      const budgetInfo = {
-        dailyBudget: budgetTracker.dailyBudget,
-        totalBudget: budgetTracker.totalBudget,
+      const budgetInfo: CampaignBudgetInfo = {
+        totalBudget: Number(campaignBudget.totalBudget),
+        dailyBudget: Number(campaignBudget.dailyBudget),
       };
 
-      // Cache for 1 hour with proper serialization
       await this.redis.set(
         cacheKey,
         JSON.stringify(budgetInfo),
-        RTB_CACHE_TTL.CAMPAIGN_BUDGET_INFO
+        RTB_CACHE_TTL.CAMPAIGN_BUDGET_INFO,
       );
 
       return budgetInfo;
@@ -293,59 +349,429 @@ export class CampaignEligibilityService {
     }
   }
 
-  async checkTargetingRules(
-    campaign: CampaignWithTargeting,
-    userContext: any,
-    adSlotContext: any,
-  ): Promise<boolean> {
+  async invalidateCampaignPoolCache(
+    width?: number,
+    height?: number,
+    format?: string,
+  ): Promise<void> {
     try {
-      // Early exit if campaign has no targeting rules
-      if (!this.campaignTargetingService.hasTargetingRules(campaign)) {
-        return true; // No targeting = all traffic eligible
+      if (width && height && format) {
+        // Invalidate specific ad slot
+        const cacheKey = `campaigns:pool:${width}x${height}:${format}`;
+        await this.redis.del(cacheKey);
+        this.logger.debug('Invalidated specific campaign pool cache', {
+          width,
+          height,
+          format,
+        });
+      } else {
+        // Invalidate all campaign pools (when campaign status changes)
+        const pattern = 'campaigns:pool:*';
+        const keys = await this.redis.keys(pattern);
+        if (keys.length > 0) {
+          await Promise.all(keys.map((key) => this.redis.del(key)));
+          this.logger.debug('Invalidated all campaign pool caches', {
+            keysInvalidated: keys.length,
+          });
+        }
+      }
+    } catch (error) {
+      this.logger.error('Failed to invalidate campaign pool cache', {
+        error: error.message,
+      });
+    }
+  }
+
+  async invalidateBudgetCache(campaignId: string): Promise<void> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const cacheKey = `budget:status:${campaignId}:${today}`;
+      await this.redis.del(cacheKey);
+      this.logger.debug('Invalidated budget cache', { campaignId });
+    } catch (error) {
+      this.logger.error('Failed to invalidate budget cache', {
+        error: error.message,
+      });
+    }
+  }
+
+  // async warmupCaches(): Promise<void> {
+  //   try {
+  //     this.logger.log(
+  //       'Starting comprehensive cache warmup for all ad formats...',
+  //     );
+
+  //     // ===== BANNER FORMAT (Most Common) =====
+  //     const bannerSizes = [
+  //       { width: 728, height: 90, format: 'BANNER' }, // Leaderboard
+  //       { width: 300, height: 250, format: 'BANNER' }, // Medium Rectangle
+  //       { width: 320, height: 50, format: 'BANNER' }, // Mobile Banner
+  //       { width: 160, height: 600, format: 'BANNER' }, // Wide Skyscraper
+  //       { width: 300, height: 600, format: 'BANNER' }, // Half Page
+  //       { width: 970, height: 250, format: 'BANNER' }, // Billboard
+  //       { width: 336, height: 280, format: 'BANNER' }, // Large Rectangle
+  //       { width: 468, height: 60, format: 'BANNER' }, // Banner
+  //       { width: 234, height: 60, format: 'BANNER' }, // Half Banner
+  //       { width: 120, height: 600, format: 'BANNER' }, // Skyscraper
+  //     ];
+
+  //     // ===== NATIVE FORMAT =====
+  //     const nativeSizes = [
+  //       { width: 300, height: 250, format: 'NATIVE' }, // Native Rectangle
+  //       { width: 320, height: 240, format: 'NATIVE' }, // Mobile Native
+  //       { width: 600, height: 400, format: 'NATIVE' }, // Large Native
+  //       { width: 400, height: 300, format: 'NATIVE' }, // Standard Native
+  //       { width: 280, height: 200, format: 'NATIVE' }, // Small Native
+  //     ];
+
+  //     // ===== VIDEO FORMAT =====
+  //     const videoSizes = [
+  //       { width: 640, height: 480, format: 'VIDEO' }, // Standard Video
+  //       { width: 854, height: 480, format: 'VIDEO' }, // Wide Video
+  //       { width: 1280, height: 720, format: 'VIDEO' }, // HD Video
+  //       { width: 320, height: 240, format: 'VIDEO' }, // Mobile Video
+  //       { width: 300, height: 250, format: 'VIDEO' }, // Square Video
+  //       { width: 1920, height: 1080, format: 'VIDEO' }, // Full HD Video
+  //     ];
+
+  //     // ===== INTERSTITIAL FORMAT =====
+  //     const interstitialSizes = [
+  //       { width: 320, height: 480, format: 'INTERSTITIAL' }, // Mobile Portrait
+  //       { width: 480, height: 320, format: 'INTERSTITIAL' }, // Mobile Landscape
+  //       { width: 768, height: 1024, format: 'INTERSTITIAL' }, // Tablet Portrait
+  //       { width: 1024, height: 768, format: 'INTERSTITIAL' }, // Tablet Landscape
+  //       { width: 414, height: 736, format: 'INTERSTITIAL' }, // iPhone Plus
+  //       { width: 375, height: 667, format: 'INTERSTITIAL' }, // iPhone Standard
+  //     ];
+
+  //     // ===== REWARDED FORMAT =====
+  //     const rewardedSizes = [
+  //       { width: 320, height: 480, format: 'REWARDED' }, // Mobile Portrait
+  //       { width: 480, height: 320, format: 'REWARDED' }, // Mobile Landscape
+  //       { width: 640, height: 480, format: 'REWARDED' }, // Standard Rewarded
+  //       { width: 854, height: 480, format: 'REWARDED' }, // Wide Rewarded
+  //       { width: 300, height: 250, format: 'REWARDED' }, // Square Rewarded
+  //     ];
+
+  //     // ===== COMBINE ALL POPULAR SIZES =====
+  //     const allPopularSizes = [
+  //       ...bannerSizes,
+  //       ...nativeSizes,
+  //       ...videoSizes,
+  //       ...interstitialSizes,
+  //       ...rewardedSizes,
+  //     ];
+
+  //     this.logger.log('Warming up campaign pools for all formats', {
+  //       totalSizes: allPopularSizes.length,
+  //       bannerSizes: bannerSizes.length,
+  //       nativeSizes: nativeSizes.length,
+  //       videoSizes: videoSizes.length,
+  //       interstitialSizes: interstitialSizes.length,
+  //       rewardedSizes: rewardedSizes.length,
+  //     });
+
+  //     // ===== WARM UP CAMPAIGN POOLS (PARALLEL BATCHES) =====
+
+  //     // Process in batches to avoid overwhelming the database
+  //     const batchSize = 5;
+  //     let warmedCount = 0;
+
+  //     for (let i = 0; i < allPopularSizes.length; i += batchSize) {
+  //       const batch = allPopularSizes.slice(i, i + batchSize);
+
+  //       this.logger.debug(
+  //         `Warming up batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(allPopularSizes.length / batchSize)}`,
+  //         {
+  //           batchSizes: batch.map((s) => `${s.width}x${s.height}-${s.format}`),
+  //         },
+  //       );
+
+  //       // Process batch in parallel
+  //       const batchPromises = batch.map((size) =>
+  //         this.getCachedCampaignPool(
+  //           size.width,
+  //           size.height,
+  //           size.format as InventoryFormat,
+  //         )
+  //           .then((campaigns) => {
+  //             warmedCount++;
+  //             this.logger.debug(
+  //               `✅ Warmed ${size.width}x${size.height}-${size.format}`,
+  //               {
+  //                 campaignCount: campaigns.length,
+  //               },
+  //             );
+  //             return campaigns.length;
+  //           })
+  //           .catch((error) => {
+  //             this.logger.warn(
+  //               `❌ Failed to warm ${size.width}x${size.height}-${size.format}`,
+  //               {
+  //                 error: error.message,
+  //               },
+  //             );
+  //             return 0;
+  //           }),
+  //       );
+
+  //       await Promise.all(batchPromises);
+
+  //       // Small delay between batches to avoid database overload
+  //       if (i + batchSize < allPopularSizes.length) {
+  //         await new Promise((resolve) => setTimeout(resolve, 100)); // 100ms delay
+  //       }
+  //     }
+
+  //     // ===== WARM UP BUDGET STATUS FOR ACTIVE CAMPAIGNS =====
+
+  //     this.logger.log('Warming up budget status for active campaigns...');
+
+  //     const activeCampaigns = await this.prisma.campaign.findMany({
+  //       where: { status: 'ACTIVE' },
+  //       select: { id: true },
+  //       take: 20, // Limit to top 20 active campaigns to avoid overload
+  //     });
+
+  //     const today = new Date().toISOString().split('T')[0];
+  //     let budgetWarmedCount = 0;
+
+  //     // Process budget warmup in smaller batches
+  //     const budgetBatchSize = 10;
+  //     for (let i = 0; i < activeCampaigns.length; i += budgetBatchSize) {
+  //       const budgetBatch = activeCampaigns.slice(i, i + budgetBatchSize);
+
+  //       const budgetPromises = budgetBatch.map((campaign) =>
+  //         this.getCachedBudgetStatus(campaign.id, today)
+  //           .then(() => {
+  //             budgetWarmedCount++;
+  //             return true;
+  //           })
+  //           .catch((error) => {
+  //             this.logger.warn(
+  //               `Failed to warm budget for campaign ${campaign.id}`,
+  //               {
+  //                 error: error.message,
+  //               },
+  //             );
+  //             return false;
+  //           }),
+  //       );
+
+  //       await Promise.all(budgetPromises);
+  //     }
+
+  //     // ===== COMPLETION SUMMARY =====
+
+  //     this.logger.log('🎯 Comprehensive cache warmup completed!', {
+  //       campaignPoolsWarmed: warmedCount,
+  //       totalSizesAttempted: allPopularSizes.length,
+  //       budgetStatusWarmed: budgetWarmedCount,
+  //       totalCampaignsAttempted: activeCampaigns.length,
+  //       formatBreakdown: {
+  //         banner: bannerSizes.length,
+  //         native: nativeSizes.length,
+  //         video: videoSizes.length,
+  //         interstitial: interstitialSizes.length,
+  //         rewarded: rewardedSizes.length,
+  //       },
+  //     });
+  //   } catch (error) {
+  //     this.logger.error('❌ Comprehensive cache warmup failed', {
+  //       error: error.message,
+  //       stack: error.stack,
+  //     });
+  //     throw error;
+  //   }
+  // }
+
+  async warmupCaches(): Promise<void> {
+    try {
+      this.logger.log(
+        'Starting comprehensive cache warmup for all ad formats...',
+      );
+
+      // ===== BANNER FORMAT (Most Common) =====
+      const bannerSizes = [
+        { width: 728, height: 90, format: 'BANNER' }, // Leaderboard
+        { width: 300, height: 250, format: 'BANNER' }, // Medium Rectangle
+        { width: 320, height: 50, format: 'BANNER' }, // Mobile Banner
+        { width: 160, height: 600, format: 'BANNER' }, // Wide Skyscraper
+        { width: 300, height: 600, format: 'BANNER' }, // Half Page
+        { width: 970, height: 250, format: 'BANNER' }, // Billboard
+        { width: 336, height: 280, format: 'BANNER' }, // Large Rectangle
+        { width: 468, height: 60, format: 'BANNER' }, // Banner
+        { width: 234, height: 60, format: 'BANNER' }, // Half Banner
+        { width: 120, height: 600, format: 'BANNER' }, // Skyscraper
+      ];
+
+      // ===== NATIVE FORMAT =====
+      const nativeSizes = [
+        { width: 300, height: 250, format: 'NATIVE' }, // Native Rectangle
+        { width: 320, height: 240, format: 'NATIVE' }, // Mobile Native
+        { width: 600, height: 400, format: 'NATIVE' }, // Large Native
+        { width: 400, height: 300, format: 'NATIVE' }, // Standard Native
+        { width: 280, height: 200, format: 'NATIVE' }, // Small Native
+      ];
+
+      // ===== VIDEO FORMAT =====
+      const videoSizes = [
+        { width: 640, height: 480, format: 'VIDEO' }, // Standard Video
+        { width: 854, height: 480, format: 'VIDEO' }, // Wide Video
+        { width: 1280, height: 720, format: 'VIDEO' }, // HD Video
+        { width: 320, height: 240, format: 'VIDEO' }, // Mobile Video
+        { width: 300, height: 250, format: 'VIDEO' }, // Square Video
+        { width: 1920, height: 1080, format: 'VIDEO' }, // Full HD Video
+      ];
+
+      // ===== INTERSTITIAL FORMAT =====
+      const interstitialSizes = [
+        { width: 320, height: 480, format: 'INTERSTITIAL' }, // Mobile Portrait
+        { width: 480, height: 320, format: 'INTERSTITIAL' }, // Mobile Landscape
+        { width: 768, height: 1024, format: 'INTERSTITIAL' }, // Tablet Portrait
+        { width: 1024, height: 768, format: 'INTERSTITIAL' }, // Tablet Landscape
+        { width: 414, height: 736, format: 'INTERSTITIAL' }, // iPhone Plus
+        { width: 375, height: 667, format: 'INTERSTITIAL' }, // iPhone Standard
+      ];
+
+      // ===== REWARDED FORMAT =====
+      const rewardedSizes = [
+        { width: 320, height: 480, format: 'REWARDED' }, // Mobile Portrait
+        { width: 480, height: 320, format: 'REWARDED' }, // Mobile Landscape
+        { width: 640, height: 480, format: 'REWARDED' }, // Standard Rewarded
+        { width: 854, height: 480, format: 'REWARDED' }, // Wide Rewarded
+        { width: 300, height: 250, format: 'REWARDED' }, // Square Rewarded
+      ];
+
+      // ===== COMBINE ALL POPULAR SIZES =====
+      const allPopularSizes = [
+        ...bannerSizes,
+        ...nativeSizes,
+        ...videoSizes,
+        ...interstitialSizes,
+        ...rewardedSizes,
+      ];
+
+      this.logger.log('Warming up campaign pools for all formats', {
+        totalSizes: allPopularSizes.length,
+        bannerSizes: bannerSizes.length,
+        nativeSizes: nativeSizes.length,
+        videoSizes: videoSizes.length,
+        interstitialSizes: interstitialSizes.length,
+        rewardedSizes: rewardedSizes.length,
+      });
+
+      // ===== WARM UP CAMPAIGN POOLS (PARALLEL BATCHES) =====
+
+      // Process in batches to avoid overwhelming the database
+      const batchSize = 5;
+      let warmedCount = 0;
+
+      for (let i = 0; i < allPopularSizes.length; i += batchSize) {
+        const batch = allPopularSizes.slice(i, i + batchSize);
+
+        this.logger.debug(
+          `Warming up batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(allPopularSizes.length / batchSize)}`,
+          {
+            batchSizes: batch.map((s) => `${s.width}x${s.height}-${s.format}`),
+          },
+        );
+
+        // Process batch in parallel
+        const batchPromises = batch.map((size) =>
+          this.getCachedCampaignPool(
+            size.width,
+            size.height,
+            size.format as InventoryFormat,
+          )
+            .then((campaigns) => {
+              warmedCount++;
+              this.logger.debug(
+                `✅ Warmed ${size.width}x${size.height}-${size.format}`,
+                {
+                  campaignCount: campaigns.length,
+                },
+              );
+              return campaigns.length;
+            })
+            .catch((error) => {
+              this.logger.warn(
+                `❌ Failed to warm ${size.width}x${size.height}-${size.format}`,
+                {
+                  error: error.message,
+                },
+              );
+              return 0;
+            }),
+        );
+
+        await Promise.all(batchPromises);
+
+        // Small delay between batches to avoid database overload
+        if (i + batchSize < allPopularSizes.length) {
+          await new Promise((resolve) => setTimeout(resolve, 100)); // 100ms delay
+        }
       }
 
-      // Evaluate each targeting type (AND logic - all must pass)
-      const checks = await Promise.all([
-        this.campaignTargetingService.checkGeographicTargeting(
-          campaign.geographicTargeting,
-          userContext,
-        ),
-        this.campaignTargetingService.checkDeviceTargeting(campaign.deviceTargeting, userContext),
-        this.campaignTargetingService.checkDemographicTargeting(
-          campaign.demographicTargeting,
-          userContext,
-        ),
-        this.campaignTargetingService.checkTimeTargeting(campaign.timeTargeting, userContext),
-        this.campaignTargetingService.checkContextualTargeting(
-          campaign.contextualTargeting,
-          adSlotContext,
-        ),
-        this.campaignTargetingService.checkBehavioralTargeting(
-          campaign.behavioralTargeting,
-          userContext,
-        ),
-        this.campaignTargetingService.checkFrequencyTargeting(
-          campaign.frequencyTargeting,
-          userContext,
-          campaign.id,
-        ),
-      ]);
+      // ===== WARM UP BUDGET STATUS FOR ACTIVE CAMPAIGNS =====
 
-      const allRulesPassed = checks.every((result) => result === true);
+      this.logger.log('Warming up budget status for active campaigns...');
 
-      this.logger.debug('Targeting rules evaluated', {
-        campaignId: campaign.id,
-        rulesCount: checks.length,
-        allPassed: allRulesPassed,
+      const activeCampaigns = await this.prisma.campaign.findMany({
+        where: { status: 'ACTIVE' },
+        select: { id: true },
+        take: 20, // Limit to top 100 active campaigns to avoid overload
       });
 
-      return allRulesPassed;
+      const today = new Date().toISOString().split('T')[0];
+      let budgetWarmedCount = 0;
+
+      // Process budget warmup in smaller batches
+      const budgetBatchSize = 10;
+      for (let i = 0; i < activeCampaigns.length; i += budgetBatchSize) {
+        const budgetBatch = activeCampaigns.slice(i, i + budgetBatchSize);
+
+        const budgetPromises = budgetBatch.map((campaign) =>
+          this.getCachedBudgetStatus(campaign.id, today)
+            .then(() => {
+              budgetWarmedCount++;
+              return true;
+            })
+            .catch((error) => {
+              this.logger.warn(
+                `Failed to warm budget for campaign ${campaign.id}`,
+                {
+                  error: error.message,
+                },
+              );
+              return false;
+            }),
+        );
+
+        await Promise.all(budgetPromises);
+      }
+
+      // ===== COMPLETION SUMMARY =====
+
+      this.logger.log('🎯 Comprehensive cache warmup completed!', {
+        campaignPoolsWarmed: warmedCount,
+        totalSizesAttempted: allPopularSizes.length,
+        budgetStatusWarmed: budgetWarmedCount,
+        totalCampaignsAttempted: activeCampaigns.length,
+        formatBreakdown: {
+          banner: bannerSizes.length,
+          native: nativeSizes.length,
+          video: videoSizes.length,
+          interstitial: interstitialSizes.length,
+          rewarded: rewardedSizes.length,
+        },
+      });
     } catch (error) {
-      this.logger.error('Targeting rule evaluation failed', {
+      this.logger.error('❌ Comprehensive cache warmup failed', {
         error: error.message,
-        campaignId: campaign.id,
+        stack: error.stack,
       });
-      return false;
+      throw error;
     }
   }
 }

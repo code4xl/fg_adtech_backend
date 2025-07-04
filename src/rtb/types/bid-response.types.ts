@@ -74,6 +74,7 @@ export interface CreateBidResponseInput {
 
 export interface WinningBidResponse {
     requestId: string;
+    auctionId: string;
     status: 'COMPLETED';
     winningBid: {
         price: number;

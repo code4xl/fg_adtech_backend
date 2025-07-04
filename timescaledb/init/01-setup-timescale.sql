@@ -1,162 +1,153 @@
+-- ==========================================
+-- Custom TimescaleDB Initialization Script
+-- This script runs when the container starts for the first time
+-- ==========================================
+
 -- Enable TimescaleDB extension
 CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
 
--- Create RTB impressions hypertable
-CREATE TABLE rtb_impressions (
-    timestamp TIMESTAMPTZ NOT NULL,
-    impression_id UUID NOT NULL,
+-- Create your custom database (if it doesn't exist)
+-- The main database is already created by Docker environment variables
+
+-- 3. CREATE IMPRESSION EVENTS TABLE (Matching Your PostgreSQL Schema)
+-- ==========================================
+CREATE TABLE impression_events (
+    id UUID NOT NULL,
+    
+    -- PRIMARY: Creative that was displayed
     creative_id UUID NOT NULL,
+    bid_response_id UUID NOT NULL,
+    
+    -- HIERARCHY: All related entities for multi-dimensional analytics
     campaign_id UUID NOT NULL,
     advertiser_id UUID NOT NULL,
     inventory_id UUID NOT NULL,
     publisher_id UUID NOT NULL,
     website_id UUID NOT NULL,
+    template_id UUID,
     
-    -- Financial metrics
-    price DECIMAL(10,4),
-    publisher_revenue DECIMAL(10,4),
+    -- Financial
+    bid_price DECIMAL(10,4),
+    final_price DECIMAL(10,4),
     
-    -- User context
-    user_id TEXT,
-    session_id TEXT,
-    
-    -- Technical details
+    -- TECHNICAL DETAILS
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     user_agent TEXT,
-    ip_address INET,
+    ip_address TEXT,
     device_type TEXT,
-    browser_type TEXT,
-    os_type TEXT,
     
-    -- Geo context
+    -- Geo LOCATION
     country TEXT,
     region TEXT,
     city TEXT,
     
-    -- Viewability metrics
-    viewable BOOLEAN,
-    view_time INTEGER,
-    viewable_pixels INTEGER,
-    ad_size_pixels TEXT,
+    -- VIEWABILITY METRICS (IAB standards)
+    viewable BOOLEAN DEFAULT FALSE,
+    view_time BIGINT,
     
-    -- Fraud detection
+    -- FRAUD DETECTION
     is_bot BOOLEAN DEFAULT FALSE,
-    fraud_score REAL,
+    fraud_score DECIMAL(3,2),
     
-    -- Attribution
-    referrer_url TEXT,
-    page_url TEXT,
-    page_category TEXT,
+    slot_id VARCHAR(100),
+    user_fingerprint VARCHAR(50),
     
-    PRIMARY KEY (timestamp, impression_id)
+    -- SYNC STATUS (Not needed in TimescaleDB but keeping for compatibility)
+    synced_to_timescale BOOLEAN DEFAULT TRUE,
+    synced_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    PRIMARY KEY (timestamp, id)
 );
 
--- Convert to hypertable (partition by time)
-SELECT create_hypertable('rtb_impressions', 'timestamp', chunk_time_interval => INTERVAL '1 hour');
+-- Convert to hypertable (1 hour chunks for high-frequency data)
+SELECT create_hypertable('impression_events', 'timestamp');
 
--- Create RTB clicks hypertable
-CREATE TABLE rtb_clicks (
-    timestamp TIMESTAMPTZ NOT NULL,
-    click_id UUID NOT NULL,
+-- 4. CREATE CLICK EVENTS TABLE (Matching Your PostgreSQL Schema)
+-- ==========================================
+CREATE TABLE click_events (
+    id UUID NOT NULL,
+    
+    -- LINK TO IMPRESSION
     impression_id UUID,
+    
+    -- PRIMARY: Creative that was clicked
     creative_id UUID NOT NULL,
+    bid_response_id UUID NOT NULL,
+    
+    -- HIERARCHY: All related entities
     campaign_id UUID NOT NULL,
     advertiser_id UUID NOT NULL,
     inventory_id UUID NOT NULL,
     publisher_id UUID NOT NULL,
+    website_id UUID NOT NULL,
+    template_id UUID,
     
-    -- Click details
-    click_x INTEGER,
-    click_y INTEGER,
-    time_from_impression INTEGER,
-    
-    -- User context (duplicate for denormalization)
-    user_id TEXT,
-    session_id TEXT,
+    -- TECHNICAL DETAILS
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     user_agent TEXT,
-    ip_address INET,
+    ip_address TEXT,
     device_type TEXT,
     
-    -- Geo context
+    -- LANDING PAGE
+    landing_url TEXT,
+    
+    -- FRAUD DETECTION
+    is_bot BOOLEAN DEFAULT FALSE,
+    fraud_score DECIMAL(3,2),
+    time_from_impression INTEGER,
+    
+    -- GEO LOCATION
     country TEXT,
     region TEXT,
     city TEXT,
     
-    -- Fraud detection
-    is_bot BOOLEAN DEFAULT FALSE,
-    fraud_score REAL,
+    slot_id VARCHAR(100),
+    user_fingerprint VARCHAR(50),
     
-    PRIMARY KEY (timestamp, click_id)
+    -- SYNC STATUS (Not needed in TimescaleDB but keeping for compatibility)
+    synced_to_timescale BOOLEAN DEFAULT TRUE,
+    synced_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    PRIMARY KEY (timestamp, id)
 );
 
 -- Convert to hypertable
-SELECT create_hypertable('rtb_clicks', 'timestamp', chunk_time_interval => INTERVAL '1 hour');
+SELECT create_hypertable('click_events', 'timestamp');
 
--- Create RTB bid metrics hypertable
-CREATE TABLE rtb_bid_metrics (
-    timestamp TIMESTAMPTZ NOT NULL,
-    bid_response_id UUID NOT NULL,
-    campaign_id UUID NOT NULL,
-    inventory_id UUID NOT NULL,
-    
-    -- Bid performance
-    bid_price DECIMAL(10,4),
-    final_price DECIMAL(10,4),
-    won BOOLEAN,
-    
-    -- Response metrics
-    response_time_ms INTEGER,
-    auction_duration_ms INTEGER,
-    total_bids INTEGER,
-    valid_bids INTEGER,
-    
-    -- Targeting match scores
-    targeting_score REAL,
-    quality_score REAL,
-    
-    PRIMARY KEY (timestamp, bid_response_id)
-);
+-- 5. CREATE INDEXES FOR PERFORMANCE
+-- ==========================================
 
--- Convert to hypertable
-SELECT create_hypertable('rtb_bid_metrics', 'timestamp', chunk_time_interval => INTERVAL '1 hour');
-
--- Create indexes for common query patterns
--- Impressions indexes
-CREATE INDEX idx_impressions_creative_time ON rtb_impressions (creative_id, timestamp DESC);
-CREATE INDEX idx_impressions_campaign_time ON rtb_impressions (campaign_id, timestamp DESC);
-CREATE INDEX idx_impressions_inventory_time ON rtb_impressions (inventory_id, timestamp DESC);
-CREATE INDEX idx_impressions_publisher_time ON rtb_impressions (publisher_id, timestamp DESC);
-CREATE INDEX idx_impressions_country_time ON rtb_impressions (country, timestamp DESC);
+-- Impressions indexes for common query patterns
+CREATE INDEX idx_impressions_creative_time ON impression_events (creative_id, timestamp DESC);
+CREATE INDEX idx_impressions_campaign_time ON impression_events (campaign_id, timestamp DESC);
+CREATE INDEX idx_impressions_inventory_time ON impression_events (inventory_id, timestamp DESC);
+CREATE INDEX idx_impressions_publisher_time ON impression_events (publisher_id, timestamp DESC);
+CREATE INDEX idx_impressions_advertiser_time ON impression_events (advertiser_id, timestamp DESC);
+CREATE INDEX idx_impressions_country_time ON impression_events (country, timestamp DESC);
+CREATE INDEX idx_impressions_device_time ON impression_events (device_type, timestamp DESC);
 
 -- Clicks indexes
-CREATE INDEX idx_clicks_creative_time ON rtb_clicks (creative_id, timestamp DESC);
-CREATE INDEX idx_clicks_campaign_time ON rtb_clicks (campaign_id, timestamp DESC);
-CREATE INDEX idx_clicks_impression_id ON rtb_clicks (impression_id);
+CREATE INDEX idx_clicks_creative_time ON click_events (creative_id, timestamp DESC);
+CREATE INDEX idx_clicks_campaign_time ON click_events (campaign_id, timestamp DESC);
+CREATE INDEX idx_clicks_impression_id ON click_events (impression_id);
+CREATE INDEX idx_clicks_publisher_time ON click_events (publisher_id, timestamp DESC);
 
--- Bid metrics indexes
-CREATE INDEX idx_bid_metrics_campaign_time ON rtb_bid_metrics (campaign_id, timestamp DESC);
-CREATE INDEX idx_bid_metrics_inventory_time ON rtb_bid_metrics (inventory_id, timestamp DESC);
-CREATE INDEX idx_bid_metrics_won_time ON rtb_bid_metrics (won, timestamp DESC);
+-- 6. VERIFICATION QUERIES
+-- ==========================================
 
--- Create continuous aggregates for real-time analytics
-CREATE MATERIALIZED VIEW hourly_campaign_metrics
-WITH (timescaledb.continuous) AS
-SELECT 
-    time_bucket('1 hour', timestamp) AS hour,
-    campaign_id,
-    COUNT(*) AS impressions,
-    SUM(price) AS revenue,
-    AVG(view_time) AS avg_view_time,
-    COUNT(*) FILTER (WHERE viewable = true) AS viewable_impressions
-FROM rtb_impressions
-GROUP BY hour, campaign_id;
+-- Verify tables were created
+SELECT table_name FROM information_schema.tables 
+WHERE table_schema = 'public' 
+AND table_name IN ('impression_events', 'click_events');
 
--- Add refresh policy for continuous aggregates
-SELECT add_continuous_aggregate_policy('hourly_campaign_metrics',
-    start_offset => INTERVAL '3 hours',
-    end_offset => INTERVAL '1 hour',
-    schedule_interval => INTERVAL '1 hour');
+-- Verify hypertables were created
+SELECT * FROM timescaledb_information.hypertables;
 
--- Create retention policy (keep data for 90 days in main table)
-SELECT add_retention_policy('rtb_impressions', INTERVAL '90 days');
-SELECT add_retention_policy('rtb_clicks', INTERVAL '90 days');
-SELECT add_retention_policy('rtb_bid_metrics', INTERVAL '90 days');
+-- Show sample data
+SELECT 'impression_events' as table_name, COUNT(*) as record_count FROM impression_events
+UNION ALL
+SELECT 'click_events' as table_name, COUNT(*) as record_count FROM click_events;

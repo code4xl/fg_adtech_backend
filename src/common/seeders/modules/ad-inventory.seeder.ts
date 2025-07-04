@@ -19,7 +19,7 @@ export class AdInventorySeeder implements ISeeder {
     return ['Publisher', 'Website', 'AdSlotTemplate'];
   }
 
-  async seed(count: number = 80): Promise<void> {
+  async seed(count: number = 1000): Promise<void> {
     this.logger.log(`Seeding ${count} ad inventory slots...`);
 
     try {
@@ -76,7 +76,7 @@ export class AdInventorySeeder implements ISeeder {
           publisherId: website.publisherId,
           websiteId: website.id,
           name: inventoryName,
-          isActive: faker.datatype.boolean(0.8), // 80% chance of being active
+          isActive: faker.datatype.boolean(1), // 100% chance of being active
           adSlotTemplateId: template.id,
           viewabilityScore: faker.number.float({
             min: 0.4,

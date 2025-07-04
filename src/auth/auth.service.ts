@@ -7,7 +7,6 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import * as bcrypt from 'bcryptjs';
-import { v4 as uuidv4 } from 'uuid';
 import { CreateAdvertiserDto } from 'src/advertiser/dto/create-advertiser.dto';
 import {
   DuplicateResourceException,
@@ -24,7 +23,7 @@ export class AuthService {
     private jwtService: JwtService,
     private mailService: MailService,
     private config: ConfigService,
-  ) { }
+  ) {}
 
   // This function is used to register a new advertiser.
   async signup(createAdvertiserDto: CreateAdvertiserDto) {
@@ -348,7 +347,6 @@ export class AuthService {
     return { ...result, role };
   }
 
-
   // The localstrategy will return the user object to this function and it will generate a JWT token for the user.
   async login(user: any) {
     // If MFA is required, just pass through the MFA response
@@ -646,7 +644,7 @@ export class AuthService {
           resetPasswordExpires: resetTokenExpiry,
         },
       });
-    } else if (role == "client") {
+    } else if (role == 'client') {
       await this.prisma.client.update({
         where: { email },
         data: {

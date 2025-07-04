@@ -82,7 +82,7 @@ export default () => ({
     // Primary configuration - use the cloud URL if provided
     databaseUrl: process.env.TIMESCALE_DATABASE_URL,
     // Individual settings for Docker/local development
-    host: process.env.TIMESCALEDB_HOST || 'localhost',
+    host: process.env.TIMESCALEDB_HOST || 'timescaledb',
     port: process.env.TIMESCALEDB_PORT
       ? parseInt(process.env.TIMESCALEDB_PORT, 10)
       : 5432,

@@ -8,7 +8,7 @@ import { ISeeder } from '../interfaces/seeder.interface';
 export class CreativeSeeder implements ISeeder {
   private readonly logger = new Logger(CreativeSeeder.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   getModuleName(): string {
     return 'Creative';

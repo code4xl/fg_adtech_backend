@@ -17,9 +17,11 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
     this.producer = this.kafka.producer({
       allowAutoTopicCreation: true,
       retry: {
-        initialRetryTime: 300,
+        // initialRetryTime: 300,
+        // maxRetryTime: 30000,
+        initialRetryTime: 100,
+        maxRetryTime: 1000,
         retries: 5,
-        maxRetryTime: 30000,
         factor: 2,
       },
     });
@@ -55,7 +57,7 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
     message: { key: string; value: any },
   ): Promise<void> {
     try {
-      await this.producer.send({
+      this.producer.send({
         topic,
         messages: [
           {

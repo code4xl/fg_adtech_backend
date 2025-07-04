@@ -173,6 +173,7 @@ export class BidResponseProcessor {
 
         return {
             requestId: auctionResult.originalBidRequest.externalRequestId,
+            auctionId: auctionId,
             status: 'COMPLETED',
             winningBid: {
                 price: auctionResult.finalPrice, // Type-safe access to finalPrice
@@ -274,7 +275,7 @@ export class BidResponseProcessor {
                 this.logger.debug('Bid response cached', {
                     requestId,
                     status,
-                    auctionId: 'auctionId' in response ? response.auctionId : 'N/A'
+                    auctionId: response.auctionId,
                 });
     
                 // *** NEW SSE PUBLISHING CODE START ***

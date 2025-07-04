@@ -61,8 +61,9 @@ export class AuctionResultKafkaConsumer implements OnModuleInit {
         const startTime = Date.now();
 
         try {
-            this.logger.debug('Processing auction result', {
+            this.logger.debug('Processing auction result new one', {
                 key: payload.key,
+                value: payload.value,
                 partition: payload.partition,
             });
 

@@ -126,10 +126,10 @@ async function bootstrap() {
       .setDescription('Documentation for OceanAdTech API')
       .setVersion('1.0')
       .setOpenAPIVersion('3.0.0')
-      .addServer(
-        'https://5x2p27zf-3000.inc1.devtunnels.ms/',
-        'Development Tunnel',
-      )
+      // .addServer(
+      //   'https://5x2p27zf-3000.inc1.devtunnels.ms/',
+      //   'Development Tunnel',
+      // )
       .addServer('http://localhost:3001', 'Development Server')
       .addServer(
         'https://programmatic.api.oceanadnetwork.com',
@@ -154,6 +154,14 @@ async function bootstrap() {
     //     theme: 'bluePlanet',
     //   }),
     // );
+
+    app.use(
+      '/api-swagger',
+      apiReference({
+        content: document,
+        theme: 'bluePlanet',
+      }),
+    );
   }
 
   const port = configService.get<number>('port') || 3000;

@@ -2,7 +2,12 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuctionStatusDto } from '../dto';
 import { BidRequestWithAuction } from '../types/bid-request.types';
-import { CAMPAIGN_KEYS, RTB_CACHE_TTL, RTB_KEYS } from '../constants/cache-keys';
+import {
+  CAMPAIGN_KEYS,
+  CREATIVE_KEYS,
+  RTB_CACHE_TTL,
+  RTB_KEYS,
+} from '../constants/cache-keys';
 import { RedisService } from 'src/redis/redis.service';
 import { CampaignEligibilityService } from './campaign-eligibility.service';
 import { CampaignWithTargeting } from '../types/campaign.types';
@@ -10,6 +15,9 @@ import { BidEvaluationService } from './bid-evaluation.service';
 import { CreativeWithTemplate } from '../types/creative.types';
 import { CreatedBidResponse } from '../types/bid-response.types';
 import { AuctionBidResult } from '../types/auction-result.types';
+import { v4 as uuidv4 } from 'uuid';
+import { ImpressionClickLinkingService } from 'src/tracking/services/impression-click-linking.service';
+import { TransactionType } from '@prisma/client';
 
 @Injectable()
 export class AuctionService {
@@ -21,9 +29,9 @@ export class AuctionService {
     private readonly redis: RedisService,
     private readonly campaignEligibility: CampaignEligibilityService,
     private readonly bidEvaluationService: BidEvaluationService,
+    private readonly impressionClickLinking: ImpressionClickLinkingService,
   ) {
-    this.trackingBaseUrl = process.env.TRACKING_URL ||
-      'https://track.oceanadtech.com';
+    this.trackingBaseUrl = process.env.TRACKING_URL || 'http://localhost:3000';
   }
 
   async getAuctionStatus(requestId: string): Promise<AuctionStatusDto | null> {
@@ -123,8 +131,9 @@ export class AuctionService {
     }
   }
 
-
-  async findEligibleCampaigns(bidRequest: BidRequestWithAuction): Promise<CampaignWithTargeting[]> {
+  async findEligibleCampaigns(
+    bidRequest: BidRequestWithAuction,
+  ): Promise<CampaignWithTargeting[]> {
     const cacheKey = CAMPAIGN_KEYS.ELIGIBLE_CAMPAIGNS(
       bidRequest.inventoryId,
       bidRequest.userContext.deviceType,
@@ -153,7 +162,11 @@ export class AuctionService {
         );
 
       // 3. Cache results for 5 minutes
-      await this.redis.set(cacheKey, JSON.stringify(eligibleCampaigns), RTB_CACHE_TTL.CAMPAIGN_ELIGIBILITY);
+      await this.redis.set(
+        cacheKey,
+        JSON.stringify(eligibleCampaigns),
+        RTB_CACHE_TTL.CAMPAIGN_ELIGIBILITY,
+      );
 
       return eligibleCampaigns;
     } catch (error) {
@@ -173,8 +186,17 @@ export class AuctionService {
     const bidPromises = eligibleCampaigns.map(async (campaign) => {
       try {
         // 1. Check budget availability
+        // FIX: Safe bid amount extraction
+        let bidAmount = 1.0;
+        if (campaign.bidAmount) {
+          bidAmount = Number(campaign.bidAmount) || 1.0;
+        }
+
         const hasBudget =
-          await this.campaignEligibility.checkBudgetAvailability(campaign.id);
+          await this.campaignEligibility.checkBudgetAvailability(
+            campaign.id,
+            bidAmount,
+          );
         if (!hasBudget) {
           this.logger.debug('Campaign excluded due to budget exhaustion', {
             campaignId: campaign.id,
@@ -221,7 +243,7 @@ export class AuctionService {
       } catch (error) {
         this.logger.warn('Failed to generate bid for campaign', {
           campaignId: campaign.id,
-          error: error.message,
+          error: error,
         });
         return null;
       }
@@ -236,8 +258,8 @@ export class AuctionService {
     adSlotContext: any,
   ): Promise<CreativeWithTemplate> {
     try {
-      // Find creative that matches ad slot requirements
-      const creative = await this.prisma.creative.findFirst({
+      // Get all matching creatives
+      const creatives = await this.prisma.creative.findMany({
         where: {
           campaignId: campaign.id,
           status: 'APPROVED',
@@ -250,15 +272,62 @@ export class AuctionService {
         include: {
           adSlotTemplate: true,
         },
+        orderBy: { id: 'asc' }, // Consistent ordering for round-robin
       });
 
-      return creative;
+      if (creatives.length === 0) return null;
+      if (creatives.length === 1) return creatives[0];
+
+      // Round-robin selection
+      const selectedCreative = await this.roundRobinSelect(
+        campaign.id,
+        creatives,
+      );
+      return selectedCreative;
     } catch (error) {
       this.logger.error('Failed to select creative', {
         campaignId: campaign.id,
         error: error.message,
       });
       return null;
+    }
+  }
+
+  private async roundRobinSelect(
+    campaignId: string,
+    creatives: CreativeWithTemplate[],
+  ): Promise<CreativeWithTemplate> {
+    // Redis key for round-robin counter
+    const counterKey = CREATIVE_KEYS.CREATIVE_ROUND_ROBIN(campaignId);
+
+    try {
+      // Get current counter value and increment atomically
+      const currentCount = await this.redis.incr(counterKey);
+
+      // Set expiry on first use (24 hours)
+      if (currentCount === 1) {
+        await this.redis.expire(counterKey, RTB_CACHE_TTL.CREATIVE_ROUND_ROBIN); // 24 hours
+      }
+
+      // Calculate index using modulo
+      const selectedIndex = (currentCount - 1) % creatives.length;
+
+      this.logger.debug('Round-robin creative selection', {
+        campaignId,
+        currentCount,
+        totalCreatives: creatives.length,
+        selectedIndex,
+        selectedCreativeId: creatives[selectedIndex].id,
+      });
+
+      return creatives[selectedIndex];
+    } catch (error) {
+      // Fallback to first creative if Redis fails
+      this.logger.warn('Round-robin selection failed, using fallback', {
+        campaignId,
+        error: error.message,
+      });
+      return creatives[0];
     }
   }
 
@@ -269,8 +338,10 @@ export class AuctionService {
     bidPrice: number,
     auctionId: string,
   ): Promise<any> {
+    let bidResponseId = uuidv4();
+
     // Generate comprehensive tracking URLs
-    const trackingUrls = this.generateTrackingUrls(auctionId);
+    const trackingUrls = this.generateTrackingUrls(auctionId, bidResponseId);
 
     // Generate comprehensive ad markup
     const adMarkup = this.generateAdMarkup(creative, trackingUrls, {
@@ -280,13 +351,14 @@ export class AuctionService {
     });
 
     this.logger.debug('Creating bid response', {
-      id: bidRequest.id,
+      id: bidResponseId,
     });
 
     // Ask mit about this, store the admarkup, impression and click urls in the bid response for the winner only.
     // Not for all the bids. (This is to avoid storing unnecessary data for lost bids)
     return await this.prisma.bidResponse.create({
       data: {
+        id: bidResponseId,
         bidRequestId: bidRequest.id,
         campaignId: campaign.id,
         creativeId: creative.id,
@@ -304,30 +376,24 @@ export class AuctionService {
 
   generateTrackingUrls(
     auctionId: string,
-    bidResponseId?: string,
+    bidResponseId: string,
   ): {
     impression: string[];
     click: string[];
   } {
     const baseUrl = this.trackingBaseUrl;
 
-    if (bidResponseId) {
-      // Detailed tracking with bidResponseId and timestamp
-      return {
-        impression: [
-          `${baseUrl}/track/impression/${bidResponseId}?auction=${auctionId}&t=${Date.now()}`,
-        ],
-        click: [
-          `${baseUrl}/track/click/${bidResponseId}?auction=${auctionId}&t=${Date.now()}`,
-        ],
-      };
-    } else {
-      // Simple tracking for backward compatibility
-      return {
-        impression: [`${baseUrl}/track/impression/${auctionId}`],
-        click: [`${baseUrl}/track/click/${auctionId}`],
-      };
-    }
+    const slotId =
+      this.impressionClickLinking.generateImpressionSlot(bidResponseId);
+
+    return {
+      impression: [
+        `${baseUrl}/track/impression/${bidResponseId}?slotId=${slotId}&auctionId=${auctionId}&t=${Date.now()}`,
+      ],
+      click: [
+        `${baseUrl}/track/click/${bidResponseId}?slotId=${slotId}&auctionId=${auctionId}&t=${Date.now()}`,
+      ],
+    };
   }
 
   generateAdMarkup(
@@ -554,6 +620,10 @@ export class AuctionService {
 
     winningBid.processedAt = new Date();
 
+    if (winningBid) {
+      await this.recordAuctionWin(winningBid.campaignId, finalPrice);
+    }
+
     return {
       winner: {
         id: winningBid.id,
@@ -596,6 +666,7 @@ export class AuctionService {
         where: { id: winnerId },
         data: {
           finalPrice,
+          cpi: finalPrice / 1000, // Assuming finalPrice is in CPM, convert to CPI
           status: 'WON',
           processedAt: new Date(),
         },
@@ -620,6 +691,343 @@ export class AuctionService {
         error: error.message,
         winnerId,
       });
+    }
+  }
+
+  // == NEW ==
+
+  // Add these methods to your AuctionService class
+
+  async recordAuctionWin(campaignId: string, finalPrice: number) {
+    try {
+      // REASON: Update new budget tracking system instead of old CampaignBudgetTracker
+      // LOGIC: Deduct the actual cost from today's remaining budget
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // REASON: Convert CPM final price to per-impression cost
+      // LOGIC: If finalPrice is $2.50 CPM, cost per impression is $0.0025
+      const costPerImpression = finalPrice > 1 ? finalPrice / 1000 : finalPrice;
+
+      this.logger.debug('Recording auction win with cost deduction', {
+        campaignId,
+        finalPriceInput: finalPrice,
+        costPerImpression: costPerImpression,
+        date: today.toISOString().split('T')[0],
+      });
+
+      // REASON: Use atomic update to prevent race conditions
+      // LOGIC: Multiple auctions could complete simultaneously
+      const updatedBudget = await this.prisma.campaignDailyBudget.update({
+        where: {
+          campaignId_date: {
+            campaignId,
+            date: today,
+          },
+        },
+        data: {
+          spentToday: {
+            increment: costPerImpression, // Add cost to spent amount
+          },
+          remainingToday: {
+            decrement: costPerImpression, // Subtract cost from remaining
+          },
+          lastUpdated: new Date(),
+        },
+        select: {
+          spentToday: true,
+          remainingToday: true,
+          isExhausted: true,
+        },
+      });
+
+      // REASON: Check if budget is now exhausted and mark accordingly
+      // LOGIC: If remaining budget < $0.001 (minimum bid), mark as exhausted
+      const remainingBudget = Number(updatedBudget.remainingToday);
+      const minimumBid = 0.001; // $1 CPM equivalent
+
+      if (remainingBudget < minimumBid && !updatedBudget.isExhausted) {
+        await this.prisma.campaignDailyBudget.update({
+          where: {
+            campaignId_date: {
+              campaignId,
+              date: today,
+            },
+          },
+          data: {
+            isExhausted: true,
+            lastUpdated: new Date(),
+          },
+        });
+
+        this.logger.warn('Campaign daily budget exhausted', {
+          campaignId,
+          remainingBudget: remainingBudget,
+          spentToday: Number(updatedBudget.spentToday),
+        });
+
+        // REASON: Pause campaign if budget exhausted
+        // LOGIC: Prevent further spending on exhausted campaigns
+        await this.pauseCampaignForBudgetExhaustion(campaignId);
+      }
+
+      // REASON: Record the transaction for audit trail
+      // LOGIC: Keep track of every budget deduction for transparency
+      await this.recordBudgetTransaction(
+        campaignId,
+        costPerImpression,
+        'IMPRESSION_COST',
+      );
+
+      // REASON: Record revenue for publisher and system
+      // LOGIC: New payment flow requires revenue tracking per impression
+      await this.recordImpressionRevenue(campaignId, finalPrice);
+
+      // REASON: Invalidate budget cache after update
+      // LOGIC: Ensure next budget checks get fresh data
+      await this.campaignEligibility.invalidateBudgetCache(campaignId);
+
+      this.logger.log('Auction win recorded successfully', {
+        campaignId,
+        costDeducted: costPerImpression,
+        newSpentToday: Number(updatedBudget.spentToday),
+        newRemainingToday: Number(updatedBudget.remainingToday),
+        isNowExhausted: remainingBudget < minimumBid,
+      });
+    } catch (error) {
+      this.logger.error('Failed to record auction win', {
+        error: error.message,
+        campaignId,
+        finalPrice,
+      });
+      throw error;
+    }
+  }
+
+  // REASON: Record budget transaction for audit trail
+  // LOGIC: Track every budget change for financial reporting
+  private async recordBudgetTransaction(
+    campaignId: string,
+    amount: number,
+    type: 'IMPRESSION_COST' | 'CLICK_COST' | 'REFUND' | 'ADJUSTMENT',
+    impressionId?: string,
+    clickId?: string,
+  ): Promise<void> {
+    try {
+      await this.prisma.budgetTransaction.create({
+        data: {
+          campaignId,
+          type: type,
+          amount: amount,
+          description: `${type.toLowerCase().replace('_', ' ')} deduction`,
+          impressionId,
+          clickId,
+          createdAt: new Date(),
+        },
+      });
+
+      this.logger.debug('Budget transaction recorded', {
+        campaignId,
+        type,
+        amount,
+      });
+    } catch (error) {
+      this.logger.error('Failed to record budget transaction', {
+        error: error.message,
+        campaignId,
+        type,
+        amount,
+      });
+      // Don't throw - transaction recording failure shouldn't break auction
+    }
+  }
+
+  // REASON: Record impression revenue for payment flow
+  // LOGIC: Track revenue split between publisher and system per impression
+  private async recordImpressionRevenue(
+    campaignId: string,
+    grossRevenue: number,
+  ): Promise<void> {
+    try {
+      // REASON: Get campaign and publisher info for revenue calculation
+      // LOGIC: Need publisher tier to determine commission rate
+      const campaign = await this.prisma.campaign.findUnique({
+        where: { id: campaignId },
+        select: {
+          id: true,
+          advertiserId: true,
+        },
+      });
+
+      if (!campaign) {
+        this.logger.warn('Campaign not found for revenue recording', {
+          campaignId,
+        });
+        return;
+      }
+
+      // Note: You'll need to get publisherId and inventoryId from the bid request context
+      // This is a placeholder - you should pass these as parameters
+      // const { publisherId, inventoryId } = await this.getBidRequestContext(campaignId);
+
+      this.logger.debug(
+        'Revenue recording implemented - need publisher context',
+        {
+          campaignId,
+          grossRevenue,
+          note: 'Publisher and inventory context needed for complete implementation',
+        },
+      );
+    } catch (error) {
+      this.logger.error('Failed to record impression revenue', {
+        error: error.message,
+        campaignId,
+        grossRevenue,
+      });
+    }
+  }
+
+  // REASON: Pause campaign when budget is exhausted
+  // LOGIC: Prevent further bid requests for campaigns with no budget
+  private async pauseCampaignForBudgetExhaustion(
+    campaignId: string,
+  ): Promise<void> {
+    try {
+      await this.prisma.campaign.update({
+        where: { id: campaignId },
+        data: {
+          status: 'BUDGET_EXHAUSTED',
+          updatedAt: new Date(),
+        },
+      });
+
+      this.logger.warn('Campaign paused due to budget exhaustion', {
+        campaignId,
+        newStatus: 'BUDGET_EXHAUSTED',
+      });
+
+      // REASON: Clear campaign from eligible campaigns cache
+      // LOGIC: Exhausted campaigns shouldn't appear in future auctions
+      await this.clearCampaignFromEligibilityCache(campaignId);
+    } catch (error) {
+      this.logger.error('Failed to pause campaign for budget exhaustion', {
+        error: error.message,
+        campaignId,
+      });
+    }
+  }
+
+  // REASON: Remove exhausted campaign from eligibility cache
+  // LOGIC: Prevent exhausted campaigns from participating in auctions
+  private async clearCampaignFromEligibilityCache(
+    campaignId: string,
+  ): Promise<void> {
+    try {
+      // REASON: Pattern-based cache invalidation for campaign eligibility
+      // LOGIC: Clear all cache entries that might contain this campaign
+      const pattern = `campaigns:pool:*`;
+      const keys = await this.redis.keys(pattern);
+
+      if (keys.length > 0) {
+        await Promise.all(keys.map((key) => this.redis.del(key)));
+        this.logger.debug('Cleared campaign eligibility cache', {
+          campaignId,
+          keysCleared: keys.length,
+        });
+      }
+    } catch (error) {
+      this.logger.warn('Failed to clear campaign eligibility cache', {
+        error: error.message,
+        campaignId,
+      });
+    }
+  }
+
+  // REASON: Helper method to check if campaign has sufficient budget before auction
+  // LOGIC: Pre-validate budget availability to avoid unnecessary processing
+  async validateCampaignBudgetBeforeAuction(
+    campaignId: string,
+    estimatedCost: number,
+  ): Promise<boolean> {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const dailyBudget = await this.prisma.campaignDailyBudget.findUnique({
+        where: {
+          campaignId_date: {
+            campaignId,
+            date: today,
+          },
+        },
+        select: {
+          remainingToday: true,
+          isExhausted: true,
+        },
+      });
+
+      if (!dailyBudget || dailyBudget.isExhausted) {
+        return false;
+      }
+
+      const remainingBudget = Number(dailyBudget.remainingToday);
+      const costPerImpression =
+        estimatedCost > 1 ? estimatedCost / 1000 : estimatedCost;
+
+      return remainingBudget >= costPerImpression;
+    } catch (error) {
+      this.logger.error('Budget validation before auction failed', {
+        error: error.message,
+        campaignId,
+        estimatedCost,
+      });
+      return false;
+    }
+  }
+
+  // REASON: Get current budget status for real-time monitoring
+  // LOGIC: Provide dashboard data for campaign budget tracking
+  async getCampaignBudgetStatus(campaignId: string): Promise<{
+    spentToday: number;
+    remainingToday: number;
+    isExhausted: boolean;
+    lastUpdated: Date;
+  } | null> {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const budgetStatus = await this.prisma.campaignDailyBudget.findUnique({
+        where: {
+          campaignId_date: {
+            campaignId,
+            date: today,
+          },
+        },
+        select: {
+          spentToday: true,
+          remainingToday: true,
+          isExhausted: true,
+          lastUpdated: true,
+        },
+      });
+
+      if (!budgetStatus) {
+        return null;
+      }
+
+      return {
+        spentToday: Number(budgetStatus.spentToday),
+        remainingToday: Number(budgetStatus.remainingToday),
+        isExhausted: budgetStatus.isExhausted,
+        lastUpdated: budgetStatus.lastUpdated,
+      };
+    } catch (error) {
+      this.logger.error('Failed to get campaign budget status', {
+        error: error.message,
+        campaignId,
+      });
+      return null;
     }
   }
 }

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module, OnModuleInit } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RedisModule } from '../redis/redis.module';
 import { KafkaModule } from '../kafka/kafka.module';
@@ -8,8 +8,6 @@ import { SSEModule } from './sse/sse.module';
 
 // Controllers
 import { RTBController } from './controllers/rtb.controller';
-
-// Core Services
 import { RtbService } from './services/rtb.service';
 import { AuctionService } from './services/auction.service';
 import { BidEvaluationService } from './services/bid-evaluation.service';
@@ -18,23 +16,18 @@ import { CampaignTargetingService } from './services/campaign-targeting.service'
 import { BidAdjustmentService } from './services/bid-adjustment.service';
 import { bidStrategyService } from './services/bid-strategy.service';
 import { HealthService } from './services/health-service';
-
-// Processors
 import { BidRequestProcessor } from './processors/bid-request.processor';
 import { BidResponseProcessor } from './processors/bid-response.processor';
-
-// Consumers
 import { BidRequestKafkaConsumer } from './consumers/bid-request.consumer';
 import { AuctionResultKafkaConsumer } from './consumers/auction-result.consumer';
 import { AuctionCompletionKafkaConsumer } from './consumers/auction-completion.consumer';
-
-// Producers
 import AuctionProducer from './producers/auction.producer';
-
-// Cache & Utils
 import { RtbCacheService } from './cache/rtb-cache.service';
 import { RtbHelper } from './utils/helpers';
 import { RTBMetricsService } from './services/rtb-metrics.service';
+import { BudgetValidationService } from 'src/tracking/services/budget-validation.service';
+import { BudgetInitializationService } from 'src/tracking/services/budget-initialization.service';
+import { ImpressionClickLinkingService } from 'src/tracking/services/impression-click-linking.service';
 
 @Module({
     imports: [
@@ -92,5 +85,21 @@ import { RTBMetricsService } from './services/rtb-metrics.service';
         RTBMetricsService,
     ],
 })
+export class RTBModule implements OnModuleInit {
+  private readonly logger = new Logger(RTBModule.name);
 
-export class RTBModule { }
+  constructor(
+    private readonly campaignEligibilityService: CampaignEligibilityService,
+  ) {}
+
+  async onModuleInit() {
+    try {
+      await this.campaignEligibilityService.warmupCaches();
+    } catch (error) {
+      this.logger.error('RTB Module initialization failed', {
+        error: error.message,
+        stack: error.stack,
+      });
+    }
+  }
+}

@@ -20,11 +20,12 @@ model Advertiser {
   mfaEnabled           Boolean          @default(false)
   mfaVerificationCode  String?
   mfaCodeExpiry        DateTime?
-  clients              Client[] // Relationship with Client
 
-  Campaign Campaign[]
-
-  bidResponses BidResponse[]
-
+  clients        Client[] // Relationship with Client
+  Campaign       Campaign[]
+  bidResponses   BidResponse[]
   ClientCampaign ClientCampaign[]
+
+  @@index([id, status])
+  @@index([status])
 }

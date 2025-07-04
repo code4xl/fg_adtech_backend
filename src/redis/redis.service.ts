@@ -15,6 +15,19 @@ export class RedisService {
       host: this.configService.get<string>('redis.host', 'localhost'),
       port: this.configService.get<number>('redis.port', 6379),
       password: this.configService.get<string>('redis.password'),
+      // PERFORMANCE OPTIMIZATIONS
+      maxRetriesPerRequest: 2,
+      retryDelayOnFailover: 50,
+      connectTimeout: 1000,
+      commandTimeout: 500, // Very important for RTB - 500ms max
+      lazyConnect: true,
+
+      // Connection Pool Settings
+      maxmemoryPolicy: 'allkeys-lru',
+
+      // Disable some features for performance
+      // enableOfflineQueue: false,
+      enableReadyCheck: false,
     };
 
     this.pubClient = new Redis(redisOptions);
@@ -141,9 +154,128 @@ export class RedisService {
     return this.pubClient.set(key, value, 'EX', ttl);
   }
 
+  async sadd(key: string, value: string): Promise<number> {
+    return this.pubClient.sadd(key, value);
+  }
+
+  async sismember(key: string, value: string): Promise<number> {
+    return this.pubClient.sismember(key, value);
+  }
+
+  async scard(key: string): Promise<number> {
+    return this.pubClient.scard(key);
+  }
+
+  async ping(): Promise<string> {
+    return this.pubClient.ping();
+  }
+
+  async lpop(key: string, count: number): Promise<string[] | null> {
+    return this.pubClient.lpop(key, count);
+  }
+
+  async zadd(key: string, score: number, member: string): Promise<number> {
+    return this.pubClient.zadd(key, score, member);
+  }
+
+  // Get members from sorted set in reverse order (highest score first)
+  async zrevrange(key: string, start: number, stop: number, withScores?: string): Promise<string[]> {
+    try {
+      if (withScores === 'WITHSCORES') {
+        return await this.pubClient.zrevrange(key, start, stop, 'WITHSCORES');
+      }
+      return await this.pubClient.zrevrange(key, start, stop);
+    } catch (error) {
+      this.logger.error(
+        `Error getting reverse range from sorted set ${key}: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
+  // Get members from sorted set by score range in reverse order
+  async zrevrangebyscore(
+    key: string,
+    max: number | string,
+    min: number | string,
+    withScores?: string,
+    limitKeyword?: string,
+    offset?: number,
+    count?: number
+  ): Promise<string[]> {
+    try {
+      // ✅ CORRECTED: Build command with proper Redis syntax
+      if (limitKeyword === 'LIMIT' && offset !== undefined && count !== undefined) {
+        if (withScores === 'WITHSCORES') {
+          // With scores and limit
+          return await this.pubClient.zrevrangebyscore(
+            key,
+            max,
+            min,
+            'WITHSCORES',
+            'LIMIT',
+            offset,
+            count
+          );
+        } else {
+          // Without scores but with limit
+          return await this.pubClient.zrevrangebyscore(
+            key,
+            max,
+            min,
+            'LIMIT',
+            offset,
+            count
+          );
+        }
+      } else {
+        if (withScores === 'WITHSCORES') {
+          // With scores, no limit
+          return await this.pubClient.zrevrangebyscore(key, max, min, 'WITHSCORES');
+        } else {
+          // Basic command
+          return await this.pubClient.zrevrangebyscore(key, max, min);
+        }
+      }
+    } catch (error) {
+      this.logger.error(
+        `Error getting reverse range by score from sorted set ${key}: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
   pipeline() {
     return this.pubClient.pipeline();
   }
+
+  zcard(key: string): Promise<number> {
+    return this.pubClient.zcard(key);
+  }
+
+  async watch(key: string): Promise<void> {
+    this.pubClient.watch(key);
+  }
+
+  async unwatch(): Promise<void> {
+    this.pubClient.unwatch();
+  }
+
+  async exists(key: string): Promise<number> {
+    try {
+      return await this.pubClient.exists(key);
+    } catch (error) {
+      this.logger.error(`Error checking existence of key ${key}: ${error.message}`);
+      throw error;
+    }
+  }
+
+
+
+  getClient(): Redis {
+    return this.pubClient;
+  }
+
   // Pub/Sub methods
   async publish(channel: string, message: any): Promise<number> {
     return this.pubClient.publish(
