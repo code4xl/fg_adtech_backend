@@ -68,6 +68,11 @@ import { ImpressionClickLinkingService } from 'src/tracking/services/impression-
         // === CACHE & UTILITIES ===
         RtbCacheService,
         RtbHelper,
+
+        // === TRACKING SERVICES ===
+        BudgetValidationService,
+        BudgetInitializationService,
+        ImpressionClickLinkingService,
     ],
     exports: [
         // Export core services for use in other modules
