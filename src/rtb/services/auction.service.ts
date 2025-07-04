@@ -4,6 +4,7 @@ import { AuctionStatusDto } from '../dto';
 import { BidRequestWithAuction } from '../types/bid-request.types';
 import {
   CAMPAIGN_KEYS,
+  CLICK_AND_IMPRESSION_KEYS,
   CREATIVE_KEYS,
   RTB_CACHE_TTL,
   RTB_KEYS,
@@ -18,6 +19,7 @@ import { AuctionBidResult } from '../types/auction-result.types';
 import { v4 as uuidv4 } from 'uuid';
 import { ImpressionClickLinkingService } from 'src/tracking/services/impression-click-linking.service';
 import { TransactionType } from '@prisma/client';
+import { BudgetValidationService } from 'src/tracking/services/budget-validation.service';
 
 @Injectable()
 export class AuctionService {
@@ -30,6 +32,7 @@ export class AuctionService {
     private readonly campaignEligibility: CampaignEligibilityService,
     private readonly bidEvaluationService: BidEvaluationService,
     private readonly impressionClickLinking: ImpressionClickLinkingService,
+    private readonly budgetValidationService: BudgetValidationService,
   ) {
     this.trackingBaseUrl = process.env.TRACKING_URL || 'http://localhost:3000';
   }
@@ -185,49 +188,44 @@ export class AuctionService {
   ): Promise<CreatedBidResponse[]> {
     const bidPromises = eligibleCampaigns.map(async (campaign) => {
       try {
-        // 🚧 TEMPORARY: BUDGET CHECK DISABLED FOR TESTING
-        // TODO: Re-enable after fixing Redis cache population issue
+        // 1. Calculate actual bid price first
+        const actualBidPrice =
+          await this.bidEvaluationService.calculateBidPrice(
+            campaign,
+            bidRequest,
+          );
 
-        /* 🚧 COMMENTED OUT - ORIGINAL BUDGET CHECK
-    // 1. Check budget availability
-    // FIX: Safe bid amount extraction
-    let bidAmount = 1.0;
-    if (campaign.bidAmount) {
-      bidAmount = Number(campaign.bidAmount) || 1.0;
-    }
+        // 2. ✅ PRECISE budget validation with actual calculated bid
+        const costPerImpression = actualBidPrice / 1000; // Convert CPM to per-impression
+        const hasBudget =
+          await this.budgetValidationService.validateCampaignBudget(
+            campaign.id,
+            costPerImpression,
+          );
 
-    const hasBudget =
-      await this.campaignEligibility.checkBudgetAvailability(
-        campaign.id,
-        bidAmount,
-      );
-    if (!hasBudget) {
-      this.logger.debug('Campaign excluded due to budget exhaustion', {
-        campaignId: campaign.id,
-      });
-      return null;
-    }
-    */
+        if (!hasBudget) {
+          this.logger.debug(
+            'Campaign excluded: insufficient budget for actual bid',
+            {
+              campaignId: campaign.id,
+              actualBidPriceCPM: actualBidPrice,
+              costPerImpression: costPerImpression,
+            },
+          );
+          return null;
+        }
 
-        // 1. Skip budget check - assume all campaigns have budget
-        this.logger.debug(
-          '⚠️ Budget check skipped - assuming campaign has budget',
-          {
-            campaignId: campaign.id,
-          },
-        );
-
-        // 2. Calculate bid price
-        const bidPrice = await this.bidEvaluationService.calculateBidPrice(
-          campaign,
-          bidRequest,
-        );
+        this.logger.debug('Campaign passed precise budget validation', {
+          campaignId: campaign.id,
+          actualBidPriceCPM: actualBidPrice,
+          costPerImpression: costPerImpression,
+        });
 
         // 3. Apply floor price check
-        if (bidRequest.floorPrice && bidPrice < bidRequest.floorPrice) {
+        if (bidRequest.floorPrice && actualBidPrice < bidRequest.floorPrice) {
           this.logger.debug('Bid below floor price', {
             campaignId: campaign.id,
-            bidPrice,
+            actualBidPrice,
             floorPrice: bidRequest.floorPrice,
           });
           return null;
@@ -250,7 +248,7 @@ export class AuctionService {
           bidRequest,
           campaign,
           creative,
-          bidPrice,
+          actualBidPrice,
           auctionId,
         );
       } catch (error) {
@@ -754,36 +752,21 @@ export class AuctionService {
         },
       });
 
-      // REASON: Check if budget is now exhausted and mark accordingly
-      // LOGIC: If remaining budget < $0.001 (minimum bid), mark as exhausted
+      const todayStr = today.toISOString().split('T')[0];
+      await this.redis.set(
+        CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_SPEND(campaignId, todayStr),
+        Number(updatedBudget.spentToday).toString(),
+      );
+
+      // Update campaign status if exhausted
       const remainingBudget = Number(updatedBudget.remainingToday);
-      const minimumBid = 0.001; // $1 CPM equivalent
-
-      if (remainingBudget < minimumBid && !updatedBudget.isExhausted) {
-        await this.prisma.campaignDailyBudget.update({
-          where: {
-            campaignId_date: {
-              campaignId,
-              date: today,
-            },
-          },
-          data: {
-            isExhausted: true,
-            lastUpdated: new Date(),
-          },
-        });
-
-        this.logger.warn('Campaign daily budget exhausted', {
-          campaignId,
-          remainingBudget: remainingBudget,
-          spentToday: Number(updatedBudget.spentToday),
-        });
-
-        // REASON: Pause campaign if budget exhausted
-        // LOGIC: Prevent further spending on exhausted campaigns
-        await this.pauseCampaignForBudgetExhaustion(campaignId);
+      if (remainingBudget < 0.001) {
+        // Less than $1 CPM equivalent
+        await this.redis.set(
+          CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_STATUS(campaignId),
+          'BUDGET_EXHAUSTED',
+        );
       }
-
       // REASON: Record the transaction for audit trail
       // LOGIC: Keep track of every budget deduction for transparency
       await this.recordBudgetTransaction(
@@ -805,7 +788,7 @@ export class AuctionService {
         costDeducted: costPerImpression,
         newSpentToday: Number(updatedBudget.spentToday),
         newRemainingToday: Number(updatedBudget.remainingToday),
-        isNowExhausted: remainingBudget < minimumBid,
+        isNowExhausted: remainingBudget < 0.001,
       });
     } catch (error) {
       this.logger.error('Failed to record auction win', {

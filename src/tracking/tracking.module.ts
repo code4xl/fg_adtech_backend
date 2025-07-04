@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { RedisPostgresSyncService } from './services/redis-postgres-sync.service';
 import { TimescaleService } from '../timescale/timescale.service';
@@ -14,13 +14,10 @@ import { BudgetValidationService } from './services/budget-validation.service';
 import { FraudDetectionService } from './fraud-detection.service';
 import { BudgetInitializationService } from './services/budget-initialization.service';
 import { ImpressionClickLinkingService } from './services/impression-click-linking.service';
+import { BudgetRedisSyncService } from './services/budget-redis-sync.service';
 
 @Module({
-  imports: [
-    ScheduleModule.forRoot(),
-    PrismaModule,
-    RedisModule,
-  ],
+  imports: [ScheduleModule.forRoot(), PrismaModule, RedisModule],
   controllers: [
     TrackingController,
     //  BatchSyncController
@@ -35,16 +32,15 @@ import { ImpressionClickLinkingService } from './services/impression-click-linki
     FraudDetectionService,
     BudgetInitializationService,
     ImpressionClickLinkingService,
-
-
-    PostgresTimescaleSyncService,  // Add this
+    BudgetRedisSyncService,
+    PostgresTimescaleSyncService, // Add this
   ],
   exports: [
     TrackingService,
     RedisPostgresSyncService,
     TimescaleService,
     PostgresTimescaleSyncService,
-
+    BudgetRedisSyncService,
     // OPTIONALLY EXPORT THESE TOO:
     BudgetValidationService,
     FraudDetectionService,
@@ -52,4 +48,22 @@ import { ImpressionClickLinkingService } from './services/impression-click-linki
     ImpressionClickLinkingService,
   ],
 })
-export class TrackingModule { }
+export class TrackingModule {
+  private readonly logger = new Logger(TrackingModule.name);
+  constructor(
+    private readonly budgetRedisSyncService: BudgetRedisSyncService,
+  ) {}
+  async onModuleInit() {
+    try {
+      this.logger.log('🚀 Starting application initialization...');
+
+      // Sync all campaign budgets to Redis on startup
+      await this.budgetRedisSyncService.syncAllActiveCampaigns();
+
+      this.logger.log('✅ Application initialization completed');
+    } catch (error) {
+      this.logger.error('❌ Application initialization failed:', error);
+      // Don't throw - let app start but log the error
+    }
+  }
+}

@@ -178,109 +178,57 @@ export class CampaignEligibilityService {
     return campaigns;
   }
 
-  // private async batchValidateBudgets(
-  //   campaigns: CampaignWithTargeting[],
-  // ): Promise<CampaignWithTargeting[]> {
-  //   if (campaigns.length === 0) return [];
-
-  //   const budgetChecks = await Promise.all(
-  //     campaigns.map(async (campaign: CampaignWithTargeting) => {
-  //       try {
-  //         // FIX: Safe bid amount extraction
-  //         let bidAmount = 1.0;
-  //         if (campaign.bidAmount) {
-  //           bidAmount = Number(campaign.bidAmount) || 1.0;
-  //         }
-
-  //         const hasValidBudget = await this.checkBudgetAvailability(
-  //           campaign.id,
-  //           bidAmount,
-  //         );
-  //         return { campaignId: campaign.id, hasValidBudget };
-  //       } catch (error) {
-  //         this.logger.warn(
-  //           `Budget check failed for campaign ${campaign.id}:`,
-  //           error,
-  //         );
-  //         return { campaignId: campaign.id, hasValidBudget: false };
-  //       }
-  //     }),
-  //   );
-
-  //   const budgetMap = new Map<string, boolean>();
-  //   budgetChecks.forEach(({ campaignId, hasValidBudget }) => {
-  //     budgetMap.set(campaignId, hasValidBudget);
-  //   });
-
-  //   const validCampaigns = campaigns.filter(
-  //     (campaign) => budgetMap.get(campaign.id) === true,
-  //   );
-
-  //   this.logger.debug('Batch budget validation completed', {
-  //     totalCampaigns: campaigns.length,
-  //     campaignIds: campaigns.map((c) => c.id),
-  //     validBudgets: validCampaigns.length,
-  //     rejectedBudgets: campaigns.length - validCampaigns.length,
-  //   });
-
-  //   return validCampaigns;
-  // }
   private async batchValidateBudgets(
     campaigns: CampaignWithTargeting[],
   ): Promise<CampaignWithTargeting[]> {
     if (campaigns.length === 0) return [];
 
-    // 🚧 TEMPORARY: BUDGET VALIDATION DISABLED FOR TESTING
-    // TODO: Re-enable after fixing Redis cache population issue
-    this.logger.warn(
-      '⚠️ BUDGET VALIDATION TEMPORARILY DISABLED - ALL CAMPAIGNS PASS',
+    // ✅ RE-ENABLED: Proper budget validation with minBid rough filtering
+    const budgetChecks = await Promise.all(
+      campaigns.map(async (campaign: CampaignWithTargeting) => {
+        try {
+          // Use minBid for rough early filtering
+          let minBidCPM = 1.0;
+          if (campaign.bidAmount) {
+            minBidCPM = Number(campaign.bidAmount) || 1.0;
+          }
+
+          // Convert CPM to per-impression cost for budget validation
+          const minCostPerImpression = minBidCPM / 1000;
+
+          // Rough budget check: If campaign can't afford even minimum bid, exclude
+          const hasValidBudget = await this.checkBudgetAvailability(
+            campaign.id,
+            minCostPerImpression,
+          );
+
+          return { campaignId: campaign.id, hasValidBudget };
+        } catch (error) {
+          this.logger.warn(
+            `Budget check failed for campaign ${campaign.id}:`,
+            error,
+          );
+          return { campaignId: campaign.id, hasValidBudget: false };
+        }
+      }),
     );
 
-    return campaigns; // Return all campaigns as valid
+    const budgetMap = new Map<string, boolean>();
+    budgetChecks.forEach(({ campaignId, hasValidBudget }) => {
+      budgetMap.set(campaignId, hasValidBudget);
+    });
 
-    /* 🚧 COMMENTED OUT - ORIGINAL BUDGET VALIDATION LOGIC
-  const budgetChecks = await Promise.all(
-    campaigns.map(async (campaign: CampaignWithTargeting) => {
-      try {
-        // FIX: Safe bid amount extraction
-        let bidAmount = 1.0;
-        if (campaign.bidAmount) {
-          bidAmount = Number(campaign.bidAmount) || 1.0;
-        }
+    const validCampaigns = campaigns.filter(
+      (campaign) => budgetMap.get(campaign.id) === true,
+    );
 
-        const hasValidBudget = await this.checkBudgetAvailability(
-          campaign.id,
-          bidAmount,
-        );
-        return { campaignId: campaign.id, hasValidBudget };
-      } catch (error) {
-        this.logger.warn(
-          `Budget check failed for campaign ${campaign.id}:`,
-          error,
-        );
-        return { campaignId: campaign.id, hasValidBudget: false };
-      }
-    }),
-  );
+    this.logger.debug('Batch budget validation completed', {
+      totalCampaigns: campaigns.length,
+      validBudgets: validCampaigns.length,
+      rejectedBudgets: campaigns.length - validCampaigns.length,
+    });
 
-  const budgetMap = new Map<string, boolean>();
-  budgetChecks.forEach(({ campaignId, hasValidBudget }) => {
-    budgetMap.set(campaignId, hasValidBudget);
-  });
-
-  const validCampaigns = campaigns.filter(
-    (campaign) => budgetMap.get(campaign.id) === true,
-  );
-
-  this.logger.debug('Batch budget validation completed', {
-    totalCampaigns: campaigns.length,
-    campaignIds: campaigns.map((c) => c.id),
-    validBudgets: validCampaigns.length,
-    rejectedBudgets: campaigns.length - validCampaigns.length,
-  });
-
-  return validCampaigns;
-  */
+    return validCampaigns;
   }
   async checkBudgetAvailability(
     campaignId: string,
