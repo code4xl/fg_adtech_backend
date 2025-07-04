@@ -253,37 +253,6 @@ export class AuctionService {
     return bidResults.filter((bid) => bid !== null);
   }
 
-  // private async selectCreative(
-  //   campaign: CampaignWithTargeting,
-  //   adSlotContext: any,
-  // ): Promise<CreativeWithTemplate> {
-  //   try {
-  //     // Find creative that matches ad slot requirements
-  //     const creative = await this.prisma.creative.findFirst({
-  //       where: {
-  //         campaignId: campaign.id,
-  //         status: 'APPROVED',
-  //         adSlotTemplate: {
-  //           width: adSlotContext.width,
-  //           height: adSlotContext.height,
-  //           format: adSlotContext.format,
-  //         },
-  //       },
-  //       include: {
-  //         adSlotTemplate: true,
-  //       },
-  //     });
-
-  //     return creative;
-  //   } catch (error) {
-  //     this.logger.error('Failed to select creative', {
-  //       campaignId: campaign.id,
-  //       error: error.message,
-  //     });
-  //     return null;
-  //   }
-  // }
-
   private async selectCreative(
     campaign: CampaignWithTargeting,
     adSlotContext: any,
@@ -685,13 +654,6 @@ export class AuctionService {
       floorPrice: bidRequest.floorPrice,
     };
   }
-
-  // async recordAuctionWin(campaignId: string, finalPrice: number) {
-  //   // Update spend in DB
-  //   // await this.prisma.campaignBudgetTracker.update({ ...});
-
-  //   await this.campaignEligibility.invalidateBudgetCache(campaignId);
-  // }
 
   private async updateBidResponseStatuses(
     bidResponses: CreatedBidResponse[],
