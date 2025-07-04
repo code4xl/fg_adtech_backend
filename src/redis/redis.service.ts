@@ -154,17 +154,13 @@ export class RedisService {
     return this.pubClient.set(key, value, 'EX', ttl);
   }
 
-  async sadd(key: string, value: string): Promise<number> {
-    return this.pubClient.sadd(key, value);
-  }
-
   async sismember(key: string, value: string): Promise<number> {
     return this.pubClient.sismember(key, value);
   }
 
-  async scard(key: string): Promise<number> {
-    return this.pubClient.scard(key);
-  }
+  // async scard(key: string): Promise<number> {
+  //   return this.pubClient.scard(key);
+  // }
 
   async ping(): Promise<string> {
     return this.pubClient.ping();
