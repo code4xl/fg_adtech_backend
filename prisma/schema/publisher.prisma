@@ -23,13 +23,14 @@ model Publisher {
   paymentThreshold Decimal @default(100.0000) @db.Decimal(10, 4)
 
   // Relations
-  inventories      AdInventory[]
-  bidRequests      BidRequest[]
-  websites         Website[]
-  ImpressionEvent  ImpressionEvent[]
-  ClickEvent       ClickEvent[]
-  SystemRevenue    SystemRevenue[]
-  PublisherRevenue PublisherRevenue[]
+  inventories           AdInventory[]
+  bidRequests           BidRequest[]
+  websites              Website[]
+  ImpressionEvent       ImpressionEvent[]
+  ClickEvent            ClickEvent[]
+  SystemRevenue         SystemRevenue[]
+  PublisherRevenue      PublisherRevenue[]
+  PublisherDailyRevenue PublisherDailyRevenue[]
 
   @@index([id, status])
   @@index([status])

@@ -1,11 +1,9 @@
 model PublisherRevenue {
-    id           String  @id @default(uuid()) @db.Uuid
-    publisherId  String  @db.Uuid
-    campaignId   String  @db.Uuid
-    inventoryId  String  @db.Uuid
-    websiteId    String  @db.Uuid
-    impressionId String? @db.Uuid
-    clickId      String? @db.Uuid
+    id          String @id @default(uuid()) @db.Uuid
+    publisherId String @db.Uuid
+    campaignId  String @db.Uuid
+    inventoryId String @db.Uuid
+    websiteId   String @db.Uuid
 
     // Revenue details
     grossRevenue   Decimal @db.Decimal(10, 6)
@@ -37,8 +35,6 @@ model AdvertiserSpending {
     creativeId   String           @db.Uuid
     clientId     String           @db.Uuid
     amount       Decimal          @db.Decimal(10, 6)
-    impressionId String?          @db.Uuid
-    clickId      String?          @db.Uuid
     eventType    RevenueEventType
     createdAt    DateTime         @default(now())
 
@@ -54,14 +50,16 @@ model AdvertiserSpending {
 }
 
 model SystemRevenue {
-    id               String           @id @default(uuid()) @db.Uuid
-    campaignId       String           @db.Uuid
-    publisherId      String           @db.Uuid
-    eventType        RevenueEventType
-    grossRevenue     Decimal          @db.Decimal(10, 6)
-    publisherShare   Decimal          @db.Decimal(10, 6)
-    systemCommission Decimal          @db.Decimal(10, 6)
-    commissionRate   Decimal          @db.Decimal(3, 2)
+    id             String           @id @default(uuid()) @db.Uuid
+    campaignId     String           @db.Uuid
+    publisherId    String           @db.Uuid
+    advertiserId   String           @db.Uuid
+    creativeId     String           @db.Uuid
+    eventType      RevenueEventType
+    grossRevenue   Decimal          @db.Decimal(10, 6)
+    publisherShare Decimal          @db.Decimal(10, 6)
+    systemEarning  Decimal          @db.Decimal(10, 6)
+    commissionRate Decimal          @db.Decimal(3, 2)
 
     inventoryId String   @db.Uuid
     createdAt   DateTime @default(now())
@@ -74,6 +72,71 @@ model SystemRevenue {
     @@index([campaignId, createdAt])
     @@index([publisherId, createdAt])
     @@index([inventoryId, createdAt])
+}
+
+model PublisherDailyRevenue {
+    id          String   @id @default(uuid()) @db.Uuid
+    publisherId String   @db.Uuid
+    date        DateTime @db.Date
+
+    // Aggregated metrics
+    totalImpressions Int     @default(0)
+    totalClicks      Int     @default(0)
+    grossRevenue     Decimal @default(0) @db.Decimal(10, 2)
+    netRevenue       Decimal @default(0) @db.Decimal(10, 2)
+    commissionPaid   Decimal @default(0) @db.Decimal(10, 2)
+
+    // Metadata
+    lastUpdated DateTime @default(now()) @updatedAt
+
+    // Relations
+    publisher Publisher @relation(fields: [publisherId], references: [id])
+
+    @@unique([publisherId, date])
+    @@index([publisherId, date])
+    @@index([date])
+}
+
+model AdvertiserDailySpending {
+    id           String   @id @default(uuid()) @db.Uuid
+    advertiserId String   @db.Uuid
+    campaignId   String?  @db.Uuid
+    date         DateTime @db.Date
+
+    // Aggregated metrics
+    totalImpressions Int     @default(0)
+    totalClicks      Int     @default(0)
+    totalSpend       Decimal @default(0) @db.Decimal(10, 4)
+
+    // Metadata
+    lastUpdated DateTime @default(now()) @updatedAt
+
+    // Relations
+    advertiser Advertiser @relation(fields: [advertiserId], references: [id])
+    campaign   Campaign?  @relation(fields: [campaignId], references: [id])
+
+    @@unique([advertiserId, campaignId, date])
+    @@index([advertiserId, date])
+    @@index([campaignId, date])
+    @@index([date])
+}
+
+model SystemDailyRevenue {
+    id   String   @id @default(uuid()) @db.Uuid
+    date DateTime @db.Date
+
+    // System-wide aggregated metrics
+    totalImpressions      Int     @default(0)
+    totalClicks           Int     @default(0)
+    totalGrossRevenue     Decimal @default(0) @db.Decimal(10, 2)
+    totalCommissionEarned Decimal @default(0) @db.Decimal(10, 2)
+    totalPublisherPayout  Decimal @default(0) @db.Decimal(10, 2)
+
+    // Metadata
+    lastUpdated DateTime @default(now()) @updatedAt
+
+    @@unique([date])
+    @@index([date])
 }
 
 model BudgetTransaction {
