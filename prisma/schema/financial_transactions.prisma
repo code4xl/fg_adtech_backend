@@ -5,16 +5,13 @@ model PublisherRevenue {
     inventoryId String @db.Uuid
     websiteId   String @db.Uuid
 
-    // Revenue details
-    grossRevenue   Decimal @db.Decimal(10, 6)
-    commissionRate Decimal @db.Decimal(3, 2)
-    netRevenue     Decimal @db.Decimal(10, 6)
+    grossRevenue   Decimal @db.Decimal(12, 6)
+    commissionRate Decimal @db.Decimal(5, 4)
+    netRevenue     Decimal @db.Decimal(12, 6)
 
-    // Event details
     eventType RevenueEventType
     createdAt DateTime         @default(now())
 
-    // Relations
     campaign  Campaign    @relation(fields: [campaignId], references: [id])
     inventory AdInventory @relation(fields: [inventoryId], references: [id])
     website   Website     @relation(fields: [websiteId], references: [id])
@@ -26,6 +23,12 @@ model PublisherRevenue {
     @@index([inventoryId, createdAt])
     @@index([websiteId, createdAt])
     @@index([eventType])
+    @@index([publisherId, createdAt, eventType])
+    @@index([campaignId, inventoryId, createdAt])
+    @@index([inventoryId, eventType, createdAt])
+    @@index([publisherId, campaignId, createdAt])
+    @@index([websiteId, eventType, createdAt])
+    @@index([campaignId, eventType, createdAt])
 }
 
 model AdvertiserSpending {
@@ -34,11 +37,10 @@ model AdvertiserSpending {
     campaignId   String           @db.Uuid
     creativeId   String           @db.Uuid
     clientId     String           @db.Uuid
-    amount       Decimal          @db.Decimal(10, 6)
+    amount       Decimal          @db.Decimal(12, 6)
     eventType    RevenueEventType
     createdAt    DateTime         @default(now())
 
-    // Relations
     campaign Campaign @relation(fields: [campaignId], references: [id])
 
     @@index([advertiserId, createdAt])
@@ -47,24 +49,29 @@ model AdvertiserSpending {
     @@index([creativeId, createdAt])
     @@index([clientId, createdAt])
     @@index([eventType])
+    @@index([advertiserId, campaignId, createdAt])
+    @@index([campaignId, creativeId, createdAt])
+    @@index([advertiserId, eventType, createdAt])
+    @@index([clientId, campaignId, createdAt])
+    @@index([creativeId, eventType, createdAt])
 }
 
 model SystemRevenue {
-    id             String           @id @default(uuid()) @db.Uuid
-    campaignId     String           @db.Uuid
-    publisherId    String           @db.Uuid
-    advertiserId   String           @db.Uuid
-    creativeId     String           @db.Uuid
-    eventType      RevenueEventType
-    grossRevenue   Decimal          @db.Decimal(10, 6)
-    publisherShare Decimal          @db.Decimal(10, 6)
-    systemEarning  Decimal          @db.Decimal(10, 6)
-    commissionRate Decimal          @db.Decimal(3, 2)
+    id           String           @id @default(uuid()) @db.Uuid
+    campaignId   String           @db.Uuid
+    publisherId  String           @db.Uuid
+    advertiserId String           @db.Uuid
+    creativeId   String           @db.Uuid
+    eventType    RevenueEventType
+
+    grossRevenue   Decimal @db.Decimal(12, 6)
+    publisherShare Decimal @db.Decimal(12, 6)
+    systemEarning  Decimal @db.Decimal(12, 6)
+    commissionRate Decimal @db.Decimal(5, 4)
 
     inventoryId String   @db.Uuid
     createdAt   DateTime @default(now())
 
-    // Relations
     campaign  Campaign    @relation(fields: [campaignId], references: [id])
     publisher Publisher   @relation(fields: [publisherId], references: [id])
     inventory AdInventory @relation(fields: [inventoryId], references: [id])
@@ -72,6 +79,13 @@ model SystemRevenue {
     @@index([campaignId, createdAt])
     @@index([publisherId, createdAt])
     @@index([inventoryId, createdAt])
+    @@index([advertiserId, createdAt])
+    @@index([creativeId, eventType, createdAt])
+    @@index([commissionRate, createdAt])
+    @@index([eventType, createdAt])
+    @@index([publisherId, campaignId, createdAt])
+    @@index([inventoryId, eventType, createdAt])
+    @@index([advertiserId, publisherId, createdAt])
 }
 
 model PublisherDailyRevenue {
@@ -79,22 +93,23 @@ model PublisherDailyRevenue {
     publisherId String   @db.Uuid
     date        DateTime @db.Date
 
-    // Aggregated metrics
-    totalImpressions Int     @default(0)
-    totalClicks      Int     @default(0)
-    grossRevenue     Decimal @default(0) @db.Decimal(10, 2)
-    netRevenue       Decimal @default(0) @db.Decimal(10, 2)
-    commissionPaid   Decimal @default(0) @db.Decimal(10, 2)
+    totalImpressions Int @default(0)
+    totalClicks      Int @default(0)
 
-    // Metadata
+    grossRevenue   Decimal @default(0) @db.Decimal(15, 6)
+    netRevenue     Decimal @default(0) @db.Decimal(15, 6)
+    commissionPaid Decimal @default(0) @db.Decimal(15, 6)
+
     lastUpdated DateTime @default(now()) @updatedAt
 
-    // Relations
     publisher Publisher @relation(fields: [publisherId], references: [id])
 
     @@unique([publisherId, date])
     @@index([publisherId, date])
     @@index([date])
+    @@index([date, grossRevenue])
+    @@index([date, totalImpressions])
+    @@index([publisherId, grossRevenue])
 }
 
 model AdvertiserDailySpending {
@@ -103,15 +118,13 @@ model AdvertiserDailySpending {
     campaignId   String?  @db.Uuid
     date         DateTime @db.Date
 
-    // Aggregated metrics
-    totalImpressions Int     @default(0)
-    totalClicks      Int     @default(0)
-    totalSpend       Decimal @default(0) @db.Decimal(10, 4)
+    totalImpressions Int @default(0)
+    totalClicks      Int @default(0)
 
-    // Metadata
+    totalSpend Decimal @default(0) @db.Decimal(15, 6)
+
     lastUpdated DateTime @default(now()) @updatedAt
 
-    // Relations
     advertiser Advertiser @relation(fields: [advertiserId], references: [id])
     campaign   Campaign?  @relation(fields: [campaignId], references: [id])
 
@@ -119,31 +132,42 @@ model AdvertiserDailySpending {
     @@index([advertiserId, date])
     @@index([campaignId, date])
     @@index([date])
+    @@index([date, totalSpend])
+    @@index([campaignId, totalSpend])
+    @@index([date, totalImpressions])
+    @@index([advertiserId, totalSpend])
 }
 
 model SystemDailyRevenue {
     id   String   @id @default(uuid()) @db.Uuid
     date DateTime @db.Date
 
-    // System-wide aggregated metrics
-    totalImpressions      Int     @default(0)
-    totalClicks           Int     @default(0)
-    totalGrossRevenue     Decimal @default(0) @db.Decimal(10, 2)
-    totalCommissionEarned Decimal @default(0) @db.Decimal(10, 2)
-    totalPublisherPayout  Decimal @default(0) @db.Decimal(10, 2)
+    totalImpressions Int @default(0)
+    totalClicks      Int @default(0)
 
-    // Metadata
+    totalGrossRevenue     Decimal @default(0) @db.Decimal(18, 6)
+    totalCommissionEarned Decimal @default(0) @db.Decimal(18, 6)
+    totalPublisherPayout  Decimal @default(0) @db.Decimal(18, 6)
+
+    activeCampaigns   Int @default(0)
+    activePublishers  Int @default(0)
+    activeAdvertisers Int @default(0)
+
     lastUpdated DateTime @default(now()) @updatedAt
 
     @@unique([date])
     @@index([date])
+    @@index([totalGrossRevenue])
+    @@index([totalImpressions])
 }
 
 model BudgetTransaction {
-    id          String          @id @default(uuid()) @db.Uuid
-    campaignId  String          @db.Uuid
-    type        TransactionType
-    amount      Decimal         @db.Decimal(10, 6)
+    id         String          @id @default(uuid()) @db.Uuid
+    campaignId String          @db.Uuid
+    type       TransactionType
+
+    amount Decimal @db.Decimal(12, 6)
+
     description String?
 
     impressionId String? @db.Uuid
@@ -154,13 +178,17 @@ model BudgetTransaction {
 
     createdAt DateTime @default(now())
 
-    // Relations
     campaign Campaign @relation(fields: [campaignId], references: [id])
 
     @@index([campaignId, createdAt])
+    @@index([type, amount])
+    @@index([campaignId, amount])
     @@index([type, createdAt])
     @@index([impressionId])
     @@index([clickId])
     @@index([publisherId])
     @@index([inventoryId])
+    @@index([campaignId, type, createdAt])
+    @@index([publisherId, type, createdAt])
+    @@index([inventoryId, type, createdAt])
 }
