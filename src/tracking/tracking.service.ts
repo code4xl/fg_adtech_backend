@@ -3,11 +3,6 @@ import { RedisService } from '../redis/redis.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { v4 as uuidv4 } from 'uuid';
 import { CLICK_AND_IMPRESSION_KEYS } from 'src/rtb/constants/cache-keys';
-export const commissionMap = {
-  STANDARD: 0.4, // 40%
-  PREMIUM: 0.3, // 30%
-  ELITE: 0.2, // 20%
-};
 
 @Injectable()
 export class TrackingService {
@@ -111,7 +106,6 @@ export class TrackingService {
         CLICK_AND_IMPRESSION_KEYS.PENDING_IMPRESSIONS,
         JSON.stringify(impressionData),
       );
-      const costPerImpression = impression.finalPrice / 1000; // Convert CPM to per-impression
 
       // 2. Update real-time metrics
       pipeline.incr(
@@ -125,64 +119,6 @@ export class TrackingService {
           impression.creativeId,
           today,
         ),
-      );
-
-      // 3. Update budget spending (critical for budget control)
-      pipeline.incrbyfloat(
-        CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_SPEND(
-          impression.campaignId,
-          today,
-        ),
-        costPerImpression,
-      );
-
-      // 4. Update revenue splitting
-      const publisherRevenueDetails: string = await this.redis.get(
-        CLICK_AND_IMPRESSION_KEYS.PUBLISHER_REVENUE_TIERS(
-          impression.publisherId,
-        ),
-      );
-      const publisherRevenueTier = publisherRevenueDetails
-        ? JSON.parse(publisherRevenueDetails)
-        : { tier: 'STANDARD', paymentThreshold: 100.0 }; // Default values
-      this.logger.debug(
-        `Publisher revenue tier: ${publisherRevenueTier.tier}, threshold: ${publisherRevenueTier}`,
-      );
-
-      const systemRevenue =
-        costPerImpression * commissionMap[publisherRevenueTier.tier];
-      const publisherRevenue = costPerImpression - systemRevenue;
-      pipeline.incrbyfloat(
-        CLICK_AND_IMPRESSION_KEYS.PUBLISHER_REVENUE(
-          impression.publisherId,
-          today,
-        ),
-        publisherRevenue,
-      );
-      pipeline.incrbyfloat(
-        CLICK_AND_IMPRESSION_KEYS.SYSTEM_REVENUE(today),
-        systemRevenue,
-      );
-      pipeline.incrbyfloat(
-        CLICK_AND_IMPRESSION_KEYS.CREATIVE_SPENDING(
-          impression.creativeId,
-          today,
-        ),
-        costPerImpression,
-      );
-      pipeline.incrbyfloat(
-        CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_SPENDING(
-          impression.campaignId,
-          today,
-        ),
-        costPerImpression,
-      );
-      pipeline.incrbyfloat(
-        CLICK_AND_IMPRESSION_KEYS.ADVERTISER_SPENDING(
-          impression.advertiserId,
-          today,
-        ),
-        costPerImpression,
       );
 
       // 5. Set expiration for metrics
@@ -200,35 +136,7 @@ export class TrackingService {
         ),
         2592000,
       );
-      pipeline.expire(
-        CLICK_AND_IMPRESSION_KEYS.PUBLISHER_REVENUE(
-          impression.publisherId,
-          today,
-        ),
-        2592000,
-      );
-      pipeline.expire(CLICK_AND_IMPRESSION_KEYS.SYSTEM_REVENUE(today), 2592000);
-      pipeline.expire(
-        CLICK_AND_IMPRESSION_KEYS.CREATIVE_SPENDING(
-          impression.creativeId,
-          today,
-        ),
-        2592000,
-      );
-      pipeline.expire(
-        CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_SPENDING(
-          impression.campaignId,
-          today,
-        ),
-        2592000,
-      );
-      pipeline.expire(
-        CLICK_AND_IMPRESSION_KEYS.ADVERTISER_SPENDING(
-          impression.advertiserId,
-          today,
-        ),
-        2592000,
-      );
+
       // Execute all operations atomically
       await pipeline.exec();
 

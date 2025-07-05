@@ -13,6 +13,7 @@ import {
 } from '../types/auction-result.types';
 import { WinningBidResponse } from '../types/bid-response.types';
 import { RTB_CACHE_TTL, RTB_KEYS } from '../constants/cache-keys';
+import { AdMarkupService } from '../services/ad-markup.service';
 
 @Injectable()
 export class BidResponseProcessor {
@@ -23,44 +24,12 @@ export class BidResponseProcessor {
     private readonly config: ConfigService,
     private readonly auctionService: AuctionService,
     private readonly redis: RedisService,
+    private readonly adMarkupService: AdMarkupService,
   ) {
     this.trackingBaseUrl =
       this.config.get<string>('APP_URL') || 'https://track.oceanadtech.com';
     this.logger.log('Bid Response Processor initialized - Phase 4');
   }
-
-  // Deprecated: This method is no longer used
-  // async generateBidResponses(auctionResult: CompleteAuctionResult): Promise<WinningBidResponse[] | HandleNoBidsResult[] | ErrorAuctionResult[]> {
-  //     this.logger.debug(
-  //         'Generating bid responses' +
-  //         JSON.stringify({
-  //             // auctionResult: auctionResult,
-  //             auctionId: auctionResult.auctionId,
-  //             hasWinner: !!auctionResult.winner,
-  //             // status: auctionResult.auctionStatus,
-  //         }),
-  //     );
-
-  //     try {
-  //         // Handle different auction outcomes
-  //         switch (auctionResult.auctionStatus) {
-  //             case 'NO_BIDS':
-  //                 return await this.generateNoBidsResponse(auctionResult);
-
-  //             case 'ERROR':
-  //                 return await this.generateErrorResponse(auctionResult);
-
-  //             default:
-  //                 return await this.generateCompletedAuctionResponses(auctionResult);
-  //         }
-  //     } catch (error) {
-  //         this.logger.error('Failed to generate bid responses', {
-  //             error: error,
-  //             auctionId: auctionResult.auctionId,
-  //         });
-  //         throw error;
-  //     }
-  // }
 
   async generateCompletedAuctionResponses(
     auctionResult: AuctionBidResult,
@@ -89,61 +58,6 @@ export class BidResponseProcessor {
     return responses;
   }
 
-  // Deprecated: This method is no longer used
-  // public async generateWinningBidResponse(auctionResult: AuctionBidResult): Promise<WinningBidResponse> {
-  //     const winner = auctionResult.winner;
-  //     const creativeId = winner.creativeId;
-  //     const auctionId = auctionResult.auctionId;
-
-  //     this.logger.debug('Generating winning bid response', {
-  //         auctionId,
-  //         winnerId: winner.id,
-  //         finalPrice: winner.finalPrice,
-  //         creativeId,
-  //         auctionResult,
-  //         adSlotContext: auctionResult.originalBidRequest.adSlotContext,
-  //     });
-  //     // Use auction service for tracking URLs
-  //     const trackingUrls = this.auctionService.generateTrackingUrls(
-  //         auctionId,
-  //         winner.id,
-  //     );
-  //     const adSlotContextData = auctionResult.originalBidRequest.adSlotContext;
-
-  //     // Use auction service for ad markup
-  //     const adMarkup = this.auctionService.generateAdMarkup(
-  //         creativeId,
-  //         trackingUrls,
-  //         {
-  //             width: adSlotContextData.width,
-  //             height: adSlotContextData.height,
-  //             format: adSlotContextData.format,
-  //         },
-  //     );
-
-  //     return {
-  //         requestId: auctionResult.originalBidRequest.externalRequestId,
-  //         status: 'COMPLETED',
-  //         winningBid: {
-  //             price: winner.finalPrice,
-  //             currency: winner.currency || 'INR',
-  //             campaignId: winner.campaignId,
-  //             creativeId: winner.creativeId,
-  //             adMarkup,
-  //             impressionUrls: trackingUrls.impression,
-  //             clickUrls: trackingUrls.click,
-  //             landingUrl: winner.landingUrl,
-  //         },
-  //         auctionData: {
-  //             totalBids: auctionResult.totalBids || 1,
-  //             validBids: auctionResult.validBids || 1,
-  //             auctionDuration: `${auctionResult.processingTime || 0}ms`,
-  //             timestamp: new Date().toISOString(),
-  //             floorPrice: auctionResult.floorPrice,
-  //         },
-  //     };
-  // }
-
   private async generateWinningBidResponse(
     auctionResult: AuctionBidResult,
   ): Promise<WinningBidResponse> {
@@ -160,14 +74,14 @@ export class BidResponseProcessor {
     });
 
     // Use auction service for tracking URLs
-    const trackingUrls = this.auctionService.generateTrackingUrls(
+    const trackingUrls = this.adMarkupService.generateTrackingUrls(
       auctionId,
       winner.id,
     );
     const adSlotContextData = auctionResult.originalBidRequest.adSlotContext;
 
     // Use auction service for ad markup
-    const adMarkup = this.auctionService.generateAdMarkup(
+    const adMarkup = this.adMarkupService.generateAdMarkup(
       creativeId,
       trackingUrls,
       {

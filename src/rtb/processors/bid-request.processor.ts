@@ -1,18 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  BidRequestPayload,
-  BidRequestWithAuction,
-} from '../types/bid-request.types';
+import { BidRequestWithAuction } from '../types/bid-request.types';
 import { AuctionService } from '../services/auction.service';
-import { KafkaService } from 'src/kafka/kafka.service';
 import { RedisService } from 'src/redis/redis.service';
 import { METRICS_KEYS, RTB_CACHE_TTL, RTB_KEYS } from '../constants/cache-keys';
 import { CampaignWithTargeting } from '../types/campaign.types';
 import AuctionProducer from '../producers/auction.producer';
 import {
   AuctionBidResult,
-  AuctionResult,
-  AuctionResultInput,
   ErrorAuctionResult,
   HandleNoBidsResult,
   ProcessedAuctionResult,
