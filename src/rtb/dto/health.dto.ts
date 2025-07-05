@@ -113,14 +113,6 @@ export class HealthCheckDto {
   @Type(() => SystemComponentsDto)
   components: SystemComponentsDto;
 
-  @ApiProperty({
-    description: 'Real-time system metrics',
-    type: SystemMetricsDto,
-  })
-  @ValidateNested()
-  @Type(() => SystemMetricsDto)
-  metrics: SystemMetricsDto;
-
   @ApiPropertyOptional({
     description: 'Additional system information',
     example: { uptime: '24h 15m', memoryUsage: '2.1GB' },

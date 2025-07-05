@@ -4,7 +4,7 @@ import { RedisService } from '../redis/redis.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { BudgetManagerService } from 'src/rtb/services/budget-manager.service';
 import { v4 as uuidv4 } from 'uuid';
-import { CLICK_AND_IMPRESSION_KEYS } from 'src/rtb/constants/cache-keys';
+import { REDIS_KEYS } from 'src/rtb/constants/cache-keys';
 
 @Injectable()
 export class TrackingService {
@@ -23,7 +23,7 @@ export class TrackingService {
   async getImpressionData(bidResponseId: string): Promise<any> {
     try {
       const cachedData: string = await this.redis.get(
-        CLICK_AND_IMPRESSION_KEYS.BID_RESPONSE(bidResponseId),
+        REDIS_KEYS.BID_RESPONSE(bidResponseId),
       );
 
       if (!cachedData) {
@@ -95,37 +95,25 @@ export class TrackingService {
 
       // Store for PostgreSQL sync
       pipeline.lpush(
-        CLICK_AND_IMPRESSION_KEYS.PENDING_IMPRESSIONS,
+        REDIS_KEYS.PENDING_IMPRESSIONS,
         JSON.stringify(impressionData),
       );
 
       // ===== 2. UPDATE REAL-TIME METRICS =====
       pipeline.incr(
-        CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_IMPRESSIONS(
-          impression.campaignId,
-          today,
-        ),
+        REDIS_KEYS.CAMPAIGN_IMPRESSIONS(impression.campaignId, today),
       );
       pipeline.incr(
-        CLICK_AND_IMPRESSION_KEYS.CREATIVE_IMPRESSIONS(
-          impression.creativeId,
-          today,
-        ),
+        REDIS_KEYS.CREATIVE_IMPRESSIONS(impression.creativeId, today),
       );
 
       // ===== 4. SET EXPIRATION FOR METRICS =====
       pipeline.expire(
-        CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_IMPRESSIONS(
-          impression.campaignId,
-          today,
-        ),
+        REDIS_KEYS.CAMPAIGN_IMPRESSIONS(impression.campaignId, today),
         2592000,
       );
       pipeline.expire(
-        CLICK_AND_IMPRESSION_KEYS.CREATIVE_IMPRESSIONS(
-          impression.creativeId,
-          today,
-        ),
+        REDIS_KEYS.CREATIVE_IMPRESSIONS(impression.creativeId, today),
         2592000,
       );
 
@@ -192,26 +180,19 @@ export class TrackingService {
       };
 
       // Store for PostgreSQL sync
-      pipeline.lpush(
-        CLICK_AND_IMPRESSION_KEYS.PENDING_CLICKS,
-        JSON.stringify(clickData),
-      );
+      pipeline.lpush(REDIS_KEYS.PENDING_CLICKS, JSON.stringify(clickData));
 
       // ===== 2. UPDATE REAL-TIME METRICS =====
-      pipeline.incr(
-        CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_CLICKS(click.campaignId, today),
-      );
-      pipeline.incr(
-        CLICK_AND_IMPRESSION_KEYS.CREATIVE_CLICKS(click.creativeId, today),
-      );
+      pipeline.incr(REDIS_KEYS.CAMPAIGN_CLICKS(click.campaignId, today));
+      pipeline.incr(REDIS_KEYS.CREATIVE_CLICKS(click.creativeId, today));
 
       // ===== 4. SET EXPIRATION FOR METRICS =====
       pipeline.expire(
-        CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_CLICKS(click.campaignId, today),
+        REDIS_KEYS.CAMPAIGN_CLICKS(click.campaignId, today),
         2592000,
       );
       pipeline.expire(
-        CLICK_AND_IMPRESSION_KEYS.CREATIVE_CLICKS(click.creativeId, today),
+        REDIS_KEYS.CREATIVE_CLICKS(click.creativeId, today),
         2592000,
       );
 
@@ -288,15 +269,9 @@ export class TrackingService {
 
     try {
       const [impressions, clicks, spending] = await Promise.all([
-        this.redis.get(
-          CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_IMPRESSIONS(campaignId, dateStr),
-        ),
-        this.redis.get(
-          CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_CLICKS(campaignId, dateStr),
-        ),
-        this.redis.get(
-          CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_SPEND(campaignId, dateStr),
-        ),
+        this.redis.get(REDIS_KEYS.CAMPAIGN_IMPRESSIONS(campaignId, dateStr)),
+        this.redis.get(REDIS_KEYS.CAMPAIGN_CLICKS(campaignId, dateStr)),
+        this.redis.get(REDIS_KEYS.DAILY_BUDGET_SPEND(campaignId, dateStr)),
       ]);
 
       const impressionCount = parseInt(impressions as string) || 0;
@@ -327,12 +302,8 @@ export class TrackingService {
 
     try {
       const [impressions, clicks] = await Promise.all([
-        this.redis.get(
-          CLICK_AND_IMPRESSION_KEYS.CREATIVE_IMPRESSIONS(creativeId, dateStr),
-        ),
-        this.redis.get(
-          CLICK_AND_IMPRESSION_KEYS.CREATIVE_CLICKS(creativeId, dateStr),
-        ),
+        this.redis.get(REDIS_KEYS.CREATIVE_IMPRESSIONS(creativeId, dateStr)),
+        this.redis.get(REDIS_KEYS.CREATIVE_CLICKS(creativeId, dateStr)),
       ]);
 
       const impressionCount = parseInt(impressions as string) || 0;
@@ -362,7 +333,7 @@ export class TrackingService {
 
     try {
       const revenue = await this.redis.get(
-        CLICK_AND_IMPRESSION_KEYS.PUBLISHER_REVENUE(publisherId, dateStr),
+        REDIS_KEYS.PUBLISHER_REVENUE(publisherId, dateStr),
       );
       return parseFloat(revenue as string) || 0;
     } catch (error) {
@@ -391,12 +362,12 @@ export class TrackingService {
         advertiserSpending,
         systemRevenue,
       ] = await Promise.all([
-        this.redis.llen(CLICK_AND_IMPRESSION_KEYS.PENDING_IMPRESSIONS),
-        this.redis.llen(CLICK_AND_IMPRESSION_KEYS.PENDING_CLICKS),
-        this.redis.llen(CLICK_AND_IMPRESSION_KEYS.BUDGET_TRANSACTION_PENDING),
-        this.redis.llen(CLICK_AND_IMPRESSION_KEYS.PUBLISHER_REVENUE_PENDING),
-        this.redis.llen(CLICK_AND_IMPRESSION_KEYS.ADVERTISER_SPENDING_PENDING),
-        this.redis.llen(CLICK_AND_IMPRESSION_KEYS.SYSTEM_REVENUE_PENDING),
+        this.redis.llen(REDIS_KEYS.PENDING_IMPRESSIONS),
+        this.redis.llen(REDIS_KEYS.PENDING_CLICKS),
+        this.redis.llen(REDIS_KEYS.BUDGET_TRANSACTION_PENDING),
+        this.redis.llen(REDIS_KEYS.PUBLISHER_REVENUE_PENDING),
+        this.redis.llen(REDIS_KEYS.ADVERTISER_SPENDING_PENDING),
+        this.redis.llen(REDIS_KEYS.SYSTEM_REVENUE_PENDING),
       ]);
 
       return {

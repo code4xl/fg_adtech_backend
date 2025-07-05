@@ -4,7 +4,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { RedisService } from 'src/redis/redis.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { v4 as uuidv4 } from 'uuid';
-import { CLICK_AND_IMPRESSION_KEYS } from 'src/rtb/constants/cache-keys';
+import { REDIS_KEYS } from 'src/rtb/constants/cache-keys';
 
 @Injectable()
 export class SystemRevenueJob {
@@ -81,7 +81,7 @@ export class SystemRevenueJob {
       while (true) {
         // Get chunk of pending system revenue records
         const chunk = await this.redis.lpop(
-          CLICK_AND_IMPRESSION_KEYS.SYSTEM_REVENUE_PENDING,
+          REDIS_KEYS.SYSTEM_REVENUE_PENDING,
           chunkSize,
         );
 
@@ -174,8 +174,7 @@ export class SystemRevenueJob {
     });
 
     try {
-      const systemDailyKey =
-        CLICK_AND_IMPRESSION_KEYS.SYSTEM_REVENUE_DAILY(dateStr);
+      const systemDailyKey = REDIS_KEYS.SYSTEM_REVENUE_DAILY(dateStr);
 
       // 🔧 FIX: Use hgetall instead of smembers
       const dailyData = await this.redis.hgetall(systemDailyKey);

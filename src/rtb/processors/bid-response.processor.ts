@@ -1,18 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { KafkaService } from 'src/kafka/kafka.service';
-import { PrismaService } from 'src/prisma/prisma.service';
+
 import { RedisService } from 'src/redis/redis.service';
 import { AuctionService } from '../services/auction.service';
-import AuctionProducer from '../producers/auction.producer';
+
 import {
   AuctionBidResult,
-  CompleteAuctionResult,
   ErrorAuctionResult,
   HandleNoBidsResult,
 } from '../types/auction-result.types';
 import { WinningBidResponse } from '../types/bid-response.types';
-import { RTB_CACHE_TTL, RTB_KEYS } from '../constants/cache-keys';
+import { RTB_CACHE_TTL, REDIS_KEYS } from '../constants/cache-keys';
 import { AdMarkupService } from '../services/ad-markup.service';
 
 @Injectable()
@@ -200,7 +198,7 @@ export class BidResponseProcessor {
           status = response.auctionStatus;
         }
 
-        const cacheKey = RTB_KEYS.AUCTION_RESULT(requestId);
+        const cacheKey = REDIS_KEYS.AUCTION_RESULT(requestId);
 
         await this.redis.set(
           cacheKey,

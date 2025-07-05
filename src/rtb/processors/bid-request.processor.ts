@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { BidRequestWithAuction } from '../types/bid-request.types';
 import { AuctionService } from '../services/auction.service';
 import { RedisService } from 'src/redis/redis.service';
-import { METRICS_KEYS, RTB_CACHE_TTL, RTB_KEYS } from '../constants/cache-keys';
+import { RTB_CACHE_TTL, REDIS_KEYS } from '../constants/cache-keys';
 import { CampaignWithTargeting } from '../types/campaign.types';
 import AuctionProducer from '../producers/auction.producer';
 import {
@@ -146,7 +146,7 @@ export class BidRequestProcessor {
 
   private async setProcessingLock(requestId: string): Promise<boolean> {
     try {
-      const lockKey = RTB_KEYS.BID_REQUEST_LOCK(requestId);
+      const lockKey = REDIS_KEYS.BID_REQUEST_LOCK(requestId);
       const lockValue = `${Date.now()}_${Math.random()}`;
 
       // Use Redis SET with NX (only if not exists) and EX (expiration)
@@ -172,7 +172,7 @@ export class BidRequestProcessor {
 
   private async clearProcessingLock(requestId: string): Promise<void> {
     try {
-      const lockKey = RTB_KEYS.BID_REQUEST_LOCK(requestId);
+      const lockKey = REDIS_KEYS.BID_REQUEST_LOCK(requestId);
       await this.redis.del(lockKey);
 
       //   this.logger.debug('Processing lock cleared', { requestId });
@@ -243,9 +243,9 @@ export class BidRequestProcessor {
 
       await Promise.all([
         // Auction count metrics
-        this.redis.incr(METRICS_KEYS.HOURLY_TOTAL_AUCTION_METRICS(hour)),
+        this.redis.incr(REDIS_KEYS.HOURLY_TOTAL_AUCTION_METRICS(hour)),
         this.redis.incr(
-          METRICS_KEYS.HOURLY_AUCTION_WINNER_METRICS(
+          REDIS_KEYS.HOURLY_AUCTION_WINNER_METRICS(
             auctionResult.winner ? true : false,
             hour,
           ),
@@ -253,13 +253,13 @@ export class BidRequestProcessor {
 
         // Performance metrics
         this.redis.incrby(
-          METRICS_KEYS.HOURLY_PROCESSING_TIME_METRICS(hour),
+          REDIS_KEYS.HOURLY_PROCESSING_TIME_METRICS(hour),
           processingTime,
         ),
 
         // Inventory metrics
         this.redis.incr(
-          METRICS_KEYS.HOURLY_INVENTORY_REQUEST_METRICS(
+          REDIS_KEYS.HOURLY_INVENTORY_REQUEST_METRICS(
             bidRequest.inventoryId,
             hour,
           ),
@@ -267,11 +267,11 @@ export class BidRequestProcessor {
 
         // Set expiration for metrics (keep for 7 days)
         this.redis.expire(
-          METRICS_KEYS.HOURLY_TOTAL_AUCTION_METRICS(hour),
+          REDIS_KEYS.HOURLY_TOTAL_AUCTION_METRICS(hour),
           RTB_CACHE_TTL.HOURLY_TOTAL_AUCTION_METRICS,
         ),
         this.redis.expire(
-          METRICS_KEYS.HOURLY_PROCESSING_TIME_METRICS(hour),
+          REDIS_KEYS.HOURLY_PROCESSING_TIME_METRICS(hour),
           RTB_CACHE_TTL.HOURLY_PROCESSING_TIME_METRICS,
         ),
       ]);

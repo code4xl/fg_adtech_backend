@@ -7,7 +7,7 @@ import { BidResponseDto } from '../dto';
 @Injectable()
 export class RtbCacheService {
   private readonly logger = new Logger(RtbCacheService.name);
-  constructor(private readonly redis: RedisService) { }
+  constructor(private readonly redis: RedisService) {}
 
   public async cacheBidRequest(
     bidRequest: BidRequestWithAuction,
@@ -55,7 +55,11 @@ export class RtbCacheService {
   ): Promise<void> {
     try {
       const cacheKey = REDIS_KEYS.AUCTION_RESULT(requestId);
-      await this.redis.set(cacheKey, JSON.stringify(bidResponse), RTB_CACHE_TTL.AUCTION_RESULT); // 1 hour TTL
+      await this.redis.set(
+        cacheKey,
+        JSON.stringify(bidResponse),
+        RTB_CACHE_TTL.AUCTION_RESULT,
+      ); // 1 hour TTL
     } catch (error) {
       this.logger.warn('Failed to cache bid response', {
         error: error.message,

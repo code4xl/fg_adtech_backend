@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuctionStatusDto } from '../dto';
 import { BidRequestWithAuction } from '../types/bid-request.types';
-import { CAMPAIGN_KEYS, RTB_CACHE_TTL } from '../constants/cache-keys';
+import { REDIS_KEYS, RTB_CACHE_TTL } from '../constants/cache-keys';
 import { RedisService } from 'src/redis/redis.service';
 import { CampaignEligibilityService } from './campaign-eligibility.service';
 import { CampaignWithTargeting } from '../types/campaign.types';
@@ -131,7 +131,7 @@ export class AuctionService {
   async findEligibleCampaigns(
     bidRequest: BidRequestWithAuction,
   ): Promise<CampaignWithTargeting[]> {
-    const cacheKey = CAMPAIGN_KEYS.ELIGIBLE_CAMPAIGNS(
+    const cacheKey = REDIS_KEYS.ELIGIBLE_CAMPAIGNS(
       bidRequest.inventoryId,
       bidRequest.userContext.deviceType,
     );

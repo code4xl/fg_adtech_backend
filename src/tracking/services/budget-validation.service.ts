@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from 'src/redis/redis.service';
-import { CLICK_AND_IMPRESSION_KEYS } from 'src/rtb/constants/cache-keys';
+import { REDIS_KEYS } from 'src/rtb/constants/cache-keys';
 import { BudgetInitializationService } from './budget-initialization.service';
 import { BudgetRedisSyncService } from './budget-redis-sync.service';
 
@@ -25,13 +25,9 @@ export class BudgetValidationService {
 
       // Try Redis first for fast lookup
       const [dailyLimit, dailySpend, status] = await Promise.all([
-        redisClient.get(
-          CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_LIMIT(campaignId),
-        ),
-        redisClient.get(
-          CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_SPEND(campaignId, today),
-        ),
-        redisClient.get(CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_STATUS(campaignId)),
+        redisClient.get(REDIS_KEYS.DAILY_BUDGET_LIMIT(campaignId)),
+        redisClient.get(REDIS_KEYS.DAILY_BUDGET_SPEND(campaignId, today)),
+        redisClient.get(REDIS_KEYS.CAMPAIGN_STATUS(campaignId)),
       ]);
       // this.logger.debug(
       //   `Campaign ${campaignId} budget check (campaign budget validation checking)`,
@@ -53,15 +49,9 @@ export class BudgetValidationService {
 
         // Retry Redis read after sync
         const [newDailyLimit, newDailySpend, newStatus] = await Promise.all([
-          redisClient.get(
-            CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_LIMIT(campaignId),
-          ),
-          redisClient.get(
-            CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_SPEND(campaignId, today),
-          ),
-          redisClient.get(
-            CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_STATUS(campaignId),
-          ),
+          redisClient.get(REDIS_KEYS.DAILY_BUDGET_LIMIT(campaignId)),
+          redisClient.get(REDIS_KEYS.DAILY_BUDGET_SPEND(campaignId, today)),
+          redisClient.get(REDIS_KEYS.CAMPAIGN_STATUS(campaignId)),
         ]);
 
         if (!newDailyLimit || newStatus !== 'ACTIVE') {
@@ -136,11 +126,9 @@ export class BudgetValidationService {
       const pipeline = redisClient.pipeline();
 
       campaignBids.forEach(({ campaignId }) => {
-        pipeline.get(CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_LIMIT(campaignId));
-        pipeline.get(
-          CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_SPEND(campaignId, today),
-        );
-        pipeline.get(CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_STATUS(campaignId));
+        pipeline.get(REDIS_KEYS.DAILY_BUDGET_LIMIT(campaignId));
+        pipeline.get(REDIS_KEYS.DAILY_BUDGET_SPEND(campaignId, today));
+        pipeline.get(REDIS_KEYS.CAMPAIGN_STATUS(campaignId));
       });
 
       const results = await pipeline.exec();
@@ -191,7 +179,7 @@ export class BudgetValidationService {
 
       // Count how many campaigns have budget data loaded
       const budgetKeys = await redisClient.keys(
-        CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_LIMIT('*').replace('*', '*'),
+        REDIS_KEYS.DAILY_BUDGET_LIMIT('*').replace('*', '*'),
       );
 
       // Get sample campaign statuses to ensure data integrity
@@ -199,9 +187,7 @@ export class BudgetValidationService {
       const sampleStatuses = await Promise.all(
         sampleKeys.map((key) => {
           const campaignId = key.split(':').pop(); // Extract campaign ID from key
-          return redisClient.get(
-            CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_STATUS(campaignId),
-          );
+          return redisClient.get(REDIS_KEYS.CAMPAIGN_STATUS(campaignId));
         }),
       );
 
@@ -233,7 +219,7 @@ export class BudgetValidationService {
 
       // Get all campaign budget keys
       const budgetLimitKeys = await redisClient.keys(
-        CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_LIMIT('*').replace('*', '*'),
+        REDIS_KEYS.DAILY_BUDGET_LIMIT('*').replace('*', '*'),
       );
 
       const metrics = {
@@ -254,15 +240,9 @@ export class BudgetValidationService {
         const campaignId = budgetKey.split(':').pop();
 
         const [status, budgetLimit, dailySpend] = await Promise.all([
-          redisClient.get(
-            CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_STATUS(campaignId),
-          ),
-          redisClient.get(
-            CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_LIMIT(campaignId),
-          ),
-          redisClient.get(
-            CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_SPEND(campaignId, today),
-          ),
+          redisClient.get(REDIS_KEYS.CAMPAIGN_STATUS(campaignId)),
+          redisClient.get(REDIS_KEYS.DAILY_BUDGET_LIMIT(campaignId)),
+          redisClient.get(REDIS_KEYS.DAILY_BUDGET_SPEND(campaignId, today)),
         ]);
 
         // Count campaign statuses

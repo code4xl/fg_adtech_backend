@@ -7,7 +7,6 @@ import {
 } from '../types/bid-request.types';
 import { RtbHelper } from '../utils/helpers';
 import { BidRequestProcessor } from '../processors/bid-request.processor';
-import { RTBMetricsService } from '../services/rtb-metrics.service';
 
 @Injectable()
 export class BidRequestKafkaConsumer implements OnModuleInit {
@@ -16,7 +15,6 @@ export class BidRequestKafkaConsumer implements OnModuleInit {
   constructor(
     private readonly kafka: KafkaService,
     private readonly bidRequestProcessor: BidRequestProcessor,
-    private readonly metricsService: RTBMetricsService,
 
     private readonly rtbHelper: RtbHelper,
   ) {
@@ -85,18 +83,18 @@ export class BidRequestKafkaConsumer implements OnModuleInit {
       // );
 
       // 5. Record processing metrics
-      const processingTime = Date.now() - startTime;
+      // const processingTime = Date.now() - startTime;
 
       //   this.logger.debug('Recording processing metrics', {
       //     auctionId: auctionResult.auctionId,
       //   });
 
-      await this.recordProcessingMetrics(
-        auctionResult.auctionId,
-        processingTime,
-        'success',
-        auctionResult.totalBids,
-      );
+      // await this.recordProcessingMetrics(
+      //   auctionResult.auctionId,
+      //   processingTime,
+      //   'success',
+      //   auctionResult.totalBids,
+      // );
 
       //   this.logger.debug('Recording processing metrics done', {
       //     auctionId: auctionResult.auctionId,
@@ -104,7 +102,6 @@ export class BidRequestKafkaConsumer implements OnModuleInit {
 
       this.logger.log('✅ Auction processed successfully', {
         auctionId: auctionResult.auctionId,
-        processingTime: `${processingTime}ms`,
         winner: auctionResult.winner ? 'yes' : 'no',
       });
     } catch (error) {
@@ -125,7 +122,7 @@ export class BidRequestKafkaConsumer implements OnModuleInit {
       );
 
       // Record failure metrics
-      await this.recordProcessingMetrics(auctionId, processingTime, 'error');
+      // await this.recordProcessingMetrics(auctionId, processingTime, 'error');
     }
   }
 
@@ -141,34 +138,6 @@ export class BidRequestKafkaConsumer implements OnModuleInit {
       return data;
     } catch (error) {
       throw new Error(`Invalid bid request format: ${error.message}`);
-    }
-  }
-
-  private async recordProcessingMetrics(
-    auctionId: string,
-    processingTime: number,
-    status: 'success' | 'error',
-    bidCount?: number,
-  ): Promise<void> {
-    try {
-      // This would integrate with your metrics service
-      this.logger.debug('Recording processing metrics', {
-        auctionId,
-        processingTime,
-        status,
-      });
-
-      await this.metricsService.recordAuctionProcessing({
-        auctionId,
-        processingTime,
-        status,
-        timestamp: new Date(),
-        bidCount,
-      });
-    } catch (error) {
-      this.logger.warn('Failed to record metrics', {
-        error: error.message,
-      });
     }
   }
 }

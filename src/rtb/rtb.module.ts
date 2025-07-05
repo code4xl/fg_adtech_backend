@@ -19,7 +19,7 @@ import { AuctionCompletionKafkaConsumer } from './consumers/auction-completion.c
 import AuctionProducer from './producers/auction.producer';
 import { RtbCacheService } from './cache/rtb-cache.service';
 import { RtbHelper } from './utils/helpers';
-import { RTBMetricsService } from './services/rtb-metrics.service';
+
 import { BudgetValidationService } from 'src/tracking/services/budget-validation.service';
 import { BudgetInitializationService } from 'src/tracking/services/budget-initialization.service';
 import { ImpressionClickLinkingService } from 'src/tracking/services/impression-click-linking.service';
@@ -49,7 +49,7 @@ import { AdMarkupService } from './services/ad-markup.service';
     AdvertiserSpendingJob,
     SystemRevenueJob,
     RtbService,
-    RTBMetricsService,
+
     AuctionService,
     BidEvaluationService,
     CampaignEligibilityService,

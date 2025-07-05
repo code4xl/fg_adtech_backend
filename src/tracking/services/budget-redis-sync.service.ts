@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
-import { CLICK_AND_IMPRESSION_KEYS } from 'src/rtb/constants/cache-keys';
+import { REDIS_KEYS } from 'src/rtb/constants/cache-keys';
 
 @Injectable()
 export class BudgetRedisSyncService {
@@ -41,21 +41,21 @@ export class BudgetRedisSyncService {
 
       // Campaign budget limit - TTL: 30 days
       pipeline.setex(
-        CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_LIMIT(campaignId),
+        REDIS_KEYS.DAILY_BUDGET_LIMIT(campaignId),
         30 * 24 * 60 * 60,
         campaignBudget.dailyBudget.toString(),
       );
 
       // Daily spend - TTL: 24 hours
       pipeline.setex(
-        CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_SPEND(campaignId, today),
+        REDIS_KEYS.DAILY_BUDGET_SPEND(campaignId, today),
         24 * 60 * 60,
         (dailyBudget?.spentToday || 0).toString(),
       );
 
       // Campaign status - TTL: 24 hours
       pipeline.setex(
-        CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_STATUS(campaignId),
+        REDIS_KEYS.CAMPAIGN_STATUS(campaignId),
         24 * 60 * 60,
         dailyBudget?.isExhausted ? 'BUDGET_EXHAUSTED' : 'ACTIVE',
       );

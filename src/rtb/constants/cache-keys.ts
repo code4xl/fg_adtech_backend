@@ -1,372 +1,180 @@
-// Core RTB (Real-Time Bidding) Operations
+// ===============================
+// Core RTB (Real-Time Bidding)
+// ===============================
+
 export const RTB_KEYS = {
   BID_REQUEST: (requestId: string) => `rtb:bid-request:${requestId}`,
   BID_REQUEST_LOCK: (requestId: string) => `lock:bid-request:${requestId}`,
   AUCTION_RESULT: (requestId: string) => `rtb:auction:${requestId}`,
-  AUCTION_STATE: (requestId: string) => `auction:state:${requestId}`,
-  AUCTION_QUEUE: (priority: string) => `auction-queue:${priority}`,
-  BID_CACHE: (inventoryId: string, deviceType: string) =>
-    `bid-cache:${inventoryId}:${deviceType}`,
-  AD_MARKUP: (bidResponseId: string) => `markup:${bidResponseId}`,
-  BID_HISTORY: (campaignId: string) => `bid-history:${campaignId}`,
-  WINNER_BID_REQUEST: (campaignId: string, date: string) =>
-    `auction:winner:campaign:${campaignId}:${date}`,
+  HOURLY_BID_REQUEST_METRICS: (hour: number) => `metrics:requests:${hour}`,
+  HOURLY_BID_RESPONSE_ERRORS: (hour: number) => `metrics:errors:${hour}`,
+  HOURLY_BID_REQUEST_LATENCY: (hour: number) => `metrics:latency:${hour}`,
 } as const;
 
+// ==========================
 // Campaign Management
+// ==========================
+
 export const CAMPAIGN_KEYS = {
   // Eligibility & Targeting
   ELIGIBLE_CAMPAIGNS: (inventoryId: string, deviceType: string) =>
     `campaign:eligible:${inventoryId}:${deviceType}`,
-  ELIGIBILITY: (campaignId: string, inventoryId: string) =>
-    `eligibility:${campaignId}:${inventoryId}`,
-  ELIGIBILITY_CACHE: (inventoryId: string, hour: number) =>
-    `eligibility:${inventoryId}:${hour}`,
 
-  // Multi-level eligibility cache
-  ELIGIBILITY_L1: (inventoryId: string, deviceType: string, country: string) =>
-    `cache:l1:eligible:${inventoryId}:${deviceType}:${country}`,
-  ELIGIBILITY_L2: (inventoryId: string, deviceType: string) =>
-    `cache:l2:eligible:${inventoryId}:${deviceType}`,
-  ELIGIBILITY_METADATA: (cacheKey: string) => `cache:meta:eligible:${cacheKey}`,
-
-  // Targeting
-  TARGETING_RULES_CACHE: (campaignId: string) =>
-    `targeting:rules:${campaignId}`,
-  TARGETING_RULES_COMPILED: (campaignId: string) =>
-    `targeting:compiled:${campaignId}`,
-  TARGETING_EVALUATION_RESULT: (campaignId: string, contextHash: string) =>
-    `targeting:result:${campaignId}:${contextHash}`,
-  USER_CAMPAIGN_FREQUENCY: (userId: string, campaignId: string) =>
-    `targeting:frequency:${userId}:${campaignId}`,
-
-  // Performance & Metrics
-  IMPRESSIONS: (campaignId: string) =>
-    `counters:campaign:impressions:${campaignId}`,
-  CLICKS: (campaignId: string) => `counters:campaign:clicks:${campaignId}`,
-  SPEND: (campaignId: string) => `counters:campaign:spend:${campaignId}`,
-  PERFORMANCE: (campaignId: string) => `metrics:campaign:${campaignId}`,
-
-  // Campaign State
-  PAUSE_FLAG: (campaignId: string) => `campaign:paused:${campaignId}`,
-
-  // Campaign Budget
+  // Budget
   CAMPAIGN_BUDGET: (campaignId: string, date: string) =>
     `budget:campaign:${campaignId}:${date}`,
+
   CAMPAIGN_BUDGET_INFO: (campaignId: string, today: string) =>
     `campaign:budget:info:${campaignId}:${today}`,
+
+  // Status
+  CAMPAIGN_STATUS: (campaignId: string) => `campaign:status:${campaignId}`,
+
+  // Daily budget spend tracking
+  DAILY_BUDGET_SPEND: (campaignId: string, date: string) =>
+    `campaign:budget:daily:${campaignId}:${date}`,
+
+  DAILY_BUDGET_LIMIT: (campaignId: string) =>
+    `campaign:budget:limit:${campaignId}`,
+  USER_CAMPAIGN_FREQUENCY: (userId: string, campaignId: string) =>
+    `user:campaign:frequency:${userId}:${campaignId}`,
 } as const;
 
+// ==========================
 // Creative Management
+// ==========================
+
 export const CREATIVE_KEYS = {
-  // Performance Counters
-  IMPRESSIONS: (creativeId: string) =>
-    `counters:creative:impressions:${creativeId}`,
-  CLICKS: (creativeId: string) => `counters:creative:clicks:${creativeId}`,
-  CTR: (creativeId: string) => `metrics:creative:ctr:${creativeId}`,
-
-  // Performance Analysis
-  PERFORMANCE: (creativeId: string, timeWindow: string) =>
-    `creative:perf:${creativeId}:${timeWindow}`,
-  PERFORMANCE_SCORE: (creativeId: string) => `score:creative:${creativeId}`,
-  FATIGUE_SCORE: (creativeId: string) => `creative:fatigue:${creativeId}`,
-
-  // A/B Testing
-  A_B_TEST: (testId: string) => `creative:abtest:${testId}`,
-
-  // Round Robin Creative Selection
   CREATIVE_ROUND_ROBIN: (campaignId: string) =>
     `campaign:${campaignId}:creative_counter`,
 } as const;
 
-// Inventory & Publisher Management
-export const INVENTORY_KEYS = {
-  // Performance Counters
-  IMPRESSIONS: (inventoryId: string) =>
-    `counters:inventory:impressions:${inventoryId}`,
-  REVENUE: (inventoryId: string) => `counters:inventory:revenue:${inventoryId}`,
-  PERFORMANCE: (inventoryId: string) => `metrics:inventory:${inventoryId}`,
-
-  // Quality & Analysis
-  QUALITY_SCORE: (inventoryId: string) => `inventory:quality:${inventoryId}`,
-  PERFORMANCE_TREND: (inventoryId: string) => `inventory:trend:${inventoryId}`,
-  FRAUD_SCORE: (inventoryId: string) => `inventory:fraud:${inventoryId}`,
-  OPTIMIZATION: (inventoryId: string) =>
-    `optimization:inventory:${inventoryId}`,
-
-  // External Integration
-  GOOGLE_CACHE: (requestHash: string) => `google:inventory:${requestHash}`,
-} as const;
-
+// ==========================
 // Pricing & Bidding
+// ==========================
+
 export const PRICING_KEYS = {
-  // Floor Prices
-  FLOOR_INVENTORY: (inventoryId: string) => `floor:inventory:${inventoryId}`,
-  FLOOR_PUBLISHER: (publisherId: string) => `floor:publisher:${publisherId}`,
-  FLOOR_DEVICE: (deviceType: string) => `floor:device:${deviceType}`,
-  FLOOR_GEO: (country: string, region?: string) =>
-    `floor:geo:${country}${region ? `:${region}` : ''}`,
-
-  // Bid Adjustments
-  ADJUSTMENT_FACTOR: (campaignId: string) => `bid-adj:${campaignId}`,
-  ADJUSTMENT_CAMPAIGN: (campaignId: string) => `bid:adj:campaign:${campaignId}`,
-  ADJUSTMENT_DEVICE: (deviceType: string) => `bid:adj:device:${deviceType}`,
-  ADJUSTMENT_GEO: (country: string) => `bid:adj:geo:${country}`,
-  ADJUSTMENT_TIME: (hour: number) => `bid:adj:time:${hour}`,
-  ADJUSTMENT_INVENTORY: (inventoryId: string) =>
-    `bid:adj:inventory:${inventoryId}`,
-
-  // Bid Calculation Multipliers
   DEVICE_MULTIPLIER: (deviceType: string, campaignId: string) =>
     `bid:adj:multiplier:device:${campaignId}:${deviceType}`,
+
   GEO_MULTIPLIER: (country: string, campaignId: string) =>
     `bid:adj:multiplier:geo:${campaignId}:${country}`,
+
   INVENTORY_QUALITY_MULTIPLIER: (inventoryId: string) =>
     `bid:adj:multiplier:inventory:${inventoryId}`,
-
-  // Bid Strategy
-  STRATEGY_CONFIG: (campaignId: string) => `bid:strategy:config:${campaignId}`,
-  STRATEGY_PERFORMANCE: (campaignId: string, strategy: string) =>
-    `bid:strategy:perf:${campaignId}:${strategy}`,
-  OPTIMIZATION_FACTORS: (campaignId: string) =>
-    `bid:optimization:factors:${campaignId}`,
 } as const;
 
-// Metrics & Analytics - COMPLETE IMPLEMENTATION
+// ==========================
+// Metrics: Impressions & Clicks
+// ==========================
+
 export const METRICS_KEYS = {
-  // Legacy/Generic Time-based Metrics (Keep for backward compatibility)
-  HOURLY_BID_REQUEST_METRICS: (hour: number) => `metrics:requests:${hour}`,
-  HOURLY_BID_REQUEST_LATENCY: (hour: number) => `metrics:latency:${hour}`,
-  HOURLY_BID_RESPONSE_ERRORS: (hour: number) => `metrics:errors:${hour}`,
-  HOURLY: (entityType: string, entityId: string, hour: number) =>
-    `metrics:hourly:${entityType}:${entityId}:${hour}`,
-  DAILY: (entityType: string, entityId: string, date: string) =>
-    `metrics:daily:${entityType}:${entityId}:${date}`,
-  WEEKLY: (entityType: string, entityId: string, week: string) =>
-    `metrics:weekly:${entityType}:${entityId}:${week}`,
+  CAMPAIGN_IMPRESSIONS: (campaignId: string, date: string) =>
+    `metrics:campaign:${campaignId}:impressions:${date}`,
 
-  // Legacy Specific Metrics by Type
-  IMPRESSIONS: (entityType: string, entityId: string, timeKey: string) =>
-    `metrics:${entityType}:${entityId}:impressions:${timeKey}`,
-  CLICKS: (entityType: string, entityId: string, timeKey: string) =>
-    `metrics:${entityType}:${entityId}:clicks:${timeKey}`,
-  CONVERSIONS: (entityType: string, entityId: string, timeKey: string) =>
-    `metrics:${entityType}:${entityId}:conversions:${timeKey}`,
-  SPEND: (entityType: string, entityId: string, timeKey: string) =>
-    `metrics:${entityType}:${entityId}:spend:${timeKey}`,
-  REVENUE: (entityType: string, entityId: string, timeKey: string) =>
-    `metrics:${entityType}:${entityId}:revenue:${timeKey}`,
-  LAST_UPDATED: (entityType: string, entityId: string, timeKey: string) =>
-    `metrics:${entityType}:${entityId}:updated:${timeKey}`,
+  CAMPAIGN_CLICKS: (campaignId: string, date: string) =>
+    `metrics:campaign:${campaignId}:clicks:${date}`,
 
-  // Legacy Aggregated System Metrics
-  HOURLY_TOTAL_IMPRESSIONS: (hour: string) =>
-    `metrics:impressions:total:${hour}`,
-  HOURLY_IMPRESSIONS_BY_DEVICE: (deviceType: string, dateHour: string) =>
-    `metrics:impressions:${deviceType}:${dateHour}`,
-  HOURLY_TOTAL_REVENUE: (hour: string) => `metrics:revenue:total:${hour}`,
-  HOURLY_VIEWABLE_IMPRESSIONS: (hour: string, viewable: boolean) =>
-    `metrics:impressions:${viewable ? 'viewable' : 'nonviewable'}:${hour}`,
+  CREATIVE_IMPRESSIONS: (creativeId: string, date: string) =>
+    `metrics:creative:${creativeId}:impressions:${date}`,
 
-  // Legacy Auction Metrics
-  AUCTION_LATENCY: (inventoryId: string) =>
-    `metrics:auction-latency:${inventoryId}`,
-  BID_SUCCESS_RATE: (campaignId: string) => `metrics:bid-success:${campaignId}`,
-  AUCTION_COUNT: (hour: string) => `metrics:auctions:${hour}`,
-  BID_COUNT: (hour: string) => `metrics:bids:${hour}`,
-  WIN_COUNT: (hour: string) => `metrics:wins:${hour}`,
-
-  // Legacy Existing Metrics (Keep for backward compatibility)
+  CREATIVE_CLICKS: (creativeId: string, date: string) =>
+    `metrics:creative:${creativeId}:clicks:${date}`,
   HOURLY_TOTAL_AUCTION_METRICS: (hour: number) =>
-    `metrics:auctions:total:${hour}`,
-  HOURLY_AUCTION_WINNER_METRICS: (winner: boolean, hour: number) =>
-    `metrics:auctions:${winner ? 'filled' : 'unfilled'}:${hour}`,
+    `metrics:total-auctions:${hour}`,
+  HOURLY_AUCTION_WINNER_METRICS: (hasWinner: boolean, hour: number) =>
+    `metrics:auction-winner:${hasWinner}:${hour}`,
   HOURLY_PROCESSING_TIME_METRICS: (hour: number) =>
     `metrics:processing-time:${hour}`,
   HOURLY_INVENTORY_REQUEST_METRICS: (inventoryId: string, hour: number) =>
-    `metrics:inventory:${inventoryId}:requests:${hour}`,
-
-  // ===== NEW RTB METRICS IMPLEMENTATION =====
-
-  // RTB Hourly Metrics
-  RTB_HOURLY_TOTAL_AUCTIONS: (hour: number, date: string) =>
-    `rtb:metrics:auctions:total:${date}:${hour}`,
-  RTB_HOURLY_AUCTION_STATUS: (status: string, hour: number, date: string) =>
-    `rtb:metrics:auctions:${status}:${date}:${hour}`,
-  RTB_HOURLY_PROCESSING_TIME: (hour: number, date: string) =>
-    `rtb:metrics:processing-time:${date}:${hour}`,
-  RTB_HOURLY_BID_COUNT: (hour: number, date: string) =>
-    `rtb:metrics:bids:total:${date}:${hour}`,
-
-  // Real-time Throughput Metrics (minute-level)
-  RTB_THROUGHPUT_PER_MINUTE: (dateHourMinute: string) =>
-    `rtb:metrics:throughput:${dateHourMinute}`,
-  RTB_THROUGHPUT_BY_STATUS: (dateHourMinute: string, status: string) =>
-    `rtb:metrics:throughput:${status}:${dateHourMinute}`,
-
-  // Processing Time Distribution (performance buckets)
-  RTB_PROCESSING_TIME_BUCKET: (bucket: string, hour: number) =>
-    `rtb:metrics:processing-time:bucket:${bucket}:${hour}`,
-
-  // Error Tracking
-  RTB_ERROR_BY_TYPE: (errorType: string, hour: number, date: string) =>
-    `rtb:metrics:errors:${errorType}:${date}:${hour}`,
-  RTB_RECENT_ERRORS: () => `rtb:metrics:errors:recent`,
-
-  // Real-time Counters (for live dashboards)
-  RTB_REALTIME_COUNTER: (minute: number) => `rtb:metrics:realtime:${minute}`,
-
-  // Campaign Specific Metrics
-  CAMPAIGN_HOURLY_IMPRESSIONS: (
-    campaignId: string,
-    hour: number,
-    date: string,
-  ) => `rtb:metrics:campaign:${campaignId}:impressions:${date}:${hour}`,
-  CAMPAIGN_HOURLY_CLICKS: (campaignId: string, hour: number, date: string) =>
-    `rtb:metrics:campaign:${campaignId}:clicks:${date}:${hour}`,
-  CAMPAIGN_HOURLY_SPEND: (campaignId: string, hour: number, date: string) =>
-    `rtb:metrics:campaign:${campaignId}:spend:${date}:${hour}`,
-  CAMPAIGN_HOURLY_CONVERSIONS: (
-    campaignId: string,
-    hour: number,
-    date: string,
-  ) => `rtb:metrics:campaign:${campaignId}:conversions:${date}:${hour}`,
-
-  // Inventory Specific Metrics
-  INVENTORY_HOURLY_REQUESTS: (
-    inventoryId: string,
-    hour: number,
-    date: string,
-  ) => `rtb:metrics:inventory:${inventoryId}:requests:${date}:${hour}`,
-  INVENTORY_HOURLY_REVENUE: (inventoryId: string, hour: number, date: string) =>
-    `rtb:metrics:inventory:${inventoryId}:revenue:${date}:${hour}`,
-  INVENTORY_HOURLY_FILL_RATE: (
-    inventoryId: string,
-    hour: number,
-    date: string,
-  ) => `rtb:metrics:inventory:${inventoryId}:fill-rate:${date}:${hour}`,
-
-  // Publisher Specific Metrics
-  PUBLISHER_HOURLY_REVENUE: (publisherId: string, hour: number, date: string) =>
-    `rtb:metrics:publisher:${publisherId}:revenue:${date}:${hour}`,
-  PUBLISHER_HOURLY_REQUESTS: (
-    publisherId: string,
-    hour: number,
-    date: string,
-  ) => `rtb:metrics:publisher:${publisherId}:requests:${date}:${hour}`,
-
-  // Advertiser Specific Metrics
-  ADVERTISER_HOURLY_SPEND: (advertiserId: string, hour: number, date: string) =>
-    `rtb:metrics:advertiser:${advertiserId}:spend:${date}:${hour}`,
-  ADVERTISER_HOURLY_IMPRESSIONS: (
-    advertiserId: string,
-    hour: number,
-    date: string,
-  ) => `rtb:metrics:advertiser:${advertiserId}:impressions:${date}:${hour}`,
-
-  // Creative Performance Metrics
-  CREATIVE_HOURLY_IMPRESSIONS: (
-    creativeId: string,
-    hour: number,
-    date: string,
-  ) => `rtb:metrics:creative:${creativeId}:impressions:${date}:${hour}`,
-  CREATIVE_HOURLY_CLICKS: (creativeId: string, hour: number, date: string) =>
-    `rtb:metrics:creative:${creativeId}:clicks:${date}:${hour}`,
-  CREATIVE_HOURLY_CTR: (creativeId: string, hour: number, date: string) =>
-    `rtb:metrics:creative:${creativeId}:ctr:${date}:${hour}`,
-
-  // Geo Performance Metrics
-  GEO_HOURLY_REQUESTS: (country: string, hour: number, date: string) =>
-    `rtb:metrics:geo:${country}:requests:${date}:${hour}`,
-  GEO_HOURLY_REVENUE: (country: string, hour: number, date: string) =>
-    `rtb:metrics:geo:${country}:revenue:${date}:${hour}`,
-
-  // Device Performance Metrics
-  DEVICE_HOURLY_REQUESTS: (deviceType: string, hour: number, date: string) =>
-    `rtb:metrics:device:${deviceType}:requests:${date}:${hour}`,
-  DEVICE_HOURLY_REVENUE: (deviceType: string, hour: number, date: string) =>
-    `rtb:metrics:device:${deviceType}:revenue:${date}:${hour}`,
-
-  // System Health Metrics
-  SYSTEM_HEALTH_STATUS: () => `rtb:metrics:system:health`,
-  SYSTEM_UPTIME: () => `rtb:metrics:system:uptime`,
-  SYSTEM_LOAD: () => `rtb:metrics:system:load`,
+    `metrics:inventory-requests:${inventoryId}:${hour}`,
 } as const;
 
-// Pattern Matching Keys (for bulk operations)
-export const PATTERN_KEYS = {
-  CAMPAIGN_CACHE: (campaignId: string) => `*:${campaignId}:*`,
-  INVENTORY_CACHE: (inventoryId: string) => `*:${inventoryId}:*`,
-  METRICS_BY_TIME: (timeKey: string) => `metrics:*:*:${timeKey}`,
-  BUDGET_BY_DATE: (date: string) => `budget:*:*:${date}`,
-  RTB_METRICS_BY_DATE: (date: string) => `rtb:metrics:*:${date}:*`,
-  RTB_METRICS_BY_HOUR: (hour: number) => `rtb:metrics:*:*:${hour}`,
-} as const;
+// ==========================
+// Events (Pending)
+// ==========================
 
-export const CLICK_AND_IMPRESSION_KEYS = {
-  // Budget tracking (real-time)
-  DAILY_BUDGET_SPEND: (campaignId: string, date: string) =>
-    `campaign:budget:daily:${campaignId}:${date}`,
-  DAILY_BUDGET_LIMIT: (campaignId: string) =>
-    `campaign:budget:limit:${campaignId}`,
-  CAMPAIGN_STATUS: (campaignId: string) => `campaign:status:${campaignId}`,
-  PUBLISHER_REVENUE_TIERS: (publisherId: string) =>
-    `revenue:publisher:tiers:${publisherId}`,
-  // Event queues (before database flush)
+export const EVENT_KEYS = {
   PENDING_IMPRESSIONS: 'events:impressions:pending',
   PENDING_CLICKS: 'events:clicks:pending',
+} as const;
 
-  // Real-time metrics
-  CAMPAIGN_IMPRESSIONS: (campaignId: string, date: string) =>
-    `metrics:campaign:${campaignId}:impressions:${date}`,
-  CAMPAIGN_CLICKS: (campaignId: string, date: string) =>
-    `metrics:campaign:${campaignId}:clicks:${date}`,
-  CREATIVE_IMPRESSIONS: (creativeId: string, date: string) =>
-    `metrics:creative:${creativeId}:impressions:${date}`,
-  CREATIVE_CLICKS: (creativeId: string, date: string) =>
-    `metrics:creative:${creativeId}:clicks:${date}`,
+// ==========================
+// Revenue Tracking
+// ==========================
 
-  // Revenue tracking
+export const REVENUE_KEYS = {
   PUBLISHER_REVENUE: (publisherId: string, date: string) =>
     `revenue:publisher:amt:${publisherId}:${date}`,
-  PUBLISHER_REVENUE_PENDING: 'publisher:revenue:pending',
-  ADVERTISER_SPENDING_PENDING: 'advertiser:spending:pending',
-  SYSTEM_REVENUE_PENDING: 'system:revenue:pending',
+
+  SYSTEM_REVENUE: (date: string) => `revenue:system:amt:${date}`,
+
+  ADVERTISER_SPENDING: (advertiserId: string, date: string) =>
+    `spending:advertiser:amt:${advertiserId}:${date}`,
+
+  CREATIVE_SPENDING: (creativeId: string, date: string) =>
+    `spending:creative:amt:${creativeId}:${date}`,
+
+  CAMPAIGN_SPENDING: (campaignId: string, date: string) =>
+    `spending:campaign:amt:${campaignId}:${date}`,
 
   PUBLISHER_REVENUE_DAILY: (publisherId: string, today: string) =>
     `publisher:daily:${publisherId}:${today}`,
-  ADVERTIESER_SPENDING_DAILY: (
+
+  ADVERTISER_SPENDING_DAILY: (
     advertiserId: string,
     campaignId: string,
     today: string,
   ) => `advertiser:daily:${advertiserId}:${campaignId}:${today}`,
-  SYSTEM_REVENUE_DAILY: (today: string) => `system:daily:${today}`,
-  SYSTEM_REVENUE: (date: string) => `revenue:system:amt:${date}`,
-  ADVERTISER_SPENDING: (advertiserId: string, date: string) =>
-    `spending:advertiser:amt:${advertiserId}:${date}`,
-  CREATIVE_SPENDING: (creativeId: string, date: string) =>
-    `spending:creative:amt:${creativeId}:${date}`,
-  CAMPAIGN_SPENDING: (campaignId: string, date: string) =>
-    `spending:campaign:amt:${campaignId}:${date}`,
-  BUDGET_TRANSACTION_PENDING: `budget:transactions:pending`,
-  // Bid Response
-  BID_RESPONSE: (bidResponseId: string) => `bid:response:${bidResponseId}`,
 
-  // Click Fraud Detection
+  SYSTEM_REVENUE_DAILY: (today: string) => `system:daily:${today}`,
+
+  PUBLISHER_REVENUE_PENDING: 'publisher:revenue:pending',
+  ADVERTISER_SPENDING_PENDING: 'advertiser:spending:pending',
+  SYSTEM_REVENUE_PENDING: 'system:revenue:pending',
+
+  PUBLISHER_REVENUE_TIERS: (publisherId: string) =>
+    `revenue:publisher:tiers:${publisherId}`,
+
+  BUDGET_TRANSACTION_PENDING: `budget:transactions:pending`,
+} as const;
+
+// ==========================
+// Bid Response
+// ==========================
+
+export const BID_RESPONSE_KEYS = {
+  BID_RESPONSE: (bidResponseId: string) => `bid:response:${bidResponseId}`,
+} as const;
+
+// ==========================
+// Fraud Detection
+// ==========================
+
+export const FRAUD_KEYS = {
   IP_IMPRESSION_COUNT: (ip: string, date: string) =>
     `fraud:ip:impressions:${ip}:${date}`,
+
   IP_CLICK_COUNT: (ip: string, date: string) => `fraud:ip:clicks:${ip}:${date}`,
+
   CAMPAIGN_IP_COUNT: (campaignId: string, ip: string, date: string) =>
     `fraud:campaign:${campaignId}:ip:${ip}:${date}`,
+
   USER_AGENT_COUNT: (uaHash: string, date: string) =>
     `fraud:ua:${uaHash}:${date}`,
+
   IMPRESSION_TIMESTAMP: (impressionId: string) =>
     `fraud:impression:${impressionId}:timestamp`,
-  BLOCKED_IPS: 'fraud:blocked:ips',
-  BLOCKED_USER_AGENTS: 'fraud:blocked:uas',
-};
 
-// Health Check Keys
+  BLOCKED_IPS: 'fraud:blocked:ips',
+
+  BLOCKED_USER_AGENTS: 'fraud:blocked:uas',
+} as const;
+
+// ==========================
+// Health Check
+// ==========================
+
 export const HEALTH_KEYS = {
   REDIS_HEALTH_CHECK: 'redis:health:check',
   RTB_SYSTEM_HEALTH: 'rtb:system:health',
@@ -374,109 +182,55 @@ export const HEALTH_KEYS = {
   KAFKA_HEALTH: 'kafka:health',
 };
 
+// ==========================
+// Combined Keys
+// ==========================
+
 export const REDIS_KEYS = {
   ...RTB_KEYS,
   ...CAMPAIGN_KEYS,
   ...CREATIVE_KEYS,
-  ...INVENTORY_KEYS,
   ...PRICING_KEYS,
   ...METRICS_KEYS,
+  ...EVENT_KEYS,
+  ...REVENUE_KEYS,
+  ...BID_RESPONSE_KEYS,
+  ...FRAUD_KEYS,
   ...HEALTH_KEYS,
-  ...PATTERN_KEYS,
 } as const;
 
-// ===== TTL CONFIGURATION =====
-export const RTB_CACHE_TTL = {
-  // Core RTB Operations
-  BID_REQUEST: 3600, // 1 hour
-  BID_REQUEST_LOCK: 30, // 30 seconds
-  AUCTION_RESULT: 3600, // 1 hour
-  AUCTION_STATE: 300, // 5 minutes
+// ==========================
+// TTL CONFIGURATION
+// ==========================
 
-  // Campaign & Targeting
-  CAMPAIGN_ELIGIBILITY: 1800, // 5 minutes
-  CAMPAIGN_BUDGET_INFO: 7200, // 1 hour
-  TARGETING_RULES_CACHE: 3600, // 24 hours
-  TARGETING_EVALUATION_RESULT: 1800, // 30 minutes
+export const RTB_CACHE_TTL = {
+  // Core RTB
+  BID_REQUEST: 3600, // 1 hr
+  BID_REQUEST_LOCK: 30, // 30 sec
+  AUCTION_RESULT: 3600, // 1 hr
+  AUCTION_STATE: 300, // 5 min
+
+  // Campaign
+  CAMPAIGN_ELIGIBILITY: 1800, // 30 min
+  CAMPAIGN_BUDGET_INFO: 7200, // 2 hr
 
   // Creative
-  CREATIVE_ROUND_ROBIN: 86400, // 24 hours
+  CREATIVE_ROUND_ROBIN: 86400, // 24 hr
 
-  // Performance Metrics
-  CREATIVE_PERFORMANCE: 604800, // 7 days
-  INVENTORY_PERFORMANCE: 604800, // 7 days
-  ELIGIBILITY_CACHE: 86400, // 24 hours
-
-  // Legacy Metrics (Keep for backward compatibility)
-  HOURLY_BID_REQUEST_METRICS: 7200, // 2 hours
-  HOURLY_BID_RESPONSE_ERRORS: 7200, // 2 hours
+  // Metrics
+  HOURLY_BID_REQUEST_METRICS: 7200, // 2 hr
+  HOURLY_BID_RESPONSE_ERRORS: 7200, // 2 hr
   HOURLY_TOTAL_AUCTION_METRICS: 604800, // 7 days
   HOURLY_PROCESSING_TIME_METRICS: 604800, // 7 days
 
-  // ===== NEW RTB METRICS TTL =====
-
-  // Hourly Metrics (kept for historical analysis)
-  HOURLY_METRICS: 604800, // 7 days
-  RTB_HOURLY_AUCTIONS: 604800, // 7 days
-  RTB_HOURLY_PROCESSING_TIME: 604800, // 7 days
-  RTB_HOURLY_ERRORS: 604800, // 7 days
-
-  // Real-time Metrics (short-lived for performance)
-  THROUGHPUT_METRICS: 300, // 5 minutes
-  REALTIME_COUNTERS: 300, // 5 minutes
-  PROCESSING_TIME_BUCKETS: 3600, // 1 hour
-
-  // Error Tracking
-  ERROR_METRICS: 86400, // 24 hours
-  ERROR_DETAILS: 86400, // 24 hours (for debugging)
-  RECENT_ERRORS: 86400, // 24 hours
-
-  // Campaign Metrics
-  CAMPAIGN_METRICS: 604800, // 7 days
-  CAMPAIGN_HOURLY_METRICS: 604800, // 7 days
-
-  // Inventory Metrics
-  INVENTORY_METRICS: 604800, // 7 days
-  INVENTORY_HOURLY_METRICS: 604800, // 7 days
-
-  // Publisher/Advertiser Metrics
-  PUBLISHER_METRICS: 604800, // 7 days
-  ADVERTISER_METRICS: 604800, // 7 days
-
-  // Creative Performance
-  CREATIVE_METRICS: 604800, // 7 days
-  CREATIVE_HOURLY_METRICS: 604800, // 7 days
-
-  // Geo/Device Metrics
-  GEO_METRICS: 604800, // 7 days
-  DEVICE_METRICS: 604800, // 7 days
-
-  // System Health
-  SYSTEM_HEALTH: 300, // 5 minutes
-  SYSTEM_STATUS: 60, // 1 minute
-  UPTIME_METRICS: 86400, // 24 hours
-
-  // Bid Adjustments & Pricing
-  BID_ADJUSTMENTS: 3600, // 1 hour
-  PRICING_MULTIPLIERS: 3600, // 1 hour
-  FLOOR_PRICES: 3600, // 1 hour
-
-  // Fraud Detection
-  FRAUD_SCORES: 3600, // 1 hour
-  FRAUD_PATTERNS: 86400, // 24 hours
+  // Fraud
   MAX_IMPRESSIONS_PER_IP_PER_DAY: 1000,
   MAX_CLICKS_PER_IP_PER_DAY: 50,
   MAX_IMPRESSIONS_PER_CAMPAIGN_IP_PER_DAY: 100,
-  MIN_TIME_BETWEEN_IMPRESSION_CLICK: 100, // milliseconds
-  MAX_TIME_BETWEEN_IMPRESSION_CLICK: 300000, // 5 minutes
-  HIGH_FRAUD_SCORE_THRESHOLD: 0.8,
-  CRITICAL_FRAUD_SCORE_THRESHOLD: 0.9,
+  MIN_TIME_BETWEEN_IMPRESSION_CLICK: 100, // ms
+  MAX_TIME_BETWEEN_IMPRESSION_CLICK: 300000, // 5 min
 
-  // A/B Testing
-  AB_TEST_RESULTS: 86400, // 24 hours
-  PERFORMANCE_COMPARISONS: 3600, // 1 hour
-
-  // Budget
+  // Revenue pipelines
   PUBLISHER_REVENUE_TIERS: 2592000, // 30 days
   PUBLISHER_REVENUE_PIPELINE: 604800, // 7 days
   ADVERTISER_SPENDING_PIPELINE: 604800, // 7 days

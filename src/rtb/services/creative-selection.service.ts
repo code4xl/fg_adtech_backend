@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CREATIVE_KEYS, RTB_CACHE_TTL } from '../constants/cache-keys';
+import { REDIS_KEYS, RTB_CACHE_TTL } from '../constants/cache-keys';
 import { CampaignWithTargeting } from '../types/campaign.types';
 import { CreativeWithTemplate } from '../types/creative.types';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -58,7 +58,7 @@ export class CreativeSelectionService {
     creatives: CreativeWithTemplate[],
   ): Promise<CreativeWithTemplate> {
     // Redis key for round-robin counter
-    const counterKey = CREATIVE_KEYS.CREATIVE_ROUND_ROBIN(campaignId);
+    const counterKey = REDIS_KEYS.CREATIVE_ROUND_ROBIN(campaignId);
 
     try {
       // Get current counter value and increment atomically

@@ -2,10 +2,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from 'src/redis/redis.service';
 import { PrismaService } from 'src/prisma/prisma.service';
-import {
-  CLICK_AND_IMPRESSION_KEYS,
-  RTB_CACHE_TTL,
-} from '../constants/cache-keys';
+import { REDIS_KEYS, RTB_CACHE_TTL } from '../constants/cache-keys';
 import { CreatedBidResponse } from '../types/bid-response.types';
 
 @Injectable()
@@ -104,17 +101,11 @@ export class BudgetManagerService {
     const pipeline = this.redis.pipeline();
 
     // Update daily spend
-    const dailySpendKey = CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_SPEND(
-      campaignId,
-      today,
-    );
+    const dailySpendKey = REDIS_KEYS.DAILY_BUDGET_SPEND(campaignId, today);
     pipeline.incrbyfloat(dailySpendKey, costPerImpression);
 
     // Update campaign spending cache for job processing -- ambiguous
-    const campaignSpendKey = CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_SPENDING(
-      campaignId,
-      today,
-    );
+    const campaignSpendKey = REDIS_KEYS.CAMPAIGN_SPENDING(campaignId, today);
     pipeline.incrbyfloat(campaignSpendKey, costPerImpression);
 
     // Cache budget transaction for PostgreSQL sync
@@ -130,7 +121,7 @@ export class BudgetManagerService {
     };
     // -- ambiguous
     pipeline.lpush(
-      CLICK_AND_IMPRESSION_KEYS.BUDGET_TRANSACTION_PENDING,
+      REDIS_KEYS.BUDGET_TRANSACTION_PENDING,
       JSON.stringify(transactionData),
     );
 
@@ -162,10 +153,7 @@ export class BudgetManagerService {
       const pipeline = this.redis.pipeline();
 
       // Update publisher daily revenue accumulation
-      const revenueKey = CLICK_AND_IMPRESSION_KEYS.PUBLISHER_REVENUE(
-        publisherId,
-        today,
-      );
+      const revenueKey = REDIS_KEYS.PUBLISHER_REVENUE(publisherId, today);
       pipeline.incrbyfloat(revenueKey, netRevenue);
 
       // Cache detailed revenue data for PostgreSQL sync
@@ -182,15 +170,12 @@ export class BudgetManagerService {
       };
 
       pipeline.lpush(
-        CLICK_AND_IMPRESSION_KEYS.PUBLISHER_REVENUE_PENDING,
+        REDIS_KEYS.PUBLISHER_REVENUE_PENDING,
         JSON.stringify(revenueData),
       );
 
       // Update daily aggregation cache
-      const dailyKey = CLICK_AND_IMPRESSION_KEYS.PUBLISHER_REVENUE_DAILY(
-        publisherId,
-        today,
-      );
+      const dailyKey = REDIS_KEYS.PUBLISHER_REVENUE_DAILY(publisherId, today);
       pipeline.hincrby(dailyKey, 'totalImpressions', 1);
       pipeline.hincrbyfloat(dailyKey, 'grossRevenue', grossRevenue);
       pipeline.hincrbyfloat(dailyKey, 'netRevenue', netRevenue);
@@ -232,10 +217,7 @@ export class BudgetManagerService {
       const pipeline = this.redis.pipeline();
 
       // Update advertiser daily spending accumulation
-      const spendingKey = CLICK_AND_IMPRESSION_KEYS.ADVERTISER_SPENDING(
-        advertiserId,
-        today,
-      );
+      const spendingKey = REDIS_KEYS.ADVERTISER_SPENDING(advertiserId, today);
       pipeline.incrbyfloat(spendingKey, amount);
 
       // Cache detailed spending data for PostgreSQL sync
@@ -249,12 +231,12 @@ export class BudgetManagerService {
       };
 
       pipeline.lpush(
-        CLICK_AND_IMPRESSION_KEYS.ADVERTISER_SPENDING_PENDING,
+        REDIS_KEYS.ADVERTISER_SPENDING_PENDING,
         JSON.stringify(spendingData),
       );
 
       // Update daily aggregation cache
-      const dailyKey = CLICK_AND_IMPRESSION_KEYS.ADVERTIESER_SPENDING_DAILY(
+      const dailyKey = REDIS_KEYS.ADVERTISER_SPENDING_DAILY(
         advertiserId,
         campaignId,
         today,
@@ -299,7 +281,7 @@ export class BudgetManagerService {
       const pipeline = this.redis.pipeline();
 
       // Update system daily revenue accumulation
-      const systemRevenueKey = CLICK_AND_IMPRESSION_KEYS.SYSTEM_REVENUE(today);
+      const systemRevenueKey = REDIS_KEYS.SYSTEM_REVENUE(today);
       pipeline.incrbyfloat(systemRevenueKey, systemEarning);
 
       // Cache detailed system revenue data for PostgreSQL sync
@@ -318,13 +300,12 @@ export class BudgetManagerService {
       };
 
       pipeline.lpush(
-        CLICK_AND_IMPRESSION_KEYS.SYSTEM_REVENUE_PENDING,
+        REDIS_KEYS.SYSTEM_REVENUE_PENDING,
         JSON.stringify(systemRevenueData),
       );
 
       // Update daily system aggregation cache
-      const systemDailyKey =
-        CLICK_AND_IMPRESSION_KEYS.SYSTEM_REVENUE_DAILY(today);
+      const systemDailyKey = REDIS_KEYS.SYSTEM_REVENUE_DAILY(today);
       pipeline.hincrby(systemDailyKey, 'totalImpressions', 1);
       pipeline.hincrbyfloat(systemDailyKey, 'totalGrossRevenue', grossRevenue);
       pipeline.hincrbyfloat(
@@ -363,8 +344,7 @@ export class BudgetManagerService {
   ): Promise<number> {
     try {
       // Check cache first
-      const cacheKey =
-        CLICK_AND_IMPRESSION_KEYS.PUBLISHER_REVENUE_TIERS(publisherId);
+      const cacheKey = REDIS_KEYS.PUBLISHER_REVENUE_TIERS(publisherId);
       const cached = await this.redis.get<string>(cacheKey);
 
       if (cached) {
@@ -420,9 +400,7 @@ export class BudgetManagerService {
           ? Number(publisher.tier.commissionRate)
           : 0.4;
 
-        const cacheKey = CLICK_AND_IMPRESSION_KEYS.PUBLISHER_REVENUE_TIERS(
-          publisher.id,
-        );
+        const cacheKey = REDIS_KEYS.PUBLISHER_REVENUE_TIERS(publisher.id);
         pipeline.setex(
           cacheKey,
           RTB_CACHE_TTL.PUBLISHER_REVENUE_TIERS,
@@ -458,10 +436,10 @@ export class BudgetManagerService {
         advertiserSpending,
         systemRevenue,
       ] = await Promise.all([
-        this.redis.llen(CLICK_AND_IMPRESSION_KEYS.BUDGET_TRANSACTION_PENDING),
-        this.redis.llen(CLICK_AND_IMPRESSION_KEYS.PUBLISHER_REVENUE_PENDING),
-        this.redis.llen(CLICK_AND_IMPRESSION_KEYS.ADVERTISER_SPENDING_PENDING),
-        this.redis.llen(CLICK_AND_IMPRESSION_KEYS.SYSTEM_REVENUE_PENDING),
+        this.redis.llen(REDIS_KEYS.BUDGET_TRANSACTION_PENDING),
+        this.redis.llen(REDIS_KEYS.PUBLISHER_REVENUE_PENDING),
+        this.redis.llen(REDIS_KEYS.ADVERTISER_SPENDING_PENDING),
+        this.redis.llen(REDIS_KEYS.SYSTEM_REVENUE_PENDING),
       ]);
 
       return {

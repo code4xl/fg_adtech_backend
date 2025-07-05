@@ -4,7 +4,7 @@ import { Cron } from '@nestjs/schedule';
 import { RedisService } from 'src/redis/redis.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { v4 as uuidv4 } from 'uuid';
-import { CLICK_AND_IMPRESSION_KEYS } from 'src/rtb/constants/cache-keys';
+import { REDIS_KEYS } from 'src/rtb/constants/cache-keys';
 
 @Injectable()
 export class AdvertiserSpendingJob {
@@ -83,7 +83,7 @@ export class AdvertiserSpendingJob {
       while (true) {
         // Get chunk of pending spending records
         const chunk = await this.redis.lpop(
-          CLICK_AND_IMPRESSION_KEYS.ADVERTISER_SPENDING_PENDING,
+          REDIS_KEYS.ADVERTISER_SPENDING_PENDING,
           chunkSize,
         );
 
@@ -282,7 +282,7 @@ export class AdvertiserSpendingJob {
       while (true) {
         // Get chunk of pending budget transactions
         const chunk = await this.redis.lpop(
-          CLICK_AND_IMPRESSION_KEYS.BUDGET_TRANSACTION_PENDING,
+          REDIS_KEYS.BUDGET_TRANSACTION_PENDING,
           chunkSize,
         );
 

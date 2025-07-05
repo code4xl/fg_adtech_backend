@@ -1,11 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
-import {
-  CAMPAIGN_KEYS,
-  REDIS_KEYS,
-  RTB_CACHE_TTL,
-} from '../constants/cache-keys';
+import { REDIS_KEYS, RTB_CACHE_TTL } from '../constants/cache-keys';
 import { CampaignWithTargeting } from '../types/campaign.types';
 import { CampaignTargetingService } from './campaign-targeting.service';
 import { InventoryFormat } from '@prisma/client';
@@ -300,7 +296,7 @@ export class CampaignEligibilityService {
     today: string,
   ): Promise<CampaignBudgetInfo | null> {
     try {
-      const cacheKey = CAMPAIGN_KEYS.CAMPAIGN_BUDGET_INFO(campaignId, today);
+      const cacheKey = REDIS_KEYS.CAMPAIGN_BUDGET_INFO(campaignId, today);
       const cached = await this.redis.get<string>(cacheKey);
 
       if (cached) {
@@ -526,46 +522,6 @@ export class CampaignEligibilityService {
           await new Promise((resolve) => setTimeout(resolve, 100)); // 100ms delay
         }
       }
-
-      // ===== WARM UP BUDGET STATUS FOR ACTIVE CAMPAIGNS =====
-
-      // this.logger.log('Warming up budget status for active campaigns...');
-
-      // const activeCampaigns = await this.prisma.campaign.findMany({
-      //   where: { status: 'ACTIVE' },
-      //   select: { id: true },
-      //   take: 20, // Limit to top 100 active campaigns to avoid overload
-      // });
-
-      // const today = new Date().toISOString().split('T')[0];
-      // let budgetWarmedCount = 0;
-
-      // // Process budget warmup in smaller batches
-      // const budgetBatchSize = 10;
-      // for (let i = 0; i < activeCampaigns.length; i += budgetBatchSize) {
-      //   const budgetBatch = activeCampaigns.slice(i, i + budgetBatchSize);
-
-      //   const budgetPromises = budgetBatch.map((campaign) =>
-      //     this.getCachedBudgetStatus(campaign.id, today)
-      //       .then(() => {
-      //         budgetWarmedCount++;
-      //         return true;
-      //       })
-      //       .catch((error) => {
-      //         this.logger.warn(
-      //           `Failed to warm budget for campaign ${campaign.id}`,
-      //           {
-      //             error: error.message,
-      //           },
-      //         );
-      //         return false;
-      //       }),
-      //   );
-
-      //   await Promise.all(budgetPromises);
-      // }
-
-      // ===== COMPLETION SUMMARY =====
 
       this.logger.log('🎯 Comprehensive cache warmup completed!', {
         campaignPoolsWarmed: warmedCount,
