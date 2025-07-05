@@ -34,7 +34,7 @@ export class AdvertiserSpendingJob {
       const spendingCount = await this.processPendingSpending(batchId);
 
       // ===== 2. SYNC DAILY SPENDING AGGREGATIONS =====
-      const dailyCount = await this.syncDailySpending(batchId);
+      const dailyCount = await this.syncDailySpending(batchId, false);
 
       // ===== 3. PROCESS BUDGET TRANSACTIONS =====
       const transactionCount = await this.processBudgetTransactions(batchId);
@@ -155,9 +155,14 @@ export class AdvertiserSpendingJob {
   /**
    * Sync daily advertiser spending aggregations
    */
-  private async syncDailySpending(batchId: string): Promise<number> {
+  private async syncDailySpending(
+    batchId: string,
+    isManual: boolean,
+  ): Promise<number> {
     const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    if (!isManual) {
+      yesterday.setDate(yesterday.getDate() - 1);
+    }
     const dateStr = yesterday.toISOString().split('T')[0];
 
     this.logger.debug('Syncing daily advertiser spending aggregations', {
@@ -459,7 +464,7 @@ export class AdvertiserSpendingJob {
       });
 
       const spendingCount = await this.processPendingSpending(batchId);
-      const dailyCount = await this.syncDailySpending(batchId);
+      const dailyCount = await this.syncDailySpending(batchId, true);
       const transactionCount = await this.processBudgetTransactions(batchId);
       const processingTime = Date.now() - startTime;
 

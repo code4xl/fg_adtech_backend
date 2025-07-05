@@ -6,10 +6,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { RedisModule } from '../redis/redis.module';
 import { PostgresTimescaleSyncService } from './services/postgre-timescale-sync.service';
 import { TrackingController } from './tracking.controller';
-// import { BatchSyncController } from './batch-sync.controller';
 import { TrackingService } from './tracking.service';
-
-// ADD THESE IMPORTS:
 import { BudgetValidationService } from './services/budget-validation.service';
 import { FraudDetectionService } from './fraud-detection.service';
 import { BudgetInitializationService } from './services/budget-initialization.service';
@@ -19,10 +16,7 @@ import { BudgetManagerService } from 'src/rtb/services/budget-manager.service';
 
 @Module({
   imports: [ScheduleModule.forRoot(), PrismaModule, RedisModule],
-  controllers: [
-    TrackingController,
-    //  BatchSyncController
-  ],
+  controllers: [TrackingController],
   providers: [
     RedisPostgresSyncService,
     TimescaleService,
@@ -33,6 +27,7 @@ import { BudgetManagerService } from 'src/rtb/services/budget-manager.service';
     ImpressionClickLinkingService,
     BudgetRedisSyncService,
     PostgresTimescaleSyncService,
+    BudgetManagerService,
   ],
   exports: [
     TrackingService,
@@ -43,6 +38,7 @@ import { BudgetManagerService } from 'src/rtb/services/budget-manager.service';
     BudgetValidationService,
     FraudDetectionService,
     BudgetInitializationService,
+    BudgetManagerService,
     ImpressionClickLinkingService,
   ],
 })

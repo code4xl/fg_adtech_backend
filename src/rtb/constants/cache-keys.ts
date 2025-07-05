@@ -17,7 +17,7 @@ export const RTB_KEYS = {
 export const CAMPAIGN_KEYS = {
   // Eligibility & Targeting
   ELIGIBLE_CAMPAIGNS: (inventoryId: string, deviceType: string) =>
-    `campaigns:eligible:${inventoryId}:${deviceType}`,
+    `campaign:eligible:${inventoryId}:${deviceType}`,
   ELIGIBILITY: (campaignId: string, inventoryId: string) =>
     `eligibility:${campaignId}:${inventoryId}`,
   ELIGIBILITY_CACHE: (inventoryId: string, hour: number) =>

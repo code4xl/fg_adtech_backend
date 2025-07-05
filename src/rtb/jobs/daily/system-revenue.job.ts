@@ -34,7 +34,7 @@ export class SystemRevenueJob {
       const revenueCount = await this.processPendingSystemRevenue(batchId);
 
       // ===== 2. SYNC DAILY SYSTEM REVENUE AGGREGATIONS =====
-      const dailyCount = await this.syncDailySystemRevenue(batchId);
+      const dailyCount = await this.syncDailySystemRevenue(batchId, false);
 
       // ===== 3. UPDATE SYSTEM HEALTH METRICS =====
       // await this.updateSystemHealthMetrics(batchId);
@@ -158,9 +158,14 @@ export class SystemRevenueJob {
   /**
    * Sync daily system revenue aggregations
    */
-  private async syncDailySystemRevenue(batchId: string): Promise<number> {
+  private async syncDailySystemRevenue(
+    batchId: string,
+    isManual: boolean,
+  ): Promise<number> {
     const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    if (!isManual) {
+      yesterday.setDate(yesterday.getDate() - 1);
+    }
     const dateStr = yesterday.toISOString().split('T')[0];
 
     this.logger.debug('Syncing daily system revenue aggregations', {
@@ -555,8 +560,8 @@ export class SystemRevenueJob {
       });
 
       const revenueCount = await this.processPendingSystemRevenue(batchId);
-      const dailyCount = await this.syncDailySystemRevenue(batchId);
-      // await this.updateSystemHealthMetrics(batchId);
+      const dailyCount = await this.syncDailySystemRevenue(batchId, true);
+      await this.updateSystemHealthMetrics(batchId);
       const processingTime = Date.now() - startTime;
 
       return {
@@ -696,6 +701,105 @@ export class SystemRevenueJob {
           },
         },
         // recentErrors: [],
+      };
+    }
+  }
+
+  /**
+   * Get system revenue insights for dashboard
+   */
+  async getRevenueInsights(days: number = 30): Promise<{
+    totalSystemEarnings: number;
+    totalPublisherPayouts: number;
+    averageDailyRevenue: number;
+    topPerformingDays: any[];
+    commissionTrends: any[];
+  }> {
+    try {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+
+      // Get daily system revenue for the period
+      const dailyRevenues = await this.prisma.systemDailyRevenue.findMany({
+        where: {
+          date: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        orderBy: {
+          date: 'desc',
+        },
+      });
+
+      if (dailyRevenues.length === 0) {
+        return {
+          totalSystemEarnings: 0,
+          totalPublisherPayouts: 0,
+          averageDailyRevenue: 0,
+          topPerformingDays: [],
+          commissionTrends: [],
+        };
+      }
+
+      // Calculate totals
+      const totalSystemEarnings = dailyRevenues.reduce(
+        (sum, day) => sum + Number(day.totalCommissionEarned),
+        0,
+      );
+
+      const totalPublisherPayouts = dailyRevenues.reduce(
+        (sum, day) => sum + Number(day.totalPublisherPayout),
+        0,
+      );
+
+      const averageDailyRevenue = totalSystemEarnings / dailyRevenues.length;
+
+      // Top performing days (by commission earned)
+      const topPerformingDays = dailyRevenues
+        .sort(
+          (a, b) =>
+            Number(b.totalCommissionEarned) - Number(a.totalCommissionEarned),
+        )
+        .slice(0, 5)
+        .map((day) => ({
+          date: day.date.toISOString().split('T')[0],
+          commission: Number(day.totalCommissionEarned),
+          impressions: day.totalImpressions,
+          clicks: day.totalClicks,
+        }));
+
+      // Commission trends (last 7 days for chart)
+      const commissionTrends = dailyRevenues
+        .slice(0, 7)
+        .reverse()
+        .map((day) => ({
+          date: day.date.toISOString().split('T')[0],
+          commission: Number(day.totalCommissionEarned),
+          publisherPayout: Number(day.totalPublisherPayout),
+          grossRevenue: Number(day.totalGrossRevenue),
+        }));
+
+      return {
+        totalSystemEarnings,
+        totalPublisherPayouts,
+        averageDailyRevenue,
+        topPerformingDays,
+        commissionTrends,
+      };
+    } catch (error) {
+      this.logger.error('Failed to get revenue insights', {
+        error: error.message,
+        days,
+      });
+
+      return {
+        totalSystemEarnings: 0,
+        totalPublisherPayouts: 0,
+        averageDailyRevenue: 0,
+        topPerformingDays: [],
+        commissionTrends: [],
       };
     }
   }

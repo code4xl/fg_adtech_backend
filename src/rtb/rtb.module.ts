@@ -25,11 +25,29 @@ import { BudgetInitializationService } from 'src/tracking/services/budget-initia
 import { ImpressionClickLinkingService } from 'src/tracking/services/impression-click-linking.service';
 import { TrackingModule } from 'src/tracking/tracking.module';
 import { BudgetRedisSyncService } from 'src/tracking/services/budget-redis-sync.service';
+import { ScheduleModule } from '@nestjs/schedule';
+import { AdvertiserSpendingJob } from './jobs/daily/advertiser-spending.job';
+import { PublisherRevenueJob } from './jobs/daily/publisher-revenue.job';
+import { SystemRevenueJob } from './jobs/daily/system-revenue.job';
+import { BudgetManagerService } from './services/budget-manager.service';
+import { FinancialMonitoringController } from './controllers/financial-monitoring.controller';
+import { CreativeSelectionService } from './services/creative-selection.service';
+import { AdMarkupService } from './services/ad-markup.service';
 
 @Module({
-  imports: [PrismaModule, RedisModule, KafkaModule, TrackingModule],
-  controllers: [RTBController],
+  imports: [
+    PrismaModule,
+    RedisModule,
+    KafkaModule,
+    TrackingModule,
+    ScheduleModule.forRoot(),
+  ],
+  controllers: [RTBController, FinancialMonitoringController],
   providers: [
+    BudgetManagerService,
+    PublisherRevenueJob,
+    AdvertiserSpendingJob,
+    SystemRevenueJob,
     RtbService,
     RTBMetricsService,
     AuctionService,
@@ -52,6 +70,9 @@ import { BudgetRedisSyncService } from 'src/tracking/services/budget-redis-sync.
     RtbHelper,
     BudgetValidationService,
     BudgetRedisSyncService,
+    BudgetManagerService,
+    CreativeSelectionService,
+    AdMarkupService,
   ],
   exports: [
     RtbService,
@@ -67,6 +88,7 @@ import { BudgetRedisSyncService } from 'src/tracking/services/budget-redis-sync.
     RtbHelper,
     BudgetValidationService,
     BudgetRedisSyncService,
+    BudgetManagerService,
   ],
 })
 export class RTBModule implements OnModuleInit {

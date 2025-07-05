@@ -34,7 +34,7 @@ export class PublisherRevenueJob {
       const revenueCount = await this.processPendingRevenue(batchId);
 
       // ===== 2. SYNC DAILY REVENUE AGGREGATIONS =====
-      const dailyCount = await this.syncDailyRevenue(batchId);
+      const dailyCount = await this.syncDailyRevenue(batchId, false);
 
       const processingTime = Date.now() - startTime;
 
@@ -152,9 +152,14 @@ export class PublisherRevenueJob {
   /**
    * Sync daily publisher revenue aggregations
    */
-  private async syncDailyRevenue(batchId: string): Promise<number> {
+  private async syncDailyRevenue(
+    batchId: string,
+    isManual: boolean,
+  ): Promise<number> {
     const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    if (!isManual) {
+      yesterday.setDate(yesterday.getDate() - 1);
+    }
     const dateStr = yesterday.toISOString().split('T')[0];
 
     this.logger.debug('Syncing daily publisher revenue aggregations', {
@@ -367,7 +372,7 @@ export class PublisherRevenueJob {
       });
 
       const revenueCount = await this.processPendingRevenue(batchId);
-      const dailyCount = await this.syncDailyRevenue(batchId);
+      const dailyCount = await this.syncDailyRevenue(batchId, true);
       const processingTime = Date.now() - startTime;
 
       return {
