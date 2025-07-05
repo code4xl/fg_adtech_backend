@@ -329,6 +329,18 @@ export const CLICK_AND_IMPRESSION_KEYS = {
   // Revenue tracking
   PUBLISHER_REVENUE: (publisherId: string, date: string) =>
     `revenue:publisher:amt:${publisherId}:${date}`,
+  PUBLISHER_REVENUE_PENDING: 'publisher:revenue:pending',
+  ADVERTISER_SPENDING_PENDING: 'advertiser:spending:pending',
+  SYSTEM_REVENUE_PENDING: 'system:revenue:pending',
+
+  PUBLISHER_REVENUE_DAILY: (publisherId: string, today: string) =>
+    `publisher:daily:${publisherId}:${today}`,
+  ADVERTIESER_SPENDING_DAILY: (
+    advertiserId: string,
+    campaignId: string,
+    today: string,
+  ) => `advertiser:daily:${advertiserId}:${campaignId}:${today}`,
+  SYSTEM_REVENUE_DAILY: (today: string) => `system:daily:${today}`,
   SYSTEM_REVENUE: (date: string) => `revenue:system:amt:${date}`,
   ADVERTISER_SPENDING: (advertiserId: string, date: string) =>
     `spending:advertiser:amt:${advertiserId}:${date}`,
@@ -336,7 +348,7 @@ export const CLICK_AND_IMPRESSION_KEYS = {
     `spending:creative:amt:${creativeId}:${date}`,
   CAMPAIGN_SPENDING: (campaignId: string, date: string) =>
     `spending:campaign:amt:${campaignId}:${date}`,
-
+  BUDGET_TRANSACTION_PENDING: `budget:transactions:pending`,
   // Bid Response
   BID_RESPONSE: (bidResponseId: string) => `bid:response:${bidResponseId}`,
 
@@ -362,8 +374,6 @@ export const HEALTH_KEYS = {
   KAFKA_HEALTH: 'kafka:health',
 };
 
-// Backward Compatibility - Legacy REDIS_KEYS export
-// @deprecated - Use specific key namespaces instead
 export const REDIS_KEYS = {
   ...RTB_KEYS,
   ...CAMPAIGN_KEYS,
@@ -465,45 +475,10 @@ export const RTB_CACHE_TTL = {
   // A/B Testing
   AB_TEST_RESULTS: 86400, // 24 hours
   PERFORMANCE_COMPARISONS: 3600, // 1 hour
+
+  // Budget
+  PUBLISHER_REVENUE_TIERS: 2592000, // 30 days
+  PUBLISHER_REVENUE_PIPELINE: 604800, // 7 days
+  ADVERTISER_SPENDING_PIPELINE: 604800, // 7 days
+  SYSTEM_REVENUE_PIPELINE: 604800, // 7 days
 } as const;
-
-// TTL Helper Functions
-// export const TTL_HELPERS = {
-//   /**
-//    * Get appropriate TTL for metrics based on granularity
-//    */
-//   getMetricsTTL: (granularity: 'minute' | 'hour' | 'day' | 'week'): number => {
-//     switch (granularity) {
-//       case 'minute': return 300; // 5 minutes
-//       case 'hour': return 3600; // 1 hour
-//       case 'day': return 86400; // 24 hours
-//       case 'week': return 604800; // 7 days
-//       default: return 3600;
-//     }
-//   },
-
-//   /**
-//    * Get TTL for error tracking based on severity
-//    */
-//   getErrorTTL: (severity: 'low' | 'medium' | 'high' | 'critical'): number => {
-//     switch (severity) {
-//       case 'low': return 3600; // 1 hour
-//       case 'medium': return 86400; // 24 hours
-//       case 'high': return 604800; // 7 days
-//       case 'critical': return 2592000; // 30 days
-//       default: return 86400;
-//     }
-//   },
-
-//   /**
-//    * Get TTL for real-time vs historical data
-//    */
-//   getDataTTL: (type: 'realtime' | 'historical' | 'archive'): number => {
-//     switch (type) {
-//       case 'realtime': return 300; // 5 minutes
-//       case 'historical': return 604800; // 7 days
-//       case 'archive': return 2592000; // 30 days
-//       default: return 3600;
-//     }
-//   }
-// } as const;

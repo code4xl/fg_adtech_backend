@@ -43,7 +43,8 @@ export class BidRequestProcessor {
       }
 
       // 2. Find eligible campaigns with caching optimization
-      const eligibleCampaigns = await this.findEligibleCampaigns(bidRequest);
+      const eligibleCampaigns: CampaignWithTargeting[] =
+        await this.findEligibleCampaigns(bidRequest);
 
       this.logger.debug('Found eligible campaigns', {
         auctionId: bidRequest.auctionId,

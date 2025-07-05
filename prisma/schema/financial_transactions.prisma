@@ -36,7 +36,6 @@ model AdvertiserSpending {
     advertiserId String           @db.Uuid
     campaignId   String           @db.Uuid
     creativeId   String           @db.Uuid
-    clientId     String           @db.Uuid
     amount       Decimal          @db.Decimal(12, 6)
     eventType    RevenueEventType
     createdAt    DateTime         @default(now())
@@ -47,12 +46,10 @@ model AdvertiserSpending {
     @@index([campaignId, createdAt])
     @@index([eventType, createdAt])
     @@index([creativeId, createdAt])
-    @@index([clientId, createdAt])
     @@index([eventType])
     @@index([advertiserId, campaignId, createdAt])
     @@index([campaignId, creativeId, createdAt])
     @@index([advertiserId, eventType, createdAt])
-    @@index([clientId, campaignId, createdAt])
     @@index([creativeId, eventType, createdAt])
 }
 
@@ -170,9 +167,6 @@ model BudgetTransaction {
 
     description String?
 
-    impressionId String? @db.Uuid
-    clickId      String? @db.Uuid
-
     publisherId String? @db.Uuid
     inventoryId String? @db.Uuid
 
@@ -184,8 +178,6 @@ model BudgetTransaction {
     @@index([type, amount])
     @@index([campaignId, amount])
     @@index([type, createdAt])
-    @@index([impressionId])
-    @@index([clickId])
     @@index([publisherId])
     @@index([inventoryId])
     @@index([campaignId, type, createdAt])
