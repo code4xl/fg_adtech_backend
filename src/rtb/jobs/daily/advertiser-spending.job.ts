@@ -1,6 +1,6 @@
 // src/rtb/jobs/daily/advertiser-spending.job.ts
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { RedisService } from 'src/redis/redis.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { v4 as uuidv4 } from 'uuid';
@@ -171,7 +171,6 @@ export class AdvertiserSpendingJob {
     });
 
     try {
-      // Get all advertiser daily keys from Redis
       const dailyKeys = await this.redis.keys(
         `advertiser:daily:*:*:${dateStr}`,
       );
@@ -185,10 +184,8 @@ export class AdvertiserSpendingJob {
 
       let processedCount = 0;
 
-      // Process each advertiser's daily data
       for (const key of dailyKeys) {
         try {
-          // Extract advertiser ID and campaign ID from key: advertiser:daily:{advertiserId}:{campaignId}:{date}
           const keyParts = key.split(':');
           if (keyParts.length !== 5) {
             this.logger.warn('Invalid daily key format', { key });
@@ -198,8 +195,8 @@ export class AdvertiserSpendingJob {
           const advertiserId = keyParts[2];
           const campaignId = keyParts[3];
 
-          // Get aggregated data from Redis
-          const dailyData = await this.redis.smembers(key);
+          // 🔧 FIX: Use hgetall instead of smembers
+          const dailyData = await this.redis.hgetall(key);
 
           if (!dailyData || Object.keys(dailyData).length === 0) {
             continue;

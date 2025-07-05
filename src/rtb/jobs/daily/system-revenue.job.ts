@@ -174,10 +174,11 @@ export class SystemRevenueJob {
     });
 
     try {
-      // Get system daily data from Redis
       const systemDailyKey =
         CLICK_AND_IMPRESSION_KEYS.SYSTEM_REVENUE_DAILY(dateStr);
-      const dailyData = await this.redis.smembers(systemDailyKey);
+
+      // 🔧 FIX: Use hgetall instead of smembers
+      const dailyData = await this.redis.hgetall(systemDailyKey);
 
       if (!dailyData || Object.keys(dailyData).length === 0) {
         this.logger.debug('No daily system revenue data found', {

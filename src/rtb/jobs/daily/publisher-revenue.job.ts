@@ -168,7 +168,6 @@ export class PublisherRevenueJob {
     });
 
     try {
-      // Get all publisher daily keys from Redis
       const dailyKeys = await this.redis.keys(`publisher:daily:*:${dateStr}`);
 
       if (dailyKeys.length === 0) {
@@ -180,10 +179,8 @@ export class PublisherRevenueJob {
 
       let processedCount = 0;
 
-      // Process each publisher's daily data
       for (const key of dailyKeys) {
         try {
-          // Extract publisher ID from key: publisher:daily:{publisherId}:{date}
           const keyParts = key.split(':');
           if (keyParts.length !== 4) {
             this.logger.warn('Invalid daily key format', { key });
@@ -192,8 +189,8 @@ export class PublisherRevenueJob {
 
           const publisherId = keyParts[2];
 
-          // Get aggregated data from Redis
-          const dailyData = await this.redis.smembers(key);
+          // 🔧 FIX: Use hgetall instead of smembers
+          const dailyData = await this.redis.hgetall(key);
 
           if (!dailyData || Object.keys(dailyData).length === 0) {
             continue;
@@ -250,9 +247,9 @@ export class PublisherRevenueJob {
             grossRevenue,
             netRevenue,
           });
-        } catch (publisherError) {
+        } catch (error) {
           this.logger.error('Failed to sync daily revenue for publisher', {
-            error: publisherError.message,
+            error: error.message,
             key,
             batchId,
           });

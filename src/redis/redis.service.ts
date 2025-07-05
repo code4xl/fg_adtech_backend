@@ -159,7 +159,12 @@ export class RedisService {
   }
 
   // Get members from sorted set in reverse order (highest score first)
-  async zrevrange(key: string, start: number, stop: number, withScores?: string): Promise<string[]> {
+  async zrevrange(
+    key: string,
+    start: number,
+    stop: number,
+    withScores?: string,
+  ): Promise<string[]> {
     try {
       if (withScores === 'WITHSCORES') {
         return await this.pubClient.zrevrange(key, start, stop, 'WITHSCORES');
@@ -181,11 +186,15 @@ export class RedisService {
     withScores?: string,
     limitKeyword?: string,
     offset?: number,
-    count?: number
+    count?: number,
   ): Promise<string[]> {
     try {
       // ✅ CORRECTED: Build command with proper Redis syntax
-      if (limitKeyword === 'LIMIT' && offset !== undefined && count !== undefined) {
+      if (
+        limitKeyword === 'LIMIT' &&
+        offset !== undefined &&
+        count !== undefined
+      ) {
         if (withScores === 'WITHSCORES') {
           // With scores and limit
           return await this.pubClient.zrevrangebyscore(
@@ -195,7 +204,7 @@ export class RedisService {
             'WITHSCORES',
             'LIMIT',
             offset,
-            count
+            count,
           );
         } else {
           // Without scores but with limit
@@ -205,13 +214,18 @@ export class RedisService {
             min,
             'LIMIT',
             offset,
-            count
+            count,
           );
         }
       } else {
         if (withScores === 'WITHSCORES') {
           // With scores, no limit
-          return await this.pubClient.zrevrangebyscore(key, max, min, 'WITHSCORES');
+          return await this.pubClient.zrevrangebyscore(
+            key,
+            max,
+            min,
+            'WITHSCORES',
+          );
         } else {
           // Basic command
           return await this.pubClient.zrevrangebyscore(key, max, min);
@@ -245,12 +259,45 @@ export class RedisService {
     try {
       return await this.pubClient.exists(key);
     } catch (error) {
-      this.logger.error(`Error checking existence of key ${key}: ${error.message}`);
+      this.logger.error(
+        `Error checking existence of key ${key}: ${error.message}`,
+      );
       throw error;
     }
   }
 
+  async hgetall(key: string): Promise<Record<string, string>> {
+    try {
+      return await this.pubClient.hgetall(key);
+    } catch (error) {
+      this.logger.error(
+        `Error getting hash from Redis for key ${key}: ${error.message}`,
+      );
+      throw error;
+    }
+  }
 
+  async hset(key: string, field: string, value: string): Promise<number> {
+    try {
+      return await this.pubClient.hset(key, field, value);
+    } catch (error) {
+      this.logger.error(
+        `Error setting hash field in Redis for key ${key}: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
+  async hmset(key: string, data: Record<string, string>): Promise<string> {
+    try {
+      return await this.pubClient.hmset(key, data);
+    } catch (error) {
+      this.logger.error(
+        `Error setting hash data in Redis for key ${key}: ${error.message}`,
+      );
+      throw error;
+    }
+  }
 
   getClient(): Redis {
     return this.pubClient;
