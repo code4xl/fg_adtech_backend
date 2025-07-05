@@ -24,6 +24,20 @@ export class PublisherSeeder implements ISeeder {
     this.logger.log(`Seeding ${count} publishers...`);
 
     try {
+      // First, ensure publisher tiers exist
+      await this.ensurePublisherTiersExist();
+
+      // Get all available tiers
+      const tiers = await this.prisma.publisherTier.findMany({
+        select: { id: true, name: true, commissionRate: true },
+      });
+
+      if (tiers.length === 0) {
+        throw new Error('No publisher tiers found after creation attempt');
+      }
+
+      this.logger.log(`Found ${tiers.length} publisher tiers for assignment`);
+
       const publisherData: any = [];
 
       // Generate fake publishers
@@ -31,6 +45,9 @@ export class PublisherSeeder implements ISeeder {
         const password = faker.internet.password();
         const hashedPassword = await bcrypt.hash(password, 10);
         const verificationStatus = faker.datatype.boolean(0.8); // 80% chance of verified email
+
+        // Randomly assign a tier to each publisher
+        const selectedTier = faker.helpers.arrayElement(tiers);
 
         publisherData.push({
           firstName: faker.person.firstName(),
@@ -40,12 +57,21 @@ export class PublisherSeeder implements ISeeder {
           emailVerifiedAt: verificationStatus ? faker.date.past() : null,
           status: PublisherStatus.ACTIVE,
           mfaEnabled: faker.datatype.boolean(0.25), // 25% chance of MFA enabled
+          tierId: selectedTier.id, // Assign the tier
+          paymentThreshold: faker.number.float({
+            min: 50.0,
+            max: 500.0,
+            fractionDigits: 4,
+          }), // Random threshold between 50-500
           createdAt: faker.date.past(),
           updatedAt: faker.date.recent(),
         });
       }
 
-      // Add a default publisher for testing
+      // Add a default publisher for testing with a specific tier
+      const defaultTier =
+        tiers.find((tier) => tier.name === 'Standard') || tiers[0];
+
       publisherData.push({
         firstName: 'Test',
         lastName: 'Publisher',
@@ -54,6 +80,8 @@ export class PublisherSeeder implements ISeeder {
         emailVerifiedAt: new Date(),
         status: PublisherStatus.ACTIVE,
         mfaEnabled: false,
+        tierId: defaultTier.id, // Assign default tier
+        paymentThreshold: 100.0, // Default threshold
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -65,7 +93,16 @@ export class PublisherSeeder implements ISeeder {
       });
 
       const publisherCount = await this.prisma.publisher.count();
+
+      // Log tier distribution
+      const tierDistribution = await this.getTierDistribution();
       this.logger.log(`Successfully seeded ${publisherCount} publishers`);
+      this.logger.log('Publisher tier distribution:');
+      tierDistribution.forEach(({ tierName, count, commissionRate }) => {
+        this.logger.log(
+          `  ${tierName} (${commissionRate}% commission): ${count} publishers`,
+        );
+      });
     } catch (error) {
       this.logger.error('Error seeding publishers');
       this.logger.error(error);
@@ -78,11 +115,23 @@ export class PublisherSeeder implements ISeeder {
 
     try {
       // Clean related data first to avoid foreign key constraint issues
+      await this.prisma.publisherRevenue.deleteMany({});
+      await this.prisma.systemRevenue.deleteMany({});
+      await this.prisma.impressionEvent.deleteMany({});
+      await this.prisma.clickEvent.deleteMany({});
       await this.prisma.adInventory.deleteMany({});
       await this.prisma.website.deleteMany({});
+      await this.prisma.bidRequest.deleteMany({});
 
-      const deleted = await this.prisma.publisher.deleteMany({});
-      this.logger.log(`Deleted ${deleted.count} publishers`);
+      // Clean publishers
+      const deletedPublishers = await this.prisma.publisher.deleteMany({});
+
+      // Clean publisher tiers (only if no publishers reference them)
+      const deletedTiers = await this.prisma.publisherTier.deleteMany({});
+
+      this.logger.log(
+        `Deleted ${deletedPublishers.count} publishers and ${deletedTiers.count} publisher tiers`,
+      );
     } catch (error) {
       this.logger.error('Error cleaning publishers table');
       this.logger.error(error);
@@ -93,5 +142,80 @@ export class PublisherSeeder implements ISeeder {
   async isSeeded(): Promise<boolean> {
     const count = await this.prisma.publisher.count();
     return count > 0;
+  }
+
+  /**
+   * Ensure that publisher tiers exist in the database
+   */
+  private async ensurePublisherTiersExist(): Promise<void> {
+    this.logger.log('Ensuring publisher tiers exist...');
+
+    const existingTiers = await this.prisma.publisherTier.findMany();
+
+    if (existingTiers.length > 0) {
+      this.logger.log(`Found ${existingTiers.length} existing publisher tiers`);
+      return;
+    }
+
+    // Create default publisher tiers
+    const defaultTiers = [
+      {
+        name: 'Silver',
+        commissionRate: 0.5, // 50% commission rate
+      },
+      {
+        name: 'Gold',
+        commissionRate: 0.4, // 40% commission rate
+      },
+      {
+        name: 'Platinum',
+        commissionRate: 0.3, // 30% commission rate
+      },
+    ];
+
+    for (const tier of defaultTiers) {
+      try {
+        await this.prisma.publisherTier.create({
+          data: tier,
+        });
+      } catch (error) {
+        // Skip if tier already exists (unique constraint)
+        if (error.code === 'P2002') {
+          this.logger.warn(
+            `Publisher tier ${tier.name} already exists, skipping...`,
+          );
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    const createdTiers = await this.prisma.publisherTier.count();
+    this.logger.log(`Created ${createdTiers} publisher tiers`);
+  }
+
+  /**
+   * Get distribution of publishers across tiers for logging
+   */
+  private async getTierDistribution(): Promise<
+    Array<{ tierName: string; count: number; commissionRate: string }>
+  > {
+    const distribution = await this.prisma.publisherTier.findMany({
+      select: {
+        name: true,
+        commissionRate: true,
+        _count: {
+          select: {
+            publishers: true,
+          },
+        },
+      },
+    });
+
+    return distribution.map((tier) => ({
+      tierName: tier.name,
+      count: tier._count.publishers,
+      commissionRate: (Number(tier.commissionRate) * 100).toFixed(1),
+    }));
   }
 }

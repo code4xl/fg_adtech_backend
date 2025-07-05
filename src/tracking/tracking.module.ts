@@ -15,6 +15,7 @@ import { FraudDetectionService } from './fraud-detection.service';
 import { BudgetInitializationService } from './services/budget-initialization.service';
 import { ImpressionClickLinkingService } from './services/impression-click-linking.service';
 import { BudgetRedisSyncService } from './services/budget-redis-sync.service';
+import { BudgetManagerService } from 'src/rtb/services/budget-manager.service';
 
 @Module({
   imports: [ScheduleModule.forRoot(), PrismaModule, RedisModule],
@@ -49,7 +50,7 @@ export class TrackingModule {
   private readonly logger = new Logger(TrackingModule.name);
   constructor(
     private readonly budgetRedisSyncService: BudgetRedisSyncService,
-    private readonly trackingService: TrackingService,
+    private readonly budgetManagerService: BudgetManagerService,
   ) {}
   async onModuleInit() {
     try {
@@ -57,7 +58,7 @@ export class TrackingModule {
 
       // Sync all campaign budgets to Redis on startup
       await this.budgetRedisSyncService.syncAllActiveCampaigns();
-      await this.trackingService.syncPublisherRevenueTiers();
+      await this.budgetManagerService.syncPublisherRevenueTiers();
 
       this.logger.log('✅ Application initialization completed');
     } catch (error) {

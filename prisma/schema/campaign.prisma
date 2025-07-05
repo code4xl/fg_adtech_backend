@@ -38,6 +38,8 @@ model Campaign {
     dailyBudgets         CampaignDailyBudget[]  @relation("CampaignDailyBudgets")
     SystemRevenue        SystemRevenue[]
     BudgetTransaction    BudgetTransaction[]
+    PublisherRevenue     PublisherRevenue[]
+    AdvertiserSpending   AdvertiserSpending[]
 
     // indexes for RTB performance
     @@index([status, startDate, endDate])

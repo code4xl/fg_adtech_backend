@@ -157,7 +157,6 @@ export class BudgetManagerService {
     try {
       const pipeline = this.redis.pipeline();
       const today = this.getDateString();
-      // 3. Update budget spending (critical for budget control)
       pipeline.incrbyfloat(
         CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_SPEND(campaignId, today),
         costPerImpression,
@@ -169,13 +168,12 @@ export class BudgetManagerService {
       );
       const publisherRevenueTier = publisherRevenueDetails
         ? JSON.parse(publisherRevenueDetails)
-        : { tier: 'STANDARD', paymentThreshold: 100.0 }; // Default values
+        : { tier: 'Silver', commissionRate: 0.5, paymentThreshold: 1000 };
       this.logger.debug(
         `Publisher revenue tier: ${publisherRevenueTier.tier}, threshold: ${publisherRevenueTier}`,
       );
-
       const systemRevenue =
-        costPerImpression * commissionMap[publisherRevenueTier.tier];
+        costPerImpression * publisherRevenueTier.commissionRate;
       const publisherRevenue = costPerImpression - systemRevenue;
       pipeline.incrbyfloat(
         CLICK_AND_IMPRESSION_KEYS.PUBLISHER_REVENUE(publisherId, today),
@@ -197,6 +195,41 @@ export class BudgetManagerService {
         CLICK_AND_IMPRESSION_KEYS.ADVERTISER_SPENDING(advertiserId, today),
         costPerImpression,
       );
+
+      // add expiration
+      pipeline.expire(
+        CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_SPEND(campaignId, today),
+        24 * 60 * 60, // 1 day
+      );
+      pipeline.expire(
+        CLICK_AND_IMPRESSION_KEYS.PUBLISHER_REVENUE(publisherId, today),
+        24 * 60 * 60, // 1 day
+      );
+      pipeline.expire(
+        CLICK_AND_IMPRESSION_KEYS.SYSTEM_REVENUE(today),
+        24 * 60 * 60, // 1 day
+      );
+      pipeline.expire(
+        CLICK_AND_IMPRESSION_KEYS.CREATIVE_SPENDING(creativeId, today),
+        24 * 60 * 60, // 1 day
+      );
+      pipeline.expire(
+        CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_SPENDING(campaignId, today),
+        24 * 60 * 60, // 1 day
+      );
+      pipeline.expire(
+        CLICK_AND_IMPRESSION_KEYS.ADVERTISER_SPENDING(advertiserId, today),
+        24 * 60 * 60, // 1 day
+      );
+      this.logger.debug('Recording impression revenue', {
+        campaignId,
+        costPerImpression,
+        publisherId,
+        publisherRevenue,
+        systemRevenue,
+      });
+
+      await pipeline.exec();
     } catch (error) {
       this.logger.error('Failed to record impression revenue', {
         error: error.message,
@@ -204,5 +237,45 @@ export class BudgetManagerService {
         costPerImpression,
       });
     }
+  }
+
+  public async syncPublisherRevenueTiers() {
+    try {
+      this.logger.log('Syncing publisher revenue tiers...');
+
+      // Fetch all publishers
+      const publishers = await this.prisma.publisher.findMany({
+        select: {
+          id: true,
+          paymentThreshold: true,
+          tier: {
+            select: {
+              name: true,
+              commissionRate: true,
+            },
+          },
+        },
+      });
+
+      if (!publishers || publishers.length === 0) {
+        this.logger.warn('No publishers found to sync revenue tiers');
+        return;
+      }
+      this.logger.log(`Found ${publishers.length} publishers to sync`);
+      // Iterate through each publisher and sync their revenue tier
+      for (const publisher of publishers) {
+        const { id, tier, paymentThreshold } = publisher;
+
+        // set revenue tier for publishers
+        await this.redis.set(
+          CLICK_AND_IMPRESSION_KEYS.PUBLISHER_REVENUE_TIERS(id),
+          JSON.stringify({
+            commissionRate: tier.commissionRate,
+            tier: tier.name,
+            paymentThreshold,
+          }),
+        );
+      }
+    } catch (error) {}
   }
 }

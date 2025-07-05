@@ -446,38 +446,4 @@ export class TrackingService {
     const d = date || new Date();
     return d.toISOString().split('T')[0];
   }
-
-  public async syncPublisherRevenueTiers() {
-    try {
-      this.logger.log('Syncing publisher revenue tiers...');
-
-      // Fetch all publishers
-      const publishers = await this.prisma.publisher.findMany({
-        select: {
-          id: true,
-          tier: true,
-          paymentThreshold: true,
-        },
-      });
-
-      if (!publishers || publishers.length === 0) {
-        this.logger.warn('No publishers found to sync revenue tiers');
-        return;
-      }
-      this.logger.log(`Found ${publishers.length} publishers to sync`);
-      // Iterate through each publisher and sync their revenue tier
-      for (const publisher of publishers) {
-        const { id, tier, paymentThreshold } = publisher;
-
-        // set revenue tier for publishers
-        await this.redis.set(
-          CLICK_AND_IMPRESSION_KEYS.PUBLISHER_REVENUE_TIERS(id),
-          JSON.stringify({
-            tier,
-            paymentThreshold,
-          }),
-        );
-      }
-    } catch (error) {}
-  }
 }

@@ -16,7 +16,8 @@ model Website {
 
   websiteCategories ContentCategory[]
 
-  bidRequests BidRequest[]
+  bidRequests      BidRequest[]
+  PublisherRevenue PublisherRevenue[]
 
   @@index([publisherId, url], name: "idx_website_publisher_url")
 }
