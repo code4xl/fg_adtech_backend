@@ -55,8 +55,8 @@ export class CreativeSeeder implements ISeeder {
 
       // Create creatives for campaigns
       for (const campaign of campaigns) {
-        // Create 1-3 creatives per campaign
-        const creativeCount = faker.number.int({ min: 2, max: 7 });
+        // Create 15-25 creatives per campaign for extensive testing
+        const creativeCount = faker.number.int({ min: 15, max: 25 });
 
         for (let i = 0; i < creativeCount; i++) {
           // Select a random template that will determine dimensions and format
@@ -91,6 +91,7 @@ export class CreativeSeeder implements ISeeder {
             name: `${faker.company.buzzPhrase()} ${creativeType} Creative`,
             type: creativeType,
             fileUrl: faker.helpers.arrayElement([
+              // Original campaign creatives
               'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-1.jpg',
               'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-2.webp',
               'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/object-promise-1749052140905-jpg',
@@ -107,6 +108,32 @@ export class CreativeSeeder implements ISeeder {
               'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-13.jpg',
               'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-12.webp',
               'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-11.jpg',
+              // Additional diverse creatives for more variety
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/summer-collection-2025/creatives/banner-1.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/summer-collection-2025/creatives/banner-2.webp',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/summer-collection-2025/creatives/banner-3.png',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/summer-collection-2025/creatives/banner-4.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/summer-collection-2025/creatives/banner-5.jpeg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/winter-sale-2025/creatives/winter-1.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/winter-sale-2025/creatives/winter-2.webp',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/winter-sale-2025/creatives/winter-3.png',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/winter-sale-2025/creatives/winter-4.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/winter-sale-2025/creatives/winter-5.jpeg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/spring-collection-2025/creatives/spring-1.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/spring-collection-2025/creatives/spring-2.webp',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/spring-collection-2025/creatives/spring-3.png',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/spring-collection-2025/creatives/spring-4.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/spring-collection-2025/creatives/spring-5.jpeg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/autumn-sale-2025/creatives/autumn-1.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/autumn-sale-2025/creatives/autumn-2.webp',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/autumn-sale-2025/creatives/autumn-3.png',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/autumn-sale-2025/creatives/autumn-4.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/autumn-sale-2025/creatives/autumn-5.jpeg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/holiday-special-2025/creatives/holiday-1.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/holiday-special-2025/creatives/holiday-2.webp',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/holiday-special-2025/creatives/holiday-3.png',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/holiday-special-2025/creatives/holiday-4.jpg',
+              'https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/holiday-special-2025/creatives/holiday-5.jpeg',
             ]),
             s3Key: this.generateS3Key(creativeType, template),
             landingUrl: faker.internet.url(),

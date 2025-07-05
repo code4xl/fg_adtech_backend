@@ -3,14 +3,14 @@
  * Copyright (c) 2025 Ocean Ads Network
  * Publisher: 02e41c5c-35bd-4674-8de0-7dc994d08866
  * Build: production
- * Generated: 2025-07-04T07:39:33.683Z
+ * Generated: 2025-07-04T12:00:21.177Z
  */
-(function(){'use strict';// Embed configuration window.__OCEAN_CONFIG__ ={"publisher":{"id":"02e41c5c-35bd-4674-8de0-7dc994d08866","tier":"basic"},"website":{"id":"8ea9dff0-7bfb-4277-be3f-062bb88add87","domain":"https://atharva.com"},"inventory":[],"settings":{"apiUrl":"http://localhost:3001","endpoints":{"bid":"http://localhost:3001/rtb/bid-request","track":"http://localhost:3001/rtb/track","sse":"http://localhost:3001/rtb/stream"},"sseTimeout":250,"debug":true,"batchDelay":50,"maxRetries":1,"fallbackTimeout":500}};// Configuration validation if(typeof window.__OCEAN_CONFIG__ !== 'object' || !window.__OCEAN_CONFIG__){console.error('[Ocean Ads] Invalid configuration');return;}// Debug mode logging if(window.__OCEAN_CONFIG__.settings.debug){console.log('[Ocean Ads] Configuration loaded:',window.__OCEAN_CONFIG__);}})();
+(function(){'use strict';// Embed configuration window.__OCEAN_CONFIG__ ={"publisher":{"id":"02e41c5c-35bd-4674-8de0-7dc994d08866","tier":"basic"},"website":{"id":"8b3eb1dd-880c-4c0c-8e35-84ec2bcb3371","domain":"sportsfan924-227.co"},"inventory":[],"settings":{"apiUrl":"http://localhost:3001","endpoints":{"bid":"http://localhost:3001/rtb/bid-request","track":"http://localhost:3001/rtb/track","sse":"http://localhost:3001/rtb/stream"},"sseTimeout":250,"debug":true,"batchDelay":50,"maxRetries":1,"fallbackTimeout":500}};// Configuration validation if(typeof window.__OCEAN_CONFIG__ !== 'object' || !window.__OCEAN_CONFIG__){console.error('[Ocean Ads] Invalid configuration');return;}// Debug mode logging if(window.__OCEAN_CONFIG__.settings.debug){console.log('[Ocean Ads] Configuration loaded:',window.__OCEAN_CONFIG__);}})();
 /*!
  * Ocean Ads SDK v2.0.0
  * (c) 2024 Ocean Ads Network
  * Released under the MIT License
- * Built: 2025-06-29T07:25:17.472Z
+ * Built: 2025-07-04T11:29:26.169Z
  */
 var OceanAds=(function(exports){'use strict';
         if (!window.Promise) {

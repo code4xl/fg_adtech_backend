@@ -251,9 +251,14 @@ export class ConfigBuilderService {
             adSlotTemplate: true,
             floorPrices: {
               where: {
-                OR: [
-                  { endDate: null },
-                  { endDate: { gte: new Date() } },
+                AND: [
+                  {
+                    OR: [
+                      { endDate: null },
+                      { endDate: { gte: new Date() } },
+                    ],
+                  },
+                  { startDate: { lte: new Date() } }, // Add this line!
                 ],
               },
               orderBy: { createdAt: 'desc' },

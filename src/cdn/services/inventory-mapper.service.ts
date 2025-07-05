@@ -51,14 +51,15 @@ export class InventoryMapperService {
         return null;
       }
 
-      // Skip if no active campaigns and not premium/enterprise
-      if (tier === PublisherTier.BASIC && (!record.campaign || record.campaign.length === 0)) {
-        this.logger.debug(`Basic tier inventory ${record.id} has no active campaigns, skipping`);
+      // Skip if no floor price (required for any tier)
+      const floorPrice = record.floorPrices?.[0];
+      if (!floorPrice) {
+        this.logger.debug(`Inventory ${record.id} has no active floor price, skipping`);
         return null;
       }
 
       const template = record.adSlotTemplate;
-      const floorPrice = record.floorPrice?.[0];
+      // floorPrice already defined above
 
       // Build base configuration
       const config: IInventoryConfig = {

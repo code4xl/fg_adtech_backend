@@ -119,8 +119,15 @@
 
       .header-banner {
         width: 100%;
-        max-width: 728px;
+        max-width: 970px;
         height: 90px;
+        margin: 20px auto;
+      }
+
+      .mobile-video {
+        width: 100%;
+        max-width: 320px;
+        height: 180px;
         margin: 20px auto;
       }
 
@@ -133,8 +140,8 @@
 
       .footer-banner {
         width: 100%;
-        max-width: 728px;
-        height: 90px;
+        max-width: 300px;
+        height: 250px;
         margin: 20px auto;
       }
 
@@ -187,18 +194,26 @@
         .content-area {
           grid-template-columns: 1fr;
         }
-        .header-banner,
+        .header-banner {
+          max-width: 100%;
+          height: 90px;
+        }
+        .mobile-video {
+          max-width: 100%;
+          height: 180px;
+        }
         .footer-banner {
-          max-width: 320px;
-          height: 50px;
+          max-width: 100%;
+          height: 180px;
         }
       }
     </style>
   </head>
   <body>
     <div class="header">
-      <h1>🌊 Ocean Ads SDK - Complete RTB Test</h1>
+      <h1>🌊 Ocean Ads SDK - Vladimir Publisher Test</h1>
       <p>Real-Time Bidding Integration Testing Environment</p>
+      <p><strong>Publisher:</strong> vladimir10@gmail.com | <strong>Domain:</strong> lifestylemag507-368.co</p>
     </div>
 
     <!-- Status Dashboard -->
@@ -233,18 +248,30 @@
     <!-- Content Area -->
     <div class="content-area">
       <main class="main-content">
-        <!-- Header Banner Ad -->
+        <!-- Mobile Video Ad (320x180) -->
         <div
-          id="header-banner"
-          class="ad-slot ocean-ad"
-          data-ocean-slot="header-banner"
-          data-ocean-inventory="b169383a-2369-4422-9094-bf0752ceed65"
-          data-ocean-template="d2773053-a63c-48d8-bffc-bb4024f6d452"
-          data-ocean-size="728x90"
-          data-ocean-format="BANNER"
-          data-ocean-position="HEADER"
+          id="mobile-video"
+          class="ad-slot mobile-video ocean-ad ocean-ad-header"
+          data-ocean-slot="mobile-video"
+          data-ocean-inventory="70a77554-fb81-4a84-abfc-e23b1d26a534"
+          data-ocean-size="320x180"
+          data-ocean-format="VIDEO"
+          data-ocean-position="ABOVE_FOLD"
         >
-          Header Banner (728x90)
+          Mobile Video Ad (320x180)
+        </div>
+
+        <!-- Large Leaderboard (970x90) -->
+        <div
+          id="large-leaderboard"
+          class="ad-slot header-banner ocean-ad ocean-ad-header-2"
+          data-ocean-slot="large-leaderboard"
+          data-ocean-inventory="1f43d93b-281e-4af3-b6e4-a81be8b05e41"
+          data-ocean-size="970x90"
+          data-ocean-format="BANNER"
+          data-ocean-position="ABOVE_FOLD"
+        >
+          Large Leaderboard (970x90)
         </div>
 
         <h2>Ocean Ads RTB Platform</h2>
@@ -276,18 +303,17 @@
           </li>
         </ol>
 
-        <!-- Footer Banner Ad -->
+        <!-- Demo Footer Banner (using first inventory for demo) -->
         <div
           id="footer-banner"
           class="ad-slot ocean-ad"
           data-ocean-slot="footer-banner"
-          data-ocean-inventory="b169383a-2369-4422-9094-bf0752ceed65"
-          data-ocean-template="d2773053-a63c-48d8-bffc-bb4024f6d452"
-          data-ocean-size="728x90"
-          data-ocean-format="BANNER"
-          data-ocean-position="FOOTER"
+          data-ocean-inventory="70a77554-fb81-4a84-abfc-e23b1d26a534"
+          data-ocean-size="320x180"
+          data-ocean-format="VIDEO"
+          data-ocean-position="ABOVE_FOLD"
         >
-          Footer Banner (728x90)
+          Demo Footer Banner (320x180)
         </div>
       </main>
 
@@ -312,31 +338,29 @@
           </div>
         </div>
 
-        <!-- Sidebar Ads -->
+        <!-- Demo Sidebar Ads -->
         <div
           id="sidebar-ad"
-          class="ad-slot ocean-ad"
+          class="ad-slot sidebar-ad ocean-ad"
           data-ocean-slot="sidebar-ad"
-          data-ocean-inventory="b169383a-2369-4422-9094-bf0752ceed65"
-          data-ocean-template="d2773053-a63c-48d8-bffc-bb4024f6d452"
-          data-ocean-size="300x250"
+          data-ocean-inventory="1f43d93b-281e-4af3-b6e4-a81be8b05e41"
+          data-ocean-size="970x90"
           data-ocean-format="BANNER"
-          data-ocean-position="SIDEBAR"
+          data-ocean-position="ABOVE_FOLD"
         >
-          Sidebar Ad (300x250)
+          Demo Sidebar Ad (970x90)
         </div>
 
         <div
           id="sidebar-bottom"
-          class="ad-slot ocean-ad"
+          class="ad-slot sidebar-ad ocean-ad"
           data-ocean-slot="sidebar-bottom"
-          data-ocean-inventory="b169383a-2369-4422-9094-bf0752ceed65"
-          data-ocean-template="d2773053-a63c-48d8-bffc-bb4024f6d452"
-          data-ocean-size="300x250"
-          data-ocean-format="BANNER"
-          data-ocean-position="SIDEBAR"
+          data-ocean-inventory="70a77554-fb81-4a84-abfc-e23b1d26a534"
+          data-ocean-size="320x180"
+          data-ocean-format="VIDEO"
+          data-ocean-position="ABOVE_FOLD"
         >
-          Sidebar Bottom (300x250)
+          Demo Sidebar Bottom (320x180)
         </div>
       </aside>
     </div>
@@ -347,8 +371,22 @@
       <div class="logs" id="debug-logs"></div>
     </div>
 
-    <!-- Ocean Ads SDK - This is the main CDN link -->
-    <script src="http://localhost:3001/cdn/p/02e41c5c-35bd-4674-8de0-7dc994d08866/init.js"></script>
+    <!-- Ocean Ads SDK - No auto-generation to prevent infinite reload -->
+    <script>
+      // Just log CDN status without auto-generation
+      console.log('🔍 Checking CDN availability...');
+      fetch('http://localhost:3001/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js')
+        .then(response => {
+          if (response.status === 404) {
+            console.log('❌ CDN not found - please generate manually');
+            console.log('Use: curl -X POST "http://localhost:3001/api/publishers/028e26dd-f437-4442-b2ed-e1c59e187ec1/websites/09954aa5-2c99-4e95-9c6d-b270ac1e029e/generate-cdn" with Authorization header');
+          } else {
+            console.log('✅ CDN found and accessible');
+          }
+        })
+        .catch(error => console.log('⚠️ CDN check failed:', error));
+    </script>
+    <script src="http://localhost:3001/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js"></script>
 
     <!-- SDK readiness helper -->
     <script>
@@ -441,13 +479,13 @@
         // Use default test data if config not available
         const publisherId =
           window.__OCEAN_CONFIG__?.publisher?.id ||
-          '02e41c5c-35bd-4674-8de0-7dc994d08866';
+          '028e26dd-f437-4442-b2ed-e1c59e187ec1';
         const websiteId =
           window.__OCEAN_CONFIG__?.website?.id ||
-          '8ea9dff0-7bfb-4277-be3f-062bb88add87';
+          '09954aa5-2c99-4e95-9c6d-b270ac1e029e'; // Working websiteId with inventory
         const inventoryId =
           window.__OCEAN_CONFIG__?.inventory?.[0]?.inventoryId ||
-          'b169383a-2369-4422-9094-bf0752ceed65';
+          '70a77554-fb81-4a84-abfc-e23b1d26a534'; // Use verified Mobile Video
 
         const startTime = Date.now();
 
@@ -467,10 +505,10 @@
             region: 'Maharashtra',
           },
           adSlotContext: {
-            width: 728,
-            height: 90,
-            format: 'BANNER',
-            position: 'HEADER',
+            width: 320,
+            height: 180,
+            format: 'VIDEO',
+            position: 'ABOVE_FOLD',
             pageUrl: window.location.href,
             pageCategory: 'technology',
           },
