@@ -22,13 +22,18 @@ export class BidRequestKafkaConsumer implements OnModuleInit {
 
     async onModuleInit() {
         try {
+            this.logger.log('🚀 Initializing RTB Kafka Consumer...');
+            
             // Process incoming bid requests
             await this.subscribeToAuctionProcessing();
+            
+            this.logger.log('✅ RTB Kafka Consumer initialized successfully');
         } catch (error) {
-            this.logger.error('Failed to initialize RTB Kafka Consumer', {
+            this.logger.error('❌ Failed to initialize RTB Kafka Consumer', {
                 error: error.message,
             });
-            throw error;
+            // Don't throw error to prevent app crash - retry in background
+            setTimeout(() => this.onModuleInit(), 10000);
         }
     }
 

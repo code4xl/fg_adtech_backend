@@ -117,6 +117,44 @@
         color: #155724;
       }
 
+      /* FIXED: SDK-specific selector styles */
+      .ocean-ad-header {
+        border: 2px dashed #6c757d;
+        background: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        flex-direction: column;
+      }
+
+      .ocean-ad-header-2 {
+        border: 2px dashed #6c757d;
+        background: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        flex-direction: column;
+      }
+
+      .ocean-ad-header:hover,
+      .ocean-ad-header-2:hover {
+        border-color: #007bff;
+        background: #e3f2fd;
+      }
+
+      .ocean-ad-header.loaded,
+      .ocean-ad-header-2.loaded {
+        border-color: #28a745;
+        background: #d4edda;
+        color: #155724;
+      }
+
       .header-banner {
         width: 100%;
         max-width: 970px;
@@ -248,10 +286,10 @@
     <!-- Content Area -->
     <div class="content-area">
       <main class="main-content">
-        <!-- Mobile Video Ad (320x180) -->
+        <!-- Mobile Video Ad (320x180) - FIXED: Using correct selector -->
         <div
           id="mobile-video"
-          class="ad-slot mobile-video ocean-ad ocean-ad-header"
+          class="ad-slot mobile-video ocean-ad-header"
           data-ocean-slot="mobile-video"
           data-ocean-inventory="70a77554-fb81-4a84-abfc-e23b1d26a534"
           data-ocean-size="320x180"
@@ -261,10 +299,10 @@
           Mobile Video Ad (320x180)
         </div>
 
-        <!-- Large Leaderboard (970x90) -->
+        <!-- Large Leaderboard (970x90) - FIXED: Using correct selector -->
         <div
           id="large-leaderboard"
-          class="ad-slot header-banner ocean-ad ocean-ad-header-2"
+          class="ad-slot header-banner ocean-ad-header-2"
           data-ocean-slot="large-leaderboard"
           data-ocean-inventory="1f43d93b-281e-4af3-b6e4-a81be8b05e41"
           data-ocean-size="970x90"
@@ -303,10 +341,10 @@
           </li>
         </ol>
 
-        <!-- Demo Footer Banner (using first inventory for demo) -->
+        <!-- Demo Footer Banner - FIXED: Using correct selector -->
         <div
           id="footer-banner"
-          class="ad-slot ocean-ad"
+          class="ad-slot ocean-ad-header"
           data-ocean-slot="footer-banner"
           data-ocean-inventory="70a77554-fb81-4a84-abfc-e23b1d26a534"
           data-ocean-size="320x180"
@@ -338,10 +376,10 @@
           </div>
         </div>
 
-        <!-- Demo Sidebar Ads -->
+        <!-- Demo Sidebar Ads - FIXED: Using correct selectors -->
         <div
           id="sidebar-ad"
-          class="ad-slot sidebar-ad ocean-ad"
+          class="ad-slot sidebar-ad ocean-ad-header-2"
           data-ocean-slot="sidebar-ad"
           data-ocean-inventory="1f43d93b-281e-4af3-b6e4-a81be8b05e41"
           data-ocean-size="970x90"
@@ -353,7 +391,7 @@
 
         <div
           id="sidebar-bottom"
-          class="ad-slot sidebar-ad ocean-ad"
+          class="ad-slot sidebar-ad ocean-ad-header"
           data-ocean-slot="sidebar-bottom"
           data-ocean-inventory="70a77554-fb81-4a84-abfc-e23b1d26a534"
           data-ocean-size="320x180"

@@ -112,10 +112,38 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
-      const consumer = this.kafka.consumer({ groupId });
+      const consumer = this.kafka.consumer({ 
+        groupId,
+        sessionTimeout: 30000,
+        heartbeatInterval: 3000,
+        maxWaitTimeInMs: 1000,
+        retry: {
+          initialRetryTime: 100,
+          retries: 8,
+          maxRetryTime: 30000,
+          factor: 2,
+        },
+      });
       this.consumers.set(groupId, consumer);
 
-      await consumer.connect();
+      // Add retry logic for consumer connection
+      let retries = 0;
+      const maxRetries = 5;
+      
+      while (retries < maxRetries) {
+        try {
+          await consumer.connect();
+          break;
+        } catch (error) {
+          retries++;
+          console.warn(`Consumer connection attempt ${retries}/${maxRetries} failed:`, error.message);
+          if (retries === maxRetries) {
+            throw error;
+          }
+          await new Promise(resolve => setTimeout(resolve, 2000 * retries));
+        }
+      }
+
       await consumer.subscribe({ topic, fromBeginning: false });
 
       await consumer.run({
@@ -143,10 +171,10 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
       });
 
       console.log(
-        `Kafka consumer subscribed to ${topic} with groupId ${groupId}`,
+        `✅ Kafka consumer subscribed to ${topic} with groupId ${groupId}`,
       );
     } catch (error) {
-      console.error('Error subscribing to Kafka topic:', error);
+      console.error(`❌ Error subscribing to Kafka topic ${topic}:`, error);
       throw error;
     }
   }

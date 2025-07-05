@@ -26,10 +26,17 @@ export class AuctionResultKafkaConsumer implements OnModuleInit {
 
     async onModuleInit() {
         try {
+            // Add delay to ensure Kafka is fully ready
+            await new Promise(resolve => setTimeout(resolve, 6000));
+            
+            this.logger.log('🚀 Initializing Auction Result Kafka Consumer...');
+            
             // Generate bid responses from auction results
             await this.subscribeToAuctionResults();
+            
+            this.logger.log('✅ Auction Result Kafka Consumer initialized successfully');
         } catch (error) {
-            this.logger.error('Failed to initialize RTB Kafka Consumer', {
+            this.logger.error('❌ Failed to initialize Auction Result Kafka Consumer', {
                 error: error.message,
             });
             throw error;
