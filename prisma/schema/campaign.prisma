@@ -8,7 +8,7 @@ model Campaign {
     status           CampaignStatus     @default(DRAFT)
     objective        CampaignObjective
     bidStrategy      BidStrategy        @default(LOWEST_COST)
-    bidAmount        Decimal?           @db.Decimal(10, 2)
+    bidAmount        Decimal?           @db.Decimal(10, 2) // this is cpm
     pacing           CampaignPacing     @default(STANDARD)
     businessCategory BusinessCategory
     websiteUrl       String
