@@ -170,6 +170,7 @@
             <h1>🌊 Ocean Ads SDK - High Volume Creative Test</h1>
             <p>Testing the most abundant creative formats from your 21,395 creative database</p>
             <p><strong>Publisher:</strong> vladimir10@gmail.com | <strong>Domain:</strong> lifestylemag507-368.co</p>
+            <p><strong>Website ID:</strong> 09954aa5-2c99-4e95-9c6d-b270ac1e029e | <strong>Build:</strong> 028e26dd-1751660271915-y91gel</p>
         </div>
 
         <!-- Top Performing VIDEO Format - 1,639 creatives -->
@@ -340,7 +341,8 @@
                 <div class="warning">⚠️ Original VIDEO 320x180 had targeting issues</div>
                 <div>📊 Now testing: VIDEO 640x360 (1,639), BANNER 970x90 (1,267), etc.</div>
                 <div>🎯 Expected result: Multiple successful bids due to high volume</div>
-                <div>🔗 Using correct CDN: http://localhost:3001/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js</div>
+                <div>🔗 Using LATEST CDN: http://localhost:3001/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js</div>
+                <div>✅ Build ID: 028e26dd-1751660271915-y91gel | Version: 1.7.4</div>
             </div>
         </div>
     </div>
@@ -388,7 +390,8 @@
         async function testRTBConnection() {
             logDebug('🔍 Testing RTB connection with SSE stream monitoring...', 'success');
             
-            const inventoryId = '70a77554-fb81-4a84-abfc-e23b1d26a534';
+            // Using VERIFIED inventory IDs from API response
+            const inventoryId = '70a77554-fb81-4a84-abfc-e23b1d26a534'; // VIDEO 320x180
             const publisherId = '028e26dd-f437-4442-b2ed-e1c59e187ec1';
             const websiteId = '09954aa5-2c99-4e95-9c6d-b270ac1e029e';
 
@@ -422,7 +425,8 @@
             };
 
             logDebug(`📤 Testing RTB with inventory: ${inventoryId}`, 'success');
-            logDebug(`🎯 Expected: 174 bids competing, winner markup delivered`, 'success');
+            logDebug(`🎯 Using verified inventory from API config (.ocean-ad-header = VIDEO 320x180)`, 'success');
+            logDebug(`🎯 Alternative: 1f43d93b-281e-4af3-b6e4-a81be8b05e41 (.ocean-ad-header-2 = BANNER 970x90)`, 'success');
 
             try {
                 const response = await fetch('http://localhost:3001/rtb/bid-request', {

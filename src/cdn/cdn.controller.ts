@@ -319,7 +319,7 @@ import {
           isBuilt: status.hasStorage,
           lastBuildDate: status.metadata?.createdAt,
           cdnUrl: status.metadata 
-            ? `${process.env.CDN_BASE_URL}/p/${publisherId}/init.js`
+            ? `${process.env.CDN_BASE_URL}/cdn/p/${publisherId}/init.js`
             : undefined,
           version: status.metadata?.version,
           environment: status.metadata?.environment || 'production',

@@ -12,8 +12,8 @@ export const SDK_CONFIG = {
     DOCKER_DEV: '/usr/src/sdk-project/dist/ocean-ads.min.js',
     DOCKER_FALLBACK: '/usr/src/app/sdk/ocean-ads.min.js',
     
-    // Local development - adjust this path to match your setup
-    LOCAL_WINDOWS: 'C:\\Users\\Shaikh Asif\\OneDrive\\Desktop\\PaidProjects\\ocean-ads-sdk-v2\\dist\\ocean-ads.min.js',
+    // Local development - adjusted to match actual project setup
+    LOCAL_WINDOWS: 'C:\\DevProjects\\ocean-ads-sdk-v2\\dist\\ocean-ads.min.js',
     LOCAL_RELATIVE: '../ocean-ads-sdk-v2/dist/ocean-ads.min.js',
     LOCAL_FALLBACK: './dist/sdk/ocean-ads.min.js',
     
@@ -110,16 +110,17 @@ export const CDN_DEFAULTS = {
   } as const;
   
   /**
-   * Inventory position to selector mapping
-   */
-  export const POSITION_SELECTOR_MAP = {
-    ABOVE_FOLD: '.ocean-ad-header',
-    BELOW_FOLD: '.ocean-ad-footer',
-    SIDEBAR: '.ocean-ad-sidebar',
-    IN_ARTICLE: '.ocean-ad-content',
-    STICKY: '.ocean-ad-sticky',
-    INTERSTITIAL: '.ocean-ad-interstitial',
-  } as const;
+  * Inventory position to selector mapping
+  * FIXED: Use .ocean-ad as universal selector for all positions
+ */
+export const POSITION_SELECTOR_MAP = {
+  ABOVE_FOLD: '.ocean-ad',
+  BELOW_FOLD: '.ocean-ad',
+  SIDEBAR: '.ocean-ad',
+  IN_ARTICLE: '.ocean-ad',
+  STICKY: '.ocean-ad',
+  INTERSTITIAL: '.ocean-ad',
+} as const;
   
   /**
    * Publisher tier feature mapping

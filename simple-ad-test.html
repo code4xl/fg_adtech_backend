@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Ocean Ads Test - Single Banner</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        /* CRITICAL: SDK expects these exact selectors */
+        .ocean-ad-header-2 {
+            border: 3px solid #007bff;
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #007bff;
+            font-weight: bold;
+            margin: 20px 0;
+            position: relative;
+            transition: all 0.3s ease;
+            flex-direction: column;
+            width: 970px;
+            height: 90px;
+            max-width: 100%;
+            padding: 10px;
+        }
+        
+        .ocean-ad-header-2:hover {
+            border-color: #0056b3;
+            background: #e3f2fd;
+        }
+        
+        .ocean-ad-header-2.loaded {
+            border-color: #28a745;
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .debug-panel {
+            background: #2d3748;
+            color: #a0aec0;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .debug-panel h4 {
+            color: #60a5fa;
+            margin-top: 0;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        
+        .btn:hover { background: #0056b3; }
+        
+        .success { color: #68d391; }
+        .error { color: #fc8181; }
+        .warning { color: #fbb6ce; }
+        .info { color: #63b3ed; }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .status-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            border-left: 4px solid #6c757d;
+        }
+        
+        .status-item.success { border-left-color: #28a745; }
+        .status-item.error { border-left-color: #dc3545; }
+        .status-item.warning { border-left-color: #ffc107; }
+        
+        .status-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Simple Ocean Ads Test - Single Banner</h1>
+            <p><strong>Publisher:</strong> vladimir10@gmail.com | <strong>Domain:</strong> lifestylemag507-368.co</p>
+            <p><strong>Website ID:</strong> 09954aa5-2c99-4e95-9c6d-b270ac1e029e</p>
+            <p><strong>Testing:</strong> BANNER 970x90 with inventory 1f43d93b-281e-4af3-b6e4-a81be8b05e41</p>
+        </div>
+
+        <!-- Status Dashboard -->
+        <div class="status-grid">
+            <div class="status-item" id="cdn-status">
+                <div class="status-value" id="cdn-value">Loading...</div>
+                <div>CDN Status</div>
+            </div>
+            <div class="status-item" id="sdk-status">
+                <div class="status-value" id="sdk-value">Loading...</div>
+                <div>SDK Status</div>
+            </div>
+            <div class="status-item" id="config-status">
+                <div class="status-value" id="config-value">Loading...</div>
+                <div>Config Status</div>
+            </div>
+            <div class="status-item" id="slot-status">
+                <div class="status-value" id="slot-value">Loading...</div>
+                <div>Slot Discovery</div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div style="text-align: center; margin: 20px 0;">
+            <button class="btn" onclick="checkSDKStatus()">Check SDK Status</button>
+            <button class="btn" onclick="testManualRTB()">Test Manual RTB</button>
+            <button class="btn" onclick="forceSDKRefresh()">Force SDK Refresh</button>
+            <button class="btn" onclick="clearLogs()">Clear Logs</button>
+        </div>
+
+        <!-- THE CRITICAL AD SLOT -->
+        <div style="text-align: center; margin: 30px 0;">
+            <h3>🎯 IMAGE Banner Ad Slot (970x90)</h3>
+            <p><strong>Inventory ID:</strong> 1f43d93b-281e-4af3-b6e4-a81be8b05e41</p>
+            <p><strong>Expected:</strong> BANNER creative (970x90) from your database</p>
+            <p><strong>Note:</strong> Using verified working inventory from API response</p>
+            
+            <!-- CRITICAL: This MUST match SDK config exactly -->
+            <div class="ocean-ad-header-2" id="test-ad-slot">
+                <div>🎯 BANNER AD SLOT 970x90</div>
+                <div style="font-size: 12px; margin-top: 5px;">
+                    Waiting for SDK to discover and fill this slot...
+                </div>
+                <div style="font-size: 10px; color: #666; margin-top: 5px;">
+                    Selector: .ocean-ad-header-2 | Inventory: 1f43d93b-281e-4af3-b6e4-a81be8b05e41
+                </div>
+            </div>
+        </div>
+
+        <!-- Debug Logs -->
+        <div class="debug-panel">
+            <h4>🔍 Real-Time Debug Logs</h4>
+            <div id="debug-output">
+                <div class="info">[INIT] Simple Ocean Ads test page loaded</div>
+                <div class="info">[INIT] Testing single IMAGE banner with known working inventory</div>
+                <div class="info">[INIT] Using LATEST CDN: http://localhost:3001/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js</div>
+                <div class="info">[INIT] Build ID: 028e26dd-1751660271915-y91gel | Version: 1.7.4</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CRITICAL: Load Ocean Ads SDK from correct CDN -->
+    <script src="http://localhost:3001/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js" async></script>
+
+    <script>
+        // Global debug state
+        let debugLogs = [];
+        let checkCount = 0;
+        let sdkReady = false;
+        let configLoaded = false;
+        let slotsDiscovered = false;
+
+        // Enhanced logging function
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const fullMessage = `[${timestamp}] ${message}`;
+            
+            debugLogs.push({ message: fullMessage, type });
+            
+            const output = document.getElementById('debug-output');
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = fullMessage;
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+            
+            console.log(`[Ocean Ads Simple Test] ${message}`);
+            
+            // Keep only last 50 logs
+            if (debugLogs.length > 50) {
+                debugLogs = debugLogs.slice(-50);
+                if (output.children.length > 50) {
+                    output.removeChild(output.firstChild);
+                }
+            }
+        }
+
+        // Update status indicators
+        function updateStatus(elementId, value, type = 'info') {
+            const element = document.getElementById(elementId);
+            const valueElement = document.getElementById(elementId.replace('-status', '-value'));
+            
+            if (element && valueElement) {
+                element.className = `status-item ${type}`;
+                valueElement.textContent = value;
+            }
+        }
+
+        // Check SDK loading and initialization
+        function checkSDKStatus() {
+            log('=== COMPREHENSIVE SDK STATUS CHECK ===', 'info');
+            
+            // 1. Check if SDK object exists
+            const sdkExists = typeof window.OceanAds !== 'undefined';
+            log(`SDK Object Available: ${sdkExists}`, sdkExists ? 'success' : 'error');
+            
+            if (sdkExists) {
+                updateStatus('sdk-status', 'Loaded ✓', 'success');
+                sdkReady = true;
+                
+                // Check SDK methods
+                const methods = ['init', 'debug', 'refresh', 'getMetrics'];
+                methods.forEach(method => {
+                    const hasMethod = typeof window.OceanAds[method] === 'function';
+                    log(`SDK.${method}(): ${hasMethod ? 'Available' : 'Missing'}`, hasMethod ? 'success' : 'error');
+                });
+                
+                // Try to enable debug mode
+                try {
+                    window.OceanAds.debug(true);
+                    log('SDK debug mode enabled', 'success');
+                } catch (e) {
+                    log(`SDK debug failed: ${e.message}`, 'error');
+                }
+                
+                // Try to get metrics
+                try {
+                    if (window.OceanAds.getMetrics) {
+                        const metrics = window.OceanAds.getMetrics();
+                        log(`SDK Metrics: ${JSON.stringify(metrics)}`, 'info');
+                    }
+                } catch (e) {
+                    log(`SDK metrics failed: ${e.message}`, 'warning');
+                }
+            } else {
+                updateStatus('sdk-status', 'Failed ✗', 'error');
+            }
+            
+            // 2. Check configuration
+            const configExists = typeof window.__OCEAN_CONFIG__ !== 'undefined';
+            log(`Configuration Available: ${configExists}`, configExists ? 'success' : 'error');
+            
+            if (configExists) {
+                updateStatus('config-status', 'Loaded ✓', 'success');
+                configLoaded = true;
+                
+                const config = window.__OCEAN_CONFIG__;
+                log(`Publisher ID: ${config.publisher?.id}`, 'info');
+                log(`Website ID: ${config.website?.id}`, 'info');
+                log(`Inventory Count: ${config.inventory?.length || 0}`, 'info');
+                
+                if (config.inventory && config.inventory.length > 0) {
+                    config.inventory.forEach((inv, i) => {
+                        log(`  Inventory ${i+1}: ${inv.selector} → ${inv.inventoryId}`, 'info');
+                    });
+                } else {
+                    log('WARNING: No inventory configured!', 'warning');
+                }
+                
+                log(`API URL: ${config.settings?.apiUrl}`, 'info');
+                log(`Debug Mode: ${config.settings?.debug}`, 'info');
+            } else {
+                updateStatus('config-status', 'Missing ✗', 'error');
+            }
+            
+            // 3. Check slot discovery
+            const slots = document.querySelectorAll('.ocean-ad-header-2');
+            log(`Ad Slots Found: ${slots.length}`, slots.length > 0 ? 'success' : 'error');
+            
+            if (slots.length > 0) {
+                updateStatus('slot-status', `${slots.length} Found ✓`, 'success');
+                slotsDiscovered = true;
+                
+                slots.forEach((slot, i) => {
+                    log(`  Slot ${i+1}: ${slot.className}`, 'info');
+                    log(`    ID: ${slot.id}`, 'info');
+                    log(`    Visible: ${slot.offsetParent !== null}`, 'info');
+                });
+            } else {
+                updateStatus('slot-status', 'None Found ✗', 'error');
+            }
+            
+            // 4. Summary
+            log('=== STATUS SUMMARY ===', 'info');
+            log(`SDK Ready: ${sdkReady}`, sdkReady ? 'success' : 'error');
+            log(`Config Loaded: ${configLoaded}`, configLoaded ? 'success' : 'error');
+            log(`Slots Discovered: ${slotsDiscovered}`, slotsDiscovered ? 'success' : 'error');
+            
+            if (sdkReady && configLoaded && slotsDiscovered) {
+                log('✅ ALL SYSTEMS READY - SDK should auto-request ads', 'success');
+            } else {
+                log('❌ ISSUES DETECTED - SDK may not function properly', 'error');
+            }
+        }
+
+        // Test manual RTB request
+        async function testManualRTB() {
+            log('=== MANUAL RTB TEST ===', 'info');
+            
+            const startTime = Date.now();
+            
+            const bidRequest = {
+                externalRequestId: 'simple-test-' + Date.now(),
+                inventoryId: '1f43d93b-281e-4af3-b6e4-a81be8b05e41', // Banner inventory
+                publisherId: '028e26dd-f437-4442-b2ed-e1c59e187ec1',
+                websiteId: '09954aa5-2c99-4e95-9c6d-b270ac1e029e',
+                userContext: {
+                    userAgent: navigator.userAgent,
+                    ipAddress: '127.0.0.1',
+                    deviceType: 'DESKTOP',
+                    browserType: 'chrome',
+                    osType: 'windows',
+                    country: 'IN',
+                    region: 'Maharashtra',
+                },
+                adSlotContext: {
+                    width: 970,
+                    height: 90,
+                    format: 'BANNER', // Changed to BANNER for image ads
+                    position: 'ABOVE_FOLD',
+                    pageUrl: window.location.href,
+                    pageCategory: 'technology',
+                },
+                floorPrice: 0.5,
+                timeout: 200,
+                enableSSE: true,
+            };
+
+            log(`Sending RTB request for BANNER inventory: ${bidRequest.inventoryId}`, 'info');
+            log(`Publisher: ${bidRequest.publisherId}`, 'info');
+            log(`Website: ${bidRequest.websiteId}`, 'info');
+
+            try {
+                const response = await fetch('http://localhost:3001/rtb/bid-request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bidRequest),
+                });
+
+                const responseTime = Date.now() - startTime;
+                log(`RTB Response Time: ${responseTime}ms`, 'info');
+
+                if (response.ok) {
+                    const apiResp = await response.json();
+                    const data = apiResp.data || apiResp;
+                    
+                    log(`✅ RTB Success! Request ID: ${data.requestId}`, 'success');
+                    log(`Auction ID: ${data.auctionId}`, 'info');
+                    
+                    if (data.sseUrl) {
+                        log(`SSE URL: ${data.sseUrl}`, 'info');
+                        // Connect to SSE and listen for results
+                        connectToSSE(data.sseUrl, data.requestId);
+                    }
+                } else {
+                    const errorData = await response.json();
+                    log(`❌ RTB Failed: ${response.status} ${errorData.message}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ RTB Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Connect to SSE stream
+        function connectToSSE(sseUrl, requestId) {
+            log(`Connecting to SSE: ${sseUrl}`, 'info');
+            
+            const eventSource = new EventSource(sseUrl);
+            
+            eventSource.onopen = function() {
+                log('✅ SSE Connection opened', 'success');
+            };
+            
+            eventSource.onmessage = function(event) {
+                log(`📨 SSE Message: ${event.data}`, 'info');
+            };
+            
+            eventSource.addEventListener('bid_complete', function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    log(`🎯 BID_COMPLETE received!`, 'success');
+                    log(`Status: ${data.status}`, 'info');
+                    
+                    if (data.status === 'completed' && data.slots && data.slots[0]) {
+                        const slot = data.slots[0];
+                        log(`✅ Ad creative received!`, 'success');
+                        log(`Creative Type: ${slot.creative?.type}`, 'info');
+                        log(`Markup Length: ${slot.creative?.markup?.length} chars`, 'info');
+                        
+                        if (slot.creative && slot.creative.markup) {
+                            // Try to render the ad
+                            renderAdInSlot(slot.creative.markup);
+                        }
+                    } else if (data.status === 'no_bid') {
+                        log(`❌ No bid received`, 'warning');
+                    } else {
+                        log(`⚠️ Unexpected status: ${data.status}`, 'warning');
+                    }
+                } catch (parseError) {
+                    log(`❌ SSE Parse error: ${parseError.message}`, 'error');
+                }
+            });
+            
+            eventSource.onerror = function(error) {
+                log(`❌ SSE Error`, 'error');
+                eventSource.close();
+            };
+            
+            // Auto-close after 30 seconds
+            setTimeout(() => {
+                if (eventSource.readyState !== EventSource.CLOSED) {
+                    eventSource.close();
+                    log('SSE connection closed after timeout', 'warning');
+                }
+            }, 30000);
+        }
+
+        // Render ad markup in the slot
+        function renderAdInSlot(markup) {
+            log(`Attempting to render ad markup...`, 'info');
+            
+            const slot = document.getElementById('test-ad-slot');
+            if (slot && markup) {
+                slot.innerHTML = markup;
+                slot.classList.add('loaded');
+                log(`✅ Ad rendered successfully!`, 'success');
+                log(`Rendered markup: ${markup.substring(0, 100)}...`, 'info');
+            } else {
+                log(`❌ Failed to render: slot=${!!slot}, markup=${!!markup}`, 'error');
+            }
+        }
+
+        // Force SDK refresh
+        function forceSDKRefresh() {
+            log('=== FORCING SDK REFRESH ===', 'info');
+            
+            if (window.OceanAds && typeof window.OceanAds.refresh === 'function') {
+                window.OceanAds.refresh();
+                log('✅ SDK refresh called', 'success');
+            } else {
+                log('❌ SDK refresh not available', 'error');
+            }
+        }
+
+        // Clear logs
+        function clearLogs() {
+            document.getElementById('debug-output').innerHTML = '';
+            debugLogs = [];
+            log('🗑️ Logs cleared', 'info');
+        }
+
+        // Initialize page and start monitoring
+        document.addEventListener('DOMContentLoaded', function() {
+            log('📄 DOM loaded, starting comprehensive monitoring...', 'info');
+            
+            updateStatus('cdn-status', 'Checking...', 'warning');
+            updateStatus('sdk-status', 'Waiting...', 'warning');
+            updateStatus('config-status', 'Waiting...', 'warning');
+            updateStatus('slot-status', 'Waiting...', 'warning');
+            
+            // Check CDN availability first
+            fetch('http://localhost:3001/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js')
+                .then(response => {
+                    if (response.ok) {
+                        log('✅ CDN endpoint accessible', 'success');
+                        updateStatus('cdn-status', 'Available ✓', 'success');
+                    } else {
+                        log(`❌ CDN returned ${response.status}`, 'error');
+                        updateStatus('cdn-status', `Error ${response.status}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    log(`❌ CDN check failed: ${error.message}`, 'error');
+                    updateStatus('cdn-status', 'Failed ✗', 'error');
+                });
+            
+            // Monitor SDK loading with detailed checks
+            let checkInterval = setInterval(() => {
+                checkCount++;
+                
+                if (window.OceanAds) {
+                    log(`✅ SDK loaded after ${checkCount} checks!`, 'success');
+                    clearInterval(checkInterval);
+                    
+                    // Give SDK time to initialize
+                    setTimeout(() => {
+                        checkSDKStatus();
+                    }, 2000);
+                } else if (checkCount >= 20) {
+                    log(`❌ SDK failed to load after ${checkCount} checks`, 'error');
+                    updateStatus('sdk-status', 'Failed ✗', 'error');
+                    clearInterval(checkInterval);
+                } else {
+                    log(`⏳ Checking SDK... (${checkCount}/20)`, 'warning');
+                }
+            }, 500);
+            
+            // Auto-test after 8 seconds
+            setTimeout(() => {
+                if (window.OceanAds) {
+                    log('🚀 Starting automatic test sequence...', 'info');
+                    testManualRTB();
+                } else {
+                    log('❌ Cannot auto-test - SDK not loaded', 'error');
+                }
+            }, 8000);
+        });
+
+        // Monitor for script loading errors
+        window.addEventListener('error', function(e) {
+            if (e.filename && e.filename.includes('init.js')) {
+                log(`❌ CDN Script Error: ${e.message} at line ${e.lineno}`, 'error');
+                updateStatus('cdn-status', 'Script Error ✗', 'error');
+            }
+        });
+
+        // Monitor for any Ocean Ads events
+        if (typeof window.addEventListener === 'function') {
+            window.addEventListener('OceanAdsReady', function() {
+                log('🎉 OceanAdsReady event fired!', 'success');
+            });
+        }
+    </script>
+</body>
+</html>
