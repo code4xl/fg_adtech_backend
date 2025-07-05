@@ -113,11 +113,6 @@ export class TrackingService {
       );
       const costPerImpression = impression.finalPrice / 1000; // Convert CPM to per-impression
 
-      await this.deductCampaignBudget(
-        impression.campaignId,
-        costPerImpression,
-        impression.id,
-      );
       // 2. Update real-time metrics
       pipeline.incr(
         CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_IMPRESSIONS(
@@ -248,35 +243,7 @@ export class TrackingService {
       throw error;
     }
   }
-  private async deductCampaignBudget(
-    campaignId: string,
-    cost: number,
-    impressionId: string,
-  ): Promise<void> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
 
-    // Atomic budget deduction when impression is confirmed
-    await this.prisma.campaignDailyBudget.update({
-      where: { campaignId_date: { campaignId, date: today } },
-      data: {
-        spentToday: { increment: cost },
-        remainingToday: { decrement: cost },
-        lastUpdated: new Date(),
-      },
-    });
-
-    // Record transaction for audit trail
-    await this.prisma.budgetTransaction.create({
-      data: {
-        campaignId,
-        type: 'IMPRESSION_COST',
-        amount: cost,
-        impressionId,
-        description: 'Budget deducted for delivered impression',
-      },
-    });
-  }
   /**
    * Process click event in Redis
    * ✅ Handles ALL Prisma model fields properly

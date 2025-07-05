@@ -715,82 +715,82 @@ export class AuctionService {
     try {
       // REASON: Update new budget tracking system instead of old CampaignBudgetTracker
       // LOGIC: Deduct the actual cost from today's remaining budget
-      // const today = new Date();
-      // today.setHours(0, 0, 0, 0);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-      // // REASON: Convert CPM final price to per-impression cost
-      // // LOGIC: If finalPrice is $2.50 CPM, cost per impression is $0.0025
-      // const costPerImpression = finalPrice > 1 ? finalPrice / 1000 : finalPrice;
+      // REASON: Convert CPM final price to per-impression cost
+      // LOGIC: If finalPrice is $2.50 CPM, cost per impression is $0.0025
+      const costPerImpression = finalPrice / 1000;
 
-      // this.logger.debug('Recording auction win with cost deduction', {
-      //   campaignId,
-      //   finalPriceInput: finalPrice,
-      //   costPerImpression: costPerImpression,
-      //   date: today.toISOString().split('T')[0],
-      // });
+      this.logger.debug('Recording auction win with cost deduction', {
+        campaignId,
+        finalPriceInput: finalPrice,
+        costPerImpression: costPerImpression,
+        date: today.toISOString().split('T')[0],
+      });
 
-      // // REASON: Use atomic update to prevent race conditions
-      // // LOGIC: Multiple auctions could complete simultaneously
-      // const updatedBudget = await this.prisma.campaignDailyBudget.update({
-      //   where: {
-      //     campaignId_date: {
-      //       campaignId,
-      //       date: today,
-      //     },
-      //   },
-      //   data: {
-      //     spentToday: {
-      //       increment: costPerImpression, // Add cost to spent amount
-      //     },
-      //     remainingToday: {
-      //       decrement: costPerImpression, // Subtract cost from remaining
-      //     },
-      //     lastUpdated: new Date(),
-      //   },
-      //   select: {
-      //     spentToday: true,
-      //     remainingToday: true,
-      //     isExhausted: true,
-      //   },
-      // });
+      // REASON: Use atomic update to prevent race conditions
+      // LOGIC: Multiple auctions could complete simultaneously
+      const updatedBudget = await this.prisma.campaignDailyBudget.update({
+        where: {
+          campaignId_date: {
+            campaignId,
+            date: today,
+          },
+        },
+        data: {
+          spentToday: {
+            increment: costPerImpression, // Add cost to spent amount
+          },
+          remainingToday: {
+            decrement: costPerImpression, // Subtract cost from remaining
+          },
+          lastUpdated: new Date(),
+        },
+        select: {
+          spentToday: true,
+          remainingToday: true,
+          isExhausted: true,
+        },
+      });
 
-      // const todayStr = today.toISOString().split('T')[0];
-      // await this.redis.set(
-      //   CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_SPEND(campaignId, todayStr),
-      //   Number(updatedBudget.spentToday).toString(),
-      // );
+      const todayStr = today.toISOString().split('T')[0];
+      await this.redis.set(
+        CLICK_AND_IMPRESSION_KEYS.DAILY_BUDGET_SPEND(campaignId, todayStr),
+        Number(updatedBudget.spentToday).toString(),
+      );
 
-      // // Update campaign status if exhausted
-      // const remainingBudget = Number(updatedBudget.remainingToday);
-      // if (remainingBudget < 0.001) {
-      //   // Less than $1 CPM equivalent
-      //   await this.redis.set(
-      //     CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_STATUS(campaignId),
-      //     'BUDGET_EXHAUSTED',
-      //   );
-      // }
-      // // REASON: Record the transaction for audit trail
-      // // LOGIC: Keep track of every budget deduction for transparency
-      // await this.recordBudgetTransaction(
-      //   campaignId,
-      //   costPerImpression,
-      //   'IMPRESSION_COST',
-      // );
+      // Update campaign status if exhausted
+      const remainingBudget = Number(updatedBudget.remainingToday);
+      if (remainingBudget < 0.001) {
+        // Less than $1 CPM equivalent
+        await this.redis.set(
+          CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_STATUS(campaignId),
+          'BUDGET_EXHAUSTED',
+        );
+      }
+      // REASON: Record the transaction for audit trail
+      // LOGIC: Keep track of every budget deduction for transparency
+      await this.recordBudgetTransaction(
+        campaignId,
+        costPerImpression,
+        'IMPRESSION_COST',
+      );
 
-      // // REASON: Record revenue for publisher and system
-      // // LOGIC: New payment flow requires revenue tracking per impression
-      // await this.recordImpressionRevenue(campaignId, finalPrice);
+      // REASON: Record revenue for publisher and system
+      // LOGIC: New payment flow requires revenue tracking per impression
+      await this.recordImpressionRevenue(campaignId, finalPrice);
 
-      // // REASON: Invalidate budget cache after update
-      // // LOGIC: Ensure next budget checks get fresh data
-      // await this.campaignEligibility.invalidateBudgetCache(campaignId);
+      // REASON: Invalidate budget cache after update
+      // LOGIC: Ensure next budget checks get fresh data
+      await this.campaignEligibility.invalidateBudgetCache(campaignId);
 
       this.logger.log('Auction win recorded successfully', {
         campaignId,
-        // costDeducted: costPerImpression,
-        // newSpentToday: Number(updatedBudget.tracking.service.tsspentToday),
-        // newRemainingToday: Number(updatedBudget.remainingToday),
-        // isNowExhausted: remainingBudget < 0.001,
+        costDeducted: costPerImpression,
+        newSpentToday: Number(updatedBudget.spentToday),
+        newRemainingToday: Number(updatedBudget.remainingToday),
+        isNowExhausted: remainingBudget < 0.001,
       });
     } catch (error) {
       this.logger.error('Failed to record auction win', {
