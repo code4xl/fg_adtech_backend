@@ -49,6 +49,7 @@ export class TrackingModule {
   private readonly logger = new Logger(TrackingModule.name);
   constructor(
     private readonly budgetRedisSyncService: BudgetRedisSyncService,
+    private readonly trackingService: TrackingService,
   ) {}
   async onModuleInit() {
     try {
@@ -56,6 +57,7 @@ export class TrackingModule {
 
       // Sync all campaign budgets to Redis on startup
       await this.budgetRedisSyncService.syncAllActiveCampaigns();
+      await this.trackingService.syncPublisherRevenueTiers();
 
       this.logger.log('✅ Application initialization completed');
     } catch (error) {

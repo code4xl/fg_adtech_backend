@@ -26,7 +26,7 @@ export class CampaignSeeder implements ISeeder {
     return ['Advertiser', 'Client'];
   }
 
-  async seed(count: number = 200): Promise<void> {
+  async seed(count: number = 100): Promise<void> {
     this.logger.log(`Seeding ${count} campaigns...`);
 
     try {
@@ -390,7 +390,7 @@ export class CampaignSeeder implements ISeeder {
           );
           const spentToday = faker.number.float({
             min: 0,
-            max: dailyBudget * 0.3, // Can spend up to 30% of daily budget so far
+            max: 0, // zero
             fractionDigits: 2,
           });
           const remainingToday = Math.max(0, dailyBudget - spentToday);

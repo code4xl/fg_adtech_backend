@@ -1,293 +1,317 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { KafkaService } from "src/kafka/kafka.service";
-import { PrismaService } from "src/prisma/prisma.service";
-import { RedisService } from "src/redis/redis.service";
-import { AuctionService } from "../services/auction.service";
-import AuctionProducer from "../producers/auction.producer";
-import { AuctionBidResult, CompleteAuctionResult, ErrorAuctionResult, HandleNoBidsResult } from "../types/auction-result.types";
-import { WinningBidResponse } from "../types/bid-response.types";
-import { RTB_CACHE_TTL, RTB_KEYS } from "../constants/cache-keys";
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { KafkaService } from 'src/kafka/kafka.service';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { RedisService } from 'src/redis/redis.service';
+import { AuctionService } from '../services/auction.service';
+import AuctionProducer from '../producers/auction.producer';
+import {
+  AuctionBidResult,
+  CompleteAuctionResult,
+  ErrorAuctionResult,
+  HandleNoBidsResult,
+} from '../types/auction-result.types';
+import { WinningBidResponse } from '../types/bid-response.types';
+import { RTB_CACHE_TTL, RTB_KEYS } from '../constants/cache-keys';
 
 @Injectable()
 export class BidResponseProcessor {
-    private readonly logger = new Logger(BidResponseProcessor.name);
-    private readonly trackingBaseUrl: string;
+  private readonly logger = new Logger(BidResponseProcessor.name);
+  private readonly trackingBaseUrl: string;
 
-    constructor(
-        private readonly config: ConfigService,
-        private readonly auctionService: AuctionService,
-        private readonly redis: RedisService
-    ) {
-        this.trackingBaseUrl =
-            this.config.get<string>('APP_URL') || 'https://track.oceanadtech.com';
-        this.logger.log('Bid Response Processor initialized - Phase 4');
+  constructor(
+    private readonly config: ConfigService,
+    private readonly auctionService: AuctionService,
+    private readonly redis: RedisService,
+  ) {
+    this.trackingBaseUrl =
+      this.config.get<string>('APP_URL') || 'https://track.oceanadtech.com';
+    this.logger.log('Bid Response Processor initialized - Phase 4');
+  }
+
+  // Deprecated: This method is no longer used
+  // async generateBidResponses(auctionResult: CompleteAuctionResult): Promise<WinningBidResponse[] | HandleNoBidsResult[] | ErrorAuctionResult[]> {
+  //     this.logger.debug(
+  //         'Generating bid responses' +
+  //         JSON.stringify({
+  //             // auctionResult: auctionResult,
+  //             auctionId: auctionResult.auctionId,
+  //             hasWinner: !!auctionResult.winner,
+  //             // status: auctionResult.auctionStatus,
+  //         }),
+  //     );
+
+  //     try {
+  //         // Handle different auction outcomes
+  //         switch (auctionResult.auctionStatus) {
+  //             case 'NO_BIDS':
+  //                 return await this.generateNoBidsResponse(auctionResult);
+
+  //             case 'ERROR':
+  //                 return await this.generateErrorResponse(auctionResult);
+
+  //             default:
+  //                 return await this.generateCompletedAuctionResponses(auctionResult);
+  //         }
+  //     } catch (error) {
+  //         this.logger.error('Failed to generate bid responses', {
+  //             error: error,
+  //             auctionId: auctionResult.auctionId,
+  //         });
+  //         throw error;
+  //     }
+  // }
+
+  async generateCompletedAuctionResponses(
+    auctionResult: AuctionBidResult,
+  ): Promise<WinningBidResponse[]> {
+    const responses: WinningBidResponse[] = [];
+
+    this.logger.debug('Generating responses for completed auction', {
+      auctionId: auctionResult.auctionId,
+      hasWinner: !!auctionResult.winner,
+      finalPrice: auctionResult.finalPrice,
+    });
+
+    if (auctionResult.winner) {
+      // Generate winning bid response
+      const winningResponse =
+        await this.generateWinningBidResponse(auctionResult);
+      responses.push(winningResponse);
+
+      // Update campaign spend atomically - budget management error
+      // await this.updateCampaignSpend(
+      //     auctionResult.winner.campaignId,
+      //     auctionResult.finalPrice,
+      // );
     }
 
-    // Deprecated: This method is no longer used
-    // async generateBidResponses(auctionResult: CompleteAuctionResult): Promise<WinningBidResponse[] | HandleNoBidsResult[] | ErrorAuctionResult[]> {
-    //     this.logger.debug(
-    //         'Generating bid responses' +
-    //         JSON.stringify({
-    //             // auctionResult: auctionResult,
-    //             auctionId: auctionResult.auctionId,
-    //             hasWinner: !!auctionResult.winner,
-    //             // status: auctionResult.auctionStatus,
-    //         }),
-    //     );
+    return responses;
+  }
 
-    //     try {
-    //         // Handle different auction outcomes
-    //         switch (auctionResult.auctionStatus) {
-    //             case 'NO_BIDS':
-    //                 return await this.generateNoBidsResponse(auctionResult);
+  // Deprecated: This method is no longer used
+  // public async generateWinningBidResponse(auctionResult: AuctionBidResult): Promise<WinningBidResponse> {
+  //     const winner = auctionResult.winner;
+  //     const creativeId = winner.creativeId;
+  //     const auctionId = auctionResult.auctionId;
 
-    //             case 'ERROR':
-    //                 return await this.generateErrorResponse(auctionResult);
+  //     this.logger.debug('Generating winning bid response', {
+  //         auctionId,
+  //         winnerId: winner.id,
+  //         finalPrice: winner.finalPrice,
+  //         creativeId,
+  //         auctionResult,
+  //         adSlotContext: auctionResult.originalBidRequest.adSlotContext,
+  //     });
+  //     // Use auction service for tracking URLs
+  //     const trackingUrls = this.auctionService.generateTrackingUrls(
+  //         auctionId,
+  //         winner.id,
+  //     );
+  //     const adSlotContextData = auctionResult.originalBidRequest.adSlotContext;
 
-    //             default:
-    //                 return await this.generateCompletedAuctionResponses(auctionResult);
-    //         }
-    //     } catch (error) {
-    //         this.logger.error('Failed to generate bid responses', {
-    //             error: error,
-    //             auctionId: auctionResult.auctionId,
-    //         });
-    //         throw error;
-    //     }
-    // }
+  //     // Use auction service for ad markup
+  //     const adMarkup = this.auctionService.generateAdMarkup(
+  //         creativeId,
+  //         trackingUrls,
+  //         {
+  //             width: adSlotContextData.width,
+  //             height: adSlotContextData.height,
+  //             format: adSlotContextData.format,
+  //         },
+  //     );
 
-    async generateCompletedAuctionResponses(
-        auctionResult: AuctionBidResult,
-    ): Promise<WinningBidResponse[]> {
-        const responses: WinningBidResponse[] = [];
+  //     return {
+  //         requestId: auctionResult.originalBidRequest.externalRequestId,
+  //         status: 'COMPLETED',
+  //         winningBid: {
+  //             price: winner.finalPrice,
+  //             currency: winner.currency || 'INR',
+  //             campaignId: winner.campaignId,
+  //             creativeId: winner.creativeId,
+  //             adMarkup,
+  //             impressionUrls: trackingUrls.impression,
+  //             clickUrls: trackingUrls.click,
+  //             landingUrl: winner.landingUrl,
+  //         },
+  //         auctionData: {
+  //             totalBids: auctionResult.totalBids || 1,
+  //             validBids: auctionResult.validBids || 1,
+  //             auctionDuration: `${auctionResult.processingTime || 0}ms`,
+  //             timestamp: new Date().toISOString(),
+  //             floorPrice: auctionResult.floorPrice,
+  //         },
+  //     };
+  // }
 
-        this.logger.debug('Generating responses for completed auction', {
-            auctionId: auctionResult.auctionId,
-            hasWinner: !!auctionResult.winner,
-            finalPrice: auctionResult.finalPrice
-        });
+  private async generateWinningBidResponse(
+    auctionResult: AuctionBidResult,
+  ): Promise<WinningBidResponse> {
+    const winner = auctionResult.winner;
+    const creativeId = winner.creativeId;
+    const auctionId = auctionResult.auctionId;
 
-        if (auctionResult.winner) {
-            // Generate winning bid response
-            const winningResponse = await this.generateWinningBidResponse(auctionResult);
-            responses.push(winningResponse);
+    this.logger.debug('Generating winning bid response', {
+      auctionId,
+      winnerId: winner.id,
+      finalPrice: auctionResult.finalPrice, // Use finalPrice from auction result
+      creativeId,
+      adSlotContext: auctionResult.originalBidRequest.adSlotContext,
+    });
 
-            // Update campaign spend atomically - budget management error
-            // await this.updateCampaignSpend(
-            //     auctionResult.winner.campaignId,
-            //     auctionResult.finalPrice,
-            // );
+    // Use auction service for tracking URLs
+    const trackingUrls = this.auctionService.generateTrackingUrls(
+      auctionId,
+      winner.id,
+    );
+    const adSlotContextData = auctionResult.originalBidRequest.adSlotContext;
+
+    // Use auction service for ad markup
+    const adMarkup = this.auctionService.generateAdMarkup(
+      creativeId,
+      trackingUrls,
+      {
+        width: adSlotContextData.width,
+        height: adSlotContextData.height,
+        format: adSlotContextData.format,
+      },
+    );
+
+    return {
+      requestId: auctionResult.originalBidRequest.externalRequestId,
+      auctionId: auctionId,
+      status: 'COMPLETED',
+      winningBid: {
+        price: auctionResult.finalPrice, // Type-safe access to finalPrice
+        currency: winner.currency || 'INR',
+        campaignId: winner.campaignId,
+        creativeId: winner.creativeId,
+        adMarkup,
+        impressionUrls: trackingUrls.impression,
+        clickUrls: trackingUrls.click,
+        landingUrl: winner.landingUrl,
+      },
+      auctionData: {
+        totalBids: auctionResult.totalBids || 1,
+        validBids: auctionResult.validBids || 1,
+        auctionDuration: `${auctionResult.processingTime || 0}ms`,
+        timestamp: new Date().toISOString(),
+        floorPrice: auctionResult.floorPrice,
+      },
+    };
+  }
+
+  async generateNoBidsResponse(
+    auctionResult: HandleNoBidsResult,
+  ): Promise<HandleNoBidsResult[]> {
+    this.logger.debug('Generating no bids response', {
+      auctionId: auctionResult.auctionId,
+      totalBids: auctionResult.totalBids,
+      processingTime: auctionResult.processingTime,
+    });
+
+    return [
+      {
+        auctionId: auctionResult.auctionId,
+        auctionStatus: 'NO_BIDS',
+        totalBids: auctionResult.totalBids || 0,
+        validBids: auctionResult.validBids || 0,
+        processingTime: auctionResult.processingTime || 0,
+        originalBidRequest: auctionResult.originalBidRequest,
+        processedAt: new Date().toISOString(),
+        winner: null,
+        auctionType: auctionResult.auctionType || 'SECOND_PRICE',
+      },
+    ];
+  }
+
+  async generateErrorResponse(
+    auctionResult: ErrorAuctionResult,
+  ): Promise<ErrorAuctionResult[]> {
+    this.logger.error('Generating error response', {
+      auctionId: auctionResult.auctionId,
+      errorMessage: auctionResult.errorMessage,
+      errorCode: auctionResult.errorCode,
+    });
+
+    return [
+      {
+        auctionId: auctionResult.auctionId,
+        auctionStatus: 'ERROR',
+        totalBids: auctionResult.totalBids || 0,
+        validBids: auctionResult.validBids || 0,
+        processingTime: auctionResult.processingTime || 0,
+        originalBidRequest: auctionResult.originalBidRequest,
+        processedAt: new Date().toISOString(),
+        winner: null,
+        errorMessage: auctionResult.errorMessage || 'Auction processing failed',
+        errorCode: auctionResult.errorCode || 'UNKNOWN_ERROR',
+        auctionType: auctionResult.auctionType || 'SECOND_PRICE',
+      },
+    ];
+  }
+
+  async storeBidResponses(
+    bidResponses:
+      | WinningBidResponse[]
+      | HandleNoBidsResult[]
+      | ErrorAuctionResult[],
+  ): Promise<void> {
+    try {
+      //   this.logger.debug(
+      //     'In Storing Bid Responses',
+      //     //     , {
+      //     //     bidResponses,
+      //     // }
+      //   );
+
+      if (bidResponses.length === 0) {
+        this.logger.debug('No bid responses to store');
+        return;
+      }
+
+      // Store each response by its request ID
+      const storePromises = bidResponses.map(async (response) => {
+        let requestId: string;
+        let status: string;
+
+        // Type-safe extraction of requestId and status
+        if ('requestId' in response) {
+          // This is a WinningBidResponse
+          requestId = response.requestId;
+          status = response.status;
+        } else {
+          // This is HandleNoBidsResult or ErrorAuctionResult
+          requestId = response.originalBidRequest?.externalRequestId;
+          status = response.auctionStatus;
         }
 
-        return responses;
-    }
+        const cacheKey = RTB_KEYS.AUCTION_RESULT(requestId);
 
-    // Deprecated: This method is no longer used
-    // public async generateWinningBidResponse(auctionResult: AuctionBidResult): Promise<WinningBidResponse> {
-    //     const winner = auctionResult.winner;
-    //     const creativeId = winner.creativeId;
-    //     const auctionId = auctionResult.auctionId;
-
-    //     this.logger.debug('Generating winning bid response', {
-    //         auctionId,
-    //         winnerId: winner.id,
-    //         finalPrice: winner.finalPrice,
-    //         creativeId,
-    //         auctionResult,
-    //         adSlotContext: auctionResult.originalBidRequest.adSlotContext,
-    //     });
-    //     // Use auction service for tracking URLs
-    //     const trackingUrls = this.auctionService.generateTrackingUrls(
-    //         auctionId,
-    //         winner.id,
-    //     );
-    //     const adSlotContextData = auctionResult.originalBidRequest.adSlotContext;
-
-    //     // Use auction service for ad markup
-    //     const adMarkup = this.auctionService.generateAdMarkup(
-    //         creativeId,
-    //         trackingUrls,
-    //         {
-    //             width: adSlotContextData.width,
-    //             height: adSlotContextData.height,
-    //             format: adSlotContextData.format,
-    //         },
-    //     );
-
-    //     return {
-    //         requestId: auctionResult.originalBidRequest.externalRequestId,
-    //         status: 'COMPLETED',
-    //         winningBid: {
-    //             price: winner.finalPrice,
-    //             currency: winner.currency || 'INR',
-    //             campaignId: winner.campaignId,
-    //             creativeId: winner.creativeId,
-    //             adMarkup,
-    //             impressionUrls: trackingUrls.impression,
-    //             clickUrls: trackingUrls.click,
-    //             landingUrl: winner.landingUrl,
-    //         },
-    //         auctionData: {
-    //             totalBids: auctionResult.totalBids || 1,
-    //             validBids: auctionResult.validBids || 1,
-    //             auctionDuration: `${auctionResult.processingTime || 0}ms`,
-    //             timestamp: new Date().toISOString(),
-    //             floorPrice: auctionResult.floorPrice,
-    //         },
-    //     };
-    // }
-
-    private async generateWinningBidResponse(auctionResult: AuctionBidResult): Promise<WinningBidResponse> {
-        const winner = auctionResult.winner;
-        const creativeId = winner.creativeId;
-        const auctionId = auctionResult.auctionId;
-
-        this.logger.debug('Generating winning bid response', {
-            auctionId,
-            winnerId: winner.id,
-            finalPrice: auctionResult.finalPrice, // Use finalPrice from auction result
-            creativeId,
-            adSlotContext: auctionResult.originalBidRequest.adSlotContext,
-        });
-
-        // Use auction service for tracking URLs
-        const trackingUrls = this.auctionService.generateTrackingUrls(
-            auctionId,
-            winner.id,
-        );
-        const adSlotContextData = auctionResult.originalBidRequest.adSlotContext;
-
-        // Use auction service for ad markup
-        const adMarkup = this.auctionService.generateAdMarkup(
-            creativeId,
-            trackingUrls,
-            {
-                width: adSlotContextData.width,
-                height: adSlotContextData.height,
-                format: adSlotContextData.format,
-            },
+        await this.redis.set(
+          cacheKey,
+          JSON.stringify(response),
+          RTB_CACHE_TTL.AUCTION_RESULT,
         );
 
-        return {
-            requestId: auctionResult.originalBidRequest.externalRequestId,
-            auctionId: auctionId,
-            status: 'COMPLETED',
-            winningBid: {
-                price: auctionResult.finalPrice, // Type-safe access to finalPrice
-                currency: winner.currency || 'INR',
-                campaignId: winner.campaignId,
-                creativeId: winner.creativeId,
-                adMarkup,
-                impressionUrls: trackingUrls.impression,
-                clickUrls: trackingUrls.click,
-                landingUrl: winner.landingUrl,
-            },
-            auctionData: {
-                totalBids: auctionResult.totalBids || 1,
-                validBids: auctionResult.validBids || 1,
-                auctionDuration: `${auctionResult.processingTime || 0}ms`,
-                timestamp: new Date().toISOString(),
-                floorPrice: auctionResult.floorPrice,
-            },
-        };
+        // this.logger.debug('Bid response cached', {
+        //   requestId,
+        //   status,
+        //   auctionId: response.auctionId,
+        // });
+      });
+
+      await Promise.all(storePromises);
+
+      this.logger.log('✅ Bid responses stored in cache', {
+        count: bidResponses.length,
+      });
+    } catch (error) {
+      this.logger.error('Failed to store bid responses', {
+        error: error.message,
+        responseCount: bidResponses.length,
+      });
+      throw error;
     }
-
-    async generateNoBidsResponse(auctionResult: HandleNoBidsResult): Promise<HandleNoBidsResult[]> {
-        this.logger.debug('Generating no bids response', {
-            auctionId: auctionResult.auctionId,
-            totalBids: auctionResult.totalBids,
-            processingTime: auctionResult.processingTime
-        });
-
-        return [
-            {
-                auctionId: auctionResult.auctionId,
-                auctionStatus: 'NO_BIDS',
-                totalBids: auctionResult.totalBids || 0,
-                validBids: auctionResult.validBids || 0,
-                processingTime: auctionResult.processingTime || 0,
-                originalBidRequest: auctionResult.originalBidRequest,
-                processedAt: new Date().toISOString(),
-                winner: null,
-                auctionType: auctionResult.auctionType || 'SECOND_PRICE',
-            },
-        ];
-    }
-
-    async generateErrorResponse(auctionResult: ErrorAuctionResult): Promise<ErrorAuctionResult[]> {
-        this.logger.error('Generating error response', {
-            auctionId: auctionResult.auctionId,
-            errorMessage: auctionResult.errorMessage,
-            errorCode: auctionResult.errorCode
-        });
-
-        return [
-            {
-                auctionId: auctionResult.auctionId,
-                auctionStatus: 'ERROR',
-                totalBids: auctionResult.totalBids || 0,
-                validBids: auctionResult.validBids || 0,
-                processingTime: auctionResult.processingTime || 0,
-                originalBidRequest: auctionResult.originalBidRequest,
-                processedAt: new Date().toISOString(),
-                winner: null,
-                errorMessage: auctionResult.errorMessage || 'Auction processing failed',
-                errorCode: auctionResult.errorCode || 'UNKNOWN_ERROR',
-                auctionType: auctionResult.auctionType || 'SECOND_PRICE',
-            },
-        ];
-    }
-
-    async storeBidResponses(bidResponses: WinningBidResponse[] | HandleNoBidsResult[] | ErrorAuctionResult[]): Promise<void> {
-        try {
-            this.logger.debug("In Storing Bid Responses", {
-                bidResponses,
-            });
-
-            if (bidResponses.length === 0) {
-                this.logger.debug('No bid responses to store');
-                return;
-            }
-
-            // Store each response by its request ID
-            const storePromises = bidResponses.map(async (response) => {
-                let requestId: string;
-                let status: string;
-
-                // Type-safe extraction of requestId and status
-                if ('requestId' in response) {
-                    // This is a WinningBidResponse
-                    requestId = response.requestId;
-                    status = response.status;
-                } else {
-                    // This is HandleNoBidsResult or ErrorAuctionResult
-                    requestId = response.originalBidRequest?.externalRequestId;
-                    status = response.auctionStatus;
-                }
-
-                const cacheKey = RTB_KEYS.AUCTION_RESULT(requestId);
-
-                await this.redis.set(cacheKey, JSON.stringify(response), RTB_CACHE_TTL.AUCTION_RESULT);
-
-                this.logger.debug('Bid response cached', {
-                    requestId,
-                    status,
-                    auctionId: response.auctionId,
-                });
-            });
-
-            await Promise.all(storePromises);
-
-            this.logger.log('✅ Bid responses stored in cache', {
-                count: bidResponses.length,
-            });
-        } catch (error) {
-            this.logger.error('Failed to store bid responses', {
-                error: error.message,
-                responseCount: bidResponses.length,
-            });
-            throw error;
-        }
-    }
+  }
 }

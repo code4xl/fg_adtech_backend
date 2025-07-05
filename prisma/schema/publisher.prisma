@@ -24,7 +24,7 @@ model Publisher {
    * ELITE - 20% commission
    */
   tier                 PublisherTier      @default(STANDARD) // Commission tier 
-  paymentThreshold     Decimal            @default(100.0000) @db.Decimal(10, 4) // $100 minimum
+  paymentThreshold     Decimal            @default(100.0000) @db.Decimal(10, 4) // Rs.100 minimum
   // Relations
   inventories          AdInventory[]
   bidRequests          BidRequest[]

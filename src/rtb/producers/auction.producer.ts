@@ -4,8 +4,17 @@ import { KafkaService } from 'src/kafka/kafka.service';
 import { kafkaTopics } from '../constants/kafka-topics';
 import { BidRequestWithAuction } from '../types/bid-request.types';
 import { RtbHelper } from '../utils/helpers';
-import { AuctionBidResult, ErrorAuctionResult, HandleNoBidsResult } from '../types/auction-result.types';
-import { AuctionCompletionData, SuccessfulAuctionCompletionData, NoBidsAuctionCompletionData, ErrorAuctionCompletionData } from '../types/auction-completion.type';
+import {
+  AuctionBidResult,
+  ErrorAuctionResult,
+  HandleNoBidsResult,
+} from '../types/auction-result.types';
+import {
+  AuctionCompletionData,
+  SuccessfulAuctionCompletionData,
+  NoBidsAuctionCompletionData,
+  ErrorAuctionCompletionData,
+} from '../types/auction-completion.type';
 
 @Injectable()
 export default class AuctionProducer {
@@ -13,17 +22,20 @@ export default class AuctionProducer {
   constructor(
     private readonly kafka: KafkaService,
     private readonly rtbHelper: RtbHelper,
-  ) { }
+  ) {}
 
   public async publishAuctionResult(
     auctionResult: AuctionBidResult | HandleNoBidsResult | ErrorAuctionResult,
     bidRequest: BidRequestWithAuction,
   ): Promise<void> {
     try {
-      this.logger.debug("Publishing Auction Result", {
-        auctionResult,
-        bidRequest,
-      });
+      this.logger.debug(
+        'Publishing Auction Result',
+        //   , {
+        //   auctionResult,
+        //   bidRequest,
+        // }
+      );
 
       this.kafka.publish(kafkaTopics.AUCTION_RESULTS, {
         key: bidRequest.auctionId,
@@ -48,7 +60,7 @@ export default class AuctionProducer {
   }
 
   public async publishAuctionCompletion(
-    auctionResult: AuctionBidResult | HandleNoBidsResult | ErrorAuctionResult
+    auctionResult: AuctionBidResult | HandleNoBidsResult | ErrorAuctionResult,
   ): Promise<void> {
     try {
       // Extract bidRequest from auctionResult
@@ -56,7 +68,7 @@ export default class AuctionProducer {
 
       this.logger.debug('Publishing Auction Completion', {
         auctionId: auctionResult.auctionId,
-        auctionStatus: auctionResult.auctionStatus
+        auctionStatus: auctionResult.auctionStatus,
       });
 
       // Type-safe data preparation based on auction status
@@ -64,7 +76,8 @@ export default class AuctionProducer {
 
       switch (auctionResult.auctionStatus) {
         case 'COMPLETED':
-          auctionCompletionData = this.prepareSuccessfulAuctionData(auctionResult);
+          auctionCompletionData =
+            this.prepareSuccessfulAuctionData(auctionResult);
           break;
 
         case 'NO_BIDS':
@@ -76,13 +89,15 @@ export default class AuctionProducer {
           break;
 
         default:
-          throw new Error(`Unknown auction status: ${(auctionResult as any).auctionStatus}`);
+          throw new Error(
+            `Unknown auction status: ${(auctionResult as any).auctionStatus}`,
+          );
       }
 
       this.logger.debug('Publishing auction completion', {
         auctionId: auctionResult.auctionId,
         auctionStatus: auctionResult.auctionStatus,
-        hasWinner: !!auctionCompletionData.winner
+        hasWinner: !!auctionCompletionData.winner,
       });
 
       this.kafka.publish(kafkaTopics.AUCTION_COMPLETION, {
@@ -105,7 +120,9 @@ export default class AuctionProducer {
     }
   }
 
-  private prepareSuccessfulAuctionData(auctionResult: AuctionBidResult): SuccessfulAuctionCompletionData {
+  private prepareSuccessfulAuctionData(
+    auctionResult: AuctionBidResult,
+  ): SuccessfulAuctionCompletionData {
     let bidRequest = auctionResult.originalBidRequest;
 
     return {
@@ -115,7 +132,9 @@ export default class AuctionProducer {
       bidRequest,
 
       // Successful auction specific data
-      campaignIds: auctionResult.winner ? [auctionResult.winner.campaignId] : [],
+      campaignIds: auctionResult.winner
+        ? [auctionResult.winner.campaignId]
+        : [],
       winner: {
         id: auctionResult.winner?.id,
         campaignId: auctionResult.winner?.campaignId,
@@ -146,7 +165,9 @@ export default class AuctionProducer {
     };
   }
 
-  private prepareNoBidsAuctionData(auctionResult: HandleNoBidsResult): NoBidsAuctionCompletionData {
+  private prepareNoBidsAuctionData(
+    auctionResult: HandleNoBidsResult,
+  ): NoBidsAuctionCompletionData {
     let bidRequest = auctionResult.originalBidRequest;
 
     return {
@@ -180,7 +201,9 @@ export default class AuctionProducer {
     };
   }
 
-  private prepareErrorAuctionData(auctionResult: ErrorAuctionResult): ErrorAuctionCompletionData {
+  private prepareErrorAuctionData(
+    auctionResult: ErrorAuctionResult,
+  ): ErrorAuctionCompletionData {
     let bidRequest = auctionResult.originalBidRequest;
 
     return {
@@ -208,9 +231,10 @@ export default class AuctionProducer {
       timestamp: new Date().toISOString(),
 
       // Error specific metadata
-      errorMessage: auctionResult.errorMessage.toString() || 'Auction processing failed',
+      errorMessage:
+        auctionResult.errorMessage.toString() || 'Auction processing failed',
       errorCode: auctionResult.errorCode || 'UNKNOWN_ERROR',
-      errorType: "unknown", // Could be 'timeout', 'validation', etc.
+      errorType: 'unknown', // Could be 'timeout', 'validation', etc.
       revenue: 0,
     };
   }

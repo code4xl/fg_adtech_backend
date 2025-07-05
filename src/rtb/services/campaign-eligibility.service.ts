@@ -43,12 +43,12 @@ export class CampaignEligibilityService {
   ): Promise<CampaignWithTargeting[]> {
     const startTime = Date.now();
 
-    this.logger.debug('Getting eligible campaigns with caching', {
-      inventoryId,
-      deviceType: userContext.deviceType,
-      country: userContext.country,
-      adSlot: `${adSlotContext.width}x${adSlotContext.height}`,
-    });
+    // this.logger.debug('Getting eligible campaigns with caching', {
+    //   inventoryId,
+    //   deviceType: userContext.deviceType,
+    //   country: userContext.country,
+    //   adSlot: `${adSlotContext.width}x${adSlotContext.height}`,
+    // });
 
     try {
       // 1. Get campaign pool from cache (BIGGEST OPTIMIZATION)

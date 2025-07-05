@@ -310,7 +310,8 @@ export const CLICK_AND_IMPRESSION_KEYS = {
   DAILY_BUDGET_LIMIT: (campaignId: string) =>
     `campaign:budget:limit:${campaignId}`,
   CAMPAIGN_STATUS: (campaignId: string) => `campaign:status:${campaignId}`,
-
+  PUBLISHER_REVENUE_TIERS: (publisherId: string) =>
+    `revenue:publisher:tiers:${publisherId}`,
   // Event queues (before database flush)
   PENDING_IMPRESSIONS: 'events:impressions:pending',
   PENDING_CLICKS: 'events:clicks:pending',
@@ -327,8 +328,14 @@ export const CLICK_AND_IMPRESSION_KEYS = {
 
   // Revenue tracking
   PUBLISHER_REVENUE: (publisherId: string, date: string) =>
-    `revenue:publisher:${publisherId}:${date}`,
-  PLATFORM_REVENUE: (date: string) => `revenue:platform:${date}`,
+    `revenue:publisher:amt:${publisherId}:${date}`,
+  SYSTEM_REVENUE: (date: string) => `revenue:system:amt:${date}`,
+  ADVERTISER_SPENDING: (advertiserId: string, date: string) =>
+    `spending:advertiser:amt:${advertiserId}:${date}`,
+  CREATIVE_SPENDING: (creativeId: string, date: string) =>
+    `spending:creative:amt:${creativeId}:${date}`,
+  CAMPAIGN_SPENDING: (campaignId: string, date: string) =>
+    `spending:campaign:amt:${campaignId}:${date}`,
 
   // Bid Response
   BID_RESPONSE: (bidResponseId: string) => `bid:response:${bidResponseId}`,

@@ -33,7 +33,15 @@ export class BudgetValidationService {
         ),
         redisClient.get(CLICK_AND_IMPRESSION_KEYS.CAMPAIGN_STATUS(campaignId)),
       ]);
-
+      // this.logger.debug(
+      //   `Campaign ${campaignId} budget check (campaign budget validation checking)`,
+      //   {
+      //     dailyLimit,
+      //     dailySpend,
+      //     status,
+      //     costPerImpression,
+      //   },
+      // );
       // If Redis data missing, sync from database
       if (!dailyLimit || !status) {
         this.logger.debug(
@@ -94,14 +102,14 @@ export class BudgetValidationService {
 
       const canAfford = remainingBudget >= costPerImpression;
 
-      this.logger.debug('Budget validation (cache hit)', {
-        campaignId,
-        limit,
-        currentSpend,
-        remainingBudget,
-        costPerImpression,
-        canAfford,
-      });
+      // this.logger.debug('Budget validation (cache hit)', {
+      //   campaignId,
+      //   limit,
+      //   currentSpend,
+      //   remainingBudget,
+      //   costPerImpression,
+      //   canAfford,
+      // });
 
       return canAfford;
     } catch (error) {
