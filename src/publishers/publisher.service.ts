@@ -61,7 +61,117 @@ enum ApprovalStatus {
 @Injectable()
 export class PublisherService {
   constructor(private readonly prisma: PrismaService) {}
+  // src/publishers/publisher.service.ts - Updated methods
 
+  async findOne(id: string) {
+    const publisher = await this.prisma.publisher.findUnique({
+      where: { id },
+      include: {
+        inventories: {
+          include: {
+            adSlotTemplate: true,
+            website: true,
+          },
+        },
+        websites: {
+          include: {
+            websiteCategories: true,
+          },
+        },
+        tier: true, // Include tier information
+      },
+    });
+
+    if (!publisher) {
+      throw new ResourceNotFoundException('Publisher', id);
+    }
+
+    // Don't return the password and other sensitive fields
+    const {
+      password,
+      mfaVerificationCode,
+      mfaCodeExpiry,
+      resetPasswordToken,
+      resetPasswordExpires,
+      verificationToken,
+      ...result
+    } = publisher;
+    return result;
+  }
+
+  async update(id: string, updatePublisherDto: UpdatePublisherDto) {
+    // Check if publisher exists
+    await this.findOne(id);
+
+    // Check if email is being updated and already exists
+    if (updatePublisherDto.email) {
+      const existingPublisher = await this.prisma.publisher.findFirst({
+        where: {
+          email: updatePublisherDto.email,
+          id: { not: id },
+        },
+      });
+
+      if (existingPublisher) {
+        throw new DuplicateResourceException(
+          'Publisher',
+          'email',
+          updatePublisherDto.email,
+        );
+      }
+    }
+
+    // Hash the password if it's being updated
+    let data: any = { ...updatePublisherDto };
+    if (updatePublisherDto.password) {
+      throw new BadRequestException(
+        'Password update is not allowed via this endpoint.',
+      );
+    }
+
+    // Remove categoryIds and languages from data as they're handled separately
+    const { categoryIds, languages, ...publisherData } = data;
+
+    // Update publisher basic info
+    await this.prisma.publisher.update({
+      where: { id },
+      data: publisherData,
+    });
+
+    // Return updated publisher
+    return this.findOne(id);
+  }
+
+  // Add method to update publisher tier (for admin use)
+  async updatePublisherTier(publisherId: string, tierId: string) {
+    // Check if publisher exists
+    await this.findOne(publisherId);
+
+    // Check if tier exists
+    const tier = await this.prisma.publisherTier.findUnique({
+      where: { id: tierId },
+    });
+
+    if (!tier) {
+      throw new ResourceNotFoundException('Publisher Tier', tierId);
+    }
+
+    // Update publisher tier
+    return this.prisma.publisher.update({
+      where: { id: publisherId },
+      data: { tierId },
+      include: {
+        tier: true,
+      },
+    });
+  }
+
+  // Add method to get all publisher tiers
+  async getAllPublisherTiers() {
+    return this.prisma.publisherTier.findMany({
+      orderBy: { name: 'asc' },
+    });
+  }
   async findAll(query?: { status?: string; search?: string }) {
     const where: any = {};
 
@@ -112,66 +222,6 @@ export class PublisherService {
     });
   }
 
-  async findOne(id: string) {
-    const publisher = await this.prisma.publisher.findUnique({
-      where: { id },
-      include: {
-        inventories: true,
-        websites: true,
-      },
-    });
-
-    if (!publisher) {
-      throw new ResourceNotFoundException('Publisher', id);
-    }
-
-    // Don't return the password
-    const { password, ...result } = publisher;
-    return result;
-  }
-
-  async update(id: string, updatePublisherDto: UpdatePublisherDto) {
-    // Check if publisher exists
-    await this.findOne(id);
-
-    // Check if email is being updated and already exists
-    if (updatePublisherDto.email) {
-      const existingPublisher = await this.prisma.publisher.findFirst({
-        where: {
-          email: updatePublisherDto.email,
-          id: { not: id },
-        },
-      });
-
-      if (existingPublisher) {
-        throw new DuplicateResourceException(
-          'Publisher',
-          'email',
-          updatePublisherDto.email,
-        );
-      }
-    }
-
-    // Hash the password if it's being updated
-    let data: any = { ...updatePublisherDto };
-    if (updatePublisherDto.password) {
-      throw new BadRequestException(
-        'Password update is not allowed via this endpoint.',
-      );
-    }
-
-    // Remove categoryIds and languages from data as they're handled separately
-    const { categoryIds, languages, ...publisherData } = data;
-
-    // Update publisher basic info
-    await this.prisma.publisher.update({
-      where: { id },
-      data: publisherData,
-    });
-
-    // Return updated publisher
-    return this.findOne(id);
-  }
   async deactivatePublisherAccount(id: string) {
     // Check if publisher exists
     const publisher = await this.findOne(id);

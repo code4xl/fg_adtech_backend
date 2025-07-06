@@ -6,141 +6,154 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-    constructor(
-        private configService: ConfigService,
-        private prisma: PrismaService,
-    ) {
-        const jwtSecret = configService.get<string>('jwt.secret');
-        if (!jwtSecret) {
-            throw new Error('JWT_SECRET is not defined in environment variables');
-        }
-        super({
-            jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-            ignoreExpiration: false,
-            secretOrKey: jwtSecret,
-        });
+  constructor(
+    private configService: ConfigService,
+    private prisma: PrismaService,
+  ) {
+    const jwtSecret = configService.get<string>('jwt.secret');
+    if (!jwtSecret) {
+      throw new Error('JWT_SECRET is not defined in environment variables');
+    }
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false,
+      secretOrKey: jwtSecret,
+    });
+  }
+
+  // Main validate method called by Passport
+  async validate(payload: any) {
+    // Check which role is in the token and call the appropriate validation method
+    if (payload.role === 'advertiser') {
+      const user = await this.validateAdvertiser(payload);
+      return { ...user, role: 'advertiser' };
+    } else if (payload.role === 'publisher') {
+      const user = await this.validatePublisher(payload);
+      return { ...user, role: 'publisher' };
+    } else if (payload.role === 'admin') {
+      const user = await this.validateAdmin(payload);
+      return { ...user, role: 'admin' };
+    } else if (payload.role === 'client') {
+      const user = await this.validateClient(payload);
+      return { ...user, role: 'client' };
+    } else {
+      throw new UnauthorizedException('Invalid user role');
+    }
+  }
+
+  async validateAdvertiser(payload: any) {
+    const advertiser = await this.prisma.advertiser.findUnique({
+      where: { id: payload.sub },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        companyName: true,
+        companySize: true,
+        emailVerifiedAt: true,
+      },
+    });
+
+    if (!advertiser) {
+      throw new UnauthorizedException('Advertiser not found');
     }
 
-    // Main validate method called by Passport
-    async validate(payload: any) {
-        // Check which role is in the token and call the appropriate validation method
-        if (payload.role === 'advertiser') {
-            const user = await this.validateAdvertiser(payload);
-            return { ...user, role: 'advertiser' };
-        } else if (payload.role === 'publisher') {
-            const user = await this.validatePublisher(payload);
-            return { ...user, role: 'publisher' };
-        } else if (payload.role === 'admin') {
-            const user = await this.validateAdmin(payload);
-            return { ...user, role: 'admin' };
-        } else if (payload.role === 'client') {
-            const user = await this.validateClient(payload);
-            return { ...user, role: 'client' };
-        } else {
-            throw new UnauthorizedException('Invalid user role');
-        }
+    if (!advertiser.emailVerifiedAt) {
+      throw new UnauthorizedException('Email not verified');
     }
 
-    async validateAdvertiser(payload: any) {
-        const advertiser = await this.prisma.advertiser.findUnique({
-            where: { id: payload.sub },
-            select: {
-                id: true,
-                email: true,
-                name: true,
-                companyName: true,
-                companySize: true,
-                emailVerifiedAt: true,
-            },
-        });
+    return advertiser;
+  }
 
-        if (!advertiser) {
-            throw new UnauthorizedException('Advertiser not found');
-        }
+  async validatePublisher(payload: any) {
+    const publisher = await this.prisma.publisher.findUnique({
+      where: { id: payload.sub },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        emailVerifiedAt: true,
+        status: true,
+        paymentThreshold: true,
+        tierId: true,
+        tier: {
+          select: {
+            id: true,
+            name: true,
+            commissionRate: true,
+          },
+        },
+      },
+    });
 
-        if (!advertiser.emailVerifiedAt) {
-            throw new UnauthorizedException('Email not verified');
-        }
-
-        return advertiser;
+    if (!publisher) {
+      throw new UnauthorizedException('Publisher not found');
     }
 
-    async validatePublisher(payload: any) {
-        const publisher = await this.prisma.publisher.findUnique({
-            where: { id: payload.sub },
-            select: {
-                id: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-                emailVerifiedAt: true,
-            },
-        });
-
-        if (!publisher) {
-            throw new UnauthorizedException('Publisher not found');
-        }
-
-        // // Note: If you don't want to require email verification for publishers,
-        // // you can remove this check
-        // if (!publisher.emailVerifiedAt) {
-        //     throw new UnauthorizedException('Email not verified');
-        // }
-
-        return {
-            ...publisher,
-            publisherId: publisher.id, // Add publisherId for compatibility with guards
-        };
+    // Check if publisher is active
+    if (publisher.status !== 'ACTIVE') {
+      throw new UnauthorizedException('Publisher account is not active');
     }
 
-    async validateClient(payload: any) {
-        const client = await this.prisma.client.findUnique({
-            where: { id: payload.sub },
-            select: {
-                id: true,
-                email: true,
-                name: true,
-            },
-        });
-
-        if (!client) {
-            throw new UnauthorizedException('Client not found');
-        }
-
-        // // Note: If you don't want to require email verification for clients,
-        // // you can remove this check
-        // if (!client.emailVerifiedAt) {
-        //     throw new UnauthorizedException('Email not verified');
-        // }
-
-        return client;
+    // Note: If you don't want to require email verification for publishers,
+    // you can remove this check
+    if (!publisher.emailVerifiedAt) {
+      throw new UnauthorizedException('Email not verified');
     }
 
-    async validateAdmin(payload: any) {
-        const admin = await this.prisma.admin.findUnique({
-            where: { id: payload.sub },
-            select: {
-                id: true,
-                email: true,
-                name: true,
-            },
-        });
+    return {
+      ...publisher,
+      publisherId: publisher.id, // Add publisherId for compatibility with guards
+    };
+  }
 
-        if (!admin) {
-            throw new UnauthorizedException('Admin not found');
-        }
+  async validateClient(payload: any) {
+    const client = await this.prisma.client.findUnique({
+      where: { id: payload.sub },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+      },
+    });
 
-        // // Note: If you don't want to require email verification for admins,
-        // // you can remove this check
-        // if (!admin.emailVerifiedAt) {
-        //     throw new UnauthorizedException('Email not verified');
-        // }
-
-        return {
-            ...admin,
-            adminId: admin.id, // Add adminId for consistency
-        };
+    if (!client) {
+      throw new UnauthorizedException('Client not found');
     }
 
+    // // Note: If you don't want to require email verification for clients,
+    // // you can remove this check
+    // if (!client.emailVerifiedAt) {
+    //     throw new UnauthorizedException('Email not verified');
+    // }
 
+    return client;
+  }
+
+  async validateAdmin(payload: any) {
+    const admin = await this.prisma.admin.findUnique({
+      where: { id: payload.sub },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+      },
+    });
+
+    if (!admin) {
+      throw new UnauthorizedException('Admin not found');
+    }
+
+    // // Note: If you don't want to require email verification for admins,
+    // // you can remove this check
+    // if (!admin.emailVerifiedAt) {
+    //     throw new UnauthorizedException('Email not verified');
+    // }
+
+    return {
+      ...admin,
+      adminId: admin.id, // Add adminId for consistency
+    };
+  }
 }

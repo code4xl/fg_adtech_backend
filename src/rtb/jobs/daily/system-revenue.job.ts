@@ -17,9 +17,12 @@ export class SystemRevenueJob {
 
   /**
    * Process system revenue data from Redis to PostgreSQL
-   * Runs daily at 12:10 AM (after publisher and advertiser jobs)
+   * Runs daily at 1:10 AM IST (after publisher and advertiser jobs)
    */
-  @Cron('10 0 * * *') // 12:10 AM daily
+  @Cron('10 1 * * *', {
+    name: 'processSystemRevenue',
+    timeZone: 'Asia/Kolkata', // Set to Indian Standard Time
+  })
   async processSystemRevenue(): Promise<void> {
     const startTime = Date.now();
     const batchId = uuidv4();

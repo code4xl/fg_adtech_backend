@@ -42,7 +42,7 @@ export class PublisherSeeder implements ISeeder {
 
       // Generate fake publishers
       for (let i = 0; i < count; i++) {
-        const password = faker.internet.password();
+        const password = 'qwerty';
         const hashedPassword = await bcrypt.hash(password, 10);
         const verificationStatus = faker.datatype.boolean(0.8); // 80% chance of verified email
 
@@ -76,7 +76,7 @@ export class PublisherSeeder implements ISeeder {
         firstName: 'Test',
         lastName: 'Publisher',
         email: 'publisher@example.com',
-        password: await bcrypt.hash('publisherpass123', 10),
+        password: await bcrypt.hash('qwerty', 10),
         emailVerifiedAt: new Date(),
         status: PublisherStatus.ACTIVE,
         mfaEnabled: false,

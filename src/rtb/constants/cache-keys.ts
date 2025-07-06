@@ -137,6 +137,12 @@ export const REVENUE_KEYS = {
     `revenue:publisher:tiers:${publisherId}`,
 
   BUDGET_TRANSACTION_PENDING: `budget:transactions:pending`,
+  BUDGET_RESERVATION: (reservationId: string) =>
+    `budget:reservation:${reservationId}`,
+  RESERVATION_TRACKING: (today: string, campaignId: string) =>
+    `budget:reservations:${today}:${campaignId}`,
+  REVENUE_METADATA: (reservationId: string) =>
+    `revenue:metadata:${reservationId}`,
 } as const;
 
 // ==========================
@@ -235,4 +241,7 @@ export const RTB_CACHE_TTL = {
   PUBLISHER_REVENUE_PIPELINE: 604800, // 7 days
   ADVERTISER_SPENDING_PIPELINE: 604800, // 7 days
   SYSTEM_REVENUE_PIPELINE: 604800, // 7 days
+  BUDGET_RESERVATION: 300, // 5 min
+  RESERVATION_TRACKING: 86400, // 24 hr
+  REVENUE_METADATA: 600, // 5 min longer than reservation
 } as const;

@@ -17,9 +17,12 @@ export class AdvertiserSpendingJob {
 
   /**
    * Process advertiser spending data from Redis to PostgreSQL
-   * Runs daily at 12:05 AM (5 minutes after publisher revenue job)
+   * Runs daily at 1:05 AM IST (5 minutes after publisher revenue job)
    */
-  @Cron('5 0 * * *') // 12:05 AM daily
+  @Cron('5 1 * * *', {
+    name: 'processAdvertiserSpending',
+    timeZone: 'Asia/Kolkata', // Set to Indian Standard Time
+  })
   async processAdvertiserSpending(): Promise<void> {
     const startTime = Date.now();
     const batchId = uuidv4();
