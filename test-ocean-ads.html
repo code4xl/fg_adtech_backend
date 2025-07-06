@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ocean Ads Quick Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+      .ocean-ad {
+        border: 2px dashed #2196f3;
+        margin: 20px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f0f8ff;
+        color: #1976d2;
+        font-weight: bold;
+      }
+      .test-results {
+        background: #f5f5f5;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 8px;
+      }
+      .success {
+        color: #4caf50;
+      }
+      .error {
+        color: #f44336;
+      }
+      .info {
+        color: #2196f3;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🌊 Ocean Ads Test Page</h1>
+    <h2>Publisher: rhea31@hotmail.com</h2>
+
+    <div class="test-results">
+      <h3>Test Results:</h3>
+      <div id="test-output">Waiting for SDK to load...</div>
+    </div>
+
+    <!-- Mobile Video Ad Slot -->
+    <div
+      class="ocean-ad"
+      data-size="320x180"
+      data-inventory="814c4b35-ed6a-49b6-bb4d-bac19399f659"
+      data-format="VIDEO"
+      data-position="ABOVE_FOLD"
+      style="width: 320px; height: 180px"
+    >
+      📱 Mobile Video Ad Slot<br />
+      <small>320x180 | VIDEO | ABOVE_FOLD</small>
+    </div>
+
+    <!-- Desktop Interstitial Ad Slot -->
+    <div
+      class="ocean-ad"
+      data-size="800x600"
+      data-inventory="15fb5073-c093-4595-b0bf-e4ec34e2e6c1"
+      data-format="INTERSTITIAL"
+      data-position="ABOVE_FOLD"
+      style="width: 800px; height: 600px"
+    >
+      🖥️ Desktop Interstitial Ad Slot<br />
+      <small>800x600 | INTERSTITIAL | ABOVE_FOLD</small>
+    </div>
+
+    <!-- Ocean Ads CDN Script -->
+    <script
+      src="http://localhost:3001/cdn/p/02912083-a026-4c61-8df7-0fd68ab4ad93/init.js"
+      async
+    ></script>
+
+    <script>
+      let testResults = [];
+
+      function addResult(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        testResults.push(`[${timestamp}] ${message}`);
+        updateDisplay();
+        console.log(`[Ocean Test] ${message}`);
+      }
+
+      function updateDisplay() {
+        const output = document.getElementById('test-output');
+        output.innerHTML = testResults
+          .map((result) => {
+            if (result.includes('✅'))
+              return `<div class="success">${result}</div>`;
+            if (result.includes('❌'))
+              return `<div class="error">${result}</div>`;
+            return `<div class="info">${result}</div>`;
+          })
+          .join('');
+      }
+
+      // Monitor SDK loading
+      let sdkCheckCount = 0;
+      const maxChecks = 20;
+
+      function checkSDK() {
+        sdkCheckCount++;
+
+        if (typeof window.OceanAds !== 'undefined') {
+          addResult('✅ Ocean Ads SDK loaded successfully');
+
+          if (window.__OCEAN_CONFIG__) {
+            addResult('✅ Configuration loaded');
+
+            const config = window.__OCEAN_CONFIG__;
+            addResult(`📊 Publisher ID: ${config.publisher?.id}`);
+            addResult(`🌐 Website ID: ${config.website?.id}`);
+            addResult(`📦 Inventory items: ${config.inventory?.length || 0}`);
+
+            if (config.inventory && config.inventory.length > 0) {
+              config.inventory.forEach((item, index) => {
+                addResult(
+                  `   ${index + 1}. ${item.inventoryId} (${item.size})`,
+                );
+              });
+            }
+
+            // Check if SDK is ready
+            if (window.OceanAds.isReady && window.OceanAds.isReady()) {
+              addResult('✅ SDK is ready');
+              testComplete();
+            } else {
+              addResult('⏳ SDK initializing...');
+              setTimeout(() => checkReadiness(), 1000);
+            }
+          } else {
+            addResult('❌ Configuration not found');
+          }
+        } else if (sdkCheckCount < maxChecks) {
+          setTimeout(checkSDK, 500);
+        } else {
+          addResult('❌ SDK failed to load after 10 seconds');
+        }
+      }
+
+      function checkReadiness() {
+        if (
+          window.OceanAds &&
+          window.OceanAds.isReady &&
+          window.OceanAds.isReady()
+        ) {
+          addResult('✅ SDK is ready');
+          testComplete();
+        } else {
+          addResult('⏳ Still waiting for SDK...');
+          setTimeout(() => checkReadiness(), 1000);
+        }
+      }
+
+      function testComplete() {
+        addResult('🎉 Test completed successfully!');
+
+        if (window.OceanAds.getMetrics) {
+          const metrics = window.OceanAds.getMetrics();
+          addResult(
+            `📈 Metrics available: ${Object.keys(metrics).length} properties`,
+          );
+        }
+      }
+
+      // Start monitoring
+      window.addEventListener('load', () => {
+        addResult('🌊 Page loaded, checking for Ocean Ads SDK...');
+        setTimeout(checkSDK, 1000);
+      });
+
+      // Listen for any SDK events if available
+      if (typeof window.addEventListener !== 'undefined') {
+        window.addEventListener('message', (event) => {
+          if (
+            event.data &&
+            typeof event.data === 'object' &&
+            event.data.type === 'ocean-ads'
+          ) {
+            addResult(`📡 SDK Event: ${event.data.event}`, 'info');
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

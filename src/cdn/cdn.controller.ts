@@ -400,7 +400,7 @@ export class GeneratePublisherCdnDto {
     }
 
     /**
-     * Serve CDN file
+     * Serve CDN file with content validation
      * GET /cdn/p/:publisherId/init.js
      * 
      * This endpoint is public and does not require authentication
@@ -432,6 +432,42 @@ export class GeneratePublisherCdnDto {
           return;
         }
 
+        // Validate content before serving
+        if (!content.content || content.content.length === 0) {
+          this.logger.error(`Empty CDN content for publisher ${publisherId}`);
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+          res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+          
+          res.status(500).json({
+            statusCode: 500,
+            message: 'CDN content is empty',
+          });
+          return;
+        }
+
+        // Validate JavaScript syntax before serving
+        try {
+          new Function(content.content);
+        } catch (syntaxError) {
+          this.logger.error(`CDN content has syntax errors for publisher ${publisherId}: ${syntaxError.message}`);
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+          res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+          
+          res.status(500).json({
+            statusCode: 500,
+            message: 'CDN content is corrupted',
+            error: 'JavaScript syntax error detected'
+          });
+          return;
+        }
+
+        // Check for minimum content size
+        if (content.content.length < 1000) {
+          this.logger.warn(`CDN content seems unusually small for publisher ${publisherId}: ${content.content.length} bytes`);
+        }
+
         // Set all CDN headers (including CORS headers)
         Object.entries(content.headers).forEach(([key, value]) => {
           res.setHeader(key, value);
@@ -440,9 +476,15 @@ export class GeneratePublisherCdnDto {
         // Additional security headers (these might override some from content.headers)
         res.setHeader('X-Content-Type-Options', 'nosniff');
         res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+        
+        // Set content length explicitly
+        res.setHeader('Content-Length', Buffer.byteLength(content.content, 'utf8'));
 
         // Send content
         res.status(200).send(content.content);
+        
+        this.logger.log(`CDN served successfully for publisher ${publisherId} (${content.content.length} bytes)`);
+        
       } catch (error) {
         this.logger.error(`Failed to serve CDN: ${error.message}`);
         
@@ -454,6 +496,7 @@ export class GeneratePublisherCdnDto {
         res.status(500).json({
           statusCode: 500,
           message: 'Failed to serve CDN file',
+          error: error.message
         });
       }
     }

@@ -188,7 +188,7 @@ export class CdnStorageService {
   }
 
   /**
-   * Store file locally
+   * Store file locally with robust validation and atomic operations
    */
   private async storeFileLocal(
     filePath: string,
@@ -198,42 +198,91 @@ export class CdnStorageService {
   ): Promise<ICdnStorageMetadata> {
     const fullPath = path.join(this.basePath, filePath);
     const dir = path.dirname(fullPath);
+    const tempPath = fullPath + '.tmp';
 
-    // Create directory if it doesn't exist
-    await fs.mkdir(dir, { recursive: true });
+    try {
+      // Validate content before writing
+      if (!content || content.length === 0) {
+        throw new Error('Cannot store empty content');
+      }
 
-    // Check if file exists and overwrite is false
-    if (!overwrite) {
+      if (content.length < 1000) {
+        this.logger.warn(`Content seems unusually small: ${content.length} bytes`);
+      }
+
+      // Validate JavaScript syntax
       try {
-        await fs.access(fullPath);
-        throw new Error(`File already exists: ${filePath}`);
-      } catch (error) {
-        if (error.code !== 'ENOENT') {
-          throw error;
+        new Function(content);
+      } catch (syntaxError) {
+        throw new Error(`Content has JavaScript syntax errors: ${syntaxError.message}`);
+      }
+
+      // Create directory if it doesn't exist
+      await fs.mkdir(dir, { recursive: true });
+
+      // Check if file exists and overwrite is false
+      if (!overwrite) {
+        try {
+          await fs.access(fullPath);
+          throw new Error(`File already exists: ${filePath}`);
+        } catch (error) {
+          if (error.code !== 'ENOENT') {
+            throw error;
+          }
         }
       }
+
+      // Write to temporary file first (atomic operation)
+      await fs.writeFile(tempPath, content, { encoding: 'utf8', flag: 'w' });
+
+      // Verify the written content
+      const writtenContent = await fs.readFile(tempPath, 'utf8');
+      if (writtenContent.length !== content.length) {
+        throw new Error(
+          `File write verification failed: expected ${content.length} bytes, got ${writtenContent.length} bytes`
+        );
+      }
+
+      // Verify JavaScript syntax of written file
+      try {
+        new Function(writtenContent);
+      } catch (syntaxError) {
+        throw new Error(`Written file has syntax errors: ${syntaxError.message}`);
+      }
+
+      // Atomic move to final location
+      await fs.rename(tempPath, fullPath);
+
+      // Get final file stats
+      const stats = await fs.stat(fullPath);
+
+      this.logger.log(`CDN file stored successfully: ${filePath} (${stats.size} bytes)`);
+
+      return {
+        path: filePath,
+        size: stats.size,
+        contentType: CDN_CONTENT_TYPES.JAVASCRIPT,
+        etag: metadata.integrity,
+        lastModified: stats.mtime,
+        metadata: {
+          publisherId: metadata.publisherId,
+          websiteId: metadata.websiteId || (metadata.websiteIds && metadata.websiteIds[0]),
+          ...(metadata.websiteIds && { websiteIds: JSON.stringify(metadata.websiteIds) }),
+          version: metadata.version,
+          buildId: metadata.buildId,
+        },
+      };
+    } catch (error) {
+      // Cleanup temporary file if it exists
+      try {
+        await fs.unlink(tempPath);
+      } catch (cleanupError) {
+        // Ignore cleanup errors
+      }
+
+      this.logger.error(`Failed to store CDN file: ${error.message}`);
+      throw error;
     }
-
-    // Write file
-    await fs.writeFile(fullPath, content, 'utf8');
-
-    // Get file stats
-    const stats = await fs.stat(fullPath);
-
-    return {
-      path: filePath,
-      size: stats.size,
-      contentType: CDN_CONTENT_TYPES.JAVASCRIPT,
-      etag: metadata.integrity,
-      lastModified: stats.mtime,
-      metadata: {
-        publisherId: metadata.publisherId,
-        websiteId: metadata.websiteId || (metadata.websiteIds && metadata.websiteIds[0]),
-        ...(metadata.websiteIds && { websiteIds: JSON.stringify(metadata.websiteIds) }),
-        version: metadata.version,
-        buildId: metadata.buildId,
-      },
-    };
   }
 
   /**

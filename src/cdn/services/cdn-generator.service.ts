@@ -37,6 +37,9 @@ export class CdnGeneratorService {
       } else {
         this.logger.error(`❌ SDK file validation failed: ${result.error}`);
         this.logger.error('🔧 Please check your SDK_BUILD_PATH environment variable');
+        this.logger.error('🔧 Available paths to check:');
+        this.logger.error(`   - Current path: ${this.sdkBuildPath}`);
+        this.logger.error(`   - Alternative: C:\\DevProjects\\ocean-ads-sdk-v2\\dist\\ocean-ads.min.js`);
       }
     });
   }
@@ -217,48 +220,141 @@ export class CdnGeneratorService {
   }
 
   /**
-   * Generate the complete CDN content
+   * Generate the complete CDN content with validation
    */
   async generateCdnContent(
     config: IOceanConfig,
     context: ICdnBuildContext,
   ): Promise<string> {
-    const sdkContent = await this.readSdkContent();
-    const configScript = this.generateConfigScript(config, context);
-    return this.combineSdkAndConfig(sdkContent, configScript, context);
+    try {
+      // 1. Read and validate SDK content
+      const sdkContent = await this.readSdkContent();
+      if (!sdkContent || sdkContent.length < 1000) {
+        throw new Error(`SDK content is too small or empty: ${sdkContent?.length || 0} bytes`);
+      }
+
+      // Validate SDK JavaScript syntax
+      try {
+        new Function(sdkContent);
+      } catch (syntaxError) {
+        throw new Error(`Source SDK has syntax errors: ${syntaxError.message}`);
+      }
+
+      // 2. Generate and validate configuration script
+      const configScript = this.generateConfigScript(config, context);
+      if (!configScript) {
+        throw new Error('Failed to generate configuration script');
+      }
+
+      // 3. Combine with validation
+      const combinedContent = this.combineSdkAndConfig(sdkContent, configScript, context);
+      
+      // 4. Validate final content
+      if (!combinedContent || combinedContent.length < sdkContent.length) {
+        throw new Error(
+          `Combined content is smaller than source SDK: ${combinedContent?.length || 0} < ${sdkContent.length}`
+        );
+      }
+
+      // 5. Validate final JavaScript syntax
+      try {
+        new Function(combinedContent);
+      } catch (syntaxError) {
+        throw new Error(`Generated CDN content has syntax errors: ${syntaxError.message}`);
+      }
+
+      // 6. Check for required components
+      if (!combinedContent.includes('window.__OCEAN_CONFIG__')) {
+        throw new Error('Generated content is missing configuration injection');
+      }
+
+      if (!combinedContent.includes('OceanAds')) {
+        throw new Error('Generated content is missing SDK components');
+      }
+
+      this.logger.log(`CDN content generated successfully: ${combinedContent.length} bytes`);
+      return combinedContent;
+      
+    } catch (error) {
+      this.logger.error(`CDN content generation failed: ${error.message}`);
+      throw error;
+    }
   }
 
   /**
-   * Read SDK content from build directory
+   * Read SDK content from build directory with validation
    */
   private async readSdkContent(): Promise<string> {
-    // Check cache first
-    const cached = this.sdkCache.get(this.sdkBuildPath);
-    if (cached) {
-      const stats = await fs.stat(this.sdkBuildPath);
-      const currentHash = createHash('md5')
-        .update(stats.mtime.toISOString())
-        .digest('hex');
+    try {
+      // First check if file exists
+      await fs.access(this.sdkBuildPath, fs.constants.R_OK);
+    } catch (error) {
+      throw new Error(
+        `SDK file not accessible at ${this.sdkBuildPath}. Please ensure the SDK is built and the path is correct.`
+      );
+    }
 
-      if (cached.hash === currentHash) {
-        this.logger.debug('Using cached SDK content');
+    // Get file stats for validation
+    const stats = await fs.stat(this.sdkBuildPath);
+    if (stats.size === 0) {
+      throw new Error(`SDK file is empty: ${this.sdkBuildPath}`);
+    }
+
+    if (stats.size < 10000) { // Minimum reasonable size for a minified SDK
+      this.logger.warn(`SDK file seems unusually small: ${stats.size} bytes`);
+    }
+
+    // Check cache first
+    const currentHash = createHash('md5')
+      .update(stats.mtime.toISOString() + stats.size.toString())
+      .digest('hex');
+
+    const cached = this.sdkCache.get(this.sdkBuildPath);
+    if (cached && cached.hash === currentHash) {
+      this.logger.debug('Using cached SDK content');
+      
+      // Validate cached content
+      if (!cached.content || cached.content.length === 0) {
+        this.logger.warn('Cached SDK content is empty, reading from file');
+      } else {
         return cached.content;
       }
     }
 
     // Read from file
     try {
+      this.logger.debug(`Reading SDK from: ${this.sdkBuildPath}`);
       const content = await fs.readFile(this.sdkBuildPath, 'utf8');
-      const stats = await fs.stat(this.sdkBuildPath);
-      const hash = createHash('md5')
-        .update(stats.mtime.toISOString())
-        .digest('hex');
+      
+      // Validate content
+      if (!content || content.length === 0) {
+        throw new Error('SDK file content is empty');
+      }
+
+      if (content.length !== stats.size) {
+        throw new Error(
+          `SDK file size mismatch: expected ${stats.size} bytes, read ${content.length} bytes`
+        );
+      }
+
+      // Validate JavaScript syntax
+      try {
+        new Function(content);
+      } catch (syntaxError) {
+        throw new Error(`SDK file has JavaScript syntax errors: ${syntaxError.message}`);
+      }
 
       // Update cache
-      this.sdkCache.set(this.sdkBuildPath, { content, hash });
+      this.sdkCache.set(this.sdkBuildPath, { content, hash: currentHash });
 
+      this.logger.log(`SDK content loaded successfully: ${content.length} bytes`);
       return content;
+      
     } catch (error) {
+      if (error.message.includes('syntax errors') || error.message.includes('empty')) {
+        throw error; // Re-throw validation errors as-is
+      }
+      
       throw new Error(
         `Failed to read SDK file from ${this.sdkBuildPath}: ${error.message}`,
       );
@@ -518,9 +614,47 @@ if (typeof window.__OCEAN_INIT__ === 'function') {
         return { isValid: false, error: 'SDK file is empty' };
       }
 
-      return { isValid: true };
+      if (stats.size < 10000) {
+        return { 
+          isValid: false, 
+          error: `SDK file seems too small: ${stats.size} bytes (minimum expected: 10KB)` 
+        };
+      }
+
+      // Try to read and validate the content
+      try {
+        const content = await fs.readFile(this.sdkBuildPath, 'utf8');
+        
+        if (!content || content.length === 0) {
+          return { isValid: false, error: 'SDK file content is empty' };
+        }
+
+        // Basic validation - check if it looks like minified JavaScript
+        if (!content.includes('function') && !content.includes('=>')) {
+          return { isValid: false, error: 'SDK file does not appear to contain JavaScript code' };
+        }
+
+        // Try to validate syntax
+        try {
+          new Function(content);
+        } catch (syntaxError) {
+          return { 
+            isValid: false, 
+            error: `SDK file has JavaScript syntax errors: ${syntaxError.message}` 
+          };
+        }
+
+        this.logger.log(`SDK validation successful: ${this.sdkBuildPath} (${stats.size} bytes)`);
+        return { isValid: true };
+        
+      } catch (readError) {
+        return { 
+          isValid: false, 
+          error: `Cannot read SDK file: ${readError.message}` 
+        };
+      }
     } catch (error) {
-      return { isValid: false, error: error.message };
+      return { isValid: false, error: `SDK file not accessible: ${error.message}` };
     }
   }
 

@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ocean Ads RTB Test - Publisher: rhea31@hotmail.com</title>
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #333;
+      }
+
+      .header {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+
+      .test-section {
+        background: white;
+        padding: 25px;
+        margin: 15px 0;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      .ocean-ad {
+        background: linear-gradient(45deg, #e8f4fd, #f0f8ff);
+        border: 3px dashed #2196f3;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 20px 0;
+        font-weight: bold;
+        color: #1976d2;
+        position: relative;
+        transition: all 0.3s ease;
+        min-height: 120px;
+      }
+
+      .ocean-ad:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(33, 150, 243, 0.3);
+      }
+
+      .ocean-ad[data-size='320x180'] {
+        width: 320px;
+        height: 180px;
+      }
+      .ocean-ad[data-size='800x600'] {
+        width: 800px;
+        height: 600px;
+      }
+
+      .debug-panel {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        width: 350px;
+        background: rgba(0, 0, 0, 0.9);
+        color: #00ff00;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: 'Courier New', monospace;
+        font-size: 11px;
+        max-height: 500px;
+        overflow-y: auto;
+        z-index: 1000;
+        backdrop-filter: blur(10px);
+      }
+
+      .log-container {
+        background: #1a1a1a;
+        color: #00ff00;
+        padding: 20px;
+        border-radius: 8px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        max-height: 400px;
+        overflow-y: auto;
+        margin: 20px 0;
+        border: 1px solid #333;
+      }
+
+      .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+        animation: pulse 2s infinite;
+      }
+
+      .status-success {
+        background-color: #4caf50;
+      }
+      .status-warning {
+        background-color: #ff9800;
+      }
+      .status-error {
+        background-color: #f44336;
+      }
+      .status-info {
+        background-color: #2196f3;
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      .button {
+        background: linear-gradient(45deg, #2196f3, #21cbf3);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        cursor: pointer;
+        margin: 5px;
+        font-weight: bold;
+        transition: all 0.3s ease;
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+      }
+
+      .config-display {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 4px;
+        padding: 15px;
+        font-family: monospace;
+        font-size: 12px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+      }
+
+      .metric-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 10px 0;
+        text-align: center;
+      }
+
+      .metric-value {
+        font-size: 24px;
+        font-weight: bold;
+        display: block;
+      }
+
+      .metric-label {
+        font-size: 12px;
+        opacity: 0.8;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>🌊 Ocean Ads RTB Complete Flow Test</h1>
+      <div
+        style="
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 15px;
+          margin-top: 15px;
+        "
+      >
+        <div class="metric-card">
+          <span class="metric-value" id="publisher-id"
+            >02912083-a026-4c61...</span
+          >
+          <span class="metric-label">Publisher ID</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-value" id="website-id"
+            >87690135-4199-4b1f...</span
+          >
+          <span class="metric-label">Website ID</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-value" id="domain-name"
+            >healthhub601-378.net</span
+          >
+          <span class="metric-label">Domain</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-value" id="inventory-count">2</span>
+          <span class="metric-label">Available Inventory</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="debug-panel">
+      <h3>🐛 Real-Time Debug Panel</h3>
+      <div id="debug-status">
+        <span class="status-indicator status-info"></span>Initializing...
+      </div>
+      <div style="margin-top: 10px">
+        <button
+          class="button"
+          onclick="runFullDiagnostics()"
+          style="font-size: 10px; padding: 5px 10px"
+        >
+          🔍 Full Diagnostics
+        </button>
+        <button
+          class="button"
+          onclick="testRTBFlow()"
+          style="font-size: 10px; padding: 5px 10px"
+        >
+          📡 Test RTB
+        </button>
+        <button
+          class="button"
+          onclick="clearLogs()"
+          style="font-size: 10px; padding: 5px 10px"
+        >
+          🧹 Clear
+        </button>
+      </div>
+      <div
+        id="live-debug"
+        style="
+          margin-top: 10px;
+          font-size: 9px;
+          max-height: 200px;
+          overflow-y: auto;
+        "
+      >
+        <div>[Debug Panel Ready]</div>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>📊 Test Configuration</h2>
+      <p>
+        <strong>CDN URL:</strong>
+        <code
+          >http://localhost:3001/cdn/p/02912083-a026-4c61-8df7-0fd68ab4ad93/init.js</code
+        >
+      </p>
+      <p><strong>Publisher Email:</strong> rhea31@hotmail.com</p>
+      <p><strong>Test Domain:</strong> healthhub601-378.net</p>
+      <p><strong>Expected Inventory:</strong></p>
+      <ul>
+        <li>
+          <strong>Mobile Video:</strong> 814c4b35-ed6a-49b6-bb4d-bac19399f659
+          (320x180)
+        </li>
+        <li>
+          <strong>Desktop Interstitial:</strong>
+          15fb5073-c093-4595-b0bf-e4ec34e2e6c1 (800x600)
+        </li>
+      </ul>
+    </div>
+
+    <div class="test-section">
+      <h2>🎯 Ad Slots (Testing Inventory Discovery)</h2>
+
+      <h3>📱 Mobile Video Ad Slot (320x180)</h3>
+      <div
+        class="ocean-ad"
+        data-size="320x180"
+        data-inventory="814c4b35-ed6a-49b6-bb4d-bac19399f659"
+        data-format="VIDEO"
+        data-position="ABOVE_FOLD"
+      >
+        📱 Mobile Video Ad Slot Ready<br />
+        <small>Inventory: 814c4b35-ed6a-49b6-bb4d-bac19399f659</small>
+      </div>
+
+      <h3>🖥️ Desktop Interstitial Ad Slot (800x600)</h3>
+      <div
+        class="ocean-ad"
+        data-size="800x600"
+        data-inventory="15fb5073-c093-4595-b0bf-e4ec34e2e6c1"
+        data-format="INTERSTITIAL"
+        data-position="ABOVE_FOLD"
+      >
+        🖥️ Desktop Interstitial Ad Slot Ready<br />
+        <small>Inventory: 15fb5073-c093-4595-b0bf-e4ec34e2e6c1</small>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>📋 Live Flow Monitoring</h2>
+      <div id="live-logs" class="log-container">
+        <div>[Waiting for SDK initialization...]</div>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>⚙️ Configuration Display</h2>
+      <div id="config-display" class="config-display">
+        [Configuration will appear here after SDK loads]
+      </div>
+    </div>
+
+    <!-- 🌊 OCEAN ADS CDN SCRIPT -->
+    <script
+      src="http://localhost:3001/cdn/p/02912083-a026-4c61-8df7-0fd68ab4ad93/init.js"
+      async
+    ></script>
+
+    <script>
+      // Enhanced logging system with real-time updates
+      const originalLog = console.log;
+      const originalError = console.error;
+      const originalWarn = console.warn;
+
+      let logCount = 0;
+      const maxLogs = 50;
+
+      function addLog(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const logElement = document.getElementById('live-logs');
+        const debugElement = document.getElementById('live-debug');
+
+        const logLine = document.createElement('div');
+        const debugLine = document.createElement('div');
+
+        const icons = {
+          error: '❌',
+          warn: '⚠️',
+          success: '✅',
+          info: '📝',
+          rtb: '🎯',
+          sse: '📡',
+          config: '⚙️',
+        };
+
+        const icon = icons[type] || '📝';
+        const content = `[${timestamp}] ${icon} ${message}`;
+
+        logLine.innerHTML = content;
+        debugLine.innerHTML = content;
+
+        logElement.appendChild(logLine);
+        debugElement.appendChild(debugLine);
+
+        // Keep only recent logs
+        logCount++;
+        if (logCount > maxLogs) {
+          if (logElement.firstChild)
+            logElement.removeChild(logElement.firstChild);
+          if (debugElement.firstChild)
+            debugElement.removeChild(debugElement.firstChild);
+        }
+
+        logElement.scrollTop = logElement.scrollHeight;
+        debugElement.scrollTop = debugElement.scrollHeight;
+
+        // Also log to console
+        originalLog(`[Ocean Ads Test] ${message}`);
+      }
+
+      // Override console methods
+      console.log = function (...args) {
+        addLog(args.join(' '), 'info');
+        originalLog.apply(console, args);
+      };
+
+      console.error = function (...args) {
+        addLog(args.join(' '), 'error');
+        originalError.apply(console, args);
+      };
+
+      console.warn = function (...args) {
+        addLog(args.join(' '), 'warn');
+        originalWarn.apply(console, args);
+      };
+
+      // Test functions
+      function runFullDiagnostics() {
+        addLog('🔍 Running comprehensive diagnostics...', 'info');
+
+        // 1. Check CDN script loading
+        const scripts = document.querySelectorAll(
+          'script[src*="cdn/p/02912083"]',
+        );
+        addLog(
+          `📦 CDN script elements found: ${scripts.length}`,
+          scripts.length > 0 ? 'success' : 'error',
+        );
+
+        // 2. Check configuration
+        if (window.__OCEAN_CONFIG__) {
+          addLog('⚙️ Configuration loaded successfully', 'success');
+          addLog(
+            `📊 Publisher ID: ${window.__OCEAN_CONFIG__.publisher?.id || 'Missing'}`,
+            'config',
+          );
+          addLog(
+            `🌐 Website ID: ${window.__OCEAN_CONFIG__.website?.id || 'Missing'}`,
+            'config',
+          );
+          addLog(
+            `📦 Inventory count: ${window.__OCEAN_CONFIG__.inventory?.length || 0}`,
+            'config',
+          );
+
+          // Display configuration
+          document.getElementById('config-display').textContent =
+            JSON.stringify(window.__OCEAN_CONFIG__, null, 2);
+        } else {
+          addLog('❌ Configuration not loaded', 'error');
+        }
+
+        // 3. Check ad slots
+        const slots = document.querySelectorAll('.ocean-ad');
+        addLog(
+          `🎯 Ad slots found: ${slots.length}`,
+          slots.length > 0 ? 'success' : 'error',
+        );
+
+        slots.forEach((slot, index) => {
+          const inventory = slot.getAttribute('data-inventory');
+          const size = slot.getAttribute('data-size');
+          addLog(`   Slot ${index + 1}: ${inventory} (${size})`, 'info');
+        });
+
+        // 4. Check Ocean Ads SDK
+        if (typeof window.OceanAds !== 'undefined') {
+          addLog('✅ Ocean Ads SDK loaded', 'success');
+
+          try {
+            // Enable debug mode
+            if (window.OceanAds.debug) {
+              window.OceanAds.debug(true);
+              addLog('🐛 Debug mode enabled', 'info');
+            }
+
+            // Get metrics if available
+            if (window.OceanAds.getMetrics) {
+              const metrics = window.OceanAds.getMetrics();
+              addLog(
+                `📊 SDK Metrics available: ${Object.keys(metrics).length} properties`,
+                'info',
+              );
+            }
+
+            // Check if ready
+            if (window.OceanAds.isReady && window.OceanAds.isReady()) {
+              addLog('🚀 SDK is ready for operations', 'success');
+              document.getElementById('debug-status').innerHTML =
+                '<span class="status-indicator status-success"></span>SDK Ready';
+            } else {
+              addLog('⏳ SDK not ready yet', 'warn');
+              document.getElementById('debug-status').innerHTML =
+                '<span class="status-indicator status-warning"></span>SDK Loading';
+            }
+          } catch (error) {
+            addLog(`❌ SDK error: ${error.message}`, 'error');
+          }
+        } else {
+          addLog('❌ Ocean Ads SDK not loaded', 'error');
+          document.getElementById('debug-status').innerHTML =
+            '<span class="status-indicator status-error"></span>SDK Missing';
+        }
+
+        // 5. Check network requests
+        addLog('🌐 Monitoring network requests...', 'info');
+      }
+
+      function testRTBFlow() {
+        addLog('📡 Testing RTB flow manually...', 'rtb');
+
+        if (!window.__OCEAN_CONFIG__) {
+          addLog('❌ Cannot test RTB - no configuration loaded', 'error');
+          return;
+        }
+
+        // Create a test RTB request
+        const testRequest = {
+          publisherId: '02912083-a026-4c61-8df7-0fd68ab4ad93',
+          websiteId: '87690135-4199-4b1f-a960-93beb240759e',
+          inventoryId: '814c4b35-ed6a-49b6-bb4d-bac19399f659',
+          context: {
+            device: { type: 'desktop' },
+            geo: { country: 'IN' },
+            page: { url: window.location.href },
+          },
+          enableSSE: true,
+          sseTimeout: 5000,
+        };
+
+        addLog('📤 Sending test RTB request...', 'rtb');
+
+        fetch('http://localhost:3001/rtb/bid-request', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(testRequest),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            addLog(`✅ RTB response received: ${data.requestId}`, 'success');
+            addLog(`📡 SSE URL: ${data.sseUrl}`, 'sse');
+
+            if (data.sseUrl) {
+              testSSEConnection(data.sseUrl, data.requestId);
+            }
+          })
+          .catch((error) => {
+            addLog(`❌ RTB request failed: ${error.message}`, 'error');
+          });
+      }
+
+      function testSSEConnection(sseUrl, requestId) {
+        addLog(`📡 Connecting to SSE: ${sseUrl}`, 'sse');
+
+        const eventSource = new EventSource(sseUrl);
+
+        eventSource.onopen = function () {
+          addLog('✅ SSE connection opened', 'success');
+        };
+
+        eventSource.addEventListener('bid_complete', function (event) {
+          addLog('🎯 Bid complete event received!', 'success');
+          try {
+            const bidData = JSON.parse(event.data);
+            addLog(
+              `💰 Bid response: ${JSON.stringify(bidData, null, 2)}`,
+              'rtb',
+            );
+          } catch (e) {
+            addLog(`📡 Raw bid data: ${event.data}`, 'sse');
+          }
+          eventSource.close();
+        });
+
+        eventSource.onerror = function (error) {
+          addLog(`❌ SSE connection error`, 'error');
+          eventSource.close();
+        };
+
+        // Close after 10 seconds
+        setTimeout(() => {
+          eventSource.close();
+          addLog('🔄 SSE test completed (10s timeout)', 'info');
+        }, 10000);
+      }
+
+      function clearLogs() {
+        document.getElementById('live-logs').innerHTML =
+          '<div>[Logs cleared]</div>';
+        document.getElementById('live-debug').innerHTML =
+          '<div>[Debug cleared]</div>';
+        logCount = 0;
+      }
+
+      // Auto-diagnostics on load
+      window.addEventListener('load', function () {
+        addLog('🌊 Ocean Ads Test Page Loaded', 'success');
+        addLog('📋 Publisher: rhea31@hotmail.com', 'info');
+        addLog('🆔 Publisher ID: 02912083-a026-4c61-8df7-0fd68ab4ad93', 'info');
+        addLog('🌐 Website ID: 87690135-4199-4b1f-a960-93beb240759e', 'info');
+        addLog('🏠 Domain: healthhub601-378.net', 'info');
+
+        // Run diagnostics after a short delay
+        setTimeout(runFullDiagnostics, 3000);
+      });
+
+      // Monitor for SDK loading
+      let sdkCheckInterval = setInterval(function () {
+        if (typeof window.OceanAds !== 'undefined') {
+          addLog('🎉 Ocean Ads SDK detected!', 'success');
+          document.getElementById('debug-status').innerHTML =
+            '<span class="status-indicator status-success"></span>SDK Loaded';
+          clearInterval(sdkCheckInterval);
+
+          // Run diagnostics again now that SDK is loaded
+          setTimeout(runFullDiagnostics, 2000);
+        }
+      }, 1000);
+
+      // Monitor for configuration loading
+      let configCheckInterval = setInterval(function () {
+        if (window.__OCEAN_CONFIG__) {
+          addLog('⚙️ Configuration detected!', 'config');
+          clearInterval(configCheckInterval);
+
+          // Display config immediately
+          document.getElementById('config-display').textContent =
+            JSON.stringify(window.__OCEAN_CONFIG__, null, 2);
+        }
+      }, 500);
+
+      // Network monitoring
+      const originalFetch = window.fetch;
+      window.fetch = function (...args) {
+        const url = args[0];
+        if (typeof url === 'string' && url.includes('rtb')) {
+          addLog(`📡 Network: ${url}`, 'rtb');
+        }
+        return originalFetch.apply(this, arguments);
+      };
+    </script>
+  </body>
+</html>
