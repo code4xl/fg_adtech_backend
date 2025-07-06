@@ -128,6 +128,9 @@ enum CampaignInterest {
 // Bids strategy enums
 enum BidStrategy {
   LOWEST_COST
+  TARGET_CPM
+  SMART_BID
+  COMPETITIVE
 }
 
 // Creative enums

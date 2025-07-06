@@ -152,7 +152,7 @@ export class CampaignSeeder implements ISeeder {
             endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
             status: CampaignStatus.ACTIVE,
             objective: CampaignObjective.AWARENESS,
-            bidStrategy: BidStrategy.LOWEST_COST,
+            bidStrategy: BidStrategy.TARGET_CPM,
             bidAmount: 10.0,
             pacing: CampaignPacing.STANDARD,
             businessCategory: BusinessCategory.TECHNOLOGY,

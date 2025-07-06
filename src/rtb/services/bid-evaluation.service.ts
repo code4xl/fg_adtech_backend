@@ -186,14 +186,20 @@ export class BidEvaluationService {
     baseBid: number,
     floorPrice: number,
   ): Promise<number> {
-    if (!campaign.bidStrategy || campaign.bidStrategy === 'LOWEST_COST') {
-      // REASON: Default to lowest cost strategy if not specified
-      // LOGIC: Lowest cost strategy should bid just above floor price
-      return this.bidStrategyService.calculateLowestCostBid(
-        baseBid,
-        floorPrice,
-      );
-    }
+    const bidStrategy = campaign.bidStrategy || 'LOWEST_COST';
+
+    // Create context object
+    const context = {
+      floorPrice: floorPrice,
+      campaignId: campaign.id,
+      // Add any other context you need
+    };
+
+    return this.bidStrategyService.calculateBidAmount(
+      bidStrategy,
+      baseBid,
+      context,
+    );
   }
 
   private async applyBudgetPacing(
