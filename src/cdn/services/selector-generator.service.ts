@@ -57,6 +57,7 @@ export class SelectorGeneratorService {
    */
   generateSelectorMappings(
     inventory: IInventoryConfig[],
+    websiteId: string,
     options?: {
       prefix?: string;
       groupByPosition?: boolean;
@@ -74,6 +75,7 @@ export class SelectorGeneratorService {
         inventoryId: item.inventoryId,
         selector: this.buildSelector(position, count + 1, options?.prefix),
         position,
+        websiteId, // Add required websiteId field
       };
 
       if (count > 0) {

@@ -97,6 +97,7 @@ export interface IOceanConfig {
 export interface ICdnFileMetadata {
   publisherId: string;
   websiteIds: string[]; // Changed from single websiteId to array
+  websiteId?: string; // Legacy support for single website - deprecated
   domains: string[]; // Track all domains in this CDN
   version: string;
   buildId: string;
@@ -162,6 +163,7 @@ export interface IInventoryMapping {
 export interface ICdnBuildContext {
   publisherId: string;
   websiteIds?: string[]; // Optional - if not provided, include all active websites
+  websiteId?: string; // Legacy support for single website - deprecated
   environment: string;
   forceRebuild: boolean;
   includeDebug: boolean;

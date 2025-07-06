@@ -228,7 +228,8 @@ export class CdnStorageService {
       lastModified: stats.mtime,
       metadata: {
         publisherId: metadata.publisherId,
-        websiteId: metadata.websiteId,
+        websiteId: metadata.websiteId || (metadata.websiteIds && metadata.websiteIds[0]),
+        ...(metadata.websiteIds && { websiteIds: JSON.stringify(metadata.websiteIds) }),
         version: metadata.version,
         buildId: metadata.buildId,
       },

@@ -1,4 +1,4 @@
-import { IsUUID, IsBoolean, IsOptional, IsEnum, IsString } from 'class-validator';
+import { IsUUID, IsBoolean, IsOptional, IsEnum, IsString, IsNumber, IsArray } from 'class-validator';
 
 /**
  * Build environment types
@@ -36,6 +36,9 @@ export class GenerateCdnDto {
  * CDN build response DTO
  */
 export class CdnBuildResponseDto {
+  @IsBoolean()
+  success: boolean;
+
   @IsString()
   cdnUrl: string;
 
@@ -63,6 +66,22 @@ export class CdnBuildResponseDto {
   @IsOptional()
   @IsString()
   expiresAt?: string;
+
+  @IsOptional()
+  @IsNumber()
+  websiteCount?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  domains?: string[];
+
+  @IsOptional()
+  metadata?: any;
+
+  @IsOptional()
+  @IsString()
+  message?: string;
 }
 
 /**

@@ -73,7 +73,8 @@ export class ConfigBuilderService {
     this.validatePublisherStatus(publisherData);
     
     // Get publisher tier (default to BASIC if not set)
-    const publisherTier = publisherData.tier || PublisherTier.BASIC;
+    // Note: Publisher model might not have tier field yet, so we default to BASIC
+    const publisherTier = (publisherData as any).tier || PublisherTier.BASIC;
     
     // Transform websites to V2 configuration format
     const websites: Record<string, {

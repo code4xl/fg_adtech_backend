@@ -162,8 +162,10 @@ export class CdnGeneratorService {
     context: ICdnBuildContext,
   ): Promise<ICdnBuildResult> {
     try {
+      // Support both legacy websiteId and new websiteIds
+      const websiteId = context.websiteId || (context.websiteIds && context.websiteIds[0]);
       this.logger.log(
-        `Generating CDN build for publisher ${context.publisherId}, website ${context.websiteId}`,
+        `Generating CDN build for publisher ${context.publisherId}, website ${websiteId}`,
       );
 
       // Read SDK content
@@ -192,7 +194,9 @@ export class CdnGeneratorService {
         buildId,
         metadata: {
           publisherId: context.publisherId,
-          websiteId: context.websiteId,
+          websiteIds: context.websiteIds || (context.websiteId ? [context.websiteId] : []),
+          websiteId: context.websiteId, // Legacy support
+          domains: [], // Legacy method - single domain not tracked
           version,
           buildId,
           integrity,
@@ -200,6 +204,7 @@ export class CdnGeneratorService {
           environment: context.environment,
           fileSize: Buffer.byteLength(cdnContent, 'utf8'),
           inventoryCount: config.inventory.length,
+          websiteCount: 1, // Legacy method always has 1 website
         },
       };
     } catch (error) {
