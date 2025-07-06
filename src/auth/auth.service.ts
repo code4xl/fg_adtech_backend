@@ -91,64 +91,6 @@ export class AuthService {
     };
   }
 
-  // This function is used to register a new publisher
-  async publisherSignup(createPublisherSignupDto: CreatePublisherSignupDto) {
-    const existingUser = await this.prisma.publisher.findUnique({
-      where: { email: createPublisherSignupDto.email },
-    });
-
-    if (existingUser) {
-      throw new DuplicateResourceException(
-        'Publisher',
-        'email',
-        createPublisherSignupDto.email,
-      );
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(
-      createPublisherSignupDto.password,
-      10,
-    );
-
-    // Generate verification token using jwt
-    const verificationToken = this.jwtService.sign(
-      {
-        email: createPublisherSignupDto.email,
-        purpose: 'email_verification',
-      },
-      {
-        expiresIn: this.config.get('auth.verificationTokenExpiry'),
-      },
-    );
-
-    // Create user without verifying email yet
-    const user = await this.prisma.publisher.create({
-      data: {
-        firstName: createPublisherSignupDto.firstName,
-        lastName: createPublisherSignupDto.lastName,
-        email: createPublisherSignupDto.email,
-        password: hashedPassword,
-        emailVerifiedAt: null,
-        verificationToken,
-      },
-    });
-
-    // Send verification email
-    await this.mailService.sendVerificationEmail(
-      user.email,
-      `${user.firstName} ${user.lastName}`,
-      'publisher',
-      verificationToken,
-    );
-
-    return {
-      message:
-        'Registration successful. Please check your email to verify your account.',
-      publisher: user,
-    };
-  }
-
   async verifyEmail(token: string) {
     try {
       const payload = this.jwtService.verify(token);
@@ -225,126 +167,6 @@ export class AuthService {
       }
       throw new BadRequestException('Invalid verification token');
     }
-  }
-
-  // This function gets called from the LocalStrategy to validate which user is logging in.
-  async validateUser(
-    email: string,
-    password: string,
-    role: 'advertiser' | 'publisher' | 'client' | 'admin',
-  ) {
-    let user;
-
-    // Find user in the appropriate database based on role
-    if (role === 'advertiser') {
-      user = await this.prisma.advertiser.findUnique({
-        where: { email },
-      });
-
-      // Check if email is verified for advertisers
-      if (user && !user.emailVerifiedAt) {
-        throw new UnauthorizedException('Please verify your email first');
-      }
-    } else if (role === 'publisher') {
-      user = await this.prisma.publisher.findUnique({
-        where: { email },
-      });
-
-      // Check if email is verified for publishers
-      if (user && !user.emailVerifiedAt) {
-        throw new UnauthorizedException('Please verify your email first');
-      }
-    } else if (role === 'admin') {
-      user = await this.prisma.admin.findUnique({
-        where: { email },
-      });
-    } else if (role === 'client') {
-      user = await this.prisma.client.findUnique({
-        where: { email },
-      });
-    }
-
-    if (!user) {
-      return null;
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-
-    if (!isPasswordValid) {
-      return null;
-    }
-
-    // Remove password from returned object
-    const { password: _, ...result } = user;
-
-    // Check if MFA is enabled for this user
-    if (result.mfaEnabled) {
-      // Generate a 6-digit verification code
-      const verificationCode = this.generateVerificationCode();
-
-      // Set expiry time (10 minutes from now)
-      const codeExpiry = new Date();
-      codeExpiry.setMinutes(codeExpiry.getMinutes() + 10);
-
-      // Store the code in the user's record
-      if (role === 'advertiser') {
-        await this.prisma.advertiser.update({
-          where: { id: user.id },
-          data: {
-            mfaVerificationCode: verificationCode,
-            mfaCodeExpiry: codeExpiry,
-          },
-        });
-      } else if (role === 'publisher') {
-        await this.prisma.publisher.update({
-          where: { id: user.id },
-          data: {
-            mfaVerificationCode: verificationCode,
-            mfaCodeExpiry: codeExpiry,
-          },
-        });
-      } else if (role === 'admin') {
-        await this.prisma.admin.update({
-          where: { id: user.id },
-          data: {
-            mfaVerificationCode: verificationCode,
-            mfaCodeExpiry: codeExpiry,
-          },
-        });
-      }
-
-      // Send verification code via email
-      const maskedEmail = this.maskEmail(result.email);
-      await this.mailService.sendMfaCodeEmail(
-        result.email,
-        verificationCode,
-        10,
-      );
-
-      // Generate temporary token for MFA verification
-      const tempToken = this.jwtService.sign(
-        {
-          sub: result.id,
-          email: result.email,
-          role: role,
-          purpose: 'mfa_verification',
-        },
-        {
-          expiresIn: '15m', // Temporary token expires in 15 minutes
-        },
-      );
-
-      // Return MFA required response
-      return {
-        requiresMfa: true,
-        tempToken,
-        maskedEmail,
-        role, // Include role for later use
-      };
-    }
-
-    // Add role to the user object for use in token generation and authorization
-    return { ...result, role };
   }
 
   // The localstrategy will return the user object to this function and it will generate a JWT token for the user.
@@ -724,5 +546,221 @@ export class AuthService {
     }
 
     return { message: 'Password has been reset successfully' };
+  }
+
+  // src/auth/auth.service.ts - Updated sections for Publisher
+
+  // Add this method to handle publisher tier assignment during signup
+  async getDefaultPublisherTier() {
+    // Get the default tier or create one if it doesn't exist
+    let defaultTier = await this.prisma.publisherTier.findFirst({
+      where: { name: 'Basic' },
+    });
+
+    if (!defaultTier) {
+      // Create a default tier if none exists
+      defaultTier = await this.prisma.publisherTier.create({
+        data: {
+          name: 'Basic',
+          commissionRate: 0.4, // 40% commission rate
+        },
+      });
+    }
+
+    return defaultTier;
+  }
+
+  // Updated publisherSignup method
+  async publisherSignup(createPublisherSignupDto: CreatePublisherSignupDto) {
+    const existingUser = await this.prisma.publisher.findUnique({
+      where: { email: createPublisherSignupDto.email },
+    });
+
+    if (existingUser) {
+      throw new DuplicateResourceException(
+        'Publisher',
+        'email',
+        createPublisherSignupDto.email,
+      );
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(
+      createPublisherSignupDto.password,
+      10,
+    );
+
+    // Generate verification token using jwt
+    const verificationToken = this.jwtService.sign(
+      {
+        email: createPublisherSignupDto.email,
+        purpose: 'email_verification',
+      },
+      {
+        expiresIn: this.config.get('auth.verificationTokenExpiry'),
+      },
+    );
+
+    // Get default publisher tier
+    const defaultTier = await this.getDefaultPublisherTier();
+
+    // Create user without verifying email yet
+    const user = await this.prisma.publisher.create({
+      data: {
+        firstName: createPublisherSignupDto.firstName,
+        lastName: createPublisherSignupDto.lastName,
+        email: createPublisherSignupDto.email,
+        password: hashedPassword,
+        emailVerifiedAt: null,
+        verificationToken,
+        tierId: defaultTier.id, // Assign default tier
+        paymentThreshold: 100.0, // Default payment threshold
+      },
+      include: {
+        tier: true, // Include tier information in response
+      },
+    });
+
+    // Send verification email
+    await this.mailService.sendVerificationEmail(
+      user.email,
+      `${user.firstName} ${user.lastName}`,
+      'publisher',
+      verificationToken,
+    );
+
+    // Remove sensitive data before returning
+    const { password, mfaVerificationCode, mfaCodeExpiry, ...result } = user;
+
+    return {
+      message:
+        'Registration successful. Please check your email to verify your account.',
+      publisher: result,
+    };
+  }
+
+  // Updated validateUser method - Publisher section
+  async validateUser(
+    email: string,
+    password: string,
+    role: 'advertiser' | 'publisher' | 'client' | 'admin',
+  ) {
+    let user;
+
+    // Find user in the appropriate database based on role
+    if (role === 'advertiser') {
+      user = await this.prisma.advertiser.findUnique({
+        where: { email },
+      });
+
+      // Check if email is verified for advertisers
+      if (user && !user.emailVerifiedAt) {
+        throw new UnauthorizedException('Please verify your email first');
+      }
+    } else if (role === 'publisher') {
+      // console.log('Validating publisher:' + email + ' ' + password);
+      user = await this.prisma.publisher.findUnique({
+        where: { email },
+        include: {
+          tier: true, // Include tier information for publishers
+        },
+      });
+      // console.log(user);
+
+      // Check if email is verified for publishers
+      if (user && !user.emailVerifiedAt) {
+        throw new UnauthorizedException('Please verify your email first');
+      }
+    } else if (role === 'admin') {
+      user = await this.prisma.admin.findUnique({
+        where: { email },
+      });
+    } else if (role === 'client') {
+      user = await this.prisma.client.findUnique({
+        where: { email },
+      });
+    }
+
+    if (!user) {
+      return null;
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return null;
+    }
+
+    // Remove password from returned object
+    const { password: _, ...result } = user;
+
+    // Check if MFA is enabled for this user
+    if (result.mfaEnabled) {
+      // Generate a 6-digit verification code
+      const verificationCode = this.generateVerificationCode();
+
+      // Set expiry time (10 minutes from now)
+      const codeExpiry = new Date();
+      codeExpiry.setMinutes(codeExpiry.getMinutes() + 10);
+
+      // Store the code in the user's record
+      if (role === 'advertiser') {
+        await this.prisma.advertiser.update({
+          where: { id: user.id },
+          data: {
+            mfaVerificationCode: verificationCode,
+            mfaCodeExpiry: codeExpiry,
+          },
+        });
+      } else if (role === 'publisher') {
+        await this.prisma.publisher.update({
+          where: { id: user.id },
+          data: {
+            mfaVerificationCode: verificationCode,
+            mfaCodeExpiry: codeExpiry,
+          },
+        });
+      } else if (role === 'admin') {
+        await this.prisma.admin.update({
+          where: { id: user.id },
+          data: {
+            mfaVerificationCode: verificationCode,
+            mfaCodeExpiry: codeExpiry,
+          },
+        });
+      }
+
+      // Send verification code via email
+      const maskedEmail = this.maskEmail(result.email);
+      await this.mailService.sendMfaCodeEmail(
+        result.email,
+        verificationCode,
+        10,
+      );
+
+      // Generate temporary token for MFA verification
+      const tempToken = this.jwtService.sign(
+        {
+          sub: result.id,
+          email: result.email,
+          role: role,
+          purpose: 'mfa_verification',
+        },
+        {
+          expiresIn: '15m', // Temporary token expires in 15 minutes
+        },
+      );
+
+      // Return MFA required response
+      return {
+        requiresMfa: true,
+        tempToken,
+        maskedEmail,
+        role, // Include role for later use
+      };
+    }
+
+    // Add role to the user object for use in token generation and authorization
+    return { ...result, role };
   }
 }

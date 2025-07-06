@@ -346,12 +346,13 @@ export class AuctionService {
 
     winningBid.finalPrice = finalPrice;
     winningBid.status = 'WON';
-    await this.budgetManagerService.deductBudgetOnWin(
+    await this.budgetManagerService.reserveBudgetOnWin(
       winningBid,
       bidRequest.publisherId,
       bidRequest.inventoryId,
       bidRequest.websiteId,
-      finalPrice,
+      finalPrice / 1000,
+      bidRequest.auctionId,
     );
     // Update all other bids to LOST
     await this.updateBidResponseStatuses(

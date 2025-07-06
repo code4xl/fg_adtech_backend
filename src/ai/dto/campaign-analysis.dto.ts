@@ -18,7 +18,8 @@ import {
   BidStrategy,
   CampaignPacing,
 } from '@prisma/client';
-import { CampaignTargetingDto } from '../../campaign/dto/targetting-rule.dto';
+import { CampaignTargetingDto } from './targetting-rule.dto';
+
 export class BudgetRangeDto {
   @ApiProperty({
     description: 'Minimum budget',

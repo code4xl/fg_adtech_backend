@@ -357,47 +357,47 @@ export class FinancialMonitoringController {
 
   // ===== PENDING EVENTS MONITORING =====
 
-  @Get('pending-events')
-  @ApiOperation({
-    summary: 'Get pending events count',
-    description: 'Returns count of pending events in all Redis queues',
-  })
-  async getPendingEvents(): Promise<any> {
-    try {
-      const pendingCounts = await this.trackingService.getPendingEventsCount();
-      const budgetCounts =
-        await this.budgetManager.getPendingTransactionCounts();
+  // @Get('pending-events')
+  // @ApiOperation({
+  //   summary: 'Get pending events count',
+  //   description: 'Returns count of pending events in all Redis queues',
+  // })
+  // async getPendingEvents(): Promise<any> {
+  //   try {
+  //     const pendingCounts = await this.trackingService.getPendingEventsCount();
+  //     const budgetCounts = 0;
+  //     // await this.budgetManager.getPendingTransactionCounts();
 
-      return {
-        timestamp: new Date().toISOString(),
-        totalPending: Object.values(pendingCounts).reduce(
-          (sum, count) => sum + count,
-          0,
-        ),
-        breakdown: {
-          ...pendingCounts,
-          budgetTransactions: budgetCounts.budgetTransactions,
-        },
-        queues: {
-          events: {
-            impressions: pendingCounts.impressions,
-            clicks: pendingCounts.clicks,
-          },
-          financial: {
-            publisherRevenue: pendingCounts.publisherRevenue,
-            advertiserSpending: pendingCounts.advertiserSpending,
-            systemRevenue: pendingCounts.systemRevenue,
-            budgetTransactions: budgetCounts.budgetTransactions,
-          },
-        },
-      };
-    } catch (error) {
-      this.logger.error('Failed to get pending events', {
-        error: error.message,
-      });
-      throw new BadRequestException('Failed to retrieve pending events');
-    }
-  }
+  //     return {
+  //       timestamp: new Date().toISOString(),
+  //       totalPending: Object.values(pendingCounts).reduce(
+  //         (sum, count) => sum + count,
+  //         0,
+  //       ),
+  //       breakdown: {
+  //         ...pendingCounts,
+  //         budgetTransactions: budgetCounts.budgetTransactions,
+  //       },
+  //       queues: {
+  //         events: {
+  //           impressions: pendingCounts.impressions,
+  //           clicks: pendingCounts.clicks,
+  //         },
+  //         financial: {
+  //           publisherRevenue: pendingCounts.publisherRevenue,
+  //           advertiserSpending: pendingCounts.advertiserSpending,
+  //           systemRevenue: pendingCounts.systemRevenue,
+  //           budgetTransactions: budgetCounts.budgetTransactions,
+  //         },
+  //       },
+  //     };
+  //   } catch (error) {
+  //     this.logger.error('Failed to get pending events', {
+  //       error: error.message,
+  //     });
+  //     throw new BadRequestException('Failed to retrieve pending events');
+  //   }
+  // }
 
   // ===== REVENUE INSIGHTS =====
 

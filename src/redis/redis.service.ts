@@ -85,7 +85,9 @@ export class RedisService {
   async incr(key: string): Promise<number> {
     return this.pubClient.incr(key);
   }
-
+  async lrange(key: string, start: number, stop: number): Promise<string[]> {
+    return this.pubClient.lrange(key, start, stop);
+  }
   async incrby(key: string, increment: number): Promise<number> {
     return this.pubClient.incrby(key, increment);
   }

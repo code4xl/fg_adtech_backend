@@ -188,6 +188,7 @@ enum TransactionType {
   CLICK_COST
   REFUND
   ADJUSTMENT
+  RESERVATION
 }
 
 enum TransactionStatus {
