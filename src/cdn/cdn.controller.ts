@@ -31,6 +31,16 @@ import {
     BuildEnvironment,
   } from './dto';
   import { CDN_HEADERS } from './constants/cdn.constants';
+
+/**
+ * V2 Publisher CDN DTO for multi-website requests
+ */
+export class GeneratePublisherCdnDto {
+  environment?: BuildEnvironment;
+  includeDebug?: boolean;
+  forceRebuild?: boolean;
+  websiteIds?: string[]; // Optional filter for specific websites
+}
   
   /**
    * CDN Controller
@@ -490,6 +500,305 @@ import {
           {
             statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
             message: 'Failed to clear caches',
+            error: error.message,
+          },
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+
+    // ===== V2 PUBLISHER-FOCUSED ENDPOINTS =====
+
+    /**
+     * Generate V2 CDN for entire publisher (all websites)
+     * POST /api/publishers/:publisherId/generate-cdn
+     */
+    @Post('api/publishers/:publisherId/generate-cdn')
+    @UseGuards(AuthGuard('jwt'), RoleGuard)
+    @Roles('PUBLISHER', 'ADMIN')
+    async generatePublisherCdn(
+      @Param('publisherId') publisherId: string,
+      @Body() dto: GeneratePublisherCdnDto,
+    ): Promise<CdnBuildResponseDto> {
+      this.logger.log(`V2 CDN generation request for publisher ${publisherId}`);
+
+      try {
+        const result = await this.cdnOrchestrator.generatePublisherCdn(
+          publisherId,
+          dto,
+        );
+
+        if (!result.success) {
+          throw new HttpException(
+            {
+              statusCode: HttpStatus.BAD_REQUEST,
+              message: 'V2 CDN generation failed',
+              error: result.error,
+            },
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+
+        return {
+          success: true,
+          cdnUrl: result.cdnUrl!,
+          version: result.version!,
+          buildId: result.buildId!,
+          integrity: result.integrity!,
+          websiteCount: result.websiteCount!,
+          domains: result.domains!,
+          metadata: result.metadata!,
+          message: `V2 CDN generated successfully for ${result.websiteCount} websites`,
+        };
+      } catch (error) {
+        this.logger.error(`V2 CDN generation failed: ${error.message}`);
+        throw new HttpException(
+          {
+            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+            message: 'V2 CDN generation failed',
+            error: error.message,
+          },
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+
+    /**
+     * Add website to existing publisher CDN
+     * POST /api/publishers/:publisherId/websites/:websiteId/add-to-cdn
+     */
+    @Post('api/publishers/:publisherId/websites/:websiteId/add-to-cdn')
+    @UseGuards(AuthGuard('jwt'), RoleGuard)
+    @Roles('PUBLISHER', 'ADMIN')
+    async addWebsiteToPublisherCdn(
+      @Param('publisherId') publisherId: string,
+      @Param('websiteId') websiteId: string,
+      @Body() dto: { environment?: BuildEnvironment; includeDebug?: boolean },
+    ): Promise<CdnBuildResponseDto> {
+      this.logger.log(
+        `Adding website ${websiteId} to publisher ${publisherId} CDN`,
+      );
+
+      try {
+        const result = await this.cdnOrchestrator.addWebsiteToPublisherCdn(
+          publisherId,
+          websiteId,
+          dto,
+        );
+
+        if (!result.success) {
+          throw new HttpException(
+            {
+              statusCode: HttpStatus.BAD_REQUEST,
+              message: 'Failed to add website to CDN',
+              error: result.error,
+            },
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+
+        return {
+          success: true,
+          cdnUrl: result.cdnUrl!,
+          version: result.version!,
+          buildId: result.buildId!,
+          integrity: result.integrity!,
+          websiteCount: result.websiteCount!,
+          domains: result.domains!,
+          metadata: result.metadata!,
+          message: `Website ${websiteId} added to publisher CDN successfully`,
+        };
+      } catch (error) {
+        this.logger.error(`Failed to add website to CDN: ${error.message}`);
+        throw new HttpException(
+          {
+            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+            message: 'Failed to add website to CDN',
+            error: error.message,
+          },
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+
+    /**
+     * Remove website from publisher CDN
+     * DELETE /api/publishers/:publisherId/websites/:websiteId/remove-from-cdn
+     */
+    @Delete('api/publishers/:publisherId/websites/:websiteId/remove-from-cdn')
+    @UseGuards(AuthGuard('jwt'), RoleGuard)
+    @Roles('PUBLISHER', 'ADMIN')
+    async removeWebsiteFromPublisherCdn(
+      @Param('publisherId') publisherId: string,
+      @Param('websiteId') websiteId: string,
+      @Body() dto: { environment?: BuildEnvironment; includeDebug?: boolean },
+    ): Promise<CdnBuildResponseDto> {
+      this.logger.log(
+        `Removing website ${websiteId} from publisher ${publisherId} CDN`,
+      );
+
+      try {
+        const result = await this.cdnOrchestrator.removeWebsiteFromPublisherCdn(
+          publisherId,
+          websiteId,
+          dto,
+        );
+
+        if (!result.success) {
+          throw new HttpException(
+            {
+              statusCode: HttpStatus.BAD_REQUEST,
+              message: 'Failed to remove website from CDN',
+              error: result.error,
+            },
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+
+        return {
+          success: true,
+          cdnUrl: result.cdnUrl!,
+          version: result.version!,
+          buildId: result.buildId!,
+          integrity: result.integrity!,
+          websiteCount: result.websiteCount!,
+          domains: result.domains!,
+          metadata: result.metadata!,
+          message: `Website ${websiteId} removed from publisher CDN successfully`,
+        };
+      } catch (error) {
+        this.logger.error(
+          `Failed to remove website from CDN: ${error.message}`,
+        );
+        throw new HttpException(
+          {
+            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+            message: 'Failed to remove website from CDN',
+            error: error.message,
+          },
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+
+    /**
+     * Get V2 configuration preview for publisher
+     * GET /api/publishers/:publisherId/config/preview
+     */
+    @Get('api/publishers/:publisherId/config/preview')
+    @UseGuards(AuthGuard('jwt'), RoleGuard)
+    @Roles('PUBLISHER', 'ADMIN')
+    async getPublisherConfigPreview(
+      @Param('publisherId') publisherId: string,
+      @Query('includeDebug') includeDebug?: boolean,
+      @Query('websiteIds') websiteIds?: string,
+    ): Promise<any> {
+      this.logger.log(`V2 config preview for publisher ${publisherId}`);
+
+      try {
+        const websiteIdArray = websiteIds
+          ? websiteIds.split(',').map((id) => id.trim())
+          : undefined;
+
+        const config = await this.configBuilder.buildPublisherConfiguration(
+          publisherId,
+          {
+            includeDebug: includeDebug || false,
+            websiteIds: websiteIdArray,
+          },
+        );
+
+        // Validate the configuration
+        const validation = this.configBuilder.validatePublisherConfiguration(config);
+
+        return {
+          config,
+          validation,
+          summary: {
+            publisherId: config.publisher.id,
+            publisherTier: config.publisher.tier,
+            websiteCount: Object.keys(config.websites).length,
+            totalInventorySlots: Object.values(config.websites).reduce(
+              (total, website) => total + website.inventory.length,
+              0,
+            ),
+            domains: Object.keys(config.websites),
+            version: config.meta.version,
+            buildId: config.meta.buildId,
+          },
+        };
+      } catch (error) {
+        this.logger.error(
+          `Failed to get V2 config preview: ${error.message}`,
+        );
+        throw new HttpException(
+          {
+            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+            message: 'Failed to get V2 configuration preview',
+            error: error.message,
+          },
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+
+    /**
+     * Migrate V1 configuration to V2 format
+     * POST /api/publishers/:publisherId/migrate-to-v2
+     */
+    @Post('api/publishers/:publisherId/migrate-to-v2')
+    @UseGuards(AuthGuard('jwt'), RoleGuard)
+    @Roles('PUBLISHER', 'ADMIN')
+    async migratePublisherToV2(
+      @Param('publisherId') publisherId: string,
+      @Body() dto: { websiteId: string; generateCdn?: boolean },
+    ): Promise<any> {
+      this.logger.log(
+        `Migrating publisher ${publisherId} from V1 to V2 configuration`,
+      );
+
+      try {
+        // Get V1 configuration
+        const v1Config = await this.configBuilder.buildConfiguration(
+          publisherId,
+          dto.websiteId,
+        );
+
+        // Migrate to V2
+        const migrationResult = await this.configBuilder.migrateV1ToV2(v1Config);
+
+        if (!migrationResult.success) {
+          throw new HttpException(
+            {
+              statusCode: HttpStatus.BAD_REQUEST,
+              message: 'V1 to V2 migration failed',
+              errors: migrationResult.errors,
+            },
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+
+        // Optionally generate CDN with new V2 configuration
+        let cdnResult = null;
+        if (dto.generateCdn) {
+          cdnResult = await this.cdnOrchestrator.generatePublisherCdn(
+            publisherId,
+            { forceRebuild: true },
+          );
+        }
+
+        return {
+          success: true,
+          migration: migrationResult,
+          cdn: cdnResult,
+          message: 'Successfully migrated to V2 configuration',
+        };
+      } catch (error) {
+        this.logger.error(`V1 to V2 migration failed: ${error.message}`);
+        throw new HttpException(
+          {
+            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+            message: 'V1 to V2 migration failed',
             error: error.message,
           },
           HttpStatus.INTERNAL_SERVER_ERROR,

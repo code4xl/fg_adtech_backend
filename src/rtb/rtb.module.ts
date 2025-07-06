@@ -45,6 +45,7 @@ import { AdMarkupService } from './services/ad-markup.service';
     RedisModule,
     KafkaModule,
     TrackingModule,
+    SSEModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [RTBController, FinancialMonitoringController],

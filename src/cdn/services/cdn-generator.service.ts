@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { createHash } from 'crypto';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { IOceanConfig, ICdnBuildResult, ICdnBuildContext } from '../interfaces';
+import { IOceanConfig, IOceanConfigV2, ICdnBuildResult, ICdnBuildContext } from '../interfaces';
 import { BuildEnvironment } from '../dto';
 import { VERSION_FORMAT, CDN_ERROR_CODES, SDK_CONFIG, CDN_URL_CONFIG } from '../constants/cdn.constants';
 
@@ -83,7 +83,79 @@ export class CdnGeneratorService {
   }
 
   /**
-   * Generate CDN build for a publisher configuration
+   * Generate CDN build for V2 publisher configuration (multi-website)
+   */
+  async generateV2Build(
+    config: IOceanConfigV2,
+    context: ICdnBuildContext,
+  ): Promise<ICdnBuildResult> {
+    try {
+      this.logger.log(
+        `Generating V2 CDN build for publisher ${context.publisherId} with ${Object.keys(config.websites).length} websites`,
+      );
+
+      // Read SDK content
+      const sdkContent = await this.readSdkContent();
+
+      // Generate V2 configuration script
+      const configScript = this.generateV2ConfigScript(config, context);
+
+      // Combine SDK and configuration
+      const cdnContent = this.combineSdkAndConfig(sdkContent, configScript, context);
+
+      // Generate version and integrity
+      const version = config.meta.version;
+      const integrity = this.generateIntegrity(cdnContent);
+      const buildId = config.meta.buildId;
+
+      this.logger.log(`V2 CDN build generated successfully: ${buildId}`);
+
+      return {
+        success: true,
+        cdnUrl: this.generateCdnUrl(context.publisherId, context.environment),
+        integrity,
+        version,
+        buildId,
+        websiteCount: Object.keys(config.websites).length,
+        domains: Object.keys(config.websites),
+        metadata: {
+          publisherId: context.publisherId,
+          websiteIds: Object.values(config.websites).map(w => w.id),
+          domains: Object.keys(config.websites),
+          version,
+          buildId,
+          integrity,
+          createdAt: new Date(),
+          environment: context.environment,
+          fileSize: Buffer.byteLength(cdnContent, 'utf8'),
+          inventoryCount: Object.values(config.websites).reduce((total, website) => total + website.inventory.length, 0),
+          websiteCount: Object.keys(config.websites).length,
+        },
+      };
+    } catch (error) {
+      this.logger.error(`V2 CDN build generation failed: ${error.message}`);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Generate the complete V2 CDN content
+   */
+  async generateV2CdnContent(
+    config: IOceanConfigV2,
+    context: ICdnBuildContext,
+  ): Promise<string> {
+    const sdkContent = await this.readSdkContent();
+    const configScript = this.generateV2ConfigScript(config, context);
+    return this.combineSdkAndConfig(sdkContent, configScript, context);
+  }
+
+  /**
+   * Legacy method: Generate CDN build for a publisher configuration
+   * Maintained for backward compatibility
    */
   async generateBuild(
     config: IOceanConfig,
@@ -221,6 +293,86 @@ export class CdnGeneratorService {
   // Debug mode logging
   if (window.__OCEAN_CONFIG__.settings.debug) {
     console.log('[Ocean Ads] Configuration loaded:', window.__OCEAN_CONFIG__);
+  }
+})();
+`;
+
+    return context.includeDebug ? script : this.minifyScript(script);
+  }
+
+  /**
+   * Generate V2 configuration script to embed in CDN (multi-website)
+   */
+  private generateV2ConfigScript(
+    config: IOceanConfigV2,
+    context: ICdnBuildContext,
+  ): string {
+    const configJson = JSON.stringify(config, null, context.includeDebug ? 2 : 0);
+    const websiteCount = Object.keys(config.websites).length;
+    const totalInventory = Object.values(config.websites).reduce((total, website) => total + website.inventory.length, 0);
+
+    const script = `
+/*!
+ * Ocean Ads SDK V2 Configuration
+ * Publisher: ${config.publisher.id}
+ * Websites: ${websiteCount}
+ * Total Inventory: ${totalInventory}
+ * Generated: ${new Date().toISOString()}
+ * Version: ${config.meta.version}
+ * Build ID: ${config.meta.buildId}
+ * Environment: ${context.environment}
+ */
+(function() {
+  'use strict';
+  
+  // Embed V2 configuration
+  window.__OCEAN_CONFIG__ = ${configJson};
+  
+  // Configuration validation
+  if (typeof window.__OCEAN_CONFIG__ !== 'object' || !window.__OCEAN_CONFIG__) {
+    console.error('[Ocean Ads] Invalid V2 configuration');
+    return;
+  }
+  
+  // V2 configuration type validation
+  if (!window.__OCEAN_CONFIG__.websites || typeof window.__OCEAN_CONFIG__.websites !== 'object') {
+    console.error('[Ocean Ads] Invalid V2 configuration: missing websites');
+    return;
+  }
+  
+  if (!window.__OCEAN_CONFIG__.meta || typeof window.__OCEAN_CONFIG__.meta !== 'object') {
+    console.error('[Ocean Ads] Invalid V2 configuration: missing meta');
+    return;
+  }
+  
+  // Debug mode logging
+  if (window.__OCEAN_CONFIG__.settings.debug) {
+    console.log('[Ocean Ads V2] Configuration loaded:');
+    console.log('  Publisher:', window.__OCEAN_CONFIG__.publisher.id);
+    console.log('  Websites:', ${websiteCount});
+    console.log('  Total Inventory:', ${totalInventory});
+    console.log('  Version:', window.__OCEAN_CONFIG__.meta.version);
+    console.log('  Build ID:', window.__OCEAN_CONFIG__.meta.buildId);
+    console.log('  Current Domain:', window.location.hostname);
+    
+    // Log available domains
+    const domains = Object.keys(window.__OCEAN_CONFIG__.websites);
+    console.log('  Available Domains:', domains);
+    
+    // Check domain match
+    const currentDomain = window.location.hostname;
+    const matchedDomain = domains.find(domain => 
+      domain === currentDomain || 
+      domain.includes('*') && currentDomain.match(domain.replace(/\*/g, '.*'))
+    );
+    
+    if (matchedDomain) {
+      console.log('  Domain Match:', matchedDomain);
+      console.log('  Website ID:', window.__OCEAN_CONFIG__.websites[matchedDomain].id);
+      console.log('  Inventory Count:', window.__OCEAN_CONFIG__.websites[matchedDomain].inventory.length);
+    } else {
+      console.warn('[Ocean Ads V2] No domain match found for:', currentDomain);
+    }
   }
 })();
 `;

@@ -25,6 +25,8 @@ export class AuthService {
     private config: ConfigService,
   ) {}
 
+  //hello there are you saved?? 
+
   // This function is used to register a new advertiser.
   async signup(createAdvertiserDto: CreateAdvertiserDto) {
     const existingUser = await this.prisma.advertiser.findUnique({

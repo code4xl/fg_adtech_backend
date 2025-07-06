@@ -9,11 +9,11 @@ export interface IPublisherConfig {
 }
 
 /**
- * Website configuration interface
+ * Website configuration interface for multi-website support
  */
 export interface IWebsiteConfig {
   id: string;
-  domain: string;
+  isActive: boolean;
 }
 
 /**
@@ -54,22 +54,50 @@ export interface ISdkSettings {
 }
 
 /**
- * Complete Ocean SDK configuration interface
+ * V2 Ocean SDK configuration interface - Multi-Website Support
  * This is what gets embedded as window.__OCEAN_CONFIG__
+ */
+export interface IOceanConfigV2 {
+  publisher: {
+    id: string;
+    tier: PublisherTier;
+  };
+  websites: {
+    [domain: string]: {
+      id: string;
+      inventory: IInventoryConfig[];
+      isActive: boolean;
+    };
+  };
+  settings: ISdkSettings;
+  meta: {
+    version: string;
+    buildId: string;
+    generatedAt: number;
+  };
+}
+
+/**
+ * Legacy Ocean SDK configuration interface - Single Website
+ * Maintained for backward compatibility
  */
 export interface IOceanConfig {
   publisher: IPublisherConfig;
-  website: IWebsiteConfig;
+  website: {
+    id: string;
+    domain: string;
+  };
   inventory: IInventoryConfig[];
   settings: ISdkSettings;
 }
 
 /**
- * CDN file metadata interface
+ * CDN file metadata interface - Updated for multi-website support
  */
 export interface ICdnFileMetadata {
   publisherId: string;
-  websiteId: string;
+  websiteIds: string[]; // Changed from single websiteId to array
+  domains: string[]; // Track all domains in this CDN
   version: string;
   buildId: string;
   integrity: string;
@@ -78,6 +106,7 @@ export interface ICdnFileMetadata {
   environment: string;
   fileSize: number;
   inventoryCount: number;
+  websiteCount: number; // New field
 }
 
 /**
@@ -124,14 +153,15 @@ export interface IInventoryMapping {
   position: AdPosition;
   instanceNumber?: number;
   customSelector?: string;
+  websiteId: string; // New field to track which website this inventory belongs to
 }
 
 /**
- * CDN build context interface
+ * CDN build context interface - Updated for multi-website
  */
 export interface ICdnBuildContext {
   publisherId: string;
-  websiteId: string;
+  websiteIds?: string[]; // Optional - if not provided, include all active websites
   environment: string;
   forceRebuild: boolean;
   includeDebug: boolean;
@@ -140,7 +170,7 @@ export interface ICdnBuildContext {
 }
 
 /**
- * CDN build result interface
+ * CDN build result interface - Updated for multi-website
  */
 export interface ICdnBuildResult {
   success: boolean;
@@ -150,4 +180,38 @@ export interface ICdnBuildResult {
   buildId?: string;
   error?: string;
   metadata?: ICdnFileMetadata;
+  websiteCount?: number; // New field
+  domains?: string[]; // New field
+}
+
+/**
+ * Domain detection result interface
+ */
+export interface IDomainDetectionResult {
+  websiteId: string | null;
+  domain: string;
+  matchType: 'direct' | 'subdomain' | 'wildcard' | 'none';
+  confidence: number; // 0-1 scale
+}
+
+/**
+ * Configuration validation result interface
+ */
+export interface IConfigValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+  websiteCount: number;
+  inventoryCount: number;
+}
+
+/**
+ * Migration helper interface for v1 to v2 config
+ */
+export interface IConfigMigrationResult {
+  success: boolean;
+  v2Config?: IOceanConfigV2;
+  errors?: string[];
+  warnings?: string[];
+  migrationNotes?: string[];
 }
