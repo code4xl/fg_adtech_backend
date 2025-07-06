@@ -3,321 +3,507 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
 import { REDIS_KEYS } from '../constants/cache-keys';
 
+interface BidAdjustmentContext {
+  deviceType: string;
+  country: string;
+  region?: string;
+  city?: string;
+  userAge?: number;
+  userGender?: string;
+  hour: number;
+  dayOfWeek: number;
+  isWeekend: boolean;
+}
+
+interface AdjustmentBreakdown {
+  baseMultiplier: number;
+  deviceMultiplier: number;
+  geoMultiplier: number;
+  timeMultiplier: number;
+  demographicMultiplier: number;
+  finalMultiplier: number;
+  adjustmentDetails: {
+    device: string;
+    geo: string;
+    time: string;
+    demographic: string;
+  };
+}
+
 @Injectable()
 export class BidAdjustmentService {
   private readonly logger = new Logger(BidAdjustmentService.name);
+
+  // India Tier-1 Cities (Premium Markets)
+  private readonly INDIA_TIER1_CITIES = [
+    'mumbai',
+    'delhi',
+    'bangalore',
+    'bengaluru',
+    'hyderabad',
+    'chennai',
+    'kolkata',
+    'pune',
+    'ahmedabad',
+    'gurgaon',
+    'noida',
+    'navi mumbai',
+    'thane',
+  ];
+
+  // India Tier-2 Cities (Secondary Markets)
+  private readonly INDIA_TIER2_CITIES = [
+    'jaipur',
+    'lucknow',
+    'kanpur',
+    'nagpur',
+    'indore',
+    'bhopal',
+    'visakhapatnam',
+    'patna',
+    'vadodara',
+    'ludhiana',
+    'agra',
+    'nashik',
+    'faridabad',
+    'meerut',
+    'rajkot',
+    'kalyan-dombivali',
+    'vasai-virar',
+    'varanasi',
+    'srinagar',
+    'aurangabad',
+    'dhanbad',
+    'amritsar',
+    'navi mumbai',
+    'allahabad',
+    'ranchi',
+    'howrah',
+    'coimbatore',
+    'jabalpur',
+    'gwalior',
+    'vijayawada',
+    'jodhpur',
+    'madurai',
+    'raipur',
+    'kota',
+    'chandigarh',
+    'guwahati',
+  ];
+
+  // Developed Countries (Premium Markets)
+  private readonly PREMIUM_COUNTRIES = [
+    'us',
+    'uk',
+    'ca',
+    'au',
+    'de',
+    'fr',
+    'ch',
+    'no',
+    'se',
+    'dk',
+    'nl',
+    'be',
+    'at',
+    'fi',
+    'ie',
+    'nz',
+    'jp',
+    'sg',
+    'hk',
+  ];
+
+  // Emerging Markets
+  private readonly EMERGING_COUNTRIES = [
+    'br',
+    'mx',
+    'ar',
+    'th',
+    'my',
+    'ph',
+    'id',
+    'vn',
+    'bd',
+    'pk',
+    'eg',
+    'za',
+    'ng',
+    'ke',
+    'tr',
+    'pl',
+    'cz',
+    'hu',
+    'ro',
+  ];
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
   ) {}
 
-  public async getDeviceMultiplier(
+  /**
+   * Calculate comprehensive bid adjustments
+   */
+  public async calculateComprehensiveBidAdjustments(
     campaignId: string,
-    deviceType: string,
-  ): Promise<number> {
+    baseBidCPM: number,
+    context: BidAdjustmentContext,
+  ): Promise<{ finalBidCPM: number; breakdown: AdjustmentBreakdown }> {
     try {
-      const cacheKey = REDIS_KEYS.DEVICE_MULTIPLIER(deviceType, campaignId);
-      const cached = await this.redis.get<string>(cacheKey);
-
-      if (cached) {
-        return parseFloat(cached);
-      }
-
-      // Calculate device performance from historical data
-      const devicePerformance = await this.calculateDevicePerformance(
+      // Get all adjustment multipliers
+      const deviceMultiplier = await this.getDeviceAdjustment(
         campaignId,
-        deviceType,
+        context.deviceType,
       );
 
-      // Cache for 1 hour
-      await this.redis.set(cacheKey, devicePerformance.toString(), 3600);
+      const geoMultiplier = await this.getGeographicAdjustment(
+        campaignId,
+        context.country,
+        context.region,
+        context.city,
+      );
 
-      return devicePerformance;
+      const timeMultiplier = this.getTemporalAdjustment(
+        context.hour,
+        context.dayOfWeek,
+        context.isWeekend,
+      );
+
+      const demographicMultiplier = this.getDemographicAdjustment(
+        context.userAge,
+        context.userGender,
+      );
+
+      // Apply industry-standard multiplicative formula
+      const finalMultiplier =
+        deviceMultiplier *
+        geoMultiplier *
+        timeMultiplier *
+        demographicMultiplier;
+      const finalBidCPM = baseBidCPM * finalMultiplier;
+
+      const breakdown: AdjustmentBreakdown = {
+        baseMultiplier: 1.0,
+        deviceMultiplier,
+        geoMultiplier,
+        timeMultiplier,
+        demographicMultiplier,
+        finalMultiplier,
+        adjustmentDetails: {
+          device: `${context.deviceType}: ${this.formatMultiplierChange(deviceMultiplier)}`,
+          geo: `${context.country}/${context.city || context.region}: ${this.formatMultiplierChange(geoMultiplier)}`,
+          time: `${context.hour}:00, ${context.isWeekend ? 'Weekend' : 'Weekday'}: ${this.formatMultiplierChange(timeMultiplier)}`,
+          demographic: `Age: ${context.userAge}, Gender: ${context.userGender}: ${this.formatMultiplierChange(demographicMultiplier)}`,
+        },
+      };
+
+      this.logger.debug('Bid adjustment calculation completed', {
+        campaignId,
+        baseBidCPM,
+        finalBidCPM,
+        breakdown,
+      });
+
+      return { finalBidCPM, breakdown };
     } catch (error) {
-      this.logger.warn('Device multiplier calculation failed', {
+      this.logger.error('Bid adjustment calculation failed', {
         error: error.message,
         campaignId,
-        deviceType,
       });
-      return 1.0;
+
+      // Return baseline adjustments on error
+      return {
+        finalBidCPM: baseBidCPM,
+        breakdown: {
+          baseMultiplier: 1.0,
+          deviceMultiplier: 1.0,
+          geoMultiplier: 1.0,
+          timeMultiplier: 1.0,
+          demographicMultiplier: 1.0,
+          finalMultiplier: 1.0,
+          adjustmentDetails: {
+            device: 'Error - using baseline',
+            geo: 'Error - using baseline',
+            time: 'Error - using baseline',
+            demographic: 'Error - using baseline',
+          },
+        },
+      };
     }
   }
 
-  public async calculateDevicePerformance(
+  /**
+   * Device-based adjustments following industry standards
+   */
+  private async getDeviceAdjustment(
     campaignId: string,
     deviceType: string,
   ): Promise<number> {
-    // Get performance data by device type from impressions
-    const deviceStats = await this.prisma.impressionEvent.aggregate({
-      where: {
-        campaignId,
-        deviceType,
-        timestamp: {
-          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Last 30 days
-        },
-      },
-      _count: {
-        id: true,
-      },
-    });
+    const cacheKey = REDIS_KEYS.DEVICE_MULTIPLIER(deviceType, campaignId);
 
-    const allDeviceStats = await this.prisma.impressionEvent.aggregate({
-      where: {
-        campaignId,
-        timestamp: {
-          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        },
-      },
-      _count: {
-        id: true,
-      },
-    });
-
-    if (!allDeviceStats._count.id || allDeviceStats._count.id === 0) {
-      return 1.0; // No data, neutral multiplier
-    }
-
-    // Calculate relative performance
-    const deviceImpressions = deviceStats._count.id || 0;
-    const totalImpressions = allDeviceStats._count.id;
-
-    const deviceShare = deviceImpressions / totalImpressions;
-
-    // Apply device-specific adjustments based on typical performance
-    const deviceMultipliers = {
-      mobile: 1.2, // Mobile typically performs better
-      desktop: 1.0, // Baseline
-      tablet: 0.9, // Tablet typically lower performance
-    };
-
-    const baseMultiplier = deviceMultipliers[deviceType?.toLowerCase()] || 1.0;
-
-    // Adjust based on actual performance
-    if (deviceShare > 0.5) {
-      return Math.min(1.5, baseMultiplier * 1.1); // High performing device
-    } else if (deviceShare < 0.2) {
-      return Math.max(0.7, baseMultiplier * 0.9); // Low performing device
-    }
-
-    return baseMultiplier;
-  }
-
-  public async getGeographicMultiplier(
-    campaignId: string,
-    country: string,
-    region: string,
-  ): Promise<number> {
     try {
-      const cacheKey = REDIS_KEYS.GEO_MULTIPLIER(country, campaignId);
+      // Check cache first
       const cached = await this.redis.get<string>(cacheKey);
-
       if (cached) {
         return parseFloat(cached);
       }
 
-      const geoPerformance = await this.calculateGeographicPerformance(
-        campaignId,
-        country,
-        region,
-      );
+      // Calculate device adjustment based on industry standards
+      let multiplier = 1.0;
+
+      switch (deviceType?.toLowerCase()) {
+        case 'mobile':
+        case 'smartphone':
+          multiplier = 1.25; // +25% for mobile (highest engagement)
+          break;
+
+        case 'tablet':
+          multiplier = 0.85; // -15% for tablet (lower performance)
+          break;
+
+        case 'desktop':
+        case 'computer':
+          multiplier = 1.0; // Baseline
+          break;
+
+        case 'smart_tv':
+        case 'connected_tv':
+        case 'ctv':
+          multiplier = 1.4; // +40% for premium TV inventory
+          break;
+
+        default:
+          multiplier = 1.0; // Unknown device type
+      }
 
       // Cache for 2 hours
-      await this.redis.set(cacheKey, geoPerformance.toString(), 7200);
+      await this.redis.set(cacheKey, multiplier.toString(), 7200);
 
-      return geoPerformance;
+      return multiplier;
     } catch (error) {
-      this.logger.warn('Geographic multiplier calculation failed', {
+      this.logger.warn('Device adjustment calculation failed', {
         error: error.message,
-        campaignId,
-        country,
+        deviceType,
       });
       return 1.0;
     }
   }
 
-  public async calculateGeographicPerformance(
+  /**
+   * Geographic adjustments with India city-level granularity
+   */
+  private async getGeographicAdjustment(
     campaignId: string,
     country: string,
-    region: string,
+    region?: string,
+    city?: string,
   ): Promise<number> {
-    // Get conversion data by geography
-    const geoStats = await this.prisma.impressionEvent.findMany({
-      where: {
-        campaignId,
-        country,
-        timestamp: {
-          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        },
-      },
-      select: {
-        id: true,
-        ClickEvent: {
-          select: { id: true },
-        },
-      },
-    });
+    const cacheKey = REDIS_KEYS.GEO_MULTIPLIER(
+      `${country}_${region || ''}_${city || ''}`,
+      campaignId,
+    );
 
-    if (geoStats.length === 0) {
-      return 1.0;
-    }
-
-    // Calculate CTR for this geography
-    const impressions = geoStats.length;
-    const clicks = geoStats.filter((imp) => imp.ClickEvent.length > 0).length;
-    const geoCTR = impressions > 0 ? (clicks / impressions) * 100 : 0;
-
-    // Get campaign average CTR
-    const avgCTR = await this.getCampaignAverageCTR(campaignId);
-
-    if (avgCTR === 0) {
-      return 1.0;
-    }
-
-    // Return relative performance (capped between 0.5 and 2.0)
-    const relativePerformance = geoCTR / avgCTR;
-    return Math.max(0.5, Math.min(2.0, relativePerformance));
-  }
-
-  public getTimeOfDayMultiplier(hour: number): number {
-    // Define time-based multipliers (24-hour format)
-    const timeMultipliers = {
-      0: 0.7, // Midnight - 1AM
-      1: 0.6, // 1AM - 2AM
-      2: 0.5, // 2AM - 3AM
-      3: 0.5, // 3AM - 4AM
-      4: 0.5, // 4AM - 5AM
-      5: 0.6, // 5AM - 6AM
-      6: 0.8, // 6AM - 7AM
-      7: 0.9, // 7AM - 8AM
-      8: 1.0, // 8AM - 9AM
-      9: 1.1, // 9AM - 10AM
-      10: 1.2, // 10AM - 11AM
-      11: 1.2, // 11AM - 12PM
-      12: 1.1, // 12PM - 1PM
-      13: 1.0, // 1PM - 2PM
-      14: 1.1, // 2PM - 3PM
-      15: 1.2, // 3PM - 4PM
-      16: 1.2, // 4PM - 5PM
-      17: 1.1, // 5PM - 6PM
-      18: 1.0, // 6PM - 7PM
-      19: 1.1, // 7PM - 8PM
-      20: 1.2, // 8PM - 9PM
-      21: 1.1, // 9PM - 10PM
-      22: 1.0, // 10PM - 11PM
-      23: 0.8, // 11PM - 12AM
-    };
-
-    return timeMultipliers[hour] || 1.0;
-  }
-
-  public async getInventoryQualityMultiplier(
-    inventoryId: string,
-  ): Promise<number> {
     try {
-      const cacheKey = REDIS_KEYS.INVENTORY_QUALITY_MULTIPLIER(inventoryId);
+      // Check cache first
       const cached = await this.redis.get<string>(cacheKey);
-
       if (cached) {
         return parseFloat(cached);
       }
 
-      const qualityScore = await this.calculateInventoryQuality(inventoryId);
+      let multiplier = 1.0;
+      const countryLower = country?.toLowerCase();
+      const cityLower = city?.toLowerCase();
+
+      // India-specific city-level adjustments
+      if (countryLower === 'in' || countryLower === 'india') {
+        if (cityLower && this.INDIA_TIER1_CITIES.includes(cityLower)) {
+          multiplier = 1.35; // +35% for Tier-1 Indian cities
+        } else if (cityLower && this.INDIA_TIER2_CITIES.includes(cityLower)) {
+          multiplier = 1.15; // +15% for Tier-2 Indian cities
+        } else {
+          multiplier = 0.8; // -20% for Tier-3/rural areas
+        }
+      }
+      // Premium developed countries
+      else if (this.PREMIUM_COUNTRIES.includes(countryLower)) {
+        const premiumMultipliers = {
+          us: 1.5, // +50% for US
+          uk: 1.4, // +40% for UK
+          ca: 1.35, // +35% for Canada
+          au: 1.3, // +30% for Australia
+          de: 1.25, // +25% for Germany
+          fr: 1.25, // +25% for France
+          ch: 1.6, // +60% for Switzerland
+          no: 1.5, // +50% for Norway
+          se: 1.4, // +40% for Sweden
+          dk: 1.35, // +35% for Denmark
+          nl: 1.3, // +30% for Netherlands
+          jp: 1.4, // +40% for Japan
+          sg: 1.45, // +45% for Singapore
+          hk: 1.4, // +40% for Hong Kong
+        };
+        multiplier = premiumMultipliers[countryLower] || 1.2;
+      }
+      // Emerging markets
+      else if (this.EMERGING_COUNTRIES.includes(countryLower)) {
+        const emergingMultipliers = {
+          br: 0.7, // -30% for Brazil
+          mx: 0.75, // -25% for Mexico
+          ar: 0.65, // -35% for Argentina
+          th: 0.8, // -20% for Thailand
+          my: 0.75, // -25% for Malaysia
+          ph: 0.7, // -30% for Philippines
+          id: 0.7, // -30% for Indonesia
+          vn: 0.65, // -35% for Vietnam
+        };
+        multiplier = emergingMultipliers[countryLower] || 0.7;
+      }
+      // Other countries (default)
+      else {
+        multiplier = 0.9; // -10% for other countries
+      }
 
       // Cache for 4 hours
-      await this.redis.set(cacheKey, qualityScore.toString(), 14400);
+      await this.redis.set(cacheKey, multiplier.toString(), 14400);
 
-      return qualityScore;
+      return multiplier;
     } catch (error) {
-      this.logger.warn('Inventory quality calculation failed', {
+      this.logger.warn('Geographic adjustment calculation failed', {
         error: error.message,
-        inventoryId,
+        country,
+        city,
       });
       return 1.0;
     }
   }
 
-  public async calculateInventoryQuality(inventoryId: string): Promise<number> {
-    // Get inventory performance metrics
-    const inventory = await this.prisma.adInventory.findUnique({
-      where: { id: inventoryId },
-      select: {
-        viewabilityScore: true,
-        website: {
-          select: {
-            domain: true,
-          },
-        },
-      },
-    });
+  /**
+   * Temporal (time-based) adjustments
+   */
+  private getTemporalAdjustment(
+    hour: number,
+    dayOfWeek: number,
+    isWeekend: boolean,
+  ): number {
+    let timeMultiplier = 1.0;
+    let dayMultiplier = 1.0;
 
-    if (!inventory) {
-      return 1.0;
+    // Hour-based adjustments (24-hour format)
+    if (hour >= 9 && hour <= 17) {
+      // Business hours (9 AM - 5 PM)
+      timeMultiplier = 1.2; // +20%
+    } else if (hour >= 19 && hour <= 22) {
+      // Evening prime time (7 PM - 10 PM)
+      timeMultiplier = 1.3; // +30%
+    } else if (hour >= 18 && hour <= 23) {
+      // Extended evening (6 PM - 11 PM)
+      timeMultiplier = 1.15; // +15%
+    } else if (hour >= 23 || hour <= 6) {
+      // Late night / early morning
+      timeMultiplier = 0.7; // -30%
+    } else {
+      // Other hours
+      timeMultiplier = 0.9; // -10%
     }
 
-    let qualityScore = 1.0;
-
-    // Viewability score adjustment
-    if (inventory.viewabilityScore) {
-      // Viewability score is 0-1, convert to multiplier
-      qualityScore *= 0.5 + inventory.viewabilityScore * 0.5;
+    // Day-based adjustments
+    if (isWeekend) {
+      // Weekend adjustments depend on campaign type
+      // For general campaigns, slightly lower performance
+      dayMultiplier = 0.9; // -10%
+    } else {
+      // Weekday baseline
+      dayMultiplier = 1.1;
     }
 
-    // Domain quality (simplified - could be enhanced with domain reputation data)
-    const domain = inventory.website?.domain;
-    if (domain) {
-      const domainQuality = this.assessDomainQuality(domain);
-      qualityScore *= domainQuality;
-    }
-
-    return Math.max(0.5, Math.min(1.5, qualityScore));
+    return timeMultiplier * dayMultiplier;
   }
 
-  public assessDomainQuality(domain: string): number {
-    // Simplified domain quality assessment
-    // In production, this could integrate with domain reputation services
+  /**
+   * Demographic adjustments
+   */
+  private getDemographicAdjustment(
+    userAge?: number,
+    userGender?: string,
+  ): number {
+    let ageMultiplier = 1.0;
 
-    if (!domain) return 1.0;
+    // Age-based adjustments
+    if (userAge) {
+      if (userAge >= 25 && userAge <= 34) {
+        ageMultiplier = 1.1; // +10% for peak purchasing power age
+      } else if (userAge >= 35 && userAge <= 44) {
+        ageMultiplier = 1.15; // +15% for peak earning years
+      } else if (userAge >= 45 && userAge <= 54) {
+        ageMultiplier = 1.05; // +5% for established professionals
+      } else if (userAge >= 18 && userAge <= 24) {
+        ageMultiplier = 0.95; // -5% for younger audience
+      } else if (userAge >= 55) {
+        ageMultiplier = 0.9; // -10% for older audience
+      }
+    }
 
-    // Basic quality indicators
-    const isHTTPS = domain.startsWith('https://');
-    const hasWWW = domain.includes('www.');
-    const domainLength = domain.length;
-
-    let score = 1.0;
-
-    if (isHTTPS) score += 0.1;
-    if (hasWWW) score += 0.05;
-    if (domainLength > 20 && domainLength < 50) score += 0.05;
-
-    return Math.max(0.8, Math.min(1.2, score));
+    return ageMultiplier;
   }
 
-  private async getCampaignAverageCTR(campaignId: string): Promise<number> {
-    try {
-      const stats = await this.prisma.campaignStatistics.aggregate({
-        where: {
+  /**
+   * Format multiplier for logging and debugging
+   */
+  private formatMultiplierChange(multiplier: number): string {
+    const percentage = ((multiplier - 1) * 100).toFixed(1);
+    const sign = multiplier >= 1 ? '+' : '';
+    return `${sign}${percentage}%`;
+  }
+
+  /**
+   * Batch calculate adjustments for multiple campaigns (for auction efficiency)
+   */
+  public async batchCalculateBidAdjustments(
+    campaigns: Array<{ campaignId: string; baseBidCPM: number }>,
+    context: BidAdjustmentContext,
+  ): Promise<
+    Array<{ campaignId: string; finalBidCPM: number; multiplier: number }>
+  > {
+    const results = [];
+
+    // Get common adjustments that apply to all campaigns
+    const timeMultiplier = this.getTemporalAdjustment(
+      context.hour,
+      context.dayOfWeek,
+      context.isWeekend,
+    );
+    const demoMultiplier = this.getDemographicAdjustment(
+      context.userAge,
+      context.userGender,
+    );
+
+    // Process campaigns in parallel
+    const campaignResults = await Promise.all(
+      campaigns.map(async ({ campaignId, baseBidCPM }) => {
+        const deviceMultiplier = await this.getDeviceAdjustment(
           campaignId,
-          date: {
-            gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-          },
-        },
-        _sum: {
-          impressions: true,
-          clicks: true,
-        },
-      });
+          context.deviceType,
+        );
+        const geoMultiplier = await this.getGeographicAdjustment(
+          campaignId,
+          context.country,
+          context.region,
+          context.city,
+        );
 
-      const impressions = stats._sum.impressions || 0;
-      const clicks = stats._sum.clicks || 0;
+        const finalMultiplier =
+          deviceMultiplier * geoMultiplier * timeMultiplier * demoMultiplier;
+        const finalBidCPM = baseBidCPM * finalMultiplier;
 
-      return impressions > 0 ? (clicks / impressions) * 100 : 0;
-    } catch (error) {
-      this.logger.warn('Failed to get campaign average CTR', {
-        error: error.message,
-        campaignId,
-      });
-      return 0;
-    }
+        return {
+          campaignId,
+          finalBidCPM,
+          multiplier: finalMultiplier,
+        };
+      }),
+    );
+
+    return campaignResults;
   }
 }

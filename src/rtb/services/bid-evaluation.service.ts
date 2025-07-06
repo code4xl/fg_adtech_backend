@@ -38,18 +38,19 @@ export class BidEvaluationService {
       );
 
       // 3. Apply contextual adjustments
-      const adjustedBid = await this.applyBidAdjustments(
-        campaign,
-        strategicBid,
-        context,
-      );
+      const adjustedBid =
+        await this.bidAdjustmentService.calculateComprehensiveBidAdjustments(
+          campaign.id,
+          strategicBid,
+          context,
+        );
 
       // 4. Apply budget pacing constraints
       // const pacedBid = await this.applyBudgetPacing(campaign, adjustedBid);
 
       // 5. Ensure bid meets minimum and maximum constraints
       const finalBid = this.applyBidConstraints(
-        adjustedBid,
+        adjustedBid.finalBidCPM,
         context.floorPrice,
       );
 
@@ -144,46 +145,6 @@ export class BidEvaluationService {
       // LOGIC: Lowest cost strategy should bid just above floor price
       return this.bidStrategyService.calculateLowestCostBid(baseBid, context);
     }
-  }
-
-  private async applyBidAdjustments(
-    campaign: CampaignWithTargeting,
-    baseBid: number,
-    context: any,
-  ): Promise<number> {
-    let adjustedBid = baseBid;
-
-    // Device type adjustment
-    const deviceMultiplier =
-      await this.bidAdjustmentService.getDeviceMultiplier(
-        campaign.id,
-        context.userContext.deviceType,
-      );
-    adjustedBid *= deviceMultiplier;
-
-    // Geographic adjustment
-    const geoMultiplier =
-      await this.bidAdjustmentService.getGeographicMultiplier(
-        campaign.id,
-        context.userContext.country,
-        context.userContext.region,
-      );
-    adjustedBid *= geoMultiplier;
-
-    // Time-of-day adjustment
-    const timeMultiplier = this.bidAdjustmentService.getTimeOfDayMultiplier(
-      new Date().getHours(),
-    );
-    adjustedBid *= timeMultiplier;
-
-    // Inventory quality adjustment
-    const qualityMultiplier =
-      await this.bidAdjustmentService.getInventoryQualityMultiplier(
-        context.inventoryId,
-      );
-    adjustedBid *= qualityMultiplier;
-
-    return adjustedBid;
   }
 
   private async applyBudgetPacing(
