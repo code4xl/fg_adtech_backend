@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from 'src/redis/redis.service';
 import { REDIS_KEYS } from 'src/rtb/constants/cache-keys';
-import { BudgetInitializationService } from './budget-initialization.service';
 import { BudgetRedisSyncService } from './budget-redis-sync.service';
 
 @Injectable()
@@ -10,7 +9,6 @@ export class BudgetValidationService {
 
   constructor(
     private readonly redis: RedisService,
-    private readonly budgetInit: BudgetInitializationService,
     private readonly budgetRedisSyncService: BudgetRedisSyncService,
   ) {}
 

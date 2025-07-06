@@ -1,24 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
-import { REDIS_KEYS, RTB_CACHE_TTL } from '../constants/cache-keys';
 import { CampaignWithTargeting } from '../types/campaign.types';
-import { CampaignTargetingService } from './campaign-targeting.service';
 import { InventoryFormat } from '@prisma/client';
-import { BudgetInitializationService } from 'src/tracking/services/budget-initialization.service';
 import { BudgetValidationService } from 'src/tracking/services/budget-validation.service';
-
-interface BudgetStatus {
-  dailyBudget: number;
-  spentToday: number;
-  isExhausted: boolean;
-}
-
-// Updated interface to match new schema
-interface CampaignBudgetInfo {
-  dailyBudget: number;
-  totalBudget: number;
-}
 
 @Injectable()
 export class CampaignEligibilityService {
