@@ -351,8 +351,8 @@ export class AuctionService {
       bidRequest.publisherId,
       bidRequest.inventoryId,
       bidRequest.websiteId,
-      finalPrice / 1000,
       bidRequest.auctionId,
+      finalPrice,
     );
     // Update all other bids to LOST
     await this.updateBidResponseStatuses(
