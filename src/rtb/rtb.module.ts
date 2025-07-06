@@ -19,7 +19,6 @@ import { AuctionCompletionKafkaConsumer } from './consumers/auction-completion.c
 import AuctionProducer from './producers/auction.producer';
 import { RtbCacheService } from './cache/rtb-cache.service';
 import { RtbHelper } from './utils/helpers';
-
 import { BudgetValidationService } from 'src/tracking/services/budget-validation.service';
 import { BudgetInitializationService } from 'src/tracking/services/budget-initialization.service';
 import { ImpressionClickLinkingService } from 'src/tracking/services/impression-click-linking.service';
@@ -33,6 +32,7 @@ import { BudgetManagerService } from './services/budget-manager.service';
 import { FinancialMonitoringController } from './controllers/financial-monitoring.controller';
 import { CreativeSelectionService } from './services/creative-selection.service';
 import { AdMarkupService } from './services/ad-markup.service';
+import { CampaignPoolWarmupService } from './cache/warmup/campaign-pool.warmup';
 
 @Module({
   imports: [
@@ -49,7 +49,6 @@ import { AdMarkupService } from './services/ad-markup.service';
     AdvertiserSpendingJob,
     SystemRevenueJob,
     RtbService,
-
     AuctionService,
     BidEvaluationService,
     CampaignEligibilityService,
@@ -73,6 +72,7 @@ import { AdMarkupService } from './services/ad-markup.service';
     BudgetManagerService,
     CreativeSelectionService,
     AdMarkupService,
+    CampaignPoolWarmupService,
   ],
   exports: [
     RtbService,
@@ -95,12 +95,12 @@ export class RTBModule implements OnModuleInit {
   private readonly logger = new Logger(RTBModule.name);
 
   constructor(
-    private readonly campaignEligibilityService: CampaignEligibilityService,
+    private readonly campaignPoolWarmupService: CampaignPoolWarmupService,
   ) {}
 
   async onModuleInit() {
     try {
-      await this.campaignEligibilityService.warmupCaches();
+      await this.campaignPoolWarmupService.warmupCaches();
     } catch (error) {
       this.logger.error('RTB Module initialization failed', {
         error: error.message,

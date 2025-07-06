@@ -8,22 +8,6 @@ import {
 import { KafkaService } from './kafka.service';
 import { kafkaTopics } from 'src/rtb/constants/kafka-topics';
 
-/**
- * Enhanced Kafka Initialization Service
- *
- * This service creates all necessary Kafka topics during application startup.
- *
- * Why we need this:
- * - Ensures all required topics exist before consumers try to subscribe
- * - Creates topics with optimal partition/replication settings
- * - Handles both existing and new RTB-specific topics
- *
- * Changes from original:
- * - Added new RTB processing topics
- * - Added enhanced tracking topics
- * - Added optimization and analytics topics
- * - Improved error handling and logging
- */
 @Injectable()
 export class KafkaInitService implements OnModuleInit {
   private readonly logger = new Logger(KafkaInitService.name);
@@ -183,39 +167,6 @@ export class KafkaInitService implements OnModuleInit {
       }
     }
   }
-
-  /**
-   * Log topic configuration for debugging and monitoring
-   */
-  // private logTopicConfiguration(): void {
-  //   this.logger.debug('📋 Kafka Topic Configuration:');
-
-  //   const topicGroups = {
-  //     'Core RTB Flow': [
-  //       kafkaTopics.BID_REQUESTS,
-  //       kafkaTopics.BID_RESPONSES,
-  //       kafkaTopics.AUCTION_RESULTS,
-  //     ],
-  //     'Tracking Events': [kafkaTopics.IMPRESSIONS, kafkaTopics.CLICKS],
-  //     Analytics: [kafkaTopics.CAMPAIGN_METRICS, kafkaTopics.TIMESCALE_SYNC],
-  //     'Error Handling': [
-  //       kafkaTopics.DLQ_BID_REQUESTS,
-  //       kafkaTopics.DLQ_TRACKING,
-  //     ],
-  //     Optimization: [
-  //       kafkaTopics.RTB_OPTIMIZATION,
-  //       kafkaTopics.CAMPAIGN_BUDGET_ALERTS,
-  //       kafkaTopics.PERFORMANCE_UPDATES,
-  //     ],
-  //   };
-
-  //   Object.entries(topicGroups).forEach(([group, topics]) => {
-  //     this.logger.debug(`  ${group}:`);
-  //     topics.forEach((topic) => {
-  //       this.logger.debug(`    - ${topic}`);
-  //     });
-  //   });
-  // }
 
   /**
    * Health check method to verify topics exist

@@ -17,9 +17,12 @@ export class PublisherRevenueJob {
 
   /**
    * Process publisher revenue data from Redis to PostgreSQL
-   * Runs daily at midnight
+   * Runs daily at 1 am IST
    */
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_DAY_AT_1AM, {
+    name: 'processPublisherRevenue',
+    timeZone: 'Asia/Kolkata', // Set to Indian Standard Time
+  })
   async processPublisherRevenue(): Promise<void> {
     const startTime = Date.now();
     const batchId = uuidv4();
