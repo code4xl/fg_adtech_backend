@@ -7,8 +7,8 @@ model Campaign {
     endDate          DateTime
     status           CampaignStatus     @default(DRAFT)
     objective        CampaignObjective
-    bidStrategy      BidStrategy        @default(LOWEST_COST)
-    bidAmount        Decimal?           @db.Decimal(10, 2) // this is cpm
+    bidStrategy      BidStrategy        @default(LOWEST_COST) // only support LOWEST_COST for now
+    bidAmount        Decimal?           @db.Decimal(10, 2) // this is min cpm (base bid)
     pacing           CampaignPacing     @default(STANDARD)
     businessCategory BusinessCategory
     websiteUrl       String

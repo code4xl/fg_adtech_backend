@@ -45,13 +45,12 @@ export class BidEvaluationService {
       );
 
       // 4. Apply budget pacing constraints
-      const pacedBid = await this.applyBudgetPacing(campaign, adjustedBid);
+      // const pacedBid = await this.applyBudgetPacing(campaign, adjustedBid);
 
       // 5. Ensure bid meets minimum and maximum constraints
       const finalBid = this.applyBidConstraints(
-        pacedBid,
+        adjustedBid,
         context.floorPrice,
-        Number(campaign.bidAmount),
       );
 
       this.logger.debug('Bid calculation completed', {
@@ -59,7 +58,6 @@ export class BidEvaluationService {
         baseBid,
         strategicBid,
         adjustedBid,
-        pacedBid,
         finalBid,
       });
 
@@ -78,11 +76,7 @@ export class BidEvaluationService {
   private async getBaseBidAmount(
     campaign: CampaignWithTargeting,
   ): Promise<number> {
-    // REASON: Use campaign's bid amount (which is now CPM-based as per payment flow)
-    // LOGIC: bidAmount represents cost per 1,000 impressions, not per impression
     if (campaign.bidAmount && Number(campaign.bidAmount) > 0) {
-      // CRITICAL: Convert CPM to per-impression cost
-      // If bidAmount = $2.50 CPM, then cost per impression = $2.50 / 1000 = $0.0025
       const cpmBid = Number(campaign.bidAmount);
       const costPerImpression = cpmBid / 1000;
 
@@ -95,25 +89,7 @@ export class BidEvaluationService {
       return costPerImpression;
     }
 
-    // REASON: Fallback calculation using new budget structure
-    // LOGIC: If no bid amount, derive from daily budget assuming reasonable impression volume
-    const dailyBudget = await this.getDailyBudget(campaign.id);
-    if (dailyBudget > 0) {
-      // Assume 10,000 impressions per day as baseline (adjustable)
-      const estimatedDailyImpressions = 10000;
-      const costPerImpression = dailyBudget / estimatedDailyImpressions;
-
-      this.logger.debug('Fallback bid from daily budget', {
-        campaignId: campaign.id,
-        dailyBudget: dailyBudget,
-        estimatedDailyImpressions: estimatedDailyImpressions,
-        costPerImpression: costPerImpression,
-      });
-
-      return costPerImpression;
-    }
-
-    // Ultimate fallback - $1 CPM = $0.001 per impression
+    // Ultimate fallback - Rs.1 CPM = $0.001 per impression
     return 0.001;
   }
 
@@ -163,31 +139,10 @@ export class BidEvaluationService {
     baseBid: number,
     context: any,
   ): Promise<number> {
-    // REASON: No changes needed here - bid strategy logic remains the same
-    // LOGIC: Strategy calculations work with per-impression costs regardless of source
-    switch (campaign.bidStrategy) {
-      case 'LOWEST_COST':
-        return this.bidStrategyService.calculateLowestCostBid(baseBid, context);
-
-      case 'COST_CAP':
-        return this.bidStrategyService.calculateCostCapBid(
-          campaign,
-          baseBid,
-          context,
-        );
-
-      case 'BID_CAP':
-        return this.bidStrategyService.calculateBidCapBid(campaign, baseBid);
-
-      case 'TARGET_COST':
-        return this.bidStrategyService.calculateTargetCostBid(
-          campaign,
-          baseBid,
-          context,
-        );
-
-      default:
-        return baseBid;
+    if (!campaign.bidStrategy || campaign.bidStrategy === 'LOWEST_COST') {
+      // REASON: Default to lowest cost strategy if not specified
+      // LOGIC: Lowest cost strategy should bid just above floor price
+      return this.bidStrategyService.calculateLowestCostBid(baseBid, context);
     }
   }
 
@@ -196,8 +151,6 @@ export class BidEvaluationService {
     baseBid: number,
     context: any,
   ): Promise<number> {
-    // REASON: No changes needed here - adjustment logic remains the same
-    // LOGIC: Multipliers work on any bid amount regardless of budget structure
     let adjustedBid = baseBid;
 
     // Device type adjustment
@@ -288,22 +241,6 @@ export class BidEvaluationService {
         floorPrice: floorPrice,
         adjustedBid: finalBid,
       });
-    }
-
-    // REASON: Apply maximum bid cap if specified
-    // LOGIC: Respect campaign's maximum bid limit (converted from CPM if needed)
-    if (maxBid && maxBid > 0) {
-      // CRITICAL: Convert CPM max bid to per-impression if needed
-      const maxBidPerImpression = maxBid > 1 ? maxBid / 1000 : maxBid;
-      if (finalBid > maxBidPerImpression) {
-        finalBid = maxBidPerImpression;
-        this.logger.debug('Bid capped at maximum', {
-          originalBid: bidAmount,
-          maxBidCPM: maxBid,
-          maxBidPerImpression: maxBidPerImpression,
-          adjustedBid: finalBid,
-        });
-      }
     }
 
     // REASON: Ensure minimum viable bid
