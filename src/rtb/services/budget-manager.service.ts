@@ -28,73 +28,96 @@ export class BudgetManagerService {
    * It updates the daily spend and campaign spending in Redis.
    */
   async reserveBudgetOnWin(
-    winningBid: CreatedBidResponse,
+    bidResponse: any,
     publisherId: string,
     inventoryId: string,
     websiteId: string,
     auctionId: string,
     finalPrice: number,
   ): Promise<void> {
+    const startTime = Date.now();
     const today = new Date().toISOString().split('T')[0];
-    const costPerImpression = finalPrice / 1000; // Convert CPM to per-impression cost
-    const reservationId = `${winningBid.id}-${today}`;
-    try {
-      this.logger.debug('Reserving budget on win', {
-        campaignId: winningBid.campaignId,
-        finalPrice,
-        costPerImpression,
-        publisherId,
-      });
-      // Reserve in redis
-      // This is a real-time operation to ensure budget is reserved immediately
+    const costPerImpression = finalPrice / 1000;
 
+    // Generate unique reservation ID
+    const reservationId = `${bidResponse.id}_${today}`;
+
+    try {
+      // 1. ✅ RESERVE BUDGET ATOMICALLY
       const pipeline = this.redis.pipeline();
-      const reservationData: BudgetReservation = {
-        reservationId,
-        campaignId: winningBid.campaignId,
-        bidResponseId: winningBid.id,
-        amount: costPerImpression,
-        auctionId,
-        reservedAt: new Date().toISOString(),
-        status: 'RESERVED',
-      };
-      pipeline.set(
-        REDIS_KEYS.BUDGET_RESERVATION(reservationId),
-        JSON.stringify(reservationData),
+
+      // Increment spend counter (reserve budget)
+      pipeline.incrbyfloat(
+        REDIS_KEYS.DAILY_BUDGET_SPEND(bidResponse.campaignId, today),
+        costPerImpression,
       );
-      pipeline.expire(
+
+      // Store reservation details with TTL
+      pipeline.setex(
         REDIS_KEYS.BUDGET_RESERVATION(reservationId),
         RTB_CACHE_TTL.BUDGET_RESERVATION, // 5 minutes
+        JSON.stringify({
+          bidResponseId: bidResponse.id,
+          campaignId: bidResponse.campaignId,
+          publisherId,
+          inventoryId,
+          websiteId,
+          auctionId,
+          finalPrice,
+          costPerImpression,
+          reservedAt: new Date().toISOString(),
+          confirmed: false,
+        }),
       );
-      // Deduct campaign budget in Redis
-      await this.deductCampaignBudget(
-        winningBid.campaignId,
-        publisherId,
-        inventoryId,
-        websiteId,
-        costPerImpression,
-        today,
+
+      // Store metadata for cleanup process (longer TTL)
+      pipeline.setex(
+        REDIS_KEYS.REVENUE_METADATA(reservationId),
+        RTB_CACHE_TTL.REVENUE_METADATA, // 10 minutes
+        JSON.stringify({
+          bidResponseId: bidResponse.id,
+          campaignId: bidResponse.campaignId,
+          publisherId,
+          inventoryId,
+          websiteId,
+          costPerImpression,
+          reservedAt: new Date().toISOString(),
+          confirmed: false,
+        }),
       );
+
+      // Track reservation count for monitoring
+      pipeline.incr(
+        REDIS_KEYS.RESERVATION_TRACKING(today, bidResponse.campaignId),
+      );
+      pipeline.expire(
+        REDIS_KEYS.RESERVATION_TRACKING(today, bidResponse.campaignId),
+        86400,
+      );
+
       await pipeline.exec();
-      this.logger.debug('✅ Budget reserved successfully', {
-        campaignId: winningBid.campaignId,
+
+      const processingTime = Date.now() - startTime;
+
+      this.logger.log('✅ Budget reserved on auction win', {
+        reservationId,
+        campaignId: bidResponse.campaignId,
+        costPerImpression,
         finalPrice,
+        processingTimeMs: processingTime,
       });
     } catch (error) {
       this.logger.error('❌ Failed to reserve budget on win', {
         error: error.message,
-        campaignId: winningBid.campaignId,
-        finalPrice,
+        bidResponseId: bidResponse.id,
+        campaignId: bidResponse.campaignId,
+        costPerImpression,
       });
       throw error;
     }
   }
 
-  /**
-   * Confirm reserved budget on impression
-   * This method is called when an impression is confirmed to ensure the budget is deducted.
-   **/
-  public async confirmReservedBudget(
+  async confirmReservedBudget(
     reservationId: string,
     campaignId: string,
     publisherId: string,
@@ -104,83 +127,71 @@ export class BudgetManagerService {
     creativeId: string,
     costPerImpression: number,
   ): Promise<void> {
-    const today = new Date().toISOString().split('T')[0];
+    const startTime = Date.now();
+
     try {
-      this.logger.debug('Confirming reserved budget', {
-        reservationId,
-        campaignId,
-        publisherId,
-      });
+      // 1. ✅ CHECK IF RESERVATION EXISTS
+      const reservationKey = REDIS_KEYS.BUDGET_RESERVATION(reservationId);
+      const reservationExists = await this.redis.exists(reservationKey);
 
-      // Get the reserved amount
-      const reservedAmount: BudgetReservation = await this.redis.get(
-        REDIS_KEYS.BUDGET_RESERVATION(reservationId),
-      );
-      // ===== 2. CACHE PUBLISHER REVENUE =====
-      await this.cachePublisherRevenue(
-        publisherId,
-        campaignId,
-        inventoryId,
-        websiteId,
-        costPerImpression,
-        today,
-      );
-
-      // ===== 3. CACHE ADVERTISER SPENDING =====
-      await this.cacheAdvertiserSpending(
-        advertiserId,
-        campaignId,
-        creativeId,
-        costPerImpression,
-        today,
-      );
-
-      // ===== 4. CACHE SYSTEM REVENUE =====
-      await this.cacheSystemRevenue(
-        campaignId,
-        publisherId,
-        advertiserId,
-        creativeId,
-        inventoryId,
-        costPerImpression,
-        today,
-      );
-
-      if (!reservedAmount) {
-        this.logger.warn('No reserved budget found', { reservationId });
-        // If no reservation found, it might be expired or cancelled
-        // We can deduct immediately if needed
-        this.logger.warn('No reservation found, skipping confirmation', {
+      if (!reservationExists) {
+        this.logger.warn('⚠️ Reservation not found or expired', {
           reservationId,
-        });
-        await this.deductCampaignBudget(
           campaignId,
-          publisherId,
-          inventoryId,
-          websiteId,
+        });
+
+        // If reservation expired, we need to deduct budget again
+        const today = new Date().toISOString().split('T')[0];
+        await this.redis.incrbyfloat(
+          REDIS_KEYS.DAILY_BUDGET_SPEND(campaignId, today),
           costPerImpression,
-          today,
         );
 
-        return;
+        this.logger.debug('Re-deducted budget for expired reservation', {
+          reservationId,
+          campaignId,
+          costPerImpression,
+        });
       }
 
-      // Remove the reservation
-      await this.redis.del(REDIS_KEYS.BUDGET_RESERVATION(reservationId));
+      // 2. ✅ MARK RESERVATION AS CONFIRMED
+      const metadataKey = REDIS_KEYS.REVENUE_METADATA(reservationId);
+      const metadata = await this.redis.get(metadataKey);
 
-      this.logger.debug('✅ Reserved budget confirmed', {
+      if (metadata) {
+        const reservationData = JSON.parse(metadata as string);
+        reservationData.confirmed = true;
+        reservationData.confirmedAt = new Date().toISOString();
+
+        await this.redis.setex(
+          metadataKey,
+          300, // Keep for 5 more minutes for debugging
+          JSON.stringify(reservationData),
+        );
+      }
+
+      // 4. ✅ CLEAN UP RESERVATION
+      await this.redis.del(reservationKey);
+
+      const processingTime = Date.now() - startTime;
+
+      this.logger.log('✅ Reserved budget confirmed for impression', {
         reservationId,
         campaignId,
+        costPerImpression,
+        processingTimeMs: processingTime,
       });
     } catch (error) {
       this.logger.error('❌ Failed to confirm reserved budget', {
         error: error.message,
         reservationId,
         campaignId,
+        costPerImpression,
       });
       throw error;
     }
   }
+
   /**
    * Deduct campaign budget in Redis (real-time)
    */
