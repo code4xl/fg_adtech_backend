@@ -33,6 +33,10 @@ import { FinancialMonitoringController } from './controllers/financial-monitorin
 import { CreativeSelectionService } from './services/creative-selection.service';
 import { AdMarkupService } from './services/ad-markup.service';
 import { CampaignPoolWarmupService } from './cache/warmup/campaign-pool.warmup';
+import { CampaignPoolJob } from './jobs/ten_minutes/campaign-pool.job';
+import { PublisherTierJob } from './jobs/monthly/publisher-tier.job';
+import { ActiveCampaignsJob } from './jobs/daily/active-campaigns.job';
+import { BudgetMonitoringController } from './controllers/budget-monitoring.controller';
 
 @Module({
   imports: [
@@ -42,7 +46,11 @@ import { CampaignPoolWarmupService } from './cache/warmup/campaign-pool.warmup';
     TrackingModule,
     ScheduleModule.forRoot(),
   ],
-  controllers: [RTBController, FinancialMonitoringController],
+  controllers: [
+    RTBController,
+    FinancialMonitoringController,
+    BudgetMonitoringController,
+  ],
   providers: [
     BudgetManagerService,
     PublisherRevenueJob,
@@ -73,6 +81,9 @@ import { CampaignPoolWarmupService } from './cache/warmup/campaign-pool.warmup';
     CreativeSelectionService,
     AdMarkupService,
     CampaignPoolWarmupService,
+    CampaignPoolJob,
+    PublisherTierJob,
+    ActiveCampaignsJob,
   ],
   exports: [
     RtbService,
@@ -89,6 +100,7 @@ import { CampaignPoolWarmupService } from './cache/warmup/campaign-pool.warmup';
     BudgetValidationService,
     BudgetRedisSyncService,
     BudgetManagerService,
+    BudgetInitializationService,
   ],
 })
 export class RTBModule implements OnModuleInit {
