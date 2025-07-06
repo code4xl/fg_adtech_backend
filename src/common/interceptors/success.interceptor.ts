@@ -27,6 +27,11 @@ export class SuccessInterceptor<T>
     const request = context.switchToHttp().getRequest();
     const path = request.url;
 
+    // Skip wrapper for RTB endpoints - SDK expects raw response
+    if (path.startsWith('/rtb/')) {
+      return next.handle();
+    }
+
     return next.handle().pipe(
       map((data) => {
         // Handle custom response format if it's already structured with success property

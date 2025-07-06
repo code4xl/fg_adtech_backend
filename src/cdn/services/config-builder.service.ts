@@ -49,7 +49,7 @@ export class ConfigBuilderService {
       this.logger.log('🚀 Using production API URL: ' + this.defaultApiUrl);
     }
     
-    this.defaultSseTimeout = this.configService.get<number>('CDN_SSE_TIMEOUT', 250);
+    this.defaultSseTimeout = this.configService.get<number>('CDN_SSE_TIMEOUT', 5000);
   }
 
   /**
@@ -427,11 +427,12 @@ export class ConfigBuilderService {
     // Add tier-specific settings
     if (tier === PublisherTier.ENTERPRISE) {
       settings.batchDelay = 25;
-      settings.sseTimeout = 150;
+      settings.sseTimeout = 3000; // 3 seconds for enterprise
     } else if (tier === PublisherTier.PREMIUM) {
       settings.batchDelay = 35;
-      settings.sseTimeout = 200;
+      settings.sseTimeout = 4000; // 4 seconds for premium
     }
+    // Basic tier uses default 5000ms
 
     this.logger.log(`🎯 SDK settings built for ${isDevelopment ? 'DEVELOPMENT' : 'PRODUCTION'}:`, {
       apiUrl: settings.apiUrl,

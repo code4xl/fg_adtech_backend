@@ -25,7 +25,7 @@ export const SSE_EVENTS = {
   
   export const SSE_CONFIG = {
     // Timeouts and intervals (milliseconds)
-    INITIAL_TIMEOUT: 250, // Initial response timeout
+    INITIAL_TIMEOUT: 5000, // Initial response timeout (5 seconds)
     MAX_PROCESSING_TIME: 10000, // Max time for RTB processing (10s for slow responses)
     HEARTBEAT_INTERVAL: 30000, // Keep-alive heartbeat
     CONNECTION_TTL: 300000, // 5 minutes max connection time

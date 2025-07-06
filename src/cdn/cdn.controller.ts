@@ -550,6 +550,132 @@ export class GeneratePublisherCdnDto {
       }
     }
 
+    /**
+     * Force regenerate CDN with complete cleanup
+     * POST /api/publishers/:publisherId/websites/:websiteId/force-regenerate-cdn
+     */
+    @Post('api/publishers/:publisherId/websites/:websiteId/force-regenerate-cdn')
+    @UseGuards(AuthGuard('jwt'), RoleGuard, CdnAccessGuard)
+    @Roles('PUBLISHER', 'ADMIN')
+    async forceRegenerateCdn(
+      @Param('publisherId') publisherId: string,
+      @Param('websiteId') websiteId: string,
+      @Body() dto: Partial<GenerateCdnDto>,
+    ): Promise<CdnBuildResponseDto> {
+      this.logger.log(`Force regenerating CDN for publisher ${publisherId}, website ${websiteId}`);
+
+      try {
+        const result = await this.cdnOrchestrator.forceRegenerateCdn(
+          publisherId,
+          websiteId,
+          {
+            environment: dto?.environment,
+            includeDebug: dto?.includeDebug,
+          },
+        );
+
+        if (!result.success) {
+          throw new HttpException(
+            {
+              statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+              message: 'Force CDN regeneration failed',
+              error: result.error,
+            },
+            HttpStatus.INTERNAL_SERVER_ERROR,
+          );
+        }
+
+        return {
+          cdnUrl: result.cdnUrl!,
+          integrity: result.integrity!,
+          version: result.version!,
+          publisherId,
+          websiteId,
+          buildId: result.buildId!,
+          environment: dto?.environment || 'production',
+          createdAt: new Date().toISOString(),
+          message: 'CDN force regenerated successfully with complete cleanup',
+        } as CdnBuildResponseDto;
+      } catch (error) {
+        if (error instanceof HttpException) {
+          throw error;
+        }
+
+        throw new HttpException(
+          {
+            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+            message: 'Failed to force regenerate CDN',
+            error: error.message,
+          },
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+
+    /**
+     * Complete CDN cleanup
+     * DELETE /api/publishers/:publisherId/cdn-cleanup
+     */
+    @Delete('api/publishers/:publisherId/cdn-cleanup')
+    @UseGuards(AuthGuard('jwt'), RoleGuard, CdnAccessGuard)
+    @Roles('PUBLISHER', 'ADMIN')
+    async cleanupCdn(
+      @Param('publisherId') publisherId: string,
+      @Body() dto: { 
+        websiteId?: string; 
+        environment?: BuildEnvironment; 
+        cleanupDatabase?: boolean; 
+      },
+    ): Promise<{ message: string }> {
+      this.logger.log(`CDN cleanup for publisher ${publisherId}`);
+
+      try {
+        await this.cdnOrchestrator.cleanupCdn(publisherId, {
+          websiteId: dto?.websiteId,
+          environment: dto?.environment,
+          cleanupDatabase: dto?.cleanupDatabase,
+        });
+
+        return {
+          message: `CDN cleanup completed successfully for publisher ${publisherId}`,
+        };
+      } catch (error) {
+        throw new HttpException(
+          {
+            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+            message: 'Failed to cleanup CDN',
+            error: error.message,
+          },
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+
+    /**
+     * Clear SDK cache (debug endpoint)
+     * DELETE /api/cdn/sdk-cache/clear
+     */
+    @Delete('api/cdn/sdk-cache/clear')
+    @UseGuards(AuthGuard('jwt'), RoleGuard)
+    @Roles('PUBLISHER', 'ADMIN')
+    async clearSdkCache(): Promise<{ message: string }> {
+      this.logger.log('Clearing SDK cache');
+      
+      try {
+        this.cdnOrchestrator.clearSdkCache();
+        return { message: 'SDK cache cleared successfully' };
+      } catch (error) {
+        throw new HttpException(
+          {
+            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+            message: 'Failed to clear SDK cache',
+            error: error.message,
+          },
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+    }
+
     // ===== V2 PUBLISHER-FOCUSED ENDPOINTS =====
 
     /**

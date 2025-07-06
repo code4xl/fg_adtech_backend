@@ -69,3 +69,17 @@ RTB_INTEGRATION_COMPLETE.md
 RTB_FIX_SUMMARY.md
 SDK_CONNECTION_GUIDE.md
 SDK_INTEGRATION_GUIDE.md
+
+# CDN Fix Test Files and Scripts
+CDN_FIX_COMPLETE.md
+check-sdk-docker.bat
+check-sdk-docker.sh
+check-sdk-file.bat
+check-sdk-file.sh
+manual-cache-test.bat
+manual-cache-test.sh
+quick-test-fix.bat
+quick-test-fix.sh
+test-cdn-fix.js
+test-rtb-fix.js
+test-cdn-browser.html

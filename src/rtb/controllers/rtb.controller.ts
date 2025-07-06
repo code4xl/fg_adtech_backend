@@ -22,7 +22,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';  
 import { SSETrackerService } from '../sse/services/sse-tracker.service';
 
-import { AuctionStatusDto, BidResponseDto, CreateBidRequestDto } from '../dto';
+import { AuctionStatusDto, BidResponseDto, CreateBidRequestDto, SdkBidRequestDto } from '../dto';
 import { RtbHelper } from '../utils/helpers';
 import { RtbService } from '../services/rtb.service';
 import { AuctionService } from '../services/auction.service';
@@ -55,9 +55,19 @@ export class RTBController {
         type: BidRequestResponseDto,  
     })
     async handleBidRequest(
-        @Body() bidRequestDto: CreateBidRequestDto,
+        @Body() requestBody: any,
         @Req() req: Request
-    ): Promise<BidRequestResponseDto> {  
+    ): Promise<BidRequestResponseDto> {
+        // Handle both SDK format and legacy format
+        let bidRequestDto: CreateBidRequestDto;
+        
+        if (requestBody.meta && requestBody.slots && requestBody.context) {
+            // SDK format - convert to legacy format
+            bidRequestDto = await this.convertSdkToLegacyFormat(requestBody);
+        } else {
+            // Legacy format - use as is
+            bidRequestDto = requestBody as CreateBidRequestDto;
+        }  
         this.logger.debug('Bid request received', {
             externalRequestId: bidRequestDto.externalRequestId,
             inventoryId: bidRequestDto.inventoryId,
@@ -76,7 +86,7 @@ export class RTBController {
             const sseEnabled = bidRequestDto.enableSSE || 
                               bidRequestDto.responseMode === 'sse';
 
-            // Prepare response
+            // Prepare response - SDK expects simple format with requestId at root level
             const response: BidRequestResponseDto = {
                 requestId: result.requestId,
                 auctionId: result.auctionId,
@@ -346,5 +356,74 @@ export class RTBController {
             websiteId: bidRequest.websiteId,
             inventoryId: bidRequest.inventoryId
         });
+    }
+
+    /**
+     * Convert SDK format bid request to legacy format
+     * 
+     * SDK sends: { meta, slots, context, capabilities }
+     * Legacy expects: { externalRequestId, inventoryId, publisherId, websiteId, userContext, adSlotContext }
+     */
+    private async convertSdkToLegacyFormat(sdkRequest: any): Promise<CreateBidRequestDto> {
+        const { meta, slots, context } = sdkRequest;
+        
+        // For now, we'll process the first slot only
+        // TODO: Handle multiple slots properly
+        const firstSlot = slots[0];
+        
+        if (!firstSlot) {
+            throw new BadRequestException('No slots provided in SDK request');
+        }
+
+        // Get inventory details from database
+        const inventory = await this.prisma.adInventory.findFirst({
+            where: {
+                id: firstSlot.inventoryId,
+                websiteId: meta.websiteId,
+                isActive: true
+            },
+            include: {
+                adSlotTemplate: true
+            }
+        });
+
+        if (!inventory) {
+            throw new BadRequestException(`Inventory ${firstSlot.inventoryId} not found or not active`);
+        }
+
+        // Convert user context
+        const userContext = {
+            userAgent: context.device.userAgent,
+            ipAddress: '127.0.0.1', // TODO: Get from request headers
+            deviceType: context.device.type,
+            browserType: context.device.browser,
+            osType: context.device.os,
+            country: 'IN', // TODO: Get from geo context
+            region: undefined,
+            city: undefined,
+            additionalData: {}
+        };
+
+        // Convert ad slot context using inventory data
+        const adSlotContext = {
+            width: inventory.adSlotTemplate?.width || 800,
+            height: inventory.adSlotTemplate?.height || 600,
+            format: inventory.adSlotTemplate?.format || 'BANNER',
+            position: inventory.adSlotTemplate?.position || 'ABOVE_FOLD',
+            pageUrl: context.page.url,
+            referrerUrl: context.page.referrer,
+            pageKeywords: []
+        };
+
+        return {
+            externalRequestId: meta.requestId,
+            inventoryId: firstSlot.inventoryId,
+            publisherId: meta.publisherId,
+            websiteId: meta.websiteId,
+            userContext,
+            adSlotContext,
+            enableSSE: true, // Default to SSE for SDK requests
+            sseTimeout: 5000
+        };
     }
 }

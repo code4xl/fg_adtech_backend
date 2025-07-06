@@ -4,6 +4,7 @@ import { ConfigBuilderService } from './config-builder.service';
 import { CdnGeneratorService } from './cdn-generator.service';
 import { CdnStorageService } from './cdn-storage.service';
 import { CdnCacheService } from './cdn-cache.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import {
   ICdnBuildContext,
   ICdnBuildResult,
@@ -26,6 +27,7 @@ export class CdnOrchestratorService {
     private readonly cdnGenerator: CdnGeneratorService,
     private readonly cdnStorage: CdnStorageService,
     private readonly cdnCache: CdnCacheService,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -105,6 +107,14 @@ export class CdnOrchestratorService {
         buildResult.metadata!,
         options?.environment || BuildEnvironment.PRODUCTION,
       );
+
+      // Update database with V2 CDN information
+      const websiteIds = Object.values(config.websites).map(w => w.id);
+      await this.updatePublisherCdnInfo(publisherId, websiteIds, {
+        cdnUrl: buildResult.cdnUrl!,
+        buildId: buildResult.buildId!,
+        version: buildResult.version!,
+      });
 
       // Update cache with V2 configuration
       await Promise.all([
@@ -243,7 +253,15 @@ export class CdnOrchestratorService {
         dto.environment,
       );
 
-      // Step 7: Update cache
+      // Step 7: Update database with CDN URL and init script
+      await this.updateWebsiteCdnInfo(dto.websiteId, {
+        cdnUrl: buildResult.cdnUrl!,
+        initScript: `<script src="${buildResult.cdnUrl}" async></script>`,
+        buildId: buildResult.buildId!,
+        version: buildResult.version!,
+      });
+
+      // Step 8: Update cache
       await Promise.all([
         this.cdnCache.cacheConfiguration(dto.publisherId, dto.websiteId, config),
         this.cdnCache.cacheBuild(dto.publisherId, cdnContent, buildResult.metadata!),
@@ -537,5 +555,189 @@ export class CdnOrchestratorService {
       timestamp: new Date(),
       requestId: `v2-req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
     };
+  }
+
+  /**
+   * Update website CDN information in database
+   */
+  private async updateWebsiteCdnInfo(
+    websiteId: string,
+    cdnInfo: {
+      cdnUrl: string;
+      initScript: string;
+      buildId: string;
+      version: string;
+    },
+  ): Promise<void> {
+    try {
+      this.logger.log(`Updating CDN info for website ${websiteId}`);
+      
+      await this.prisma.website.update({
+        where: { id: websiteId },
+        data: {
+          cdnURL: cdnInfo.cdnUrl,
+          initScript: cdnInfo.initScript,
+        },
+      });
+      
+      this.logger.log(`✅ CDN info updated successfully for website ${websiteId}`);
+      this.logger.log(`   CDN URL: ${cdnInfo.cdnUrl}`);
+      this.logger.log(`   Build ID: ${cdnInfo.buildId}`);
+      this.logger.log(`   Version: ${cdnInfo.version}`);
+    } catch (error) {
+      this.logger.error(`❌ Failed to update CDN info for website ${websiteId}: ${error.message}`);
+      // Don't throw error - CDN generation succeeded, this is just database update
+    }
+  }
+
+  /**
+   * Update publisher CDN information for V2 (multiple websites)
+   */
+  private async updatePublisherCdnInfo(
+    publisherId: string,
+    websiteIds: string[],
+    cdnInfo: {
+      cdnUrl: string;
+      buildId: string;
+      version: string;
+    },
+  ): Promise<void> {
+    try {
+      this.logger.log(`Updating V2 CDN info for publisher ${publisherId} (${websiteIds.length} websites)`);
+      
+      const initScript = `<script src="${cdnInfo.cdnUrl}" async></script>`;
+      
+      await this.prisma.website.updateMany({
+        where: {
+          id: { in: websiteIds },
+          publisherId,
+        },
+        data: {
+          cdnURL: cdnInfo.cdnUrl,
+          initScript,
+        },
+      });
+      
+      this.logger.log(`✅ V2 CDN info updated successfully for ${websiteIds.length} websites`);
+      this.logger.log(`   CDN URL: ${cdnInfo.cdnUrl}`);
+      this.logger.log(`   Build ID: ${cdnInfo.buildId}`);
+      this.logger.log(`   Version: ${cdnInfo.version}`);
+    } catch (error) {
+      this.logger.error(`❌ Failed to update V2 CDN info for publisher ${publisherId}: ${error.message}`);
+      // Don't throw error - CDN generation succeeded, this is just database update
+    }
+  }
+
+  /**
+   * Complete CDN cleanup - removes files, cache, and database references
+   */
+  async cleanupCdn(
+    publisherId: string,
+    options?: {
+      websiteId?: string;
+      environment?: string;
+      cleanupDatabase?: boolean;
+    },
+  ): Promise<void> {
+    this.logger.log(`Starting complete CDN cleanup for publisher ${publisherId}`);
+    
+    try {
+      // 1. Clear cache
+      if (options?.websiteId) {
+        await this.cdnCache.invalidateConfiguration(publisherId, options.websiteId);
+      }
+      await this.cdnCache.invalidateBuild(publisherId);
+      
+      // 2. Delete storage files
+      try {
+        await this.cdnStorage.deleteFile(publisherId, options?.environment);
+      } catch (error) {
+        this.logger.warn(`Could not delete storage files: ${error.message}`);
+      }
+      
+      // 3. Clean database references if requested
+      if (options?.cleanupDatabase !== false) {
+        await this.cleanupDatabaseCdnReferences(publisherId, options?.websiteId);
+      }
+      
+      this.logger.log(`✅ Complete CDN cleanup finished for publisher ${publisherId}`);
+    } catch (error) {
+      this.logger.error(`❌ CDN cleanup failed: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Clean CDN references from database
+   */
+  private async cleanupDatabaseCdnReferences(
+    publisherId: string,
+    websiteId?: string,
+  ): Promise<void> {
+    try {
+      this.logger.log(`Cleaning database CDN references for publisher ${publisherId}`);
+      
+      const whereCondition = {
+        publisherId,
+        ...(websiteId && { id: websiteId }),
+      };
+      
+      const result = await this.prisma.website.updateMany({
+        where: whereCondition,
+        data: {
+          cdnURL: null,
+          initScript: null,
+        },
+      });
+      
+      this.logger.log(`✅ Cleaned CDN references from ${result.count} websites`);
+    } catch (error) {
+      this.logger.error(`❌ Failed to clean database CDN references: ${error.message}`);
+      // Don't throw - this is cleanup, not critical
+    }
+  }
+
+  /**
+   * Force regenerate CDN with complete cleanup
+   */
+  async forceRegenerateCdn(
+    publisherId: string,
+    websiteId: string,
+    options?: {
+      environment?: BuildEnvironment;
+      includeDebug?: boolean;
+    },
+  ): Promise<ICdnBuildResult> {
+    this.logger.log(`Force regenerating CDN for publisher ${publisherId}, website ${websiteId}`);
+    
+    // Step 1: Complete cleanup
+    await this.cleanupCdn(publisherId, {
+      websiteId,
+      environment: options?.environment,
+      cleanupDatabase: true,
+    });
+    
+    // Step 2: Wait a moment for cleanup to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Step 3: Generate fresh CDN
+    const result = await this.generateAndDeployDN({
+      publisherId,
+      websiteId,
+      environment: options?.environment,
+      forceRebuild: true,
+      includeDebug: options?.includeDebug,
+    });
+    
+    this.logger.log(`✅ Force regeneration completed for publisher ${publisherId}`);
+    return result;
+  }
+
+  /**
+   * Clear SDK cache (for debugging)
+   */
+  clearSdkCache(): void {
+    this.logger.log('Clearing SDK cache via orchestrator');
+    this.cdnGenerator.clearSdkCache();
   }
 }
