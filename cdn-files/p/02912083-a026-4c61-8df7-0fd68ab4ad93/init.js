@@ -2,67 +2,23 @@
  * Ocean Ads SDK
  * Copyright (c) 2025 Ocean Ads Network
  * Publisher: 02912083-a026-4c61-8df7-0fd68ab4ad93
- * Build: development
- * Generated: 2025-07-06T18:32:52.023Z
+ * Build: production
+ * Generated: 2025-07-06T20:45:10.506Z
  */
 
 /*!
  * Ocean Ads SDK Configuration
  * Publisher: 02912083-a026-4c61-8df7-0fd68ab4ad93
  * Website: healthhub601-378.net
- * Generated: 2025-07-06T18:32:52.023Z
+ * Generated: 2025-07-06T20:45:10.505Z
  * Version: 1.7.6
- * Environment: development
+ * Environment: production
  */
 (function() {
   'use strict';
   
   // Embed configuration
-  window.__OCEAN_CONFIG__ = {
-  "publisher": {
-    "id": "02912083-a026-4c61-8df7-0fd68ab4ad93",
-    "tier": "basic"
-  },
-  "website": {
-    "id": "87690135-4199-4b1f-a960-93beb240759e",
-    "domain": "healthhub601-378.net"
-  },
-  "inventory": [
-    {
-      "selector": ".ocean-ad",
-      "inventoryId": "15fb5073-c093-4595-b0bf-e4ec34e2e6c1",
-      "size": "800x600",
-      "position": "ABOVE_FOLD",
-      "refresh": {
-        "enabled": true,
-        "interval": 60000
-      }
-    },
-    {
-      "selector": ".ocean-ad-2",
-      "inventoryId": "814c4b35-ed6a-49b6-bb4d-bac19399f659",
-      "size": "320x180",
-      "position": "ABOVE_FOLD",
-      "refresh": {
-        "enabled": true,
-        "interval": 60000
-      }
-    }
-  ],
-  "settings": {
-    "apiUrl": "http://localhost:3001",
-    "endpoints": {
-      "bid": "http://localhost:3001/rtb/bid-request",
-      "track": "http://localhost:3001/rtb/track",
-      "sse": "http://localhost:3001/rtb/stream"
-    },
-    "sseTimeout": 250,
-    "debug": true,
-    "batchDelay": 50,
-    "maxRetries": 1,
-    "fallbackTimeout": 500
-  }
-};
+  window.__OCEAN_CONFIG__ = {"publisher":{"id":"02912083-a026-4c61-8df7-0fd68ab4ad93","tier":"basic"},"website":{"id":"87690135-4199-4b1f-a960-93beb240759e","domain":"healthhub601-378.net"},"inventory":[{"selector":".ocean-ad","inventoryId":"15fb5073-c093-4595-b0bf-e4ec34e2e6c1","size":"800x600","position":"ABOVE_FOLD","refresh":{"enabled":true,"interval":60000}},{"selector":".ocean-ad-2","inventoryId":"814c4b35-ed6a-49b6-bb4d-bac19399f659","size":"320x180","position":"ABOVE_FOLD","refresh":{"enabled":true,"interval":60000}}],"settings":{"apiUrl":"http://localhost:3001","endpoints":{"bid":"http://localhost:3001/rtb/bid-request","track":"http://localhost:3001/rtb/track","sse":"http://localhost:3001/rtb/stream"},"sseTimeout":5000,"debug":true,"batchDelay":50,"maxRetries":1,"fallbackTimeout":500}};
   
   // Configuration validation
   if (typeof window.__OCEAN_CONFIG__ !== 'object' || !window.__OCEAN_CONFIG__) {

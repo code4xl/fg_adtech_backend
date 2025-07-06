@@ -469,7 +469,39 @@ export class CdnGeneratorService {
     config: IOceanConfig,
     context: ICdnBuildContext,
   ): string {
-    const configJson = JSON.stringify(config, null, context.includeDebug ? 2 : 0);
+    let configJson: string;
+    
+    try {
+      // First validate the config object doesn't have circular references
+      const testConfig = JSON.parse(JSON.stringify(config));
+      
+      // Generate JSON with proper error handling
+      configJson = JSON.stringify(config, null, context.includeDebug ? 2 : 0);
+      
+      // Validate the generated JSON
+      if (!configJson || configJson.length < 50) {
+        throw new Error(`Generated JSON is too short: ${configJson?.length || 0} characters`);
+      }
+      
+      // Test that the JSON can be parsed back
+      const parsed = JSON.parse(configJson);
+      if (!parsed || !parsed.publisher || !parsed.publisher.id) {
+        throw new Error('Generated JSON is missing required fields');
+      }
+      
+      this.logger.debug(`Config JSON generated successfully: ${configJson.length} characters`);
+      
+    } catch (error) {
+      this.logger.error(`Failed to generate config JSON: ${error.message}`);
+      this.logger.error(`Config object structure:`, {
+        hasPublisher: !!config.publisher,
+        hasWebsite: !!config.website,
+        hasInventory: !!config.inventory,
+        inventoryLength: config.inventory?.length || 0,
+        hasSettings: !!config.settings
+      });
+      throw new Error(`Config JSON generation failed: ${error.message}`);
+    }
 
     const script = `
 /*!
@@ -507,7 +539,17 @@ export class CdnGeneratorService {
 })();
 `;
 
-    return context.includeDebug ? script : this.minifyScript(script);
+    // Validate the final script
+    try {
+      new Function(script);
+      this.logger.debug(`Config script validation successful: ${script.length} characters`);
+    } catch (scriptError) {
+      this.logger.error(`Generated config script has syntax errors: ${scriptError.message}`);
+      this.logger.error(`Script preview:`, script.substring(0, 500));
+      throw new Error(`Config script syntax error: ${scriptError.message}`);
+    }
+
+    return context.includeDebug ? script : script; // DISABLED MINIFICATION: this.minifyScript(script);
   }
 
   /**
@@ -517,9 +559,42 @@ export class CdnGeneratorService {
     config: IOceanConfigV2,
     context: ICdnBuildContext,
   ): string {
-    const configJson = JSON.stringify(config, null, context.includeDebug ? 2 : 0);
+    let configJson: string;
     const websiteCount = Object.keys(config.websites).length;
     const totalInventory = Object.values(config.websites).reduce((total, website) => total + website.inventory.length, 0);
+    
+    try {
+      // First validate the config object doesn't have circular references
+      const testConfig = JSON.parse(JSON.stringify(config));
+      
+      // Generate JSON with proper error handling
+      configJson = JSON.stringify(config, null, context.includeDebug ? 2 : 0);
+      
+      // Validate the generated JSON
+      if (!configJson || configJson.length < 100) {
+        throw new Error(`Generated V2 JSON is too short: ${configJson?.length || 0} characters`);
+      }
+      
+      // Test that the JSON can be parsed back
+      const parsed = JSON.parse(configJson);
+      if (!parsed || !parsed.publisher || !parsed.publisher.id || !parsed.websites) {
+        throw new Error('Generated V2 JSON is missing required fields');
+      }
+      
+      this.logger.debug(`V2 Config JSON generated successfully: ${configJson.length} characters`);
+      
+    } catch (error) {
+      this.logger.error(`Failed to generate V2 config JSON: ${error.message}`);
+      this.logger.error(`V2 Config object structure:`, {
+        hasPublisher: !!config.publisher,
+        hasWebsites: !!config.websites,
+        websiteCount: websiteCount,
+        totalInventory: totalInventory,
+        hasSettings: !!config.settings,
+        hasMeta: !!config.meta
+      });
+      throw new Error(`V2 Config JSON generation failed: ${error.message}`);
+    }
 
     const script = `
 /*!
@@ -587,7 +662,17 @@ export class CdnGeneratorService {
 })();
 `;
 
-    return context.includeDebug ? script : this.minifyScript(script);
+    // Validate the final V2 script
+    try {
+      new Function(script);
+      this.logger.debug(`V2 Config script validation successful: ${script.length} characters`);
+    } catch (scriptError) {
+      this.logger.error(`Generated V2 config script has syntax errors: ${scriptError.message}`);
+      this.logger.error(`V2 Script preview:`, script.substring(0, 500));
+      throw new Error(`V2 Config script syntax error: ${scriptError.message}`);
+    }
+
+    return context.includeDebug ? script : script; // DISABLED MINIFICATION: this.minifyScript(script);
   }
 
   /**

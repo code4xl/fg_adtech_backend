@@ -6,11 +6,11 @@
   "websiteId": "87690135-4199-4b1f-a960-93beb240759e",
   "domains": [],
   "version": "1.7.6",
-  "buildId": "02912083-1751826772038-pyj38g",
-  "integrity": "sha384-V8X8Ykxy6bnFp34iHUK6GnUlBA4ZT3aspF3BVnfuEnqvKr7zsxkt9matWeiphxdo",
-  "createdAt": "2025-07-06T18:32:52.038Z",
-  "environment": "development",
-  "fileSize": 186948,
+  "buildId": "02912083-1751834710525-xt3ct7",
+  "integrity": "sha384-+DFZikYW3aNSV9zEQErCSR1JdMXQmaHGs1XEKPR7218jLx1NHwM5R2i0brdBnor7",
+  "createdAt": "2025-07-06T20:45:10.526Z",
+  "environment": "production",
+  "fileSize": 186669,
   "inventoryCount": 2,
   "websiteCount": 1
 }

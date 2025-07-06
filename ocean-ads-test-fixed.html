@@ -205,6 +205,14 @@
           <span class="metric-value" id="inventory-count">2</span>
           <span class="metric-label">Available Inventory</span>
         </div>
+        <div class="metric-card">
+          <span class="metric-value" id="sdk-version">2.7.6</span>
+          <span class="metric-label">SDK Version</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-value" id="build-id">02912083-1751834786920-flekc7</span>
+          <span class="metric-label">Build ID</span>
+        </div>
       </div>
     </div>
 
@@ -259,33 +267,23 @@
       </p>
       <p><strong>Publisher Email:</strong> rhea31@hotmail.com</p>
       <p><strong>Test Domain:</strong> healthhub601-378.net</p>
+      <p><strong>SDK Version:</strong> 2.7.6</p>
+      <p><strong>Build ID:</strong> 02912083-1751834786920-flekc7</p>
       <p><strong>Expected Inventory:</strong></p>
       <ul>
         <li>
-          <strong>Mobile Video:</strong> 814c4b35-ed6a-49b6-bb4d-bac19399f659
-          (320x180)
+          <strong>Desktop Interstitial:</strong> 15fb5073-c093-4595-b0bf-e4ec34e2e6c1
+          (800x600) - Selector: .ocean-ad
         </li>
         <li>
-          <strong>Desktop Interstitial:</strong>
-          15fb5073-c093-4595-b0bf-e4ec34e2e6c1 (800x600)
+          <strong>Mobile Video:</strong> 814c4b35-ed6a-49b6-bb4d-bac19399f659
+          (320x180) - Selector: .ocean-ad-2
         </li>
       </ul>
     </div>
 
     <div class="test-section">
       <h2>🎯 Ad Slots (Testing Inventory Discovery)</h2>
-
-      <h3>📱 Mobile Video Ad Slot (320x180)</h3>
-      <div
-        class="ocean-ad"
-        data-size="320x180"
-        data-inventory="814c4b35-ed6a-49b6-bb4d-bac19399f659"
-        data-format="VIDEO"
-        data-position="ABOVE_FOLD"
-      >
-        📱 Mobile Video Ad Slot Ready<br />
-        <small>Inventory: 814c4b35-ed6a-49b6-bb4d-bac19399f659</small>
-      </div>
 
       <h3>🖥️ Desktop Interstitial Ad Slot (800x600)</h3>
       <div
@@ -297,6 +295,18 @@
       >
         🖥️ Desktop Interstitial Ad Slot Ready<br />
         <small>Inventory: 15fb5073-c093-4595-b0bf-e4ec34e2e6c1</small>
+      </div>
+
+      <h3>📱 Mobile Video Ad Slot (320x180)</h3>
+      <div
+        class="ocean-ad-2"
+        data-size="320x180"
+        data-inventory="814c4b35-ed6a-49b6-bb4d-bac19399f659"
+        data-format="VIDEO"
+        data-position="ABOVE_FOLD"
+      >
+        📱 Mobile Video Ad Slot Ready<br />
+        <small>Inventory: 814c4b35-ed6a-49b6-bb4d-bac19399f659</small>
       </div>
     </div>
 
@@ -425,7 +435,7 @@
         }
 
         // 3. Check ad slots
-        const slots = document.querySelectorAll('.ocean-ad');
+        const slots = document.querySelectorAll('.ocean-ad, .ocean-ad-2');
         addLog(
           `🎯 Ad slots found: ${slots.length}`,
           slots.length > 0 ? 'success' : 'error',
@@ -434,7 +444,8 @@
         slots.forEach((slot, index) => {
           const inventory = slot.getAttribute('data-inventory');
           const size = slot.getAttribute('data-size');
-          addLog(`   Slot ${index + 1}: ${inventory} (${size})`, 'info');
+          const className = slot.className;
+          addLog(`   Slot ${index + 1}: ${inventory} (${size}) - ${className}`, 'info');
         });
 
         // 4. Check Ocean Ads SDK
@@ -575,6 +586,8 @@
         addLog('🆔 Publisher ID: 02912083-a026-4c61-8df7-0fd68ab4ad93', 'info');
         addLog('🌐 Website ID: 87690135-4199-4b1f-a960-93beb240759e', 'info');
         addLog('🏠 Domain: healthhub601-378.net', 'info');
+        addLog('📦 SDK Version: 2.7.6', 'info');
+        addLog('🔧 Build ID: 02912083-1751834786920-flekc7', 'info');
 
         // Run diagnostics after a short delay
         setTimeout(runFullDiagnostics, 3000);
