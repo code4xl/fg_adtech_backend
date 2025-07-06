@@ -1,610 +1,777 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ocean Ads SDK - High Volume Creative Test</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f5f5f5;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-            border-radius: 10px;
-            margin-bottom: 30px;
-        }
-        
-        .ad-section {
-            margin: 30px 0;
-            padding: 20px;
-            border: 2px dashed #ddd;
-            border-radius: 8px;
-            background-color: #fafafa;
-        }
-        
-        .ad-section h3 {
-            margin-top: 0;
-            color: #2563eb;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .stats {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 15px;
-        }
-        
-        /* FIXED: SDK-specific selector styles */
-        .ocean-ad-header {
-            border: 2px dashed #6c757d;
-            background: #f8f9fa;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #6c757d;
-            font-weight: 500;
-            margin: 10px 0;
-            position: relative;
-            transition: all 0.3s ease;
-            flex-direction: column;
-        }
-        
-        .ocean-ad-header-2 {
-            border: 2px dashed #6c757d;
-            background: #f8f9fa;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #6c757d;
-            font-weight: 500;
-            margin: 10px 0;
-            position: relative;
-            transition: all 0.3s ease;
-            flex-direction: column;
-        }
-        
-        .ocean-ad-header:hover,
-        .ocean-ad-header-2:hover {
-            border-color: #007bff;
-            background: #e3f2fd;
-        }
-        
-        .ocean-ad-header.loaded,
-        .ocean-ad-header-2.loaded {
-            border-color: #28a745;
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        /* High Volume Creative Dimensions - From Database Analysis */
-        .video-large { width: 640px; height: 360px; max-width: 100%; }
-        .banner-medium { width: 300px; height: 250px; }
-        .banner-leaderboard { width: 728px; height: 90px; max-width: 100%; }
-        .banner-wide { width: 160px; height: 600px; }
-        .video-mobile { width: 320px; height: 180px; max-width: 100%; }
-        .banner-mobile { width: 320px; height: 50px; max-width: 100%; }
-        .banner-large-leaderboard { width: 970px; height: 90px; max-width: 100%; }
-        
-        .debug-panel {
-            background: #2d3748;
-            color: #a0aec0;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 30px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-        }
-        
-        .debug-panel h4 {
-            color: #60a5fa;
-            margin-top: 0;
-        }
-        
-        .btn {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin: 5px;
-            transition: background 0.3s;
-        }
-        
-        .btn:hover { background: #0056b3; }
-        .btn.success { background: #28a745; }
-        .btn.danger { background: #dc3545; }
-        
-        .success { color: #059669; }
-        .error { color: #dc2626; }
-        .warning { color: #d97706; }
-        
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f5f5f5;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+        border-radius: 10px;
+        margin-bottom: 30px;
+      }
+
+      .ad-section {
+        margin: 30px 0;
+        padding: 20px;
+        border: 2px dashed #ddd;
+        border-radius: 8px;
+        background-color: #fafafa;
+      }
+
+      .ad-section h3 {
+        margin-top: 0;
+        color: #2563eb;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .stats {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 15px;
+      }
+
+      /* FIXED: SDK-specific selector styles */
+      .ocean-ad-header {
+        border: 2px dashed #6c757d;
+        background: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
+        font-weight: 500;
+        margin: 10px 0;
+        position: relative;
+        transition: all 0.3s ease;
+        flex-direction: column;
+      }
+
+      .ocean-ad-header-2 {
+        border: 2px dashed #6c757d;
+        background: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
+        font-weight: 500;
+        margin: 10px 0;
+        position: relative;
+        transition: all 0.3s ease;
+        flex-direction: column;
+      }
+
+      .ocean-ad-header:hover,
+      .ocean-ad-header-2:hover {
+        border-color: #007bff;
+        background: #e3f2fd;
+      }
+
+      .ocean-ad-header.loaded,
+      .ocean-ad-header-2.loaded {
+        border-color: #28a745;
+        background: #d4edda;
+        color: #155724;
+      }
+
+      /* High Volume Creative Dimensions - From Database Analysis */
+      .video-large {
+        width: 640px;
+        height: 360px;
+        max-width: 100%;
+      }
+      .banner-medium {
+        width: 300px;
+        height: 250px;
+      }
+      .banner-leaderboard {
+        width: 728px;
+        height: 90px;
+        max-width: 100%;
+      }
+      .banner-wide {
+        width: 160px;
+        height: 600px;
+      }
+      .video-mobile {
+        width: 320px;
+        height: 180px;
+        max-width: 100%;
+      }
+      .banner-mobile {
+        width: 320px;
+        height: 50px;
+        max-width: 100%;
+      }
+      .banner-large-leaderboard {
+        width: 970px;
+        height: 90px;
+        max-width: 100%;
+      }
+
+      .debug-panel {
+        background: #2d3748;
+        color: #a0aec0;
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 30px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+      }
+
+      .debug-panel h4 {
+        color: #60a5fa;
+        margin-top: 0;
+      }
+
+      .btn {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+        transition: background 0.3s;
+      }
+
+      .btn:hover {
+        background: #0056b3;
+      }
+      .btn.success {
+        background: #28a745;
+      }
+      .btn.danger {
+        background: #dc3545;
+      }
+
+      .success {
+        color: #059669;
+      }
+      .error {
+        color: #dc2626;
+      }
+      .warning {
+        color: #d97706;
+      }
+
+      .responsive-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        justify-content: center;
+      }
+
+      .inventory-info {
+        background: #e3f2fd;
+        padding: 10px;
+        border-radius: 5px;
+        font-size: 12px;
+        margin-bottom: 10px;
+        font-family: monospace;
+      }
+
+      @media (max-width: 768px) {
         .responsive-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            justify-content: center;
+          flex-direction: column;
+          align-items: center;
         }
-        
-        .inventory-info {
-            background: #e3f2fd;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 12px;
-            margin-bottom: 10px;
-            font-family: monospace;
+        .video-large,
+        .banner-leaderboard,
+        .banner-large-leaderboard {
+          transform: scale(0.8);
+          transform-origin: center;
         }
-        
-        @media (max-width: 768px) {
-            .responsive-container {
-                flex-direction: column;
-                align-items: center;
-            }
-            .video-large, .banner-leaderboard, .banner-large-leaderboard {
-                transform: scale(0.8);
-                transform-origin: center;
-            }
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="container">
-        <div class="header">
-            <h1>🌊 Ocean Ads SDK - High Volume Creative Test</h1>
-            <p>Testing the most abundant creative formats from your 21,395 creative database</p>
-            <p><strong>Publisher:</strong> vladimir10@gmail.com | <strong>Domain:</strong> lifestylemag507-368.co</p>
-            <p><strong>Website ID:</strong> 09954aa5-2c99-4e95-9c6d-b270ac1e029e | <strong>Build:</strong> 028e26dd-1751660271915-y91gel</p>
-        </div>
+      <div class="header">
+        <h1>🌊 Ocean Ads SDK - High Volume Creative Test</h1>
+        <p>
+          Testing the most abundant creative formats from your 21,395 creative
+          database
+        </p>
+        <p>
+          <strong>Publisher:</strong> vladimir10@gmail.com |
+          <strong>Domain:</strong> lifestylemag507-368.co
+        </p>
+        <p>
+          <strong>Website ID:</strong> 09954aa5-2c99-4e95-9c6d-b270ac1e029e |
+          <strong>Build:</strong> 028e26dd-1751660271915-y91gel
+        </p>
+      </div>
 
-        <!-- Top Performing VIDEO Format - 1,639 creatives -->
-        <div class="ad-section">
-            <h3>
-                🎥 Large Video Player - 640x360
-                <span class="stats">(1,639 VIDEO creatives available)</span>
-            </h3>
-            <p class="stats">Format: VIDEO | Expected: High bid competition | Best for: Desktop users</p>
-            <div class="inventory-info">Using existing AdSlotTemplate: 7555bc2c-e1ac-466c-9bb2-6d71915dbdd5 (Video Player)</div>
+      <!-- Top Performing VIDEO Format - 1,639 creatives -->
+      <div class="ad-section">
+        <h3>
+          🎥 Large Video Player - 640x360
+          <span class="stats">(1,639 VIDEO creatives available)</span>
+        </h3>
+        <p class="stats">
+          Format: VIDEO | Expected: High bid competition | Best for: Desktop
+          users
+        </p>
+        <div class="inventory-info">
+          Using existing AdSlotTemplate: 7555bc2c-e1ac-466c-9bb2-6d71915dbdd5
+          (Video Player)
+        </div>
+        <!-- FIXED: Using valid inventory ID and correct selector -->
+        <div
+          class="ocean-ad-header video-large"
+          data-ocean-slot="video-large-640x360"
+          data-ocean-inventory="70a77554-fb81-4a84-abfc-e23b1d26a534"
+          data-ocean-size="320x180"
+          data-ocean-format="VIDEO"
+          data-ocean-position="ABOVE_FOLD"
+        >
+          Large Video Player (using valid inventory)
+          <small>Using working inventory ID</small>
+        </div>
+      </div>
+
+      <!-- Current Working Mobile Video - For Comparison -->
+      <div class="ad-section">
+        <h3>
+          📱 Mobile Video - 320x180 (Current Test)
+          <span class="stats"
+            >(1,609 VIDEO creatives - your original test)</span
+          >
+        </h3>
+        <p class="stats">
+          Format: VIDEO | Expected: Should work after targeting fix | Best for:
+          Mobile users
+        </p>
+        <div class="inventory-info">
+          Inventory: 70a77554-fb81-4a84-abfc-e23b1d26a534 | Floor: 5.60-6.97 INR
+        </div>
+        <!-- FIXED: Using correct selector -->
+        <div
+          class="ocean-ad-header video-mobile"
+          data-ocean-slot="mobile-video"
+          data-ocean-inventory="70a77554-fb81-4a84-abfc-e23b1d26a534"
+          data-ocean-size="320x180"
+          data-ocean-format="VIDEO"
+          data-ocean-position="ABOVE_FOLD"
+        >
+          Mobile Video (320x180)
+          <small>Original test - should now work</small>
+        </div>
+      </div>
+
+      <!-- High Volume BANNER Formats -->
+      <div class="ad-section">
+        <h3>
+          💻 Large Leaderboard - 970x90
+          <span class="stats">(1,267 total: IMAGE+HTML+HTML5+RICH_MEDIA)</span>
+        </h3>
+        <p class="stats">
+          Format: BANNER | Expected: Very reliable bids | Best for: Header
+          placement
+        </p>
+        <div class="inventory-info">
+          Inventory: 1f43d93b-281e-4af3-b6e4-a81be8b05e41 | Template:
+          761c7367-4858-4077-8b22-679b5d5eaee6
+        </div>
+        <!-- FIXED: Using correct selector -->
+        <div
+          class="ocean-ad-header-2 banner-large-leaderboard"
+          data-ocean-slot="large-leaderboard"
+          data-ocean-inventory="1f43d93b-281e-4af3-b6e4-a81be8b05e41"
+          data-ocean-size="970x90"
+          data-ocean-format="BANNER"
+          data-ocean-position="ABOVE_FOLD"
+        >
+          Large Leaderboard (970x90)
+          <small>High volume BANNER format</small>
+        </div>
+      </div>
+
+      <div class="ad-section">
+        <h3>
+          🖼️ Medium Rectangle - 300x250
+          <span class="stats">(1,248 total: IMAGE+HTML+HTML5+RICH_MEDIA)</span>
+        </h3>
+        <p class="stats">
+          Format: BANNER | Expected: Reliable bids | Best for: Content
+          integration
+        </p>
+        <div class="inventory-info">
+          Using Template: b44430ad-ca79-4aaa-ad40-e0fd11801bca (Medium
+          Rectangle)
+        </div>
+        <!-- FIXED: Using valid inventory ID and correct selector -->
+        <div
+          class="ocean-ad-header-2 banner-medium"
+          data-ocean-slot="medium-rectangle"
+          data-ocean-inventory="1f43d93b-281e-4af3-b6e4-a81be8b05e41"
+          data-ocean-size="970x90"
+          data-ocean-format="BANNER"
+          data-ocean-position="ABOVE_FOLD"
+        >
+          Medium Rectangle (using valid inventory)
+          <small>Using working inventory ID</small>
+        </div>
+      </div>
+
+      <div class="ad-section">
+        <h3>
+          📏 Leaderboard Banner - 728x90
+          <span class="stats">(1,293 total: HTML+HTML5+IMAGE+RICH_MEDIA)</span>
+        </h3>
+        <p class="stats">
+          Format: BANNER | Expected: High fill rate | Best for: Header placement
+        </p>
+        <div class="inventory-info">
+          Using Template: b8666d86-df08-4022-9dc7-7a813a21a22d (Leaderboard)
+        </div>
+        <!-- FIXED: Using valid inventory ID and correct selector -->
+        <div
+          class="ocean-ad-header banner-leaderboard"
+          data-ocean-slot="leaderboard-728x90"
+          data-ocean-inventory="70a77554-fb81-4a84-abfc-e23b1d26a534"
+          data-ocean-size="320x180"
+          data-ocean-format="VIDEO"
+          data-ocean-position="ABOVE_FOLD"
+        >
+          Leaderboard Banner (using valid inventory)
+          <small>Using working inventory ID</small>
+        </div>
+      </div>
+
+      <!-- Additional High-Volume Options -->
+      <div class="ad-section">
+        <h3>
+          📊 Additional High-Volume Formats
+          <span class="stats">(Testing various abundant formats)</span>
+        </h3>
+        <div class="responsive-container">
+          <!-- Wide Skyscraper -->
+          <div>
+            <p>
+              <strong>Wide Skyscraper 160x600</strong> (1,693 total creatives)
+            </p>
+            <div class="inventory-info">
+              Template: 224bbe8a-368f-4e08-a124-5b6c4f030c8f
+            </div>
             <!-- FIXED: Using valid inventory ID and correct selector -->
-            <div 
-                class="ocean-ad-header video-large"
-                data-ocean-slot="video-large-640x360"
-                data-ocean-inventory="70a77554-fb81-4a84-abfc-e23b1d26a534"
-                data-ocean-size="320x180"
-                data-ocean-format="VIDEO"
-                data-ocean-position="ABOVE_FOLD"
+            <div
+              class="ocean-ad-header-2 banner-wide"
+              data-ocean-slot="wide-skyscraper"
+              data-ocean-inventory="1f43d93b-281e-4af3-b6e4-a81be8b05e41"
+              data-ocean-size="970x90"
+              data-ocean-format="BANNER"
+              data-ocean-position="ABOVE_FOLD"
             >
-                Large Video Player (using valid inventory)
-                <small>Using working inventory ID</small>
+              Wide Skyscraper (using valid inventory)
+              <small>Using working inventory ID</small>
             </div>
-        </div>
+          </div>
 
-        <!-- Current Working Mobile Video - For Comparison -->
-        <div class="ad-section">
-            <h3>
-                📱 Mobile Video - 320x180 (Current Test)
-                <span class="stats">(1,609 VIDEO creatives - your original test)</span>
-            </h3>
-            <p class="stats">Format: VIDEO | Expected: Should work after targeting fix | Best for: Mobile users</p>
-            <div class="inventory-info">Inventory: 70a77554-fb81-4a84-abfc-e23b1d26a534 | Floor: 5.60-6.97 INR</div>
-            <!-- FIXED: Using correct selector -->
-            <div 
-                class="ocean-ad-header video-mobile"
-                data-ocean-slot="mobile-video"
-                data-ocean-inventory="70a77554-fb81-4a84-abfc-e23b1d26a534"
-                data-ocean-size="320x180"
-                data-ocean-format="VIDEO"
-                data-ocean-position="ABOVE_FOLD"
-            >
-                Mobile Video (320x180)
-                <small>Original test - should now work</small>
+          <!-- Mobile Banner -->
+          <div>
+            <p><strong>Mobile Banner 320x50</strong> (1,647 total creatives)</p>
+            <div class="inventory-info">
+              Template: 0744f183-cdd3-4137-9e4c-983aa86af843
             </div>
-        </div>
-
-        <!-- High Volume BANNER Formats -->
-        <div class="ad-section">
-            <h3>
-                💻 Large Leaderboard - 970x90  
-                <span class="stats">(1,267 total: IMAGE+HTML+HTML5+RICH_MEDIA)</span>
-            </h3>
-            <p class="stats">Format: BANNER | Expected: Very reliable bids | Best for: Header placement</p>
-            <div class="inventory-info">Inventory: 1f43d93b-281e-4af3-b6e4-a81be8b05e41 | Template: 761c7367-4858-4077-8b22-679b5d5eaee6</div>
-            <!-- FIXED: Using correct selector -->
-            <div 
-                class="ocean-ad-header-2 banner-large-leaderboard"
-                data-ocean-slot="large-leaderboard"
-                data-ocean-inventory="1f43d93b-281e-4af3-b6e4-a81be8b05e41"
-                data-ocean-size="970x90"
-                data-ocean-format="BANNER"
-                data-ocean-position="ABOVE_FOLD"
-            >
-                Large Leaderboard (970x90)
-                <small>High volume BANNER format</small>
-            </div>
-        </div>
-
-        <div class="ad-section">
-            <h3>
-                🖼️ Medium Rectangle - 300x250  
-                <span class="stats">(1,248 total: IMAGE+HTML+HTML5+RICH_MEDIA)</span>
-            </h3>
-            <p class="stats">Format: BANNER | Expected: Reliable bids | Best for: Content integration</p>
-            <div class="inventory-info">Using Template: b44430ad-ca79-4aaa-ad40-e0fd11801bca (Medium Rectangle)</div>
             <!-- FIXED: Using valid inventory ID and correct selector -->
-            <div 
-                class="ocean-ad-header-2 banner-medium"
-                data-ocean-slot="medium-rectangle"
-                data-ocean-inventory="1f43d93b-281e-4af3-b6e4-a81be8b05e41"
-                data-ocean-size="970x90"
-                data-ocean-format="BANNER"
-                data-ocean-position="ABOVE_FOLD"
+            <div
+              class="ocean-ad-header banner-mobile"
+              data-ocean-slot="mobile-banner"
+              data-ocean-inventory="70a77554-fb81-4a84-abfc-e23b1d26a534"
+              data-ocean-size="320x180"
+              data-ocean-format="VIDEO"
+              data-ocean-position="ABOVE_FOLD"
             >
-                Medium Rectangle (using valid inventory)
-                <small>Using working inventory ID</small>
+              Mobile Banner (using valid inventory)
+              <small>Using working inventory ID</small>
             </div>
+          </div>
         </div>
+      </div>
 
-        <div class="ad-section">
-            <h3>
-                📏 Leaderboard Banner - 728x90
-                <span class="stats">(1,293 total: HTML+HTML5+IMAGE+RICH_MEDIA)</span>
-            </h3>
-            <p class="stats">Format: BANNER | Expected: High fill rate | Best for: Header placement</p>
-            <div class="inventory-info">Using Template: b8666d86-df08-4022-9dc7-7a813a21a22d (Leaderboard)</div>
-            <!-- FIXED: Using valid inventory ID and correct selector -->
-            <div 
-                class="ocean-ad-header banner-leaderboard"
-                data-ocean-slot="leaderboard-728x90"
-                data-ocean-inventory="70a77554-fb81-4a84-abfc-e23b1d26a534"
-                data-ocean-size="320x180"
-                data-ocean-format="VIDEO"
-                data-ocean-position="ABOVE_FOLD"
-            >
-                Leaderboard Banner (using valid inventory)
-                <small>Using working inventory ID</small>
-            </div>
+      <!-- Debug Controls -->
+      <div class="debug-panel">
+        <h4>🔧 Debug Controls & Status</h4>
+        <div>
+          <button class="btn" onclick="enableDebug()">Enable Debug Mode</button>
+          <button class="btn" onclick="refreshAds()">Refresh All Ads</button>
+          <button class="btn" onclick="showMetrics()">Show Performance</button>
+          <button class="btn" onclick="testRTBConnection()">
+            Test RTB Connection
+          </button>
+          <button class="btn danger" onclick="clearLogs()">Clear Logs</button>
         </div>
-
-        <!-- Additional High-Volume Options -->
-        <div class="ad-section">
-            <h3>
-                📊 Additional High-Volume Formats
-                <span class="stats">(Testing various abundant formats)</span>
-            </h3>
-            <div class="responsive-container">
-                <!-- Wide Skyscraper -->
-                <div>
-                    <p><strong>Wide Skyscraper 160x600</strong> (1,693 total creatives)</p>
-                    <div class="inventory-info">Template: 224bbe8a-368f-4e08-a124-5b6c4f030c8f</div>
-                    <!-- FIXED: Using valid inventory ID and correct selector -->
-                    <div 
-                        class="ocean-ad-header-2 banner-wide"
-                        data-ocean-slot="wide-skyscraper"
-                        data-ocean-inventory="1f43d93b-281e-4af3-b6e4-a81be8b05e41"
-                        data-ocean-size="970x90"
-                        data-ocean-format="BANNER"
-                        data-ocean-position="ABOVE_FOLD"
-                    >
-                        Wide Skyscraper (using valid inventory)
-                        <small>Using working inventory ID</small>
-                    </div>
-                </div>
-                
-                <!-- Mobile Banner -->
-                <div>
-                    <p><strong>Mobile Banner 320x50</strong> (1,647 total creatives)</p>
-                    <div class="inventory-info">Template: 0744f183-cdd3-4137-9e4c-983aa86af843</div>
-                    <!-- FIXED: Using valid inventory ID and correct selector -->
-                    <div 
-                        class="ocean-ad-header banner-mobile"
-                        data-ocean-slot="mobile-banner"
-                        data-ocean-inventory="70a77554-fb81-4a84-abfc-e23b1d26a534"
-                        data-ocean-size="320x180"
-                        data-ocean-format="VIDEO"
-                        data-ocean-position="ABOVE_FOLD"
-                    >
-                        Mobile Banner (using valid inventory)
-                        <small>Using working inventory ID</small>
-                    </div>
-                </div>
-            </div>
+        <div
+          id="debug-output"
+          style="margin-top: 15px; max-height: 300px; overflow-y: auto"
+        >
+          <div class="success">
+            ✅ Targeting formats with highest creative counts
+          </div>
+          <div class="warning">
+            ⚠️ Original VIDEO 320x180 had targeting issues
+          </div>
+          <div>
+            📊 Now testing: VIDEO 640x360 (1,639), BANNER 970x90 (1,267), etc.
+          </div>
+          <div>
+            🎯 Expected result: Multiple successful bids due to high volume
+          </div>
+          <div>
+            🔗 Using LATEST CDN:
+            http://localhost:3001/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js
+          </div>
+          <div>✅ Build ID: 028e26dd-1751660271915-y91gel | Version: 1.7.4</div>
         </div>
-
-        <!-- Debug Controls -->
-        <div class="debug-panel">
-            <h4>🔧 Debug Controls & Status</h4>
-            <div>
-                <button class="btn" onclick="enableDebug()">Enable Debug Mode</button>
-                <button class="btn" onclick="refreshAds()">Refresh All Ads</button>
-                <button class="btn" onclick="showMetrics()">Show Performance</button>
-                <button class="btn" onclick="testRTBConnection()">Test RTB Connection</button>
-                <button class="btn danger" onclick="clearLogs()">Clear Logs</button>
-            </div>
-            <div id="debug-output" style="margin-top: 15px; max-height: 300px; overflow-y: auto;">
-                <div class="success">✅ Targeting formats with highest creative counts</div>
-                <div class="warning">⚠️ Original VIDEO 320x180 had targeting issues</div>
-                <div>📊 Now testing: VIDEO 640x360 (1,639), BANNER 970x90 (1,267), etc.</div>
-                <div>🎯 Expected result: Multiple successful bids due to high volume</div>
-                <div>🔗 Using LATEST CDN: http://localhost:3001/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js</div>
-                <div>✅ Build ID: 028e26dd-1751660271915-y91gel | Version: 1.7.4</div>
-            </div>
-        </div>
+      </div>
     </div>
 
     <!-- FIXED: No manual config - Let CDN handle configuration -->
     <script>
-        // REMOVED: Manual config override that conflicted with CDN config
-        // Now using only CDN-embedded configuration for proper SDK operation
+      // REMOVED: Manual config override that conflicted with CDN config
+      // Now using only CDN-embedded configuration for proper SDK operation
 
-        // Global tracking variables
-        let bidRequestCount = 0;
-        let successfulBids = 0;
-        let responseTimes = [];
+      // Global tracking variables
+      let bidRequestCount = 0;
+      let successfulBids = 0;
+      let responseTimes = [];
 
-        // Enhanced debug functions
-        function enableDebug() {
-            if (window.OceanAds) {
-                window.OceanAds.debug(true);
-                logDebug('✅ Debug mode enabled', 'success');
-            } else {
-                logDebug('❌ OceanAds not loaded yet', 'error');
+      // Enhanced debug functions
+      function enableDebug() {
+        if (window.OceanAds) {
+          window.OceanAds.debug(true);
+          logDebug('✅ Debug mode enabled', 'success');
+        } else {
+          logDebug('❌ OceanAds not loaded yet', 'error');
+        }
+      }
+
+      function refreshAds() {
+        if (window.OceanAds) {
+          window.OceanAds.refresh();
+          logDebug('🔄 Refreshing all ad slots', 'success');
+        } else {
+          logDebug('❌ OceanAds not loaded yet', 'error');
+        }
+      }
+
+      function showMetrics() {
+        if (window.OceanAds && window.OceanAds.getMetrics) {
+          const metrics = window.OceanAds.getMetrics();
+          logDebug('📊 Performance Metrics:', 'success');
+          logDebug(JSON.stringify(metrics, null, 2));
+        } else {
+          logDebug('❌ Metrics not available', 'error');
+        }
+      }
+
+      // Test RTB Connection with SSE stream monitoring
+      async function testRTBConnection() {
+        logDebug(
+          '🔍 Testing RTB connection with SSE stream monitoring...',
+          'success',
+        );
+
+        // Using VERIFIED inventory IDs from API response
+        const inventoryId = '70a77554-fb81-4a84-abfc-e23b1d26a534'; // VIDEO 320x180
+        const publisherId = '028e26dd-f437-4442-b2ed-e1c59e187ec1';
+        const websiteId = '09954aa5-2c99-4e95-9c6d-b270ac1e029e';
+
+        const startTime = Date.now();
+
+        const bidRequest = {
+          externalRequestId: 'high-volume-test-' + Date.now(),
+          inventoryId: inventoryId,
+          publisherId: publisherId,
+          websiteId: websiteId,
+          userContext: {
+            userAgent: navigator.userAgent,
+            ipAddress: '127.0.0.1',
+            deviceType: 'DESKTOP',
+            browserType: 'chrome',
+            osType: 'windows',
+            country: 'IN',
+            region: 'Maharashtra',
+          },
+          adSlotContext: {
+            width: 320,
+            height: 180,
+            format: 'VIDEO',
+            position: 'ABOVE_FOLD',
+            pageUrl: window.location.href,
+            pageCategory: 'technology',
+          },
+          floorPrice: 0.5,
+          timeout: 200,
+          enableSSE: true,
+        };
+
+        logDebug(`📤 Testing RTB with inventory: ${inventoryId}`, 'success');
+        logDebug(
+          `🎯 Using verified inventory from API config (.ocean-ad-header = VIDEO 320x180)`,
+          'success',
+        );
+        logDebug(
+          `🎯 Alternative: 1f43d93b-281e-4af3-b6e4-a81be8b05e41 (.ocean-ad-header-2 = BANNER 970x90)`,
+          'success',
+        );
+
+        try {
+          const response = await fetch(
+            'http://localhost:3001/rtb/bid-request',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(bidRequest),
+            },
+          );
+
+          const responseTime = Date.now() - startTime;
+
+          if (response.ok) {
+            const apiResp = await response.json();
+            const data = apiResp.data || apiResp;
+            logDebug(
+              `✅ RTB connection successful! Request ID: ${data.requestId}`,
+              'success',
+            );
+            logDebug(`📡 Auction ID: ${data.auctionId}`, 'success');
+            logDebug(`⏱️ Response time: ${responseTime}ms`, 'success');
+
+            bidRequestCount++;
+            successfulBids++;
+            responseTimes.push(responseTime);
+
+            if (data.sseUrl) {
+              logDebug(`📡 SSE URL: ${data.sseUrl}`, 'success');
+              // Connect to SSE stream to get auction results
+              connectToSSEStream(data.sseUrl, data.requestId);
             }
+          } else {
+            const errorData = await response.json();
+            throw new Error(
+              `HTTP ${response.status}: ${errorData.message || 'Unknown error'}`,
+            );
+          }
+        } catch (error) {
+          logDebug(`❌ RTB connection failed: ${error.message}`, 'error');
+          bidRequestCount++;
         }
+      }
 
-        function refreshAds() {
-            if (window.OceanAds) {
-                window.OceanAds.refresh();
-                logDebug('🔄 Refreshing all ad slots', 'success');
-            } else {
-                logDebug('❌ OceanAds not loaded yet', 'error');
+      // Connect to SSE stream and display results
+      function connectToSSEStream(sseUrl, requestId) {
+        logDebug(`🔗 Connecting to SSE stream: ${sseUrl}`, 'success');
+
+        const eventSource = new EventSource(sseUrl);
+
+        eventSource.onopen = function () {
+          logDebug('📡 SSE connection opened', 'success');
+        };
+
+        eventSource.onmessage = function (event) {
+          try {
+            const data = JSON.parse(event.data);
+            logDebug(`📨 SSE message received: ${event.type}`, 'success');
+            logDebug(
+              `🎯 Auction Status: ${data.auctionStatus}`,
+              data.auctionStatus === 'COMPLETED' ? 'success' : 'warning',
+            );
+
+            if (data.auctionStatus === 'COMPLETED' && data.winner) {
+              logDebug(
+                `🏆 Winner found! Bid: ${data.winner.bidPrice} INR, Final: ${data.winner.finalPrice} INR`,
+                'success',
+              );
+              logDebug(
+                `📊 Total bids: ${data.totalBids}, Valid: ${data.validBids}`,
+                'success',
+              );
+
+              // Display the ad markup in the mobile video slot
+              displayAdMarkup(data.winner.adMarkup, 'mobile-video');
+            } else if (data.auctionStatus === 'NO_BIDS') {
+              logDebug(`❌ No bids received`, 'error');
+            } else if (data.auctionStatus === 'ERROR') {
+              logDebug(`❌ Auction error: ${data.errorMessage}`, 'error');
             }
-        }
+          } catch (parseError) {
+            logDebug(`❌ SSE parse error: ${parseError.message}`, 'error');
+            logDebug(`Raw data: ${event.data}`, 'warning');
+          }
+        };
 
-        function showMetrics() {
-            if (window.OceanAds && window.OceanAds.getMetrics) {
-                const metrics = window.OceanAds.getMetrics();
-                logDebug('📊 Performance Metrics:', 'success');
-                logDebug(JSON.stringify(metrics, null, 2));
-            } else {
-                logDebug('❌ Metrics not available', 'error');
+        // FIXED: Listen for correct event name
+        eventSource.addEventListener('bid_complete', function (event) {
+          try {
+            const data = JSON.parse(event.data);
+            logDebug(`🎯 Bid complete event received`, 'success');
+
+            if (data.status === 'completed' && data.slots && data.slots[0]) {
+              logDebug(`🏆 BID COMPLETED! Creative received`, 'success');
+              const slot = data.slots[0];
+              if (slot.creative && slot.creative.markup) {
+                displayAdMarkup(slot.creative.markup, 'mobile-video');
+              }
             }
-        }
-
-        // Test RTB Connection with SSE stream monitoring
-        async function testRTBConnection() {
-            logDebug('🔍 Testing RTB connection with SSE stream monitoring...', 'success');
-            
-            // Using VERIFIED inventory IDs from API response
-            const inventoryId = '70a77554-fb81-4a84-abfc-e23b1d26a534'; // VIDEO 320x180
-            const publisherId = '028e26dd-f437-4442-b2ed-e1c59e187ec1';
-            const websiteId = '09954aa5-2c99-4e95-9c6d-b270ac1e029e';
-
-            const startTime = Date.now();
-
-            const bidRequest = {
-                externalRequestId: 'high-volume-test-' + Date.now(),
-                inventoryId: inventoryId,
-                publisherId: publisherId,
-                websiteId: websiteId,
-                userContext: {
-                    userAgent: navigator.userAgent,
-                    ipAddress: '127.0.0.1',
-                    deviceType: 'DESKTOP',
-                    browserType: 'chrome',
-                    osType: 'windows',
-                    country: 'IN',
-                    region: 'Maharashtra',
-                },
-                adSlotContext: {
-                    width: 320,
-                    height: 180,
-                    format: 'VIDEO',
-                    position: 'ABOVE_FOLD',
-                    pageUrl: window.location.href,
-                    pageCategory: 'technology',
-                },
-                floorPrice: 0.5,
-                timeout: 200,
-                enableSSE: true,
-            };
-
-            logDebug(`📤 Testing RTB with inventory: ${inventoryId}`, 'success');
-            logDebug(`🎯 Using verified inventory from API config (.ocean-ad-header = VIDEO 320x180)`, 'success');
-            logDebug(`🎯 Alternative: 1f43d93b-281e-4af3-b6e4-a81be8b05e41 (.ocean-ad-header-2 = BANNER 970x90)`, 'success');
-
-            try {
-                const response = await fetch('http://localhost:3001/rtb/bid-request', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(bidRequest),
-                });
-
-                const responseTime = Date.now() - startTime;
-
-                if (response.ok) {
-                    const apiResp = await response.json();
-                    const data = apiResp.data || apiResp;
-                    logDebug(`✅ RTB connection successful! Request ID: ${data.requestId}`, 'success');
-                    logDebug(`📡 Auction ID: ${data.auctionId}`, 'success');
-                    logDebug(`⏱️ Response time: ${responseTime}ms`, 'success');
-
-                    bidRequestCount++;
-                    successfulBids++;
-                    responseTimes.push(responseTime);
-
-                    if (data.sseUrl) {
-                        logDebug(`📡 SSE URL: ${data.sseUrl}`, 'success');
-                        // Connect to SSE stream to get auction results
-                        connectToSSEStream(data.sseUrl, data.requestId);
-                    }
-                } else {
-                    const errorData = await response.json();
-                    throw new Error(`HTTP ${response.status}: ${errorData.message || 'Unknown error'}`);
-                }
-            } catch (error) {
-                logDebug(`❌ RTB connection failed: ${error.message}`, 'error');
-                bidRequestCount++;
-            }
-        }
-
-        // Connect to SSE stream and display results
-        function connectToSSEStream(sseUrl, requestId) {
-            logDebug(`🔗 Connecting to SSE stream: ${sseUrl}`, 'success');
-            
-            const eventSource = new EventSource(sseUrl);
-            
-            eventSource.onopen = function() {
-                logDebug('📡 SSE connection opened', 'success');
-            };
-            
-            eventSource.onmessage = function(event) {
-                try {
-                    const data = JSON.parse(event.data);
-                    logDebug(`📨 SSE message received: ${event.type}`, 'success');
-                    logDebug(`🎯 Auction Status: ${data.auctionStatus}`, data.auctionStatus === 'COMPLETED' ? 'success' : 'warning');
-                    
-                    if (data.auctionStatus === 'COMPLETED' && data.winner) {
-                        logDebug(`🏆 Winner found! Bid: ${data.winner.bidPrice} INR, Final: ${data.winner.finalPrice} INR`, 'success');
-                        logDebug(`📊 Total bids: ${data.totalBids}, Valid: ${data.validBids}`, 'success');
-                        
-                        // Display the ad markup in the mobile video slot
-                        displayAdMarkup(data.winner.adMarkup, 'mobile-video');
-                    } else if (data.auctionStatus === 'NO_BIDS') {
-                        logDebug(`❌ No bids received`, 'error');
-                    } else if (data.auctionStatus === 'ERROR') {
-                        logDebug(`❌ Auction error: ${data.errorMessage}`, 'error');
-                    }
-                } catch (parseError) {
-                    logDebug(`❌ SSE parse error: ${parseError.message}`, 'error');
-                    logDebug(`Raw data: ${event.data}`, 'warning');
-                }
-            };
-            
-            // FIXED: Listen for correct event name
-            eventSource.addEventListener('bid_complete', function(event) {
-                try {
-                    const data = JSON.parse(event.data);
-                    logDebug(`🎯 Bid complete event received`, 'success');
-                    
-                    if (data.status === 'completed' && data.slots && data.slots[0]) {
-                        logDebug(`🏆 BID COMPLETED! Creative received`, 'success');
-                        const slot = data.slots[0];
-                        if (slot.creative && slot.creative.markup) {
-                            displayAdMarkup(slot.creative.markup, 'mobile-video');
-                        }
-                    }
-                } catch (parseError) {
-                    logDebug(`❌ Bid complete parse error: ${parseError.message}`, 'error');
-                }
-            });
-            
-            eventSource.onerror = function(error) {
-                logDebug(`❌ SSE connection error`, 'error');
-                eventSource.close();
-            };
-            
-            // Close connection after 30 seconds
-            setTimeout(() => {
-                if (eventSource.readyState !== EventSource.CLOSED) {
-                    eventSource.close();
-                    logDebug('🔚 SSE connection closed after 30s timeout', 'warning');
-                }
-            }, 30000);
-        }
-
-        // Display ad markup in specified slot
-        function displayAdMarkup(adMarkup, slotId) {
-            const slot = document.getElementById(slotId);
-            if (slot && adMarkup) {
-                slot.innerHTML = adMarkup;
-                slot.classList.add('loaded');
-                logDebug(`🎬 Ad displayed in slot: ${slotId}`, 'success');
-                logDebug(`📺 Markup length: ${adMarkup.length} characters`, 'success');
-            } else {
-                logDebug(`❌ Failed to display ad: slot=${!!slot}, markup=${!!adMarkup}`, 'error');
-            }
-        }
-
-        function clearLogs() {
-            document.getElementById('debug-output').innerHTML = '';
-            logDebug('🗑️ Logs cleared', 'success');
-        }
-
-        function logDebug(message, type = '') {
-            const output = document.getElementById('debug-output');
-            const div = document.createElement('div');
-            div.className = type;
-            div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
-            output.appendChild(div);
-            output.scrollTop = output.scrollHeight;
-            console.log(`[Ocean Ads High Volume Test] ${message}`);
-        }
-
-        // Monitor ad loading
-        document.addEventListener('DOMContentLoaded', function() {
-            logDebug('🌊 Ocean Ads High Volume Test Page Loaded', 'success');
-            logDebug('📋 Testing formats: VIDEO 640x360, BANNER 970x90, BANNER 300x250, etc.', 'success');
-            logDebug('🎯 Targeting highest volume creatives for reliable bids', 'success');
-            logDebug('📊 Database: 21,395 approved creatives available', 'success');
-            
-            // Auto-test RTB connection
-            setTimeout(() => {
-                testRTBConnection();
-            }, 3000);
-            
-            // Check if ads load within 8 seconds
-            setTimeout(() => {
-                const adSlots = document.querySelectorAll('.ocean-ad');
-                let loadedCount = 0;
-                adSlots.forEach(slot => {
-                    if (slot.innerHTML && slot.innerHTML.trim() !== '' && !slot.innerHTML.includes('Loading') && slot.classList.contains('loaded')) {
-                        loadedCount++;
-                    }
-                });
-                
-                if (loadedCount > 0) {
-                    logDebug(`✅ ${loadedCount}/${adSlots.length} ads loaded successfully`, 'success');
-                } else {
-                    logDebug(`⚠️ No ads loaded yet. Possible targeting issues or NO_BIDS.`, 'warning');
-                    logDebug(`💡 Try: 1) Check campaign targeting, 2) Lower floor prices, 3) Check bid amounts`, 'warning');
-                }
-            }, 8000);
+          } catch (parseError) {
+            logDebug(
+              `❌ Bid complete parse error: ${parseError.message}`,
+              'error',
+            );
+          }
         });
 
-        // Network monitoring
-        if (typeof(Performance) !== "undefined" && performance.getEntriesByType) {
-            setTimeout(() => {
-                const networkEntries = performance.getEntriesByType('resource');
-                const rtbRequests = networkEntries.filter(entry => 
-                    entry.name.includes('/rtb/') || entry.name.includes('ocean') || entry.name.includes('init.js')
-                );
-                
-                if (rtbRequests.length > 0) {
-                    logDebug(`📡 Detected ${rtbRequests.length} Ocean Ads network requests`, 'success');
-                } else {
-                    logDebug('❌ No Ocean Ads requests detected. Check SDK loading.', 'error');
-                }
-            }, 4000);
+        eventSource.onerror = function (error) {
+          logDebug(`❌ SSE connection error`, 'error');
+          eventSource.close();
+        };
+
+        // Close connection after 30 seconds
+        setTimeout(() => {
+          if (eventSource.readyState !== EventSource.CLOSED) {
+            eventSource.close();
+            logDebug('🔚 SSE connection closed after 30s timeout', 'warning');
+          }
+        }, 30000);
+      }
+
+      // Display ad markup in specified slot
+      function displayAdMarkup(adMarkup, slotId) {
+        const slot = document.getElementById(slotId);
+        if (slot && adMarkup) {
+          slot.innerHTML = adMarkup;
+          slot.classList.add('loaded');
+          logDebug(`🎬 Ad displayed in slot: ${slotId}`, 'success');
+          logDebug(
+            `📺 Markup length: ${adMarkup.length} characters`,
+            'success',
+          );
+        } else {
+          logDebug(
+            `❌ Failed to display ad: slot=${!!slot}, markup=${!!adMarkup}`,
+            'error',
+          );
         }
+      }
+
+      function clearLogs() {
+        document.getElementById('debug-output').innerHTML = '';
+        logDebug('🗑️ Logs cleared', 'success');
+      }
+
+      function logDebug(message, type = '') {
+        const output = document.getElementById('debug-output');
+        const div = document.createElement('div');
+        div.className = type;
+        div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+        output.appendChild(div);
+        output.scrollTop = output.scrollHeight;
+        console.log(`[Ocean Ads High Volume Test] ${message}`);
+      }
+
+      // Monitor ad loading
+      document.addEventListener('DOMContentLoaded', function () {
+        logDebug('🌊 Ocean Ads High Volume Test Page Loaded', 'success');
+        logDebug(
+          '📋 Testing formats: VIDEO 640x360, BANNER 970x90, BANNER 300x250, etc.',
+          'success',
+        );
+        logDebug(
+          '🎯 Targeting highest volume creatives for reliable bids',
+          'success',
+        );
+        logDebug('📊 Database: 21,395 approved creatives available', 'success');
+
+        // Auto-test RTB connection
+        setTimeout(() => {
+          testRTBConnection();
+        }, 3000);
+
+        // Check if ads load within 8 seconds
+        setTimeout(() => {
+          const adSlots = document.querySelectorAll('.ocean-ad');
+          let loadedCount = 0;
+          adSlots.forEach((slot) => {
+            if (
+              slot.innerHTML &&
+              slot.innerHTML.trim() !== '' &&
+              !slot.innerHTML.includes('Loading') &&
+              slot.classList.contains('loaded')
+            ) {
+              loadedCount++;
+            }
+          });
+
+          if (loadedCount > 0) {
+            logDebug(
+              `✅ ${loadedCount}/${adSlots.length} ads loaded successfully`,
+              'success',
+            );
+          } else {
+            logDebug(
+              `⚠️ No ads loaded yet. Possible targeting issues or NO_BIDS.`,
+              'warning',
+            );
+            logDebug(
+              `💡 Try: 1) Check campaign targeting, 2) Lower floor prices, 3) Check bid amounts`,
+              'warning',
+            );
+          }
+        }, 8000);
+      });
+
+      // Network monitoring
+      if (typeof Performance !== 'undefined' && performance.getEntriesByType) {
+        setTimeout(() => {
+          const networkEntries = performance.getEntriesByType('resource');
+          const rtbRequests = networkEntries.filter(
+            (entry) =>
+              entry.name.includes('/rtb/') ||
+              entry.name.includes('ocean') ||
+              entry.name.includes('init.js'),
+          );
+
+          if (rtbRequests.length > 0) {
+            logDebug(
+              `📡 Detected ${rtbRequests.length} Ocean Ads network requests`,
+              'success',
+            );
+          } else {
+            logDebug(
+              '❌ No Ocean Ads requests detected. Check SDK loading.',
+              'error',
+            );
+          }
+        }, 4000);
+      }
     </script>
 
     <!-- Load Ocean Ads SDK - FIXED: Using correct CDN URL -->
-    <script src="http://localhost:3001/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js" async></script>
-</body>
+    <script
+      src="http://localhost:3001/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js"
+      async
+    ></script>
+  </body>
 </html>

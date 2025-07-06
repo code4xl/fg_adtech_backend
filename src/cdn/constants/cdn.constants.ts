@@ -42,7 +42,7 @@ export const CDN_URL_CONFIG = {
   // Production URLs
   PRODUCTION: {
     BASE_URL: 'http://localhost:3001',
-    PATH_PREFIX: '',
+    PATH_PREFIX: '/cdn', // FIXED: Added /cdn prefix for production
   },
 } as const;
 
