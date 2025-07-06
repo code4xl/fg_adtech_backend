@@ -21,7 +21,7 @@ export class PublisherSeeder implements ISeeder {
   }
 
   async seed(count: number = 200): Promise<void> {
-    this.logger.log(`Seeding ${count} publishers...`);
+    this.logger.debug(`Seeding ${count} publishers...`);
 
     try {
       // First, ensure publisher tiers exist
@@ -36,7 +36,7 @@ export class PublisherSeeder implements ISeeder {
         throw new Error('No publisher tiers found after creation attempt');
       }
 
-      this.logger.log(`Found ${tiers.length} publisher tiers for assignment`);
+      this.logger.debug(`Found ${tiers.length} publisher tiers for assignment`);
 
       const publisherData: any = [];
 
@@ -96,10 +96,10 @@ export class PublisherSeeder implements ISeeder {
 
       // Log tier distribution
       const tierDistribution = await this.getTierDistribution();
-      this.logger.log(`Successfully seeded ${publisherCount} publishers`);
-      this.logger.log('Publisher tier distribution:');
+      this.logger.debug(`Successfully seeded ${publisherCount} publishers`);
+      this.logger.debug('Publisher tier distribution:');
       tierDistribution.forEach(({ tierName, count, commissionRate }) => {
-        this.logger.log(
+        this.logger.debug(
           `  ${tierName} (${commissionRate}% commission): ${count} publishers`,
         );
       });
@@ -111,7 +111,7 @@ export class PublisherSeeder implements ISeeder {
   }
 
   async clean(): Promise<void> {
-    this.logger.log('Cleaning publishers table...');
+    this.logger.debug('Cleaning publishers table...');
 
     try {
       // Clean related data first to avoid foreign key constraint issues
@@ -129,7 +129,7 @@ export class PublisherSeeder implements ISeeder {
       // Clean publisher tiers (only if no publishers reference them)
       const deletedTiers = await this.prisma.publisherTier.deleteMany({});
 
-      this.logger.log(
+      this.logger.debug(
         `Deleted ${deletedPublishers.count} publishers and ${deletedTiers.count} publisher tiers`,
       );
     } catch (error) {
@@ -148,12 +148,14 @@ export class PublisherSeeder implements ISeeder {
    * Ensure that publisher tiers exist in the database
    */
   private async ensurePublisherTiersExist(): Promise<void> {
-    this.logger.log('Ensuring publisher tiers exist...');
+    this.logger.debug('Ensuring publisher tiers exist...');
 
     const existingTiers = await this.prisma.publisherTier.findMany();
 
     if (existingTiers.length > 0) {
-      this.logger.log(`Found ${existingTiers.length} existing publisher tiers`);
+      this.logger.debug(
+        `Found ${existingTiers.length} existing publisher tiers`,
+      );
       return;
     }
 
@@ -191,7 +193,7 @@ export class PublisherSeeder implements ISeeder {
     }
 
     const createdTiers = await this.prisma.publisherTier.count();
-    this.logger.log(`Created ${createdTiers} publisher tiers`);
+    this.logger.debug(`Created ${createdTiers} publisher tiers`);
   }
 
   /**

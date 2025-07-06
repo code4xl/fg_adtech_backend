@@ -19,7 +19,7 @@ export class AdSlotTemplateSeeder implements ISeeder {
   }
 
   async seed(): Promise<void> {
-    this.logger.log('Seeding ad slot templates...');
+    this.logger.debug('Seeding ad slot templates...');
 
     try {
       const templates = [
@@ -132,7 +132,9 @@ export class AdSlotTemplateSeeder implements ISeeder {
       }
 
       const templateCount = await this.prisma.adSlotTemplate.count();
-      this.logger.log(`Successfully seeded ${templateCount} ad slot templates`);
+      this.logger.debug(
+        `Successfully seeded ${templateCount} ad slot templates`,
+      );
     } catch (error) {
       this.logger.error('Error seeding ad slot templates');
       this.logger.error(error);
@@ -141,11 +143,11 @@ export class AdSlotTemplateSeeder implements ISeeder {
   }
 
   async clean(): Promise<void> {
-    this.logger.log('Cleaning ad slot templates table...');
+    this.logger.debug('Cleaning ad slot templates table...');
 
     try {
       const deleted = await this.prisma.adSlotTemplate.deleteMany({});
-      this.logger.log(`Deleted ${deleted.count} ad slot templates`);
+      this.logger.debug(`Deleted ${deleted.count} ad slot templates`);
     } catch (error) {
       this.logger.error('Error cleaning ad slot templates table');
       this.logger.error(error);

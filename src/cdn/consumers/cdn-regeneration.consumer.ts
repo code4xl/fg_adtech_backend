@@ -20,15 +20,13 @@ export class CdnRegenerationConsumer {
   private readonly maxRetries = 3;
   private readonly retryDelay = 5000; // 5 seconds
 
-  constructor(
-    private readonly cdnOrchestrator: CdnOrchestratorService,
-  ) {}
+  constructor(private readonly cdnOrchestrator: CdnOrchestratorService) {}
 
   @EventPattern('cdn.regeneration.requested')
   async handleCdnRegeneration(
     @Payload() data: CdnRegenerationEvent,
   ): Promise<void> {
-    this.logger.log(
+    this.logger.debug(
       `Processing CDN regeneration request: ${JSON.stringify(data)}`,
     );
 
@@ -44,16 +42,16 @@ export class CdnRegenerationConsumer {
           true, // regenerate = true
         );
 
-        this.logger.log(
+        this.logger.debug(
           `CDN regeneration completed successfully for ${data.publisherId}/${data.websiteId}`,
         );
-        
+
         // Success - exit the retry loop
         return;
       } catch (error) {
         lastError = error;
         retryCount++;
-        
+
         this.logger.error(
           `CDN regeneration failed (attempt ${retryCount}/${this.maxRetries}): ${error.message}`,
         );
@@ -116,6 +114,6 @@ export class CdnRegenerationConsumer {
    * Delay helper for retries
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }

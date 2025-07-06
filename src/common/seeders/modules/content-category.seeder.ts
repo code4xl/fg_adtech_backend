@@ -18,7 +18,7 @@ export class ContentCategorySeeder implements ISeeder {
   }
 
   async seed(): Promise<void> {
-    this.logger.log('Seeding content categories...');
+    this.logger.debug('Seeding content categories...');
 
     try {
       const categories = [
@@ -91,7 +91,7 @@ export class ContentCategorySeeder implements ISeeder {
       }
 
       const categoryCount = await this.prisma.contentCategory.count();
-      this.logger.log(
+      this.logger.debug(
         `Successfully seeded ${categoryCount} content categories`,
       );
     } catch (error) {
@@ -102,11 +102,11 @@ export class ContentCategorySeeder implements ISeeder {
   }
 
   async clean(): Promise<void> {
-    this.logger.log('Cleaning content categories table...');
+    this.logger.debug('Cleaning content categories table...');
 
     try {
       const deleted = await this.prisma.contentCategory.deleteMany({});
-      this.logger.log(`Deleted ${deleted.count} content categories`);
+      this.logger.debug(`Deleted ${deleted.count} content categories`);
     } catch (error) {
       this.logger.error('Error cleaning content categories table');
       this.logger.error(error);

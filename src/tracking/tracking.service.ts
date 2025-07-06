@@ -138,7 +138,7 @@ export class TrackingService {
       await pipeline.exec();
 
       this.logger.debug(
-        `✅ Impression processed with financial tracking: ${impression.id}`,
+        ` Impression processed with financial tracking: ${impression.id}`,
         {
           finalPrice: impression.finalPrice,
           costPerImpression,
@@ -220,7 +220,7 @@ export class TrackingService {
       await pipeline.exec();
 
       this.logger.debug(
-        `✅ Click processed with financial tracking: ${click.id}`,
+        ` Click processed with financial tracking: ${click.id}`,
       );
     } catch (error) {
       this.logger.error(

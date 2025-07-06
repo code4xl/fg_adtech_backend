@@ -75,7 +75,7 @@ export class BudgetManagerService {
       // 5. Track reservation for monitoring
       await this.trackReservation(reservationId, winningBid.campaignId, today);
 
-      this.logger.debug('✅ Budget reserved successfully', {
+      this.logger.debug(' Budget reserved successfully', {
         reservationId,
         campaignId: winningBid.campaignId,
         costPerImpression,
@@ -175,7 +175,7 @@ export class BudgetManagerService {
       // 6. Clean up reservation (it's now confirmed)
       await this.redis.del(REDIS_KEYS.BUDGET_RESERVATION(reservationId));
 
-      this.logger.debug('✅ Budget confirmed successfully', {
+      this.logger.debug(' Budget confirmed successfully', {
         reservationId,
         campaignId,
         costPerImpression,
@@ -338,7 +338,7 @@ export class BudgetManagerService {
         today,
       );
 
-      this.logger.debug('✅ Revenue sharing processed', {
+      this.logger.debug(' Revenue sharing processed', {
         campaignId,
         publisherId,
         grossRevenue,
@@ -497,9 +497,7 @@ export class BudgetManagerService {
 
       await pipeline.exec();
 
-      this.logger.log('✅ Publisher revenue tiers synced', {
-        publishersCount: publishers.length,
-      });
+      this.logger.debug(`${publishers.length} Publisher revenue tiers synced`);
     } catch (error) {
       this.logger.error('❌ Failed to sync publisher revenue tiers', {
         error: error.message,

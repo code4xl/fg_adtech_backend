@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { IInventoryConfig } from '../interfaces';
 import { PublisherTier, AdPosition, RefreshConfigDto } from '../dto';
-import { TIER_FEATURES, POSITION_SELECTOR_MAP } from '../constants/cdn.constants';
+import {
+  TIER_FEATURES,
+  POSITION_SELECTOR_MAP,
+} from '../constants/cdn.constants';
 
 /**
  * Service responsible for mapping database inventory records
@@ -18,16 +21,17 @@ export class InventoryMapperService {
     inventoryRecords: any[],
     publisherTier: PublisherTier,
   ): Promise<IInventoryConfig[]> {
-    this.logger.log(`Mapping ${inventoryRecords.length} inventory records for ${publisherTier} tier`);
+    this.logger.debug(
+      `Mapping ${inventoryRecords.length} inventory records for ${publisherTier} tier`,
+    );
 
     const tierFeatures = TIER_FEATURES[publisherTier];
     const mappedInventory: IInventoryConfig[] = [];
 
     // Apply tier-based inventory limit
     const maxSlots = tierFeatures.maxInventorySlots;
-    const recordsToProcess = maxSlots === -1 
-      ? inventoryRecords 
-      : inventoryRecords.slice(0, maxSlots);
+    const recordsToProcess =
+      maxSlots === -1 ? inventoryRecords : inventoryRecords.slice(0, maxSlots);
 
     for (const record of recordsToProcess) {
       const config = this.mapSingleInventory(record, publisherTier);
@@ -36,24 +40,36 @@ export class InventoryMapperService {
       }
     }
 
-    this.logger.log(`Mapped ${mappedInventory.length} inventory configurations`);
+    this.logger.debug(
+      `Mapped ${mappedInventory.length} inventory configurations`,
+    );
     return mappedInventory;
   }
 
   /**
    * Map a single inventory record to configuration
    */
-  private mapSingleInventory(record: any, tier: PublisherTier): IInventoryConfig | null {
+  private mapSingleInventory(
+    record: any,
+    tier: PublisherTier,
+  ): IInventoryConfig | null {
     try {
       // Skip if no template
       if (!record.adSlotTemplate) {
-        this.logger.warn(`Inventory ${record.id} has no ad slot template, skipping`);
+        this.logger.warn(
+          `Inventory ${record.id} has no ad slot template, skipping`,
+        );
         return null;
       }
 
       // Skip if no active campaigns and not premium/enterprise
-      if (tier === PublisherTier.BASIC && (!record.campaign || record.campaign.length === 0)) {
-        this.logger.debug(`Basic tier inventory ${record.id} has no active campaigns, skipping`);
+      if (
+        tier === PublisherTier.BASIC &&
+        (!record.campaign || record.campaign.length === 0)
+      ) {
+        this.logger.debug(
+          `Basic tier inventory ${record.id} has no active campaigns, skipping`,
+        );
         return null;
       }
 
@@ -73,12 +89,16 @@ export class InventoryMapperService {
 
       // Add custom targeting for premium/enterprise tiers
       if (tier !== PublisherTier.BASIC && record.customTargeting) {
-        config.customTargeting = this.sanitizeCustomTargeting(record.customTargeting);
+        config.customTargeting = this.sanitizeCustomTargeting(
+          record.customTargeting,
+        );
       }
 
       return config;
     } catch (error) {
-      this.logger.error(`Error mapping inventory ${record.id}: ${error.message}`);
+      this.logger.error(
+        `Error mapping inventory ${record.id}: ${error.message}`,
+      );
       return null;
     }
   }
@@ -86,7 +106,10 @@ export class InventoryMapperService {
   /**
    * Build refresh configuration based on inventory settings and tier
    */
-  private buildRefreshConfig(record: any, tier: PublisherTier): RefreshConfigDto {
+  private buildRefreshConfig(
+    record: any,
+    tier: PublisherTier,
+  ): RefreshConfigDto {
     const tierFeatures = TIER_FEATURES[tier];
     const defaultInterval = tierFeatures.refreshInterval;
 
@@ -105,9 +128,10 @@ export class InventoryMapperService {
 
     // For premium/enterprise, use custom settings if available
     const customInterval = record.refreshSettings?.interval;
-    const interval = customInterval && customInterval >= defaultInterval 
-      ? customInterval 
-      : defaultInterval;
+    const interval =
+      customInterval && customInterval >= defaultInterval
+        ? customInterval
+        : defaultInterval;
 
     return {
       enabled: true,
@@ -124,7 +148,7 @@ export class InventoryMapperService {
     }
 
     const sanitized: Record<string, any> = {};
-    
+
     // Only include allowed targeting keys
     const allowedKeys = [
       'demographics',
@@ -149,20 +173,30 @@ export class InventoryMapperService {
    */
   private sanitizeTargetingValue(value: any): any {
     if (Array.isArray(value)) {
-      return value.filter(v => typeof v === 'string' || typeof v === 'number');
+      return value.filter(
+        (v) => typeof v === 'string' || typeof v === 'number',
+      );
     }
-    
+
     if (typeof value === 'object' && value !== null) {
       const sanitized: Record<string, any> = {};
       for (const [k, v] of Object.entries(value)) {
-        if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+        if (
+          typeof v === 'string' ||
+          typeof v === 'number' ||
+          typeof v === 'boolean'
+        ) {
           sanitized[k] = v;
         }
       }
       return sanitized;
     }
 
-    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    if (
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean'
+    ) {
       return value;
     }
 
@@ -172,7 +206,9 @@ export class InventoryMapperService {
   /**
    * Group inventory by position for selector generation
    */
-  groupInventoryByPosition(inventory: IInventoryConfig[]): Map<string, IInventoryConfig[]> {
+  groupInventoryByPosition(
+    inventory: IInventoryConfig[],
+  ): Map<string, IInventoryConfig[]> {
     const grouped = new Map<string, IInventoryConfig[]>();
 
     for (const item of inventory) {

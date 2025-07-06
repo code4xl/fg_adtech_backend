@@ -22,7 +22,9 @@ export class SelectorGeneratorService {
       useCustomSelectors?: boolean;
     },
   ): IInventoryConfig[] {
-    this.logger.log(`Generating selectors for ${inventory.length} inventory items on ${websiteDomain}`);
+    this.logger.debug(
+      `Generating selectors for ${inventory.length} inventory items on ${websiteDomain}`,
+    );
 
     const positionCounts = new Map<string, number>();
     const inventoryWithSelectors: IInventoryConfig[] = [];
@@ -48,7 +50,9 @@ export class SelectorGeneratorService {
       });
     }
 
-    this.logger.log(`Generated selectors for ${inventoryWithSelectors.length} items`);
+    this.logger.debug(
+      `Generated selectors for ${inventoryWithSelectors.length} items`,
+    );
     return inventoryWithSelectors;
   }
 
@@ -66,7 +70,7 @@ export class SelectorGeneratorService {
     const positionCounts = new Map<string, number>();
 
     for (const item of inventory) {
-      const position = item.position as AdPosition || AdPosition.ABOVE_FOLD;
+      const position = (item.position as AdPosition) || AdPosition.ABOVE_FOLD;
       const count = positionCounts.get(position) || 0;
       positionCounts.set(position, count + 1);
 
@@ -104,7 +108,7 @@ export class SelectorGeneratorService {
       return this.validateSelector(item.customTargeting.customSelector);
     }
 
-    const position = item.position as AdPosition || AdPosition.ABOVE_FOLD;
+    const position = (item.position as AdPosition) || AdPosition.ABOVE_FOLD;
     const count = positionCounts.get(position) || 0;
     positionCounts.set(position, count + 1);
 
@@ -120,7 +124,9 @@ export class SelectorGeneratorService {
     prefix?: string,
   ): string {
     const baseSelector = POSITION_SELECTOR_MAP[position] || '.ocean-ad';
-    const prefixedSelector = prefix ? `${prefix}-${baseSelector.substring(1)}` : baseSelector;
+    const prefixedSelector = prefix
+      ? `${prefix}-${baseSelector.substring(1)}`
+      : baseSelector;
 
     // Add instance number if not the first instance
     if (instanceNumber > 1) {
@@ -194,7 +200,7 @@ ${snippets.join('\n')}
     conflicts: Array<{ selector: string; inventoryIds: string[] }>;
   } {
     const selectorMap = new Map<string, string[]>();
-    
+
     for (const item of inventory) {
       if (!selectorMap.has(item.selector)) {
         selectorMap.set(item.selector, []);
@@ -203,7 +209,7 @@ ${snippets.join('\n')}
     }
 
     const conflicts: Array<{ selector: string; inventoryIds: string[] }> = [];
-    
+
     for (const [selector, inventoryIds] of selectorMap.entries()) {
       if (inventoryIds.length > 1) {
         conflicts.push({ selector, inventoryIds });
@@ -219,16 +225,19 @@ ${snippets.join('\n')}
   /**
    * Generate position-based statistics
    */
-  generatePositionStats(inventory: IInventoryConfig[]): Record<string, {
-    count: number;
-    selectors: string[];
-    averageRefreshInterval?: number;
-  }> {
+  generatePositionStats(inventory: IInventoryConfig[]): Record<
+    string,
+    {
+      count: number;
+      selectors: string[];
+      averageRefreshInterval?: number;
+    }
+  > {
     const stats: Record<string, any> = {};
 
     for (const item of inventory) {
       const position = item.position || 'unknown';
-      
+
       if (!stats[position]) {
         stats[position] = {
           count: 0,
@@ -239,7 +248,7 @@ ${snippets.join('\n')}
 
       stats[position].count++;
       stats[position].selectors.push(item.selector);
-      
+
       if (item.refresh?.interval) {
         stats[position].refreshIntervals.push(item.refresh.interval);
       }
@@ -248,12 +257,14 @@ ${snippets.join('\n')}
     // Calculate averages and clean up
     for (const position of Object.keys(stats)) {
       const intervals = stats[position].refreshIntervals;
-      
+
       if (intervals.length > 0) {
-        stats[position].averageRefreshInterval = 
-          Math.round(intervals.reduce((a: number, b: number) => a + b, 0) / intervals.length);
+        stats[position].averageRefreshInterval = Math.round(
+          intervals.reduce((a: number, b: number) => a + b, 0) /
+            intervals.length,
+        );
       }
-      
+
       delete stats[position].refreshIntervals;
     }
 

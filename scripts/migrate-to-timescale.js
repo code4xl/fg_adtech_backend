@@ -117,7 +117,7 @@ async function migrateImpressions(batchSize = 1000) {
 
       totalMigrated += impressions.length;
       console.log(
-        `✅ Migrated batch of ${impressions.length} impressions. Total: ${totalMigrated}`,
+        ` Migrated batch of ${impressions.length} impressions. Total: ${totalMigrated}`,
       );
     } catch (error) {
       await client.query('ROLLBACK');
@@ -224,7 +224,7 @@ async function migrateClicks(batchSize = 1000) {
 
       totalMigrated += clicks.length;
       console.log(
-        `✅ Migrated batch of ${clicks.length} clicks. Total: ${totalMigrated}`,
+        ` Migrated batch of ${clicks.length} clicks. Total: ${totalMigrated}`,
       );
     } catch (error) {
       await client.query('ROLLBACK');
@@ -253,7 +253,7 @@ async function main() {
     const timescaleClient = await timescalePool.connect();
     await timescaleClient.query('SELECT 1');
     timescaleClient.release();
-    console.log('✅ Database connections verified');
+    console.log(' Database connections verified');
 
     // Run migrations
     await migrateImpressions();

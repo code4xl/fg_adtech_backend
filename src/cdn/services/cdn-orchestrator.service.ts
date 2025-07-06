@@ -3,11 +3,7 @@ import { ConfigBuilderService } from './config-builder.service';
 import { CdnGeneratorService } from './cdn-generator.service';
 import { CdnStorageService } from './cdn-storage.service';
 import { CdnCacheService } from './cdn-cache.service';
-import {
-  ICdnBuildContext,
-  ICdnBuildResult,
-  IOceanConfig,
-} from '../interfaces';
+import { ICdnBuildContext, ICdnBuildResult, IOceanConfig } from '../interfaces';
 import { GenerateCdnDto, BuildEnvironment } from '../dto';
 
 /**
@@ -30,8 +26,8 @@ export class CdnOrchestratorService {
    */
   async generateAndDeployDN(dto: GenerateCdnDto): Promise<ICdnBuildResult> {
     const startTime = Date.now();
-    
-    this.logger.log(
+
+    this.logger.debug(
       `Starting CDN generation for publisher ${dto.publisherId}, website ${dto.websiteId}`,
     );
 
@@ -40,7 +36,7 @@ export class CdnOrchestratorService {
       if (!dto.forceRebuild) {
         const cached = await this.cdnCache.getBuild(dto.publisherId);
         if (cached) {
-          this.logger.log('Serving CDN from cache');
+          this.logger.debug('Serving CDN from cache');
           return {
             success: true,
             cdnUrl: this.buildCdnUrl(dto.publisherId, dto.environment),
@@ -58,13 +54,21 @@ export class CdnOrchestratorService {
       // Step 3: Validate configuration
       const validation = this.configBuilder.validateConfiguration(config);
       if (!validation.isValid) {
-        throw new Error(`Configuration validation failed: ${validation.errors.join(', ')}`);
+        throw new Error(
+          `Configuration validation failed: ${validation.errors.join(', ')}`,
+        );
       }
 
       // Step 4: Generate CDN content
       const buildContext = this.createBuildContext(dto);
-      const cdnContent = await this.cdnGenerator.generateCdnContent(config, buildContext);
-      const buildResult = await this.cdnGenerator.generateBuild(config, buildContext);
+      const cdnContent = await this.cdnGenerator.generateCdnContent(
+        config,
+        buildContext,
+      );
+      const buildResult = await this.cdnGenerator.generateBuild(
+        config,
+        buildContext,
+      );
 
       if (!buildResult.success) {
         throw new Error(buildResult.error || 'CDN generation failed');
@@ -90,12 +94,20 @@ export class CdnOrchestratorService {
 
       // Step 7: Update cache
       await Promise.all([
-        this.cdnCache.cacheConfiguration(dto.publisherId, dto.websiteId, config),
-        this.cdnCache.cacheBuild(dto.publisherId, cdnContent, buildResult.metadata!),
+        this.cdnCache.cacheConfiguration(
+          dto.publisherId,
+          dto.websiteId,
+          config,
+        ),
+        this.cdnCache.cacheBuild(
+          dto.publisherId,
+          cdnContent,
+          buildResult.metadata!,
+        ),
       ]);
 
       const duration = Date.now() - startTime;
-      this.logger.log(
+      this.logger.debug(
         `CDN generation completed in ${duration}ms for publisher ${dto.publisherId}`,
       );
 
@@ -119,16 +131,21 @@ export class CdnOrchestratorService {
       includeDebug?: boolean;
     },
   ): Promise<Map<string, ICdnBuildResult>> {
-    this.logger.log(`Regenerating CDN for all websites of publisher ${publisherId}`);
+    this.logger.debug(
+      `Regenerating CDN for all websites of publisher ${publisherId}`,
+    );
 
     const results = new Map<string, ICdnBuildResult>();
 
     try {
       // Get all configurations
-      const configs = await this.configBuilder.buildAllConfigurations(publisherId, {
-        includeDebug: options?.includeDebug,
-        environment: options?.environment,
-      });
+      const configs = await this.configBuilder.buildAllConfigurations(
+        publisherId,
+        {
+          includeDebug: options?.includeDebug,
+          environment: options?.environment,
+        },
+      );
 
       // Generate CDN for each website
       for (const [websiteId, config] of configs) {
@@ -162,7 +179,7 @@ export class CdnOrchestratorService {
     websiteId?: string,
     regenerate = true,
   ): Promise<void> {
-    this.logger.log(
+    this.logger.debug(
       `Invalidating CDN for publisher ${publisherId}${websiteId ? `, website ${websiteId}` : ''}`,
     );
 
@@ -205,9 +222,9 @@ export class CdnOrchestratorService {
       : (await this.cdnCache.getBuild(publisherId)) !== null;
 
     const hasStorage = await this.cdnStorage.fileExists(publisherId);
-    
+
     const metadata = await this.cdnStorage.retrieveMetadata(publisherId);
-    
+
     const cacheStats = await this.cdnCache.getCacheStats();
 
     return {
@@ -237,12 +254,18 @@ export class CdnOrchestratorService {
       }
 
       // Fallback to storage
-      const stored = await this.cdnStorage.retrieveFile(publisherId, environment);
+      const stored = await this.cdnStorage.retrieveFile(
+        publisherId,
+        environment,
+      );
       if (stored) {
         this.logger.debug(`Serving CDN from storage for ${publisherId}`);
-        
+
         // Update cache for next time
-        const metadata = await this.cdnStorage.retrieveMetadata(publisherId, environment);
+        const metadata = await this.cdnStorage.retrieveMetadata(
+          publisherId,
+          environment,
+        );
         if (metadata) {
           await this.cdnCache.cacheBuild(publisherId, stored.content, metadata);
         }
@@ -266,17 +289,24 @@ export class CdnOrchestratorService {
   private async buildConfiguration(dto: GenerateCdnDto): Promise<IOceanConfig> {
     // Check cache first
     if (!dto.forceRebuild) {
-      const cached = await this.cdnCache.getConfiguration(dto.publisherId, dto.websiteId);
+      const cached = await this.cdnCache.getConfiguration(
+        dto.publisherId,
+        dto.websiteId,
+      );
       if (cached) {
         return cached;
       }
     }
 
     // Build fresh configuration
-    return this.configBuilder.buildConfiguration(dto.publisherId, dto.websiteId, {
-      includeDebug: dto.includeDebug,
-      environment: dto.environment,
-    });
+    return this.configBuilder.buildConfiguration(
+      dto.publisherId,
+      dto.websiteId,
+      {
+        includeDebug: dto.includeDebug,
+        environment: dto.environment,
+      },
+    );
   }
 
   /**
@@ -299,10 +329,11 @@ export class CdnOrchestratorService {
    */
   private buildCdnUrl(publisherId: string, environment?: string): string {
     const baseUrl = process.env.CDN_BASE_URL || 'http://localhost:3000/cdn';
-    const envPath = environment && environment !== BuildEnvironment.PRODUCTION 
-      ? `${environment}/` 
-      : '';
-    
+    const envPath =
+      environment && environment !== BuildEnvironment.PRODUCTION
+        ? `${environment}/`
+        : '';
+
     return `${baseUrl}/${envPath}p/${publisherId}/init.js`;
   }
 
@@ -315,7 +346,7 @@ export class CdnOrchestratorService {
       'Cache-Control': 'public, max-age=3600',
       'X-Content-Type-Options': 'nosniff',
       'Access-Control-Allow-Origin': '*',
-      'ETag': metadata.integrity || metadata.etag || '',
+      ETag: metadata.integrity || metadata.etag || '',
       'Last-Modified': metadata.lastModified || new Date().toUTCString(),
     };
   }

@@ -101,14 +101,14 @@ export class BidRequestProcessor {
 
       const processingTime = Date.now() - startTime;
 
-      this.logger.log('✅ Bid request processed successfully', {
-        auctionId: bidRequest.auctionId,
-        winnerId: auctionResult.winner?.id,
-        finalPrice: auctionResult.finalPrice,
-        totalBids: bidResponses.length,
-        res: auctionResult,
-        processingTime: `${processingTime}ms`,
-      });
+      // this.logger.debug(' Bid request processed successfully', {
+      //   auctionId: bidRequest.auctionId,
+      //   winnerId: auctionResult.winner?.id,
+      //   finalPrice: auctionResult.finalPrice,
+      //   totalBids: bidResponses.length,
+      //   res: auctionResult,
+      //   processingTime: `${processingTime}ms`,
+      // });
 
       return {
         auctionId: bidRequest.auctionId,
@@ -204,7 +204,7 @@ export class BidRequestProcessor {
   ): Promise<HandleNoBidsResult> {
     const processingTime = Date.now() - startTime;
 
-    this.logger.log('Auction completed with no bids', {
+    this.logger.debug('Auction completed with no bids', {
       auctionId,
       requestId: bidRequest.id,
       processingTime: `${processingTime}ms`,

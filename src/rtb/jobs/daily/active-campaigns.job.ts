@@ -27,7 +27,7 @@ export class ActiveCampaignsJob {
   async handle() {
     const startTime = Date.now();
 
-    this.logger.log(
+    this.logger.debug(
       '🚀 Starting daily campaign budget initialization and sync',
     );
 
@@ -43,8 +43,8 @@ export class ActiveCampaignsJob {
           campaignsProcessed: initResult.campaignsProcessed,
         });
       } else {
-        this.logger.log(
-          '✅ Daily budget initialization completed successfully',
+        this.logger.debug(
+          ' Daily budget initialization completed successfully',
           {
             campaignsProcessed: initResult.campaignsProcessed,
             campaignsCreated: initResult.campaignsCreated,
@@ -59,7 +59,7 @@ export class ActiveCampaignsJob {
 
       const processingTime = Date.now() - startTime;
 
-      this.logger.log('✅ Daily campaign budget job completed successfully', {
+      this.logger.debug(' Daily campaign budget job completed successfully', {
         processingTimeMs: processingTime,
         campaignsInitialized: initResult.campaignsProcessed,
         hasErrors: !initResult.success,
@@ -88,7 +88,7 @@ export class ActiveCampaignsJob {
   }> {
     const startTime = Date.now();
 
-    this.logger.log('🔄 Manual daily budget reset triggered');
+    this.logger.debug('🔄 Manual daily budget reset triggered');
 
     try {
       const initResult =

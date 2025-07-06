@@ -17,9 +17,7 @@ export class BidRequestKafkaConsumer implements OnModuleInit {
     private readonly bidRequestProcessor: BidRequestProcessor,
 
     private readonly rtbHelper: RtbHelper,
-  ) {
-    this.logger.log('RTB Kafka Consumer initialized - Phase 4');
-  }
+  ) {}
 
   async onModuleInit() {
     try {
@@ -100,7 +98,7 @@ export class BidRequestKafkaConsumer implements OnModuleInit {
       //     auctionId: auctionResult.auctionId,
       //   });
 
-      this.logger.log('✅ Auction processed successfully', {
+      this.logger.debug(' Auction processed successfully', {
         auctionId: auctionResult.auctionId,
         winner: auctionResult.winner ? 'yes' : 'no',
       });

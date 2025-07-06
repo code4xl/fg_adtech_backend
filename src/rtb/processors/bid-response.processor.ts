@@ -26,7 +26,6 @@ export class BidResponseProcessor {
   ) {
     this.trackingBaseUrl =
       this.config.get<string>('APP_URL') || 'https://track.oceanadtech.com';
-    this.logger.log('Bid Response Processor initialized - Phase 4');
   }
 
   async generateCompletedAuctionResponses(
@@ -215,7 +214,7 @@ export class BidResponseProcessor {
 
       await Promise.all(storePromises);
 
-      this.logger.log('✅ Bid responses stored in cache', {
+      this.logger.debug(' Bid responses stored in cache', {
         count: bidResponses.length,
       });
     } catch (error) {

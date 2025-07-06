@@ -78,7 +78,7 @@ export class RTBController {
       // Process bid request (stores in DB, triggers Kafka processing)
       const result = await this.rtbService.processBidRequest(bidRequestDto);
 
-      this.logger.log('Bid request processed successfully', {
+      this.logger.debug('Bid request processed successfully', {
         requestId: result.requestId,
         inventoryId: bidRequestDto.inventoryId,
       });
@@ -167,7 +167,7 @@ export class RTBController {
       }
 
       // Return successful auction result
-      this.logger.log('Bid response returned successfully', {
+      this.logger.debug('Bid response returned successfully', {
         requestId,
         hasWinner: !!bidResponse.winningBid,
       });

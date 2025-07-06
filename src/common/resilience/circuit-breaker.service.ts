@@ -27,7 +27,7 @@ export class CircuitBreakerService {
           halfOpenSuccesses: options?.halfOpenSuccesses || 2,
         }),
       );
-      this.logger.log(`Circuit registered: ${name}`);
+      this.logger.debug(`Circuit registered: ${name}`);
     }
     return this.circuits.get(name)!;
   }
@@ -120,7 +120,7 @@ class Circuit {
       [CircuitState.HALF_OPEN]: 'HALF-OPEN',
     };
 
-    this.logger.log(
+    this.logger.debug(
       `Circuit ${this.name} state change: ${stateMap[this.state]} -> ${stateMap[state]}`,
     );
 

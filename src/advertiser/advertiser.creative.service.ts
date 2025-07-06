@@ -167,7 +167,7 @@ export class AdvertiserCreativeService {
         },
       });
 
-      this.logger.log(`Creative created successfully: ${creative.id}`);
+      this.logger.debug(`Creative created successfully: ${creative.id}`);
 
       try {
         await this.creativeNotificationService.notifyCreativeAdded(
@@ -322,7 +322,7 @@ export class AdvertiserCreativeService {
         if (existingCreative.s3Key) {
           try {
             await this.s3StorageService.deleteFile(existingCreative.s3Key);
-            this.logger.log(
+            this.logger.debug(
               `Deleted old creative file: ${existingCreative.s3Key}`,
             );
           } catch (deleteError) {
@@ -363,7 +363,7 @@ export class AdvertiserCreativeService {
       },
     });
 
-    this.logger.log(`Creative updated successfully: ${creativeId}`);
+    this.logger.debug(`Creative updated successfully: ${creativeId}`);
     return updatedCreative;
   }
 
@@ -478,7 +478,7 @@ export class AdvertiserCreativeService {
         await this.s3StorageService.deleteFile(creative.s3Key);
       }
 
-      this.logger.log(`Creative removed successfully: ${creativeId}`);
+      this.logger.debug(`Creative removed successfully: ${creativeId}`);
       return { success: true, message: 'Creative removed successfully' };
     } catch (error) {
       this.logger.error(`Error removing creative: ${error.message}`);

@@ -2,18 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
 import { REDIS_KEYS } from '../constants/cache-keys';
-
-interface BidAdjustmentContext {
-  deviceType: string;
-  country: string;
-  region?: string;
-  city?: string;
-  userAge?: number;
-  userGender?: string;
-  hour: number;
-  dayOfWeek: number;
-  isWeekend: boolean;
-}
+import { AdRequest, UserContext } from './bid-evaluation.service';
+import { AgeRangeDto } from '../../ai/dto/targetting-rule.dto';
 
 interface AdjustmentBreakdown {
   baseMultiplier: number;
@@ -148,7 +138,7 @@ export class BidAdjustmentService {
   public async calculateComprehensiveBidAdjustments(
     campaignId: string,
     baseBidCPM: number,
-    context: BidAdjustmentContext,
+    context: UserContext,
   ): Promise<{ finalBidCPM: number; breakdown: AdjustmentBreakdown }> {
     try {
       // Get all adjustment multipliers
@@ -175,11 +165,11 @@ export class BidAdjustmentService {
         hour,
         dayOfWeek, // Sunday = 0 ... Saturday = 6
       );
-
-      const demographicMultiplier = this.getDemographicAdjustment(
-        context.userAge,
-        context.userGender,
-      );
+      const avgAge =
+        (Number(context.additionalData?.ageGroup.split('-')[0]) +
+          Number(context.additionalData?.ageGroup.split('-')[1])) /
+        2;
+      const demographicMultiplier = this.getDemographicAdjustment(avgAge);
 
       // Apply industry-standard multiplicative formula
       const finalMultiplier =
@@ -199,8 +189,8 @@ export class BidAdjustmentService {
         adjustmentDetails: {
           device: `${context.deviceType}: ${this.formatMultiplierChange(deviceMultiplier)}`,
           geo: `${context.country}/${context.city || context.region}: ${this.formatMultiplierChange(geoMultiplier)}`,
-          time: `${context.hour}:00, ${context.isWeekend ? 'Weekend' : 'Weekday'}: ${this.formatMultiplierChange(timeMultiplier)}`,
-          demographic: `Age: ${context.userAge}, Gender: ${context.userGender}: ${this.formatMultiplierChange(demographicMultiplier)}`,
+          time: `${hour}:00, ${dayOfWeek == 0 || dayOfWeek == 6 ? 'Weekend' : 'Weekday'}: ${this.formatMultiplierChange(timeMultiplier)}`,
+          demographic: `Age: ${avgAge}: ${this.formatMultiplierChange(demographicMultiplier)}`,
         },
       };
 
@@ -436,10 +426,7 @@ export class BidAdjustmentService {
   /**
    * Demographic adjustments
    */
-  private getDemographicAdjustment(
-    userAge?: number,
-    userGender?: string,
-  ): number {
+  private getDemographicAdjustment(userAge?: number): number {
     let ageMultiplier = 1.0;
 
     // Age-based adjustments
@@ -467,58 +454,5 @@ export class BidAdjustmentService {
     const percentage = ((multiplier - 1) * 100).toFixed(1);
     const sign = multiplier >= 1 ? '+' : '';
     return `${sign}${percentage}%`;
-  }
-
-  /**
-   * Batch calculate adjustments for multiple campaigns (for auction efficiency)
-   */
-  public async batchCalculateBidAdjustments(
-    campaigns: Array<{ campaignId: string; baseBidCPM: number }>,
-    context: BidAdjustmentContext,
-  ): Promise<
-    Array<{ campaignId: string; finalBidCPM: number; multiplier: number }>
-  > {
-    const results = [];
-    const dateInIST = new Date().toLocaleString('en-US', {
-      timeZone: 'Asia/Kolkata',
-    });
-
-    const date = new Date(dateInIST);
-    const hour = date.getHours();
-    const dayOfWeek = date.getDay();
-    // Get common adjustments that apply to all campaigns
-    const timeMultiplier = this.getTemporalAdjustment(hour, dayOfWeek);
-    const demoMultiplier = this.getDemographicAdjustment(
-      context.userAge,
-      context.userGender,
-    );
-
-    // Process campaigns in parallel
-    const campaignResults = await Promise.all(
-      campaigns.map(async ({ campaignId, baseBidCPM }) => {
-        const deviceMultiplier = await this.getDeviceAdjustment(
-          campaignId,
-          context.deviceType,
-        );
-        const geoMultiplier = await this.getGeographicAdjustment(
-          campaignId,
-          context.country,
-          context.region,
-          context.city,
-        );
-
-        const finalMultiplier =
-          deviceMultiplier * geoMultiplier * timeMultiplier * demoMultiplier;
-        const finalBidCPM = baseBidCPM * finalMultiplier;
-
-        return {
-          campaignId,
-          finalBidCPM,
-          multiplier: finalMultiplier,
-        };
-      }),
-    );
-
-    return campaignResults;
   }
 }

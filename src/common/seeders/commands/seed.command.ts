@@ -23,13 +23,13 @@ export class SeedCommand {
   ) {
     try {
       if (clean) {
-        this.logger.log('Cleaning all data before seeding...');
+        this.logger.debug('Cleaning all data before seeding...');
         await this.seederService.cleanAll();
       }
 
-      this.logger.log('Seeding all modules...');
+      this.logger.debug('Seeding all modules...');
       await this.seederService.seedAll();
-      this.logger.log('All modules seeded successfully!');
+      this.logger.debug('All modules seeded successfully!');
     } catch (error) {
       this.logger.error('Error seeding database');
       this.logger.error(error);
@@ -59,9 +59,9 @@ export class SeedCommand {
     clean: boolean,
   ) {
     try {
-      this.logger.log(`Seeding module: ${moduleName}`);
+      this.logger.debug(`Seeding module: ${moduleName}`);
       await this.seederService.seedModule(moduleName, clean);
-      this.logger.log(`Module ${moduleName} seeded successfully!`);
+      this.logger.debug(`Module ${moduleName} seeded successfully!`);
     } catch (error) {
       this.logger.error(`Error seeding module: ${moduleName}`);
       this.logger.error(error);
@@ -75,9 +75,9 @@ export class SeedCommand {
   })
   async cleanAll() {
     try {
-      this.logger.log('Cleaning all data from database...');
+      this.logger.debug('Cleaning all data from database...');
       await this.seederService.cleanAll();
-      this.logger.log('Database cleaned successfully!');
+      this.logger.debug('Database cleaned successfully!');
     } catch (error) {
       this.logger.error('Error cleaning database');
       this.logger.error(error);
@@ -95,17 +95,17 @@ export class SeedCommand {
       const seedingOrder = this.seederService.getSeedingOrder();
       const cleaningOrder = this.seederService.getCleaningOrder();
 
-      this.logger.log('Available Modules:');
-      availableModules.forEach((module) => this.logger.log(`- ${module}`));
+      this.logger.debug('Available Modules:');
+      availableModules.forEach((module) => this.logger.debug(`- ${module}`));
 
-      this.logger.log('\nSeeding Order:');
+      this.logger.debug('\nSeeding Order:');
       seedingOrder.forEach((module, index) =>
-        this.logger.log(`${index + 1}. ${module}`),
+        this.logger.debug(`${index + 1}. ${module}`),
       );
 
-      this.logger.log('\nCleaning Order:');
+      this.logger.debug('\nCleaning Order:');
       cleaningOrder.forEach((module, index) =>
-        this.logger.log(`${index + 1}. ${module}`),
+        this.logger.debug(`${index + 1}. ${module}`),
       );
     } catch (error) {
       this.logger.error('Error displaying seeder information');

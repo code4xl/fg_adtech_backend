@@ -115,7 +115,7 @@
 //     @ApiResponse({ status: 200, description: 'Manual sync triggered successfully' })
 //     async triggerRedisPostgresSync() {
 //         try {
-//             this.logger.log('🔄 Manual Redis to PostgreSQL sync triggered via API');
+//             this.logger.debug('🔄 Manual Redis to PostgreSQL sync triggered via API');
 
 //             const startTime = Date.now();
 //             const result = await this.redisPostgresSync.triggerManualSync();
@@ -152,7 +152,7 @@
 //     @ApiResponse({ status: 200, description: 'Manual TimescaleDB sync triggered successfully' })
 //     async triggerTimescaleSync() {
 //         try {
-//             this.logger.log('🔄 Manual PostgreSQL to TimescaleDB sync triggered via API');
+//             this.logger.debug('🔄 Manual PostgreSQL to TimescaleDB sync triggered via API');
 
 //             const startTime = Date.now();
 //             const result = await this.timescaleSync.triggerManualSync();

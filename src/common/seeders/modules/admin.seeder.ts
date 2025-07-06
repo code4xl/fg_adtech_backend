@@ -20,7 +20,7 @@ export class AdminSeeder implements ISeeder {
   }
 
   async seed(count: number = 5): Promise<void> {
-    this.logger.log(`Seeding ${count} admins...`);
+    this.logger.debug(`Seeding ${count} admins...`);
 
     try {
       const adminData: any = [];
@@ -53,7 +53,7 @@ export class AdminSeeder implements ISeeder {
       });
 
       const adminCount = await this.prisma.admin.count();
-      this.logger.log(`Successfully seeded ${adminCount} admins`);
+      this.logger.debug(`Successfully seeded ${adminCount} admins`);
     } catch (error) {
       this.logger.error('Error seeding admins');
       this.logger.error(error);
@@ -62,11 +62,11 @@ export class AdminSeeder implements ISeeder {
   }
 
   async clean(): Promise<void> {
-    this.logger.log('Cleaning admins table...');
+    this.logger.debug('Cleaning admins table...');
 
     try {
       const deleted = await this.prisma.admin.deleteMany({});
-      this.logger.log(`Deleted ${deleted.count} admins`);
+      this.logger.debug(`Deleted ${deleted.count} admins`);
     } catch (error) {
       this.logger.error('Error cleaning admins table');
       this.logger.error(error);

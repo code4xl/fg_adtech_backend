@@ -79,7 +79,7 @@ export class BudgetCleanupJob {
         processingTimeMs: processingTime,
       });
 
-      this.logger.log('✅ Reservation cleanup completed', {
+      this.logger.debug(' Reservation cleanup completed', {
         totalReservationsChecked: reservationKeys.length,
         totalCleaned,
         totalCreditedAmount: totalCredited,
@@ -250,7 +250,7 @@ export class BudgetCleanupJob {
               'ACTIVE',
             );
 
-            this.logger.log('Campaign reactivated after budget credit', {
+            this.logger.debug('Campaign reactivated after budget credit', {
               campaignId,
               newSpend,
               dailyLimit: limit,
@@ -366,7 +366,7 @@ export class BudgetCleanupJob {
     const startTime = Date.now();
 
     try {
-      this.logger.log('🔄 Manual cleanup triggered');
+      this.logger.debug('🔄 Manual cleanup triggered');
 
       await this.cleanupExpiredReservations();
 
@@ -402,7 +402,7 @@ export class BudgetCleanupJob {
       const result = await this.cleanupSingleReservation(reservationKey);
 
       if (result.cleaned) {
-        this.logger.log('✅ Force cleanup completed', {
+        this.logger.debug(' Force cleanup completed', {
           reservationId,
           credited: result.creditedAmount || 0,
         });

@@ -31,7 +31,7 @@ export class BudgetInitializationService {
     let campaignsCreated = 0;
     let campaignsUpdated = 0;
 
-    this.logger.log('🚀 Starting daily budget initialization', {
+    this.logger.debug('🚀 Starting daily budget initialization', {
       date: today.toISOString().split('T')[0],
     });
 
@@ -48,7 +48,7 @@ export class BudgetInitializationService {
         },
       });
 
-      this.logger.log(`Found ${activeCampaigns.length} active campaigns`);
+      this.logger.debug(`Found ${activeCampaigns.length} active campaigns`);
 
       // 2. Process each campaign
       for (const campaign of activeCampaigns) {
@@ -87,7 +87,7 @@ export class BudgetInitializationService {
         errors,
       };
 
-      this.logger.log('✅ Daily budget initialization completed', result);
+      this.logger.debug(' Daily budget initialization completed', result);
       return result;
     } catch (error) {
       const errorMsg = `Daily budget initialization failed: ${error.message}`;
@@ -194,7 +194,7 @@ export class BudgetInitializationService {
 
       await this.initializeCampaignDailyBudget(campaign, today);
 
-      this.logger.log(`✅ Single campaign budget initialized: ${campaignId}`);
+      this.logger.debug(` Single campaign budget initialized: ${campaignId}`);
       return true;
     } catch (error) {
       this.logger.error(
@@ -223,7 +223,9 @@ export class BudgetInitializationService {
         },
       });
 
-      this.logger.log(`🧹 Cleaned up ${result.count} old daily budget records`);
+      this.logger.debug(
+        `🧹 Cleaned up ${result.count} old daily budget records`,
+      );
       return result.count;
     } catch (error) {
       this.logger.error(

@@ -27,7 +27,7 @@ export class CampaignSeeder implements ISeeder {
   }
 
   async seed(count: number = 100): Promise<void> {
-    this.logger.log(`Seeding ${count} campaigns...`);
+    this.logger.debug(`Seeding ${count} campaigns...`);
 
     try {
       // Get all advertisers with their clients in one query
@@ -65,7 +65,7 @@ export class CampaignSeeder implements ISeeder {
         );
       }
 
-      this.logger.log(
+      this.logger.debug(
         `Found ${validAdvertisers.length} advertisers with clients. Creating campaigns...`,
       );
 
@@ -103,15 +103,10 @@ export class CampaignSeeder implements ISeeder {
         });
 
         const bidStrategy = faker.helpers.arrayElement(bidStrategies);
-        const bidAmount =
-          bidStrategy === BidStrategy.BID_CAP ||
-          bidStrategy === BidStrategy.TARGET_COST
-            ? faker.number.float({
-                min: 0.5,
-                max: 3,
-                fractionDigits: 2,
-              })
-            : 1.0;
+        const bidAmount = faker.number.float({
+          min: 10,
+          max: 50,
+        });
 
         // Generate targeting arrays
         const selectedInterests = faker.helpers.arrayElements(interests, {
@@ -158,7 +153,7 @@ export class CampaignSeeder implements ISeeder {
             status: CampaignStatus.ACTIVE,
             objective: CampaignObjective.AWARENESS,
             bidStrategy: BidStrategy.LOWEST_COST,
-            bidAmount: 1.0,
+            bidAmount: 10.0,
             pacing: CampaignPacing.STANDARD,
             businessCategory: BusinessCategory.TECHNOLOGY,
             websiteUrl: 'https://example.com',
@@ -234,7 +229,7 @@ export class CampaignSeeder implements ISeeder {
       }
 
       const campaignCount = await this.prisma.campaign.count();
-      this.logger.log(
+      this.logger.debug(
         `Successfully seeded ${successfullyCreated} new campaigns (total: ${campaignCount})`,
       );
 
@@ -250,9 +245,9 @@ export class CampaignSeeder implements ISeeder {
         },
       });
 
-      this.logger.log('Campaign distribution per advertiser:');
+      this.logger.debug('Campaign distribution per advertiser:');
       campaignDistribution.forEach((advertiser) => {
-        this.logger.log(
+        this.logger.debug(
           `  ${advertiser.email}: ${advertiser._count.Campaign} campaigns`,
         );
       });
@@ -270,7 +265,7 @@ export class CampaignSeeder implements ISeeder {
   }
 
   async clean(): Promise<void> {
-    this.logger.log('Cleaning campaigns table...');
+    this.logger.debug('Cleaning campaigns table...');
 
     try {
       // Clean related tables first (respecting foreign key constraints)
@@ -297,7 +292,7 @@ export class CampaignSeeder implements ISeeder {
       // Clean campaign budgets
       const deletedBudgets = await this.prisma.campaignBudget.deleteMany({});
 
-      this.logger.log(
+      this.logger.debug(
         `Deleted ${deletedCampaigns.count} campaigns and ${deletedBudgets.count} budgets`,
       );
     } catch (error) {
@@ -360,7 +355,7 @@ export class CampaignSeeder implements ISeeder {
         skipDuplicates: true,
       });
 
-      this.logger.log(`Seeded ${statisticsData.length} campaign statistics`);
+      this.logger.debug(`Seeded ${statisticsData.length} campaign statistics`);
     } catch (error) {
       this.logger.warn('Error seeding campaign statistics, but continuing...');
     }
@@ -412,7 +407,7 @@ export class CampaignSeeder implements ISeeder {
         skipDuplicates: true,
       });
 
-      this.logger.log(
+      this.logger.debug(
         `Seeded ${dailyBudgetData.length} campaign daily budget tracking records`,
       );
     } catch (error) {

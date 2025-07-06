@@ -12,16 +12,6 @@ import { MailService } from './mail.service';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
-        // Debug: Print ALL environment variables related to mail
-        console.log('=== MAIL CONFIG DEBUG ===');
-
-        // Debug: Check config service access patterns
-        console.log('\nConfig Service access:');
-        console.log('config.get("mail.host"):', config.get('mail.host'));
-        console.log('config.get("MAIL_HOST"):', config.get('MAIL_HOST'));
-        console.log('config.get("mail"):', config.get('mail'));
-
-        // Try different access patterns
         const mailConfig = {
           host: config.get('mail.host'),
           port: config.get('mail.port') || 587,
@@ -30,15 +20,6 @@ import { MailService } from './mail.service';
           password: config.get('mail.password'),
           from: config.get('mail.from'),
         };
-
-        console.log('\nResolved mail config:');
-        console.log('Host:', mailConfig.host);
-        console.log('Port:', mailConfig.port);
-        console.log('Secure:', mailConfig.secure);
-        console.log('User:', mailConfig.user);
-        console.log('Password exists:', !!mailConfig.password);
-        console.log('From:', mailConfig.from);
-        console.log('=== END MAIL CONFIG DEBUG ===\n');
 
         return {
           transport: {

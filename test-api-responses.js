@@ -252,7 +252,7 @@ async function sendBidRequest(payload, index) {
       response.data?.data?.auctionId || response.data?.auctionId;
     const message = response.data?.data?.message || response.data?.message;
 
-    console.log(`✅ Bid-request ${index + 1} SUCCESS (${responseTime}ms):`, {
+    console.log(` Bid-request ${index + 1} SUCCESS (${responseTime}ms):`, {
       status: response.status,
       requestId: requestId?.substring(0, 12) + '...',
       auctionId: auctionId?.substring(0, 12) + '...',
@@ -309,7 +309,7 @@ async function sendBidResponseRequest(requestId, index) {
 
     const responseTime = Date.now() - startTime;
 
-    console.log(`✅ Bid-response ${index + 1} SUCCESS (${responseTime}ms):`, {
+    console.log(` Bid-response ${index + 1} SUCCESS (${responseTime}ms):`, {
       status: response.status,
       requestId: requestId.substring(0, 12) + '...',
       responseStatus: response.data?.status,
@@ -587,7 +587,7 @@ async function runLoadTest() {
     requests.push({ payload, index: i });
   }
 
-  console.log(`✅ Generated ${requests.length} unique request payloads\n`);
+  console.log(` Generated ${requests.length} unique request payloads\n`);
 
   // PHASE 1: Send bid requests
   console.log('🚀 PHASE 1: Starting bid-request execution...');
@@ -599,7 +599,7 @@ async function runLoadTest() {
     .map((result) => result.requestId);
 
   console.log(
-    `\n✅ Phase 1 Complete: ${successfulRequestIds.length}/${bidRequestResults.length} bid-requests successful`,
+    `\n Phase 1 Complete: ${successfulRequestIds.length}/${bidRequestResults.length} bid-requests successful`,
   );
 
   if (successfulRequestIds.length === 0) {

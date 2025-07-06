@@ -16,7 +16,7 @@ export class KafkaInitService implements OnModuleInit {
 
   async onModuleInit() {
     try {
-      this.logger.log('Initializing Kafka topics...');
+      // this.logger.debug('Initializing Kafka topics...');
 
       await this.kafkaService.createTopics([
         {
@@ -149,7 +149,7 @@ export class KafkaInitService implements OnModuleInit {
         },
       ]);
 
-      this.logger.log('✅ All Kafka topics created successfully');
+      this.logger.debug(' All Kafka topics created successfully');
 
       // Log topic configuration for debugging
       // this.logTopicConfiguration();
@@ -192,7 +192,7 @@ export class KafkaInitService implements OnModuleInit {
         return { success: false, missingTopics };
       }
 
-      this.logger.log('✅ All required topics verified');
+      this.logger.debug(' All required topics verified');
       return { success: true, missingTopics: [] };
     } catch (error) {
       this.logger.error('❌ Failed to verify topics:', error);

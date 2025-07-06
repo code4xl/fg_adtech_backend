@@ -213,7 +213,7 @@ export class FinancialMonitoringController {
   })
   async triggerPublisherRevenueProcessing(): Promise<any> {
     try {
-      this.logger.log('Manual trigger: Publisher revenue processing');
+      this.logger.debug('Manual trigger: Publisher revenue processing');
 
       const result = await this.publisherRevenueJob.triggerManualProcessing();
 
@@ -247,7 +247,7 @@ export class FinancialMonitoringController {
   })
   async triggerAdvertiserSpendingProcessing(): Promise<any> {
     try {
-      this.logger.log('Manual trigger: Advertiser spending processing');
+      this.logger.debug('Manual trigger: Advertiser spending processing');
 
       const result = await this.advertiserSpendingJob.triggerManualProcessing();
 
@@ -280,7 +280,7 @@ export class FinancialMonitoringController {
   })
   async triggerSystemRevenueProcessing(): Promise<any> {
     try {
-      this.logger.log('Manual trigger: System revenue processing');
+      this.logger.debug('Manual trigger: System revenue processing');
 
       const result = await this.systemRevenueJob.triggerManualProcessing();
 
@@ -314,7 +314,7 @@ export class FinancialMonitoringController {
   })
   async triggerAllFinancialProcessing(): Promise<any> {
     try {
-      this.logger.log('Manual trigger: All financial processing jobs');
+      this.logger.debug('Manual trigger: All financial processing jobs');
 
       const startTime = Date.now();
 

@@ -11,7 +11,7 @@ async function bootstrap() {
       logger: ['error', 'warn', 'log'],
     });
 
-    logger.log('Starting CLI application...');
+    logger.debug('Starting CLI application...');
 
     try {
       await app.select(CommandModule).get(CommandService).exec();

@@ -21,7 +21,7 @@ export class ClientSeeder implements ISeeder {
   }
 
   async seed(count: number = 150): Promise<void> {
-    this.logger.log(
+    this.logger.debug(
       `Seeding clients (ensuring every advertiser has at least one client)...`,
     );
 
@@ -38,7 +38,7 @@ export class ClientSeeder implements ISeeder {
       const clientData: any = [];
 
       // STEP 1: Ensure every advertiser gets at least one client
-      this.logger.log(
+      this.logger.debug(
         `Ensuring each of ${advertisers.length} advertisers gets at least one client...`,
       );
 
@@ -93,7 +93,7 @@ export class ClientSeeder implements ISeeder {
       const remainingClientsToCreate = Math.max(0, count - advertisers.length);
 
       if (remainingClientsToCreate > 0) {
-        this.logger.log(
+        this.logger.debug(
           `Creating ${remainingClientsToCreate} additional clients randomly distributed among advertisers...`,
         );
 
@@ -231,10 +231,10 @@ export class ClientSeeder implements ISeeder {
           this.logger.warn(`- ${advertiser.email} (ID: ${advertiser.id})`);
         });
       } else {
-        this.logger.log('✅ All advertisers now have at least one client!');
+        this.logger.debug(' All advertisers now have at least one client!');
       }
 
-      this.logger.log(
+      this.logger.debug(
         `Successfully seeded ${successfullyCreated} new clients (total: ${totalClientCount})`,
       );
 
@@ -244,9 +244,9 @@ export class ClientSeeder implements ISeeder {
         clientCount: advertiser._count.clients,
       }));
 
-      this.logger.log('Client distribution per advertiser:');
+      this.logger.debug('Client distribution per advertiser:');
       distributionSummary.forEach((summary) => {
-        this.logger.log(`  ${summary.email}: ${summary.clientCount} clients`);
+        this.logger.debug(`  ${summary.email}: ${summary.clientCount} clients`);
       });
     } catch (error) {
       this.logger.error('Error seeding clients');
@@ -256,7 +256,7 @@ export class ClientSeeder implements ISeeder {
   }
 
   async clean(): Promise<void> {
-    this.logger.log('Cleaning clients table...');
+    this.logger.debug('Cleaning clients table...');
 
     try {
       // Clean related tables first (respecting foreign key constraints)
@@ -265,7 +265,7 @@ export class ClientSeeder implements ISeeder {
 
       // Clean main table
       const deleted = await this.prisma.client.deleteMany({});
-      this.logger.log(`Deleted ${deleted.count} clients`);
+      this.logger.debug(`Deleted ${deleted.count} clients`);
     } catch (error) {
       this.logger.error('Error cleaning clients table');
       this.logger.error(error);

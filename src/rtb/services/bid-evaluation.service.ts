@@ -5,6 +5,51 @@ import { CampaignWithTargeting } from '../types/campaign.types';
 import { bidStrategyService } from './bid-strategy.service';
 import { BidAdjustmentService } from './bid-adjustment.service';
 import { REDIS_KEYS } from '../constants/cache-keys';
+export interface AdRequest {
+  id: string;
+  externalRequestId: string;
+  inventoryId: string;
+  publisherId: string;
+  websiteId: string;
+  userContext: UserContext;
+  adSlotContext: AdSlotContext;
+  floorPrice: number;
+  auctionType: 'FIRST_PRICE' | 'SECOND_PRICE' | 'THIRD_PRICE'; // assuming possible auction types
+  timeout: number;
+  requestTimestamp: string | Date; // ISO date string
+  processedAt?: string | null;
+  auctionId: string;
+}
+
+export interface UserContext {
+  city: string;
+  osType: string;
+  region: string;
+  userId: string;
+  country: string;
+  ipAddress: string;
+  sessionId: string;
+  userAgent: string;
+  deviceType: 'MOBILE' | 'DESKTOP' | 'TABLET' | string;
+  browserType: string;
+  additionalData: AdditionalData;
+}
+
+export interface AdditionalData {
+  ageGroup: string;
+  interests: string[];
+}
+
+export interface AdSlotContext {
+  width: number;
+  format: string;
+  height: number;
+  pageUrl: string;
+  position: string;
+  referrerUrl: string;
+  pageCategory: string;
+  pageKeywords: string[];
+}
 
 @Injectable()
 export class BidEvaluationService {
@@ -19,7 +64,7 @@ export class BidEvaluationService {
 
   async calculateBidPrice(
     campaign: CampaignWithTargeting,
-    context: any,
+    context: AdRequest,
   ): Promise<number> {
     this.logger.debug('Calculating bid price', {
       campaignId: campaign.id,
@@ -35,7 +80,7 @@ export class BidEvaluationService {
       const strategicBid = await this.applyBidStrategy(
         campaign,
         baseBid,
-        context,
+        context.floorPrice,
       );
 
       // 3. Apply contextual adjustments
@@ -43,7 +88,7 @@ export class BidEvaluationService {
         await this.bidAdjustmentService.calculateComprehensiveBidAdjustments(
           campaign.id,
           strategicBid,
-          context,
+          context.userContext,
         );
 
       // 4. Apply budget pacing constraints
@@ -139,12 +184,15 @@ export class BidEvaluationService {
   private async applyBidStrategy(
     campaign: CampaignWithTargeting,
     baseBid: number,
-    context: any,
+    floorPrice: number,
   ): Promise<number> {
     if (!campaign.bidStrategy || campaign.bidStrategy === 'LOWEST_COST') {
       // REASON: Default to lowest cost strategy if not specified
       // LOGIC: Lowest cost strategy should bid just above floor price
-      return this.bidStrategyService.calculateLowestCostBid(baseBid, context);
+      return this.bidStrategyService.calculateLowestCostBid(
+        baseBid,
+        floorPrice,
+      );
     }
   }
 

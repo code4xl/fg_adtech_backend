@@ -191,7 +191,7 @@ export class RedisService {
     count?: number,
   ): Promise<string[]> {
     try {
-      // ✅ CORRECTED: Build command with proper Redis syntax
+      //  CORRECTED: Build command with proper Redis syntax
       if (
         limitKeyword === 'LIMIT' &&
         offset !== undefined &&

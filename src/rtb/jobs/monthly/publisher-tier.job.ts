@@ -13,7 +13,7 @@ export class PublisherTierJob {
   async handle() {
     try {
       await this.budgetManagerService.syncPublisherRevenueTiers();
-      this.logger.log('Publisher tiers updated successfully');
+      this.logger.debug('Publisher tiers updated successfully');
     } catch (error) {
       this.logger.error('Failed to update publisher tiers', {
         error: error.message,

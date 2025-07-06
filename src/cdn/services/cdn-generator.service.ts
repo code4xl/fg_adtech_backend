@@ -15,7 +15,8 @@ import { VERSION_FORMAT, CDN_ERROR_CODES } from '../constants/cdn.constants';
 export class CdnGeneratorService {
   private readonly logger = new Logger(CdnGeneratorService.name);
   private readonly sdkBuildPath: string;
-  private readonly sdkCache: Map<string, { content: string; hash: string }> = new Map();
+  private readonly sdkCache: Map<string, { content: string; hash: string }> =
+    new Map();
 
   constructor(private readonly configService: ConfigService) {
     this.sdkBuildPath = this.configService.get<string>(
@@ -32,7 +33,7 @@ export class CdnGeneratorService {
     context: ICdnBuildContext,
   ): Promise<ICdnBuildResult> {
     try {
-      this.logger.log(
+      this.logger.debug(
         `Generating CDN build for publisher ${context.publisherId}, website ${context.websiteId}`,
       );
 
@@ -43,7 +44,11 @@ export class CdnGeneratorService {
       const configScript = this.generateConfigScript(config, context);
 
       // Combine SDK and configuration
-      const cdnContent = this.combineSdkAndConfig(sdkContent, configScript, context);
+      const cdnContent = this.combineSdkAndConfig(
+        sdkContent,
+        configScript,
+        context,
+      );
 
       // Generate version and integrity
       const version = this.generateVersion(config, context);
@@ -52,7 +57,7 @@ export class CdnGeneratorService {
       // Generate build ID
       const buildId = this.generateBuildId(context);
 
-      this.logger.log(`CDN build generated successfully: ${buildId}`);
+      this.logger.debug(`CDN build generated successfully: ${buildId}`);
 
       return {
         success: true,
@@ -137,7 +142,11 @@ export class CdnGeneratorService {
     config: IOceanConfig,
     context: ICdnBuildContext,
   ): string {
-    const configJson = JSON.stringify(config, null, context.includeDebug ? 2 : 0);
+    const configJson = JSON.stringify(
+      config,
+      null,
+      context.includeDebug ? 2 : 0,
+    );
 
     const script = `
 /*!
@@ -239,9 +248,7 @@ if (typeof window.__OCEAN_INIT__ === 'function') {
    * Generate integrity hash for subresource integrity
    */
   private generateIntegrity(content: string): string {
-    const hash = createHash('sha384')
-      .update(content, 'utf8')
-      .digest('base64');
+    const hash = createHash('sha384').update(content, 'utf8').digest('base64');
 
     return `sha384-${hash}`;
   }
@@ -252,7 +259,7 @@ if (typeof window.__OCEAN_INIT__ === 'function') {
   private generateBuildId(context: ICdnBuildContext): string {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
-    
+
     return `${context.publisherId.substring(0, 8)}-${timestamp}-${random}`;
   }
 
@@ -265,8 +272,9 @@ if (typeof window.__OCEAN_INIT__ === 'function') {
       'https://cdn.oceanads.com',
     );
 
-    const envPrefix = environment === BuildEnvironment.PRODUCTION ? '' : `${environment}/`;
-    
+    const envPrefix =
+      environment === BuildEnvironment.PRODUCTION ? '' : `${environment}/`;
+
     return `${baseUrl}/${envPrefix}p/${publisherId}/init.js`;
   }
 
@@ -297,6 +305,6 @@ if (typeof window.__OCEAN_INIT__ === 'function') {
    */
   clearSdkCache(): void {
     this.sdkCache.clear();
-    this.logger.log('SDK cache cleared');
+    this.logger.debug('SDK cache cleared');
   }
 }

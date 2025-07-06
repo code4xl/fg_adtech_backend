@@ -16,9 +16,9 @@ export class CampaignPoolWarmupService {
   ) {}
   async warmupCaches(): Promise<void> {
     try {
-      this.logger.log(
-        'Starting comprehensive cache warmup for all ad formats...',
-      );
+      // this.logger.debug(
+      //   'Starting comprehensive cache warmup for all ad formats...',
+      // );
 
       const allPopularSizes = await this.prisma.adSlotTemplate.findMany({
         where: {
@@ -31,9 +31,9 @@ export class CampaignPoolWarmupService {
         },
       });
 
-      this.logger.log('Warming up campaign pools for all formats', {
-        totalSizes: allPopularSizes.length,
-      });
+      // this.logger.debug('Warming up campaign pools for all formats', {
+      //   totalSizes: allPopularSizes.length,
+      // });
 
       // Process in batches to avoid overwhelming the database
       const batchSize = 5;
@@ -42,12 +42,12 @@ export class CampaignPoolWarmupService {
       for (let i = 0; i < allPopularSizes.length; i += batchSize) {
         const batch = allPopularSizes.slice(i, i + batchSize);
 
-        this.logger.debug(
-          `Warming up batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(allPopularSizes.length / batchSize)}`,
-          {
-            batchSizes: batch.map((s) => `${s.width}x${s.height}-${s.format}`),
-          },
-        );
+        // this.logger.debug(
+        //   `Warming up batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(allPopularSizes.length / batchSize)}`,
+        //   {
+        //     batchSizes: batch.map((s) => `${s.width}x${s.height}-${s.format}`),
+        //   },
+        // );
 
         // Process batch in parallel
         const batchPromises = batch.map((size) =>
@@ -59,12 +59,12 @@ export class CampaignPoolWarmupService {
             )
             .then((campaigns) => {
               warmedCount++;
-              this.logger.debug(
-                `✅ Warmed ${size.width}x${size.height}-${size.format}`,
-                {
-                  campaignCount: campaigns.length,
-                },
-              );
+              // this.logger.debug(
+              //   ` Warmed ${size.width}x${size.height}-${size.format}`,
+              //   {
+              //     campaignCount: campaigns.length,
+              //   },
+              // );
               return campaigns.length;
             })
             .catch((error) => {
@@ -86,7 +86,7 @@ export class CampaignPoolWarmupService {
         }
       }
 
-      this.logger.log('🎯 Comprehensive cache warmup completed!', {
+      this.logger.debug('🎯 Comprehensive cache warmup completed!', {
         campaignPoolsWarmed: warmedCount,
         totalSizesAttempted: allPopularSizes.length,
       });

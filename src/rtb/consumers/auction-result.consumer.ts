@@ -25,7 +25,7 @@ export class AuctionResultKafkaConsumer implements OnModuleInit {
     private readonly auctionProducer: AuctionProducer,
     private readonly rtbHelper: RtbHelper,
   ) {
-    this.logger.log('Auction Completion Consumer initialized');
+    this.logger.debug('Auction Completion Consumer initialized');
   }
 
   async onModuleInit() {
@@ -145,7 +145,7 @@ export class AuctionResultKafkaConsumer implements OnModuleInit {
 
       const processingTime = Date.now() - startTime;
 
-      this.logger.log('✅ Auction result processed', {
+      this.logger.debug(' Auction result processed', {
         auctionId: auctionResult.auctionId,
         auctionType,
         processingTime: `${processingTime}ms`,

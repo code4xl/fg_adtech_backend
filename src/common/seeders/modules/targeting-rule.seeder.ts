@@ -43,7 +43,7 @@ export class TargetingRuleSeeder implements ISeeder {
   }
 
   async seed(): Promise<void> {
-    this.logger.log('Seeding targeting rules...');
+    this.logger.debug('Seeding targeting rules...');
 
     try {
       // Get campaigns and inventories
@@ -72,7 +72,7 @@ export class TargetingRuleSeeder implements ISeeder {
       await this.seedTestTargetingRules();
 
       const stats = await this.getTargetingStats();
-      this.logger.log(
+      this.logger.debug(
         `Successfully seeded targeting rules: ${JSON.stringify(stats)}`,
       );
     } catch (error) {
@@ -653,7 +653,7 @@ export class TargetingRuleSeeder implements ISeeder {
   }
 
   async clean(): Promise<void> {
-    this.logger.log('Cleaning targeting rules...');
+    this.logger.debug('Cleaning targeting rules...');
 
     try {
       await Promise.all([
@@ -666,7 +666,7 @@ export class TargetingRuleSeeder implements ISeeder {
         this.prisma.frequencyTargeting.deleteMany({}),
       ]);
 
-      this.logger.log('All targeting rules cleaned successfully');
+      this.logger.debug('All targeting rules cleaned successfully');
     } catch (error) {
       this.logger.error('Error cleaning targeting rules');
       this.logger.error(error);

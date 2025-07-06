@@ -50,8 +50,8 @@ export class PublisherInventoryController {
   })
   async createAdSlot(@Body() createAdSlotDto: CreateAdInventoryDto) {
     const adSlot = await this.publisherService.createAdSlot(createAdSlotDto);
-    
-    // ✅ ADD CDN REGENERATION HERE
+
+    //  ADD CDN REGENERATION HERE
     await this.triggerCdnRegeneration(
       createAdSlotDto.publisherId,
       createAdSlotDto.websiteId,
@@ -78,7 +78,7 @@ export class PublisherInventoryController {
       data: adSlots,
     };
   }
-  
+
   @Get('/adslots/:publisherId/:websiteId')
   @ApiResponse({
     status: 200,
@@ -97,7 +97,7 @@ export class PublisherInventoryController {
       data: adSlots,
     };
   }
-  
+
   @Get('/adslots/:publisherId/:websiteId/:adSlotId')
   @ApiResponse({
     status: 200,
@@ -129,8 +129,8 @@ export class PublisherInventoryController {
   async toggleActivationStatus(@Body() activateSlotDto: ActivateInventoryDto) {
     const updatedAdSlot =
       await this.publisherService.toggleActivationStatus(activateSlotDto);
-    
-    // ✅ ADD CDN REGENERATION HERE
+
+    //  ADD CDN REGENERATION HERE
     await this.triggerCdnRegeneration(
       activateSlotDto.publisherId,
       activateSlotDto.websiteId,
@@ -143,7 +143,7 @@ export class PublisherInventoryController {
       data: updatedAdSlot,
     };
   }
-  
+
   @Delete('/adslots/:publisherId/:websiteId/:adSlotId')
   @ApiResponse({
     status: 200,
@@ -160,8 +160,8 @@ export class PublisherInventoryController {
       adSlotId,
       websiteId,
     );
-    
-    // ✅ ADD CDN REGENERATION HERE
+
+    //  ADD CDN REGENERATION HERE
     await this.triggerCdnRegeneration(
       publisherId,
       websiteId,
@@ -175,7 +175,7 @@ export class PublisherInventoryController {
     };
   }
 
-  // ✅ ADD THIS HELPER METHOD
+  //  ADD THIS HELPER METHOD
   /**
    * Trigger CDN regeneration after inventory changes
    * This method handles both synchronous and asynchronous approaches
@@ -200,7 +200,7 @@ export class PublisherInventoryController {
         },
       });
 
-      this.logger.log(
+      this.logger.debug(
         `CDN regeneration triggered for publisher ${publisherId}, website ${websiteId} - Reason: ${reason}`,
       );
 
@@ -223,14 +223,13 @@ export class PublisherInventoryController {
           this.logger.error(`Background CDN regeneration failed: ${error.message}`)
         );
       */
-
     } catch (error) {
       // Log error but don't fail the main operation
       // Inventory changes should succeed even if CDN regeneration fails
       this.logger.error(
         `Failed to trigger CDN regeneration for ${publisherId}/${websiteId}: ${error.message}`,
       );
-      
+
       // Optional: You could send to a dead letter queue or alert system here
     }
   }

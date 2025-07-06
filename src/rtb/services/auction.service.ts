@@ -189,7 +189,7 @@ export class AuctionService {
             bidRequest,
           );
 
-        // 2. ✅ PRECISE budget validation with actual calculated bid
+        // 2.  PRECISE budget validation with actual calculated bid
         const costPerImpression = actualBidPrice / 1000; // Convert CPM to per-impression
         const hasBudget =
           await this.budgetValidationService.validateCampaignBudget(
@@ -284,9 +284,9 @@ export class AuctionService {
       },
     );
 
-    this.logger.debug('Creating bid response', {
-      id: bidResponseId,
-    });
+    // this.logger.debug('Creating bid response', {
+    //   id: bidResponseId,
+    // });
 
     // Ask mit about this, store the admarkup, impression and click urls in the bid response for the winner only.
     // Not for all the bids. (This is to avoid storing unnecessary data for lost bids)
@@ -374,7 +374,7 @@ export class AuctionService {
     winningBid.processedAt = new Date();
 
     if (winningBid) {
-      this.logger.log('Auction win recorded successfully', {
+      this.logger.debug('Auction win recorded successfully', {
         campaignId: winningBid.campaignId,
       });
     }

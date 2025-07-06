@@ -192,7 +192,7 @@ export class UpdateCampaignDto {
   @ApiPropertyOptional({
     description: 'Bid strategy',
     enum: BidStrategy,
-    example: BidStrategy.BID_CAP,
+    example: BidStrategy.LOWEST_COST,
   })
   @IsOptional()
   @IsEnum(BidStrategy)
