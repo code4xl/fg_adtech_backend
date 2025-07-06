@@ -19,12 +19,12 @@ export class HealthService {
 
     try {
       // Run health checks in parallel for speed
-      const [databaseHealth, redisHealth, kafkaHealth, performanceMetrics] =
+      const [databaseHealth, redisHealth, kafkaHealth] =
         await Promise.allSettled([
           this.checkDatabaseHealth(),
           this.checkRedisHealth(),
           this.checkKafkaHealth(),
-          this.getPerformanceMetrics(),
+          // this.getPerformanceMetrics(),
         ]);
 
       // Determine overall system status
@@ -44,15 +44,6 @@ export class HealthService {
           redis: this.getHealthStatus(redisHealth),
           kafka: this.getHealthStatus(kafkaHealth),
         },
-        metrics:
-          performanceMetrics.status === 'fulfilled'
-            ? performanceMetrics.value
-            : {
-                requestsPerSecond: 0,
-                averageLatency: 'unknown',
-                cacheHitRate: 'unknown',
-                errorRate: 'unknown',
-              },
       };
     } catch (error) {
       this.logger.error('Health check failed', { error: error.message });
@@ -93,60 +84,6 @@ export class HealthService {
     } catch (error) {
       this.logger.error('Kafka health check failed', { error: error.message });
       return 'disconnected';
-    }
-  }
-
-  private async getPerformanceMetrics(): Promise<{
-    requestsPerSecond: number;
-    averageLatency: string;
-    cacheHitRate: string;
-    errorRate: string;
-    activeAuctions?: number;
-  }> {
-    try {
-      const hour = new Date().getHours();
-      const prevHour = hour === 0 ? 23 : hour - 1;
-
-      const [
-        currentRequests,
-        currentLatency,
-        currentErrors,
-        prevRequests,
-        prevLatency,
-      ] = await Promise.all([
-        this.redis.get<string>(REDIS_KEYS.HOURLY_BID_REQUEST_METRICS(hour)),
-        this.redis.get<string>(REDIS_KEYS.HOURLY_BID_REQUEST_LATENCY(hour)),
-        this.redis.get<string>(REDIS_KEYS.HOURLY_BID_RESPONSE_ERRORS(hour)),
-        this.redis.get<string>(REDIS_KEYS.HOURLY_BID_REQUEST_METRICS(prevHour)),
-        this.redis.get<string>(REDIS_KEYS.HOURLY_BID_REQUEST_LATENCY(prevHour)),
-      ]);
-
-      const requests =
-        parseInt(currentRequests || '0') + parseInt(prevRequests || '0');
-      const totalLatency =
-        parseInt(currentLatency || '0') + parseInt(prevLatency || '0');
-      const errors = parseInt(currentErrors || '0');
-
-      const requestsPerSecond = Math.round(requests / 3600); // Requests per second over 2 hours
-      const averageLatency =
-        requests > 0 ? `${Math.round(totalLatency / requests)}ms` : '0ms';
-      const errorRate =
-        requests > 0 ? `${((errors / requests) * 100).toFixed(2)}%` : '0%';
-
-      // Estimate cache hit rate (simplified)
-      const cacheHitRate = '85%'; // TODO: Implement actual cache hit tracking
-
-      return {
-        requestsPerSecond,
-        averageLatency,
-        cacheHitRate,
-        errorRate,
-      };
-    } catch (error) {
-      this.logger.error('Failed to get performance metrics', {
-        error: error.message,
-      });
-      throw error;
     }
   }
 

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { AdminService } from './admin.service';
-import { AdminController } from './admin.controller';
+// import { AdminService } from './admin.service';
+// import { AdminController } from './admin.controller';
 import { AdminAdvertiserController } from './advertiser/admin-advertiser.controller';
 import { AdminAdvertiserService } from './advertiser/admin-advertiser.service';
 import { AdminClientController } from './client/admin-client.controller';
@@ -14,22 +14,19 @@ import { AdminContentCategoryService } from './services/admin-content-category.s
 @Module({
   imports: [PrismaModule],
   controllers: [
-    AdminController,
+    // AdminController,
     AdminAdvertiserController,
     AdminClientController,
     AdminAdSlotTemplateController,
     AdminContentCategoryController,
   ],
   providers: [
-    AdminService,
+    // AdminService,
     AdminAdvertiserService,
     AdminClientService,
     AdminAdSlotTemplateService,
     AdminContentCategoryService,
   ],
-  exports: [
-    AdminAdSlotTemplateService,
-    AdminContentCategoryService,
-  ],
+  exports: [AdminAdSlotTemplateService, AdminContentCategoryService],
 })
-export class AdminModule { }
+export class AdminModule {}

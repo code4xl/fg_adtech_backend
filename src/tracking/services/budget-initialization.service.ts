@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
-import { CAMPAIGN_KEYS } from 'src/rtb/constants/cache-keys';
+import { REDIS_KEYS } from 'src/rtb/constants/cache-keys';
 
 @Injectable()
 export class BudgetInitializationService {
@@ -498,7 +498,7 @@ export class BudgetInitializationService {
   private async clearBudgetCache(campaignId: string): Promise<void> {
     try {
       const today = new Date().toISOString().split('T')[0];
-      const cacheKey = CAMPAIGN_KEYS.CAMPAIGN_BUDGET_INFO(campaignId, today);
+      const cacheKey = REDIS_KEYS.CAMPAIGN_BUDGET_INFO(campaignId, today);
       await this.redis.del(cacheKey);
 
       this.logger.debug('Cleared budget cache', { campaignId });
@@ -652,7 +652,7 @@ export class BudgetInitializationService {
       };
 
       // 5. Update cache with fresh data
-      const cacheKey = CAMPAIGN_KEYS.CAMPAIGN_BUDGET_INFO(
+      const cacheKey = REDIS_KEYS.CAMPAIGN_BUDGET_INFO(
         campaignId,
         today.toISOString().split('T')[0],
       );

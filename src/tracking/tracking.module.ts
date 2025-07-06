@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { RedisPostgresSyncService } from './services/redis-postgres-sync.service';
 import { TimescaleService } from '../timescale/timescale.service';
@@ -6,50 +6,60 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { RedisModule } from '../redis/redis.module';
 import { PostgresTimescaleSyncService } from './services/postgre-timescale-sync.service';
 import { TrackingController } from './tracking.controller';
-// import { BatchSyncController } from './batch-sync.controller';
 import { TrackingService } from './tracking.service';
-
-// ADD THESE IMPORTS:
 import { BudgetValidationService } from './services/budget-validation.service';
 import { FraudDetectionService } from './fraud-detection.service';
 import { BudgetInitializationService } from './services/budget-initialization.service';
 import { ImpressionClickLinkingService } from './services/impression-click-linking.service';
+import { BudgetRedisSyncService } from './services/budget-redis-sync.service';
+import { BudgetManagerService } from 'src/rtb/services/budget-manager.service';
 
 @Module({
-  imports: [
-    ScheduleModule.forRoot(),
-    PrismaModule,
-    RedisModule,
-  ],
-  controllers: [
-    TrackingController,
-    //  BatchSyncController
-  ],
+  imports: [ScheduleModule.forRoot(), PrismaModule, RedisModule],
+  controllers: [TrackingController],
   providers: [
     RedisPostgresSyncService,
     TimescaleService,
     TrackingService,
-
-    // ADD THESE MISSING PROVIDERS:
     BudgetValidationService,
     FraudDetectionService,
     BudgetInitializationService,
     ImpressionClickLinkingService,
-
-
-    PostgresTimescaleSyncService,  // Add this
+    BudgetRedisSyncService,
+    PostgresTimescaleSyncService,
+    BudgetManagerService,
   ],
   exports: [
     TrackingService,
     RedisPostgresSyncService,
     TimescaleService,
     PostgresTimescaleSyncService,
-
-    // OPTIONALLY EXPORT THESE TOO:
+    BudgetRedisSyncService,
     BudgetValidationService,
     FraudDetectionService,
     BudgetInitializationService,
+    BudgetManagerService,
     ImpressionClickLinkingService,
   ],
 })
-export class TrackingModule { }
+export class TrackingModule {
+  private readonly logger = new Logger(TrackingModule.name);
+  constructor(
+    private readonly budgetRedisSyncService: BudgetRedisSyncService,
+    private readonly budgetManagerService: BudgetManagerService,
+  ) {}
+  async onModuleInit() {
+    try {
+      this.logger.log('🚀 Starting application initialization...');
+
+      // Sync all campaign budgets to Redis on startup
+      await this.budgetRedisSyncService.syncAllActiveCampaigns();
+      await this.budgetManagerService.syncPublisherRevenueTiers();
+
+      this.logger.log('✅ Application initialization completed');
+    } catch (error) {
+      this.logger.error('❌ Application initialization failed:', error);
+      // Don't throw - let app start but log the error
+    }
+  }
+}

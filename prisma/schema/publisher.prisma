@@ -1,39 +1,45 @@
 model Publisher {
-  id                   String             @id @default(uuid()) @db.Uuid
-  firstName            String
-  lastName             String
-  email                String             @unique
-  emailVerifiedAt      DateTime?
-  password             String
-  rememberToken        String?
-  // domain               String?
-  status               PublisherStatus    @default(ACTIVE)
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
-  // Added fields for authentication
-  verificationToken    String?            @unique // For email verification
-  resetPasswordToken   String?            @unique // For password reset
-  resetPasswordExpires DateTime? // Password reset token expiration
-  // MFA fields
-  mfaEnabled           Boolean            @default(false)
+  id              String          @id @default(uuid()) @db.Uuid
+  firstName       String
+  lastName        String
+  email           String          @unique
+  emailVerifiedAt DateTime?
+  password        String
+  rememberToken   String?
+  status          PublisherStatus @default(ACTIVE)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  verificationToken    String?   @unique
+  resetPasswordToken   String?   @unique
+  resetPasswordExpires DateTime?
+  mfaEnabled           Boolean   @default(false)
   mfaVerificationCode  String?
   mfaCodeExpiry        DateTime?
-  /**
-   * STANDARD - 40% commission
-   * PREMIUM - 30% commission
-   * ELITE - 20% commission
-   */
-  tier                 PublisherTier      @default(STANDARD) // Commission tier 
-  paymentThreshold     Decimal            @default(100.0000) @db.Decimal(10, 4) // $100 minimum
+
+  tierId String?        @db.Uuid
+  tier   PublisherTier? @relation(fields: [tierId], references: [id])
+
+  paymentThreshold Decimal @default(100.0000) @db.Decimal(10, 4)
+
   // Relations
-  inventories          AdInventory[]
-  bidRequests          BidRequest[]
-  websites             Website[]
-  ImpressionEvent      ImpressionEvent[]
-  ClickEvent           ClickEvent[]
-  SystemRevenue        SystemRevenue[]
-  PublisherRevenue     PublisherRevenue[]
+  inventories           AdInventory[]
+  bidRequests           BidRequest[]
+  websites              Website[]
+  ImpressionEvent       ImpressionEvent[]
+  ClickEvent            ClickEvent[]
+  SystemRevenue         SystemRevenue[]
+  PublisherRevenue      PublisherRevenue[]
+  PublisherDailyRevenue PublisherDailyRevenue[]
 
   @@index([id, status])
   @@index([status])
+}
+
+model PublisherTier {
+  id             String      @id @default(uuid()) @db.Uuid
+  name           String      @unique
+  commissionRate Decimal     @default(0.4) @db.Decimal(5, 4)
+  createdAt      DateTime    @default(now())
+  publishers     Publisher[] // One-to-many relation back to Publisher
 }

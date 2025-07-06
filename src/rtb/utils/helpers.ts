@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger, Inject } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  Inject,
+} from '@nestjs/common';
 import { CreateBidRequestDto } from '../dto';
 import { BidRequestWithAuction } from '../types/bid-request.types';
 import { kafkaTopics } from '../constants/kafka-topics';
@@ -11,7 +16,7 @@ export class RtbHelper {
   constructor(
     @Inject(KafkaService) private readonly kafka: KafkaService,
     private readonly prisma: PrismaService,
-  ) { }
+  ) {}
 
   public async validateBidRequest(
     bidRequestDto: CreateBidRequestDto,
@@ -47,15 +52,21 @@ export class RtbHelper {
     });
 
     if (!inventory) {
-      throw new BadRequestException(`Inventory not found: ${bidRequestDto.inventoryId}`);
+      throw new BadRequestException(
+        `Inventory not found: ${bidRequestDto.inventoryId}`,
+      );
     }
 
     if (!inventory.websiteId) {
-      throw new BadRequestException(`Inventory ${bidRequestDto.inventoryId} has no associated website`);
+      throw new BadRequestException(
+        `Inventory ${bidRequestDto.inventoryId} has no associated website`,
+      );
     }
 
     if (!inventory.publisherId) {
-      throw new BadRequestException(`Inventory ${bidRequestDto.inventoryId} has no associated publisher`);
+      throw new BadRequestException(
+        `Inventory ${bidRequestDto.inventoryId} has no associated publisher`,
+      );
     }
   }
 
@@ -64,10 +75,10 @@ export class RtbHelper {
     adSlotContext: any,
   ): Promise<void> {
     try {
-      this.logger.debug('Validating inventory adSlot context', {
-        inventoryId,
-        requestedContext: adSlotContext,
-      });
+      // this.logger.debug('Validating inventory adSlot context', {
+      //   inventoryId,
+      //   requestedContext: adSlotContext,
+      // });
 
       // Get inventory with its adSlotTemplate
       const inventory = await this.prisma.adInventory.findUnique({
@@ -92,11 +103,15 @@ export class RtbHelper {
       }
 
       if (!inventory.adSlotTemplate) {
-        throw new BadRequestException(`Inventory ${inventoryId} has no adSlotTemplate configured`);
+        throw new BadRequestException(
+          `Inventory ${inventoryId} has no adSlotTemplate configured`,
+        );
       }
 
       if (!inventory.adSlotTemplate.isActive) {
-        throw new BadRequestException(`Inventory ${inventoryId} adSlotTemplate is inactive`);
+        throw new BadRequestException(
+          `Inventory ${inventoryId} adSlotTemplate is inactive`,
+        );
       }
 
       const template = inventory.adSlotTemplate;
@@ -104,39 +119,38 @@ export class RtbHelper {
       // Validate dimensions
       if (adSlotContext.width !== template.width) {
         throw new BadRequestException(
-          `Invalid width: expected ${template.width}, got ${adSlotContext.width} for inventory ${inventoryId}`
+          `Invalid width: expected ${template.width}, got ${adSlotContext.width} for inventory ${inventoryId}`,
         );
       }
 
       if (adSlotContext.height !== template.height) {
         throw new BadRequestException(
-          `Invalid height: expected ${template.height}, got ${adSlotContext.height} for inventory ${inventoryId}`
+          `Invalid height: expected ${template.height}, got ${adSlotContext.height} for inventory ${inventoryId}`,
         );
       }
 
       // Validate format
       if (adSlotContext.format !== template.format) {
         throw new BadRequestException(
-          `Invalid format: expected ${template.format}, got ${adSlotContext.format} for inventory ${inventoryId}`
+          `Invalid format: expected ${template.format}, got ${adSlotContext.format} for inventory ${inventoryId}`,
         );
       }
 
       // Validate position
       if (adSlotContext.position !== template.position) {
         throw new BadRequestException(
-          `Invalid position: expected ${template.position}, got ${adSlotContext.position} for inventory ${inventoryId}`
+          `Invalid position: expected ${template.position}, got ${adSlotContext.position} for inventory ${inventoryId}`,
         );
       }
 
-      this.logger.debug('AdSlot context validation passed', {
-        inventoryId,
-        templateId: template.id,
-        templateName: template.name,
-        validatedDimensions: `${template.width}x${template.height}`,
-        validatedFormat: template.format,
-        validatedPosition: template.position,
-      });
-
+      // this.logger.debug('AdSlot context validation passed', {
+      //   inventoryId,
+      //   templateId: template.id,
+      //   templateName: template.name,
+      //   validatedDimensions: `${template.width}x${template.height}`,
+      //   validatedFormat: template.format,
+      //   validatedPosition: template.position,
+      // });
     } catch (error) {
       this.logger.error('AdSlot context validation failed', {
         error: error.message,
@@ -177,7 +191,9 @@ export class RtbHelper {
     }
   }
 
-  public assessInventoryQuality(bidRequest: any): 'premium' | 'standard' | 'low' {
+  public assessInventoryQuality(
+    bidRequest: any,
+  ): 'premium' | 'standard' | 'low' {
     if (bidRequest.floorPrice && bidRequest.floorPrice > 5.0) {
       return 'premium';
     }
@@ -190,13 +206,21 @@ export class RtbHelper {
     return 'low';
   }
 
-  public categorizeError(errorMessage?: Error): 'timeout' | 'validation' | 'system' | 'unknown' | 'transient' {
+  public categorizeError(
+    errorMessage?: Error,
+  ): 'timeout' | 'validation' | 'system' | 'unknown' | 'transient' {
     if (!errorMessage) return 'unknown';
 
     const message = errorMessage.message.toLowerCase();
     if (message.includes('timeout')) return 'timeout';
-    if (message.includes('validation') || message.includes('missing') || message.includes('invalid')) return 'validation';
-    if (message.includes('system') || message.includes('service')) return 'system';
+    if (
+      message.includes('validation') ||
+      message.includes('missing') ||
+      message.includes('invalid')
+    )
+      return 'validation';
+    if (message.includes('system') || message.includes('service'))
+      return 'system';
     if (message.includes('connection') || message.includes('network')) {
       return 'transient';
     }

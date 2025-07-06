@@ -29,12 +29,14 @@ import { CampaignEligibilityService } from 'src/rtb/services/campaign-eligibilit
 import { CampaignTargetingService } from 'src/rtb/services/campaign-targeting.service';
 import { BudgetValidationService } from 'src/tracking/services/budget-validation.service';
 import { BudgetInitializationService } from 'src/tracking/services/budget-initialization.service';
+import { TrackingModule } from 'src/tracking/tracking.module';
 
 @Module({
   imports: [
     PrismaModule,
     ConfigModule,
     NotificationModule,
+    TrackingModule,
     MulterModule.register({
       limits: {
         fileSize: 5 * 1024 * 1024, // 5MB max file size
@@ -60,7 +62,7 @@ import { BudgetInitializationService } from 'src/tracking/services/budget-initia
     AdvertiserCreativeService,
     AdvertiserClientService,
     CreativeNotificationService,
-    // CampaignBudgetTrackerService,
+
     CampaignEligibilityService,
     CampaignTargetingService,
     BudgetValidationService,

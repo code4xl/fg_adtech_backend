@@ -21,10 +21,11 @@ model Advertiser {
   mfaVerificationCode  String?
   mfaCodeExpiry        DateTime?
 
-  clients        Client[] // Relationship with Client
-  Campaign       Campaign[]
-  bidResponses   BidResponse[]
-  ClientCampaign ClientCampaign[]
+  clients                 Client[] // Relationship with Client
+  Campaign                Campaign[]
+  bidResponses            BidResponse[]
+  ClientCampaign          ClientCampaign[]
+  AdvertiserDailySpending AdvertiserDailySpending[]
 
   @@index([id, status])
   @@index([status])

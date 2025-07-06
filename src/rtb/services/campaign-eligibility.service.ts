@@ -1,11 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
-import {
-  CAMPAIGN_KEYS,
-  REDIS_KEYS,
-  RTB_CACHE_TTL,
-} from '../constants/cache-keys';
+import { REDIS_KEYS, RTB_CACHE_TTL } from '../constants/cache-keys';
 import { CampaignWithTargeting } from '../types/campaign.types';
 import { CampaignTargetingService } from './campaign-targeting.service';
 import { InventoryFormat } from '@prisma/client';
@@ -43,12 +39,12 @@ export class CampaignEligibilityService {
   ): Promise<CampaignWithTargeting[]> {
     const startTime = Date.now();
 
-    this.logger.debug('Getting eligible campaigns with caching', {
-      inventoryId,
-      deviceType: userContext.deviceType,
-      country: userContext.country,
-      adSlot: `${adSlotContext.width}x${adSlotContext.height}`,
-    });
+    // this.logger.debug('Getting eligible campaigns with caching', {
+    //   inventoryId,
+    //   deviceType: userContext.deviceType,
+    //   country: userContext.country,
+    //   adSlot: `${adSlotContext.width}x${adSlotContext.height}`,
+    // });
 
     try {
       // 1. Get campaign pool from cache (BIGGEST OPTIMIZATION)
@@ -99,7 +95,7 @@ export class CampaignEligibilityService {
     height: number,
     format: InventoryFormat,
   ): Promise<CampaignWithTargeting[]> {
-    const cacheKey = `campaigns:pool:${width}x${height}:${format}`;
+    const cacheKey = `campaign:pool:${width}x${height}:${format}`;
 
     // Try cache first
     const cached = await this.redis.get<string>(cacheKey);
@@ -178,109 +174,57 @@ export class CampaignEligibilityService {
     return campaigns;
   }
 
-  // private async batchValidateBudgets(
-  //   campaigns: CampaignWithTargeting[],
-  // ): Promise<CampaignWithTargeting[]> {
-  //   if (campaigns.length === 0) return [];
-
-  //   const budgetChecks = await Promise.all(
-  //     campaigns.map(async (campaign: CampaignWithTargeting) => {
-  //       try {
-  //         // FIX: Safe bid amount extraction
-  //         let bidAmount = 1.0;
-  //         if (campaign.bidAmount) {
-  //           bidAmount = Number(campaign.bidAmount) || 1.0;
-  //         }
-
-  //         const hasValidBudget = await this.checkBudgetAvailability(
-  //           campaign.id,
-  //           bidAmount,
-  //         );
-  //         return { campaignId: campaign.id, hasValidBudget };
-  //       } catch (error) {
-  //         this.logger.warn(
-  //           `Budget check failed for campaign ${campaign.id}:`,
-  //           error,
-  //         );
-  //         return { campaignId: campaign.id, hasValidBudget: false };
-  //       }
-  //     }),
-  //   );
-
-  //   const budgetMap = new Map<string, boolean>();
-  //   budgetChecks.forEach(({ campaignId, hasValidBudget }) => {
-  //     budgetMap.set(campaignId, hasValidBudget);
-  //   });
-
-  //   const validCampaigns = campaigns.filter(
-  //     (campaign) => budgetMap.get(campaign.id) === true,
-  //   );
-
-  //   this.logger.debug('Batch budget validation completed', {
-  //     totalCampaigns: campaigns.length,
-  //     campaignIds: campaigns.map((c) => c.id),
-  //     validBudgets: validCampaigns.length,
-  //     rejectedBudgets: campaigns.length - validCampaigns.length,
-  //   });
-
-  //   return validCampaigns;
-  // }
   private async batchValidateBudgets(
     campaigns: CampaignWithTargeting[],
   ): Promise<CampaignWithTargeting[]> {
     if (campaigns.length === 0) return [];
 
-    // 🚧 TEMPORARY: BUDGET VALIDATION DISABLED FOR TESTING
-    // TODO: Re-enable after fixing Redis cache population issue
-    this.logger.warn(
-      '⚠️ BUDGET VALIDATION TEMPORARILY DISABLED - ALL CAMPAIGNS PASS',
+    // ✅ RE-ENABLED: Proper budget validation with minBid rough filtering
+    const budgetChecks = await Promise.all(
+      campaigns.map(async (campaign: CampaignWithTargeting) => {
+        try {
+          // Use minBid for rough early filtering
+          let minBidCPM = 1.0;
+          if (campaign.bidAmount) {
+            minBidCPM = Number(campaign.bidAmount) || 1.0;
+          }
+
+          // Convert CPM to per-impression cost for budget validation
+          const minCostPerImpression = minBidCPM / 1000;
+
+          // Rough budget check: If campaign can't afford even minimum bid, exclude
+          const hasValidBudget = await this.checkBudgetAvailability(
+            campaign.id,
+            minCostPerImpression,
+          );
+
+          return { campaignId: campaign.id, hasValidBudget };
+        } catch (error) {
+          this.logger.warn(
+            `Budget check failed for campaign ${campaign.id}:`,
+            error,
+          );
+          return { campaignId: campaign.id, hasValidBudget: false };
+        }
+      }),
     );
 
-    return campaigns; // Return all campaigns as valid
+    const budgetMap = new Map<string, boolean>();
+    budgetChecks.forEach(({ campaignId, hasValidBudget }) => {
+      budgetMap.set(campaignId, hasValidBudget);
+    });
 
-    /* 🚧 COMMENTED OUT - ORIGINAL BUDGET VALIDATION LOGIC
-  const budgetChecks = await Promise.all(
-    campaigns.map(async (campaign: CampaignWithTargeting) => {
-      try {
-        // FIX: Safe bid amount extraction
-        let bidAmount = 1.0;
-        if (campaign.bidAmount) {
-          bidAmount = Number(campaign.bidAmount) || 1.0;
-        }
+    const validCampaigns = campaigns.filter(
+      (campaign) => budgetMap.get(campaign.id) === true,
+    );
 
-        const hasValidBudget = await this.checkBudgetAvailability(
-          campaign.id,
-          bidAmount,
-        );
-        return { campaignId: campaign.id, hasValidBudget };
-      } catch (error) {
-        this.logger.warn(
-          `Budget check failed for campaign ${campaign.id}:`,
-          error,
-        );
-        return { campaignId: campaign.id, hasValidBudget: false };
-      }
-    }),
-  );
+    this.logger.debug('Batch budget validation completed', {
+      totalCampaigns: campaigns.length,
+      validBudgets: validCampaigns.length,
+      rejectedBudgets: campaigns.length - validCampaigns.length,
+    });
 
-  const budgetMap = new Map<string, boolean>();
-  budgetChecks.forEach(({ campaignId, hasValidBudget }) => {
-    budgetMap.set(campaignId, hasValidBudget);
-  });
-
-  const validCampaigns = campaigns.filter(
-    (campaign) => budgetMap.get(campaign.id) === true,
-  );
-
-  this.logger.debug('Batch budget validation completed', {
-    totalCampaigns: campaigns.length,
-    campaignIds: campaigns.map((c) => c.id),
-    validBudgets: validCampaigns.length,
-    rejectedBudgets: campaigns.length - validCampaigns.length,
-  });
-
-  return validCampaigns;
-  */
+    return validCampaigns;
   }
   async checkBudgetAvailability(
     campaignId: string,
@@ -352,7 +296,7 @@ export class CampaignEligibilityService {
     today: string,
   ): Promise<CampaignBudgetInfo | null> {
     try {
-      const cacheKey = CAMPAIGN_KEYS.CAMPAIGN_BUDGET_INFO(campaignId, today);
+      const cacheKey = REDIS_KEYS.CAMPAIGN_BUDGET_INFO(campaignId, today);
       const cached = await this.redis.get<string>(cacheKey);
 
       if (cached) {
@@ -413,7 +357,7 @@ export class CampaignEligibilityService {
     try {
       if (width && height && format) {
         // Invalidate specific ad slot
-        const cacheKey = `campaigns:pool:${width}x${height}:${format}`;
+        const cacheKey = `campaign:pool:${width}x${height}:${format}`;
         await this.redis.del(cacheKey);
         this.logger.debug('Invalidated specific campaign pool cache', {
           width,
@@ -422,7 +366,7 @@ export class CampaignEligibilityService {
         });
       } else {
         // Invalidate all campaign pools (when campaign status changes)
-        const pattern = 'campaigns:pool:*';
+        const pattern = 'campaign:pool:*';
         const keys = await this.redis.keys(pattern);
         if (keys.length > 0) {
           await Promise.all(keys.map((key) => this.redis.del(key)));
@@ -450,196 +394,6 @@ export class CampaignEligibilityService {
       });
     }
   }
-
-  // async warmupCaches(): Promise<void> {
-  //   try {
-  //     this.logger.log(
-  //       'Starting comprehensive cache warmup for all ad formats...',
-  //     );
-
-  //     // ===== BANNER FORMAT (Most Common) =====
-  //     const bannerSizes = [
-  //       { width: 728, height: 90, format: 'BANNER' }, // Leaderboard
-  //       { width: 300, height: 250, format: 'BANNER' }, // Medium Rectangle
-  //       { width: 320, height: 50, format: 'BANNER' }, // Mobile Banner
-  //       { width: 160, height: 600, format: 'BANNER' }, // Wide Skyscraper
-  //       { width: 300, height: 600, format: 'BANNER' }, // Half Page
-  //       { width: 970, height: 250, format: 'BANNER' }, // Billboard
-  //       { width: 336, height: 280, format: 'BANNER' }, // Large Rectangle
-  //       { width: 468, height: 60, format: 'BANNER' }, // Banner
-  //       { width: 234, height: 60, format: 'BANNER' }, // Half Banner
-  //       { width: 120, height: 600, format: 'BANNER' }, // Skyscraper
-  //     ];
-
-  //     // ===== NATIVE FORMAT =====
-  //     const nativeSizes = [
-  //       { width: 300, height: 250, format: 'NATIVE' }, // Native Rectangle
-  //       { width: 320, height: 240, format: 'NATIVE' }, // Mobile Native
-  //       { width: 600, height: 400, format: 'NATIVE' }, // Large Native
-  //       { width: 400, height: 300, format: 'NATIVE' }, // Standard Native
-  //       { width: 280, height: 200, format: 'NATIVE' }, // Small Native
-  //     ];
-
-  //     // ===== VIDEO FORMAT =====
-  //     const videoSizes = [
-  //       { width: 640, height: 480, format: 'VIDEO' }, // Standard Video
-  //       { width: 854, height: 480, format: 'VIDEO' }, // Wide Video
-  //       { width: 1280, height: 720, format: 'VIDEO' }, // HD Video
-  //       { width: 320, height: 240, format: 'VIDEO' }, // Mobile Video
-  //       { width: 300, height: 250, format: 'VIDEO' }, // Square Video
-  //       { width: 1920, height: 1080, format: 'VIDEO' }, // Full HD Video
-  //     ];
-
-  //     // ===== INTERSTITIAL FORMAT =====
-  //     const interstitialSizes = [
-  //       { width: 320, height: 480, format: 'INTERSTITIAL' }, // Mobile Portrait
-  //       { width: 480, height: 320, format: 'INTERSTITIAL' }, // Mobile Landscape
-  //       { width: 768, height: 1024, format: 'INTERSTITIAL' }, // Tablet Portrait
-  //       { width: 1024, height: 768, format: 'INTERSTITIAL' }, // Tablet Landscape
-  //       { width: 414, height: 736, format: 'INTERSTITIAL' }, // iPhone Plus
-  //       { width: 375, height: 667, format: 'INTERSTITIAL' }, // iPhone Standard
-  //     ];
-
-  //     // ===== REWARDED FORMAT =====
-  //     const rewardedSizes = [
-  //       { width: 320, height: 480, format: 'REWARDED' }, // Mobile Portrait
-  //       { width: 480, height: 320, format: 'REWARDED' }, // Mobile Landscape
-  //       { width: 640, height: 480, format: 'REWARDED' }, // Standard Rewarded
-  //       { width: 854, height: 480, format: 'REWARDED' }, // Wide Rewarded
-  //       { width: 300, height: 250, format: 'REWARDED' }, // Square Rewarded
-  //     ];
-
-  //     // ===== COMBINE ALL POPULAR SIZES =====
-  //     const allPopularSizes = [
-  //       ...bannerSizes,
-  //       ...nativeSizes,
-  //       ...videoSizes,
-  //       ...interstitialSizes,
-  //       ...rewardedSizes,
-  //     ];
-
-  //     this.logger.log('Warming up campaign pools for all formats', {
-  //       totalSizes: allPopularSizes.length,
-  //       bannerSizes: bannerSizes.length,
-  //       nativeSizes: nativeSizes.length,
-  //       videoSizes: videoSizes.length,
-  //       interstitialSizes: interstitialSizes.length,
-  //       rewardedSizes: rewardedSizes.length,
-  //     });
-
-  //     // ===== WARM UP CAMPAIGN POOLS (PARALLEL BATCHES) =====
-
-  //     // Process in batches to avoid overwhelming the database
-  //     const batchSize = 5;
-  //     let warmedCount = 0;
-
-  //     for (let i = 0; i < allPopularSizes.length; i += batchSize) {
-  //       const batch = allPopularSizes.slice(i, i + batchSize);
-
-  //       this.logger.debug(
-  //         `Warming up batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(allPopularSizes.length / batchSize)}`,
-  //         {
-  //           batchSizes: batch.map((s) => `${s.width}x${s.height}-${s.format}`),
-  //         },
-  //       );
-
-  //       // Process batch in parallel
-  //       const batchPromises = batch.map((size) =>
-  //         this.getCachedCampaignPool(
-  //           size.width,
-  //           size.height,
-  //           size.format as InventoryFormat,
-  //         )
-  //           .then((campaigns) => {
-  //             warmedCount++;
-  //             this.logger.debug(
-  //               `✅ Warmed ${size.width}x${size.height}-${size.format}`,
-  //               {
-  //                 campaignCount: campaigns.length,
-  //               },
-  //             );
-  //             return campaigns.length;
-  //           })
-  //           .catch((error) => {
-  //             this.logger.warn(
-  //               `❌ Failed to warm ${size.width}x${size.height}-${size.format}`,
-  //               {
-  //                 error: error.message,
-  //               },
-  //             );
-  //             return 0;
-  //           }),
-  //       );
-
-  //       await Promise.all(batchPromises);
-
-  //       // Small delay between batches to avoid database overload
-  //       if (i + batchSize < allPopularSizes.length) {
-  //         await new Promise((resolve) => setTimeout(resolve, 100)); // 100ms delay
-  //       }
-  //     }
-
-  //     // ===== WARM UP BUDGET STATUS FOR ACTIVE CAMPAIGNS =====
-
-  //     this.logger.log('Warming up budget status for active campaigns...');
-
-  //     const activeCampaigns = await this.prisma.campaign.findMany({
-  //       where: { status: 'ACTIVE' },
-  //       select: { id: true },
-  //       take: 20, // Limit to top 20 active campaigns to avoid overload
-  //     });
-
-  //     const today = new Date().toISOString().split('T')[0];
-  //     let budgetWarmedCount = 0;
-
-  //     // Process budget warmup in smaller batches
-  //     const budgetBatchSize = 10;
-  //     for (let i = 0; i < activeCampaigns.length; i += budgetBatchSize) {
-  //       const budgetBatch = activeCampaigns.slice(i, i + budgetBatchSize);
-
-  //       const budgetPromises = budgetBatch.map((campaign) =>
-  //         this.getCachedBudgetStatus(campaign.id, today)
-  //           .then(() => {
-  //             budgetWarmedCount++;
-  //             return true;
-  //           })
-  //           .catch((error) => {
-  //             this.logger.warn(
-  //               `Failed to warm budget for campaign ${campaign.id}`,
-  //               {
-  //                 error: error.message,
-  //               },
-  //             );
-  //             return false;
-  //           }),
-  //       );
-
-  //       await Promise.all(budgetPromises);
-  //     }
-
-  //     // ===== COMPLETION SUMMARY =====
-
-  //     this.logger.log('🎯 Comprehensive cache warmup completed!', {
-  //       campaignPoolsWarmed: warmedCount,
-  //       totalSizesAttempted: allPopularSizes.length,
-  //       budgetStatusWarmed: budgetWarmedCount,
-  //       totalCampaignsAttempted: activeCampaigns.length,
-  //       formatBreakdown: {
-  //         banner: bannerSizes.length,
-  //         native: nativeSizes.length,
-  //         video: videoSizes.length,
-  //         interstitial: interstitialSizes.length,
-  //         rewarded: rewardedSizes.length,
-  //       },
-  //     });
-  //   } catch (error) {
-  //     this.logger.error('❌ Comprehensive cache warmup failed', {
-  //       error: error.message,
-  //       stack: error.stack,
-  //     });
-  //     throw error;
-  //   }
-  // }
 
   async warmupCaches(): Promise<void> {
     try {
@@ -769,51 +523,9 @@ export class CampaignEligibilityService {
         }
       }
 
-      // ===== WARM UP BUDGET STATUS FOR ACTIVE CAMPAIGNS =====
-
-      this.logger.log('Warming up budget status for active campaigns...');
-
-      const activeCampaigns = await this.prisma.campaign.findMany({
-        where: { status: 'ACTIVE' },
-        select: { id: true },
-        take: 20, // Limit to top 100 active campaigns to avoid overload
-      });
-
-      const today = new Date().toISOString().split('T')[0];
-      let budgetWarmedCount = 0;
-
-      // Process budget warmup in smaller batches
-      const budgetBatchSize = 10;
-      for (let i = 0; i < activeCampaigns.length; i += budgetBatchSize) {
-        const budgetBatch = activeCampaigns.slice(i, i + budgetBatchSize);
-
-        const budgetPromises = budgetBatch.map((campaign) =>
-          this.getCachedBudgetStatus(campaign.id, today)
-            .then(() => {
-              budgetWarmedCount++;
-              return true;
-            })
-            .catch((error) => {
-              this.logger.warn(
-                `Failed to warm budget for campaign ${campaign.id}`,
-                {
-                  error: error.message,
-                },
-              );
-              return false;
-            }),
-        );
-
-        await Promise.all(budgetPromises);
-      }
-
-      // ===== COMPLETION SUMMARY =====
-
       this.logger.log('🎯 Comprehensive cache warmup completed!', {
         campaignPoolsWarmed: warmedCount,
         totalSizesAttempted: allPopularSizes.length,
-        budgetStatusWarmed: budgetWarmedCount,
-        totalCampaignsAttempted: activeCampaigns.length,
         formatBreakdown: {
           banner: bannerSizes.length,
           native: nativeSizes.length,

@@ -101,4 +101,7 @@ export default () => ({
       process.env.NODE_ENV === 'production' ||
       process.env.TIMESCALE_DATABASE_URL?.includes('sslmode=require'),
   },
+  tracking: {
+    baseUrl: process.env.TRACKING_URL || 'http://localhost:3000/',
+  },
 });

@@ -26,7 +26,7 @@ export class CampaignSeeder implements ISeeder {
     return ['Advertiser', 'Client'];
   }
 
-  async seed(count: number = 200): Promise<void> {
+  async seed(count: number = 100): Promise<void> {
     this.logger.log(`Seeding ${count} campaigns...`);
 
     try {
@@ -108,10 +108,10 @@ export class CampaignSeeder implements ISeeder {
           bidStrategy === BidStrategy.TARGET_COST
             ? faker.number.float({
                 min: 0.5,
-                max: 50.0,
+                max: 3,
                 fractionDigits: 2,
               })
-            : null;
+            : 1.0;
 
         // Generate targeting arrays
         const selectedInterests = faker.helpers.arrayElements(interests, {
@@ -158,7 +158,7 @@ export class CampaignSeeder implements ISeeder {
             status: CampaignStatus.ACTIVE,
             objective: CampaignObjective.AWARENESS,
             bidStrategy: BidStrategy.LOWEST_COST,
-            bidAmount: null,
+            bidAmount: 1.0,
             pacing: CampaignPacing.STANDARD,
             businessCategory: BusinessCategory.TECHNOLOGY,
             websiteUrl: 'https://example.com',
@@ -394,7 +394,7 @@ export class CampaignSeeder implements ISeeder {
           );
           const spentToday = faker.number.float({
             min: 0,
-            max: dailyBudget * 0.3, // Can spend up to 30% of daily budget so far
+            max: 0, // zero
             fractionDigits: 2,
           });
           const remainingToday = Math.max(0, dailyBudget - spentToday);

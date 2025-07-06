@@ -8,7 +8,7 @@ model Campaign {
     status           CampaignStatus     @default(DRAFT)
     objective        CampaignObjective
     bidStrategy      BidStrategy        @default(LOWEST_COST)
-    bidAmount        Decimal?           @db.Decimal(10, 2)
+    bidAmount        Decimal?           @db.Decimal(10, 2) // this is cpm
     pacing           CampaignPacing     @default(STANDARD)
     businessCategory BusinessCategory
     websiteUrl       String
@@ -17,27 +17,30 @@ model Campaign {
     updatedAt        DateTime           @updatedAt
 
     // Relations
-    advertiser           Advertiser             @relation(fields: [advertiserId], references: [id]) // for which advertiser
-    client               Client                 @relation(fields: [clientId], references: [id]) // for which client
-    creatives            Creative[]
-    statistics           CampaignStatistics[]
-    demographicTargeting DemographicTargeting[]
-    geographicTargeting  GeographicTargeting[]
-    deviceTargeting      DeviceTargeting[]
-    contextualTargeting  ContextualTargeting[]
-    behavioralTargeting  BehavioralTargeting[]
-    timeTargeting        TimeTargeting[]
-    frequencyTargeting   FrequencyTargeting[]
-    bidResponses         BidResponse[]
-    hourlyMetrics        HourlyMetrics[]
-    ImpressionEvent      ImpressionEvent[]
-    ClickEvent           ClickEvent[]
-    ClientCampaign       ClientCampaign[]
-    campaignBudgetId     String?                @db.Uuid
-    campaignBudget       CampaignBudget?        @relation(fields: [campaignBudgetId], references: [id])
-    dailyBudgets         CampaignDailyBudget[]  @relation("CampaignDailyBudgets")
-    SystemRevenue        SystemRevenue[]
-    BudgetTransaction    BudgetTransaction[]
+    advertiser              Advertiser                @relation(fields: [advertiserId], references: [id]) // for which advertiser
+    client                  Client                    @relation(fields: [clientId], references: [id]) // for which client
+    creatives               Creative[]
+    statistics              CampaignStatistics[]
+    demographicTargeting    DemographicTargeting[]
+    geographicTargeting     GeographicTargeting[]
+    deviceTargeting         DeviceTargeting[]
+    contextualTargeting     ContextualTargeting[]
+    behavioralTargeting     BehavioralTargeting[]
+    timeTargeting           TimeTargeting[]
+    frequencyTargeting      FrequencyTargeting[]
+    bidResponses            BidResponse[]
+    hourlyMetrics           HourlyMetrics[]
+    ImpressionEvent         ImpressionEvent[]
+    ClickEvent              ClickEvent[]
+    ClientCampaign          ClientCampaign[]
+    campaignBudgetId        String?                   @db.Uuid
+    campaignBudget          CampaignBudget?           @relation(fields: [campaignBudgetId], references: [id])
+    dailyBudgets            CampaignDailyBudget[]     @relation("CampaignDailyBudgets")
+    SystemRevenue           SystemRevenue[]
+    BudgetTransaction       BudgetTransaction[]
+    PublisherRevenue        PublisherRevenue[]
+    AdvertiserSpending      AdvertiserSpending[]
+    AdvertiserDailySpending AdvertiserDailySpending[]
 
     // indexes for RTB performance
     @@index([status, startDate, endDate])

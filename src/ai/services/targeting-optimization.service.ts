@@ -3,8 +3,9 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { OpenAIService } from './openai.service';
 import { HistoricalDataService } from './historical-data.service';
 import { BadRequestException } from '../../common/exceptions/custom.exception';
-import { CampaignTargetingDto } from '../../campaign/dto/targetting-rule.dto';
+
 import { AIModel } from '../interfaces/ai-response.interface';
+import { CampaignTargetingDto } from '../dto/targetting-rule.dto';
 
 // Create local enum since it was commented out in Prisma
 enum TargetingRuleType {
