@@ -1,3 +1,4 @@
+// src/common/seeders/seeder.module.ts - Fixed version
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/prisma.module';
 
@@ -46,8 +47,10 @@ import { ClientSeeder } from './modules/client.seeder';
 })
 export class SeederModule {
   constructor(private readonly seederRegistry: SeederRegistry) {
+    console.log('SeederModule constructor called');
+
     // Register all seeders
-    this.seederRegistry.registerSeeders([
+    const seeders = [
       AdminSeeder,
       AdvertiserSeeder,
       PublisherSeeder,
@@ -61,6 +64,10 @@ export class SeederModule {
       FloorPriceSeeder,
       TargetingRuleSeeder,
       NotificationSeeder,
-    ]);
+    ];
+
+    console.log(`Registering ${seeders.length} seeders`);
+    this.seederRegistry.registerSeeders(seeders);
+    console.log('All seeders registered successfully');
   }
 }

@@ -75,14 +75,21 @@ export class BidEvaluationService {
     try {
       // 1. Get base bid amount from campaign
       const baseBid = await this.getBaseBidAmount(campaign);
-
+      this.logger.debug('Base bid amount retrieved', {
+        campaignId: campaign.id,
+        baseBid,
+      });
       // 2. Apply bid strategy logic
       const strategicBid = await this.applyBidStrategy(
         campaign,
         baseBid,
         context.floorPrice,
       );
-
+      this.logger.debug('Strategic bid calculated', {
+        campaignId: campaign.id,
+        baseBid,
+        strategicBid,
+      });
       // 3. Apply contextual adjustments
       const adjustedBid =
         await this.bidAdjustmentService.calculateComprehensiveBidAdjustments(
@@ -90,25 +97,39 @@ export class BidEvaluationService {
           strategicBid,
           context.userContext,
         );
-
+      this.logger.debug('Adjusted bid after contextual adjustments', {
+        campaignId: campaign.id,
+        adjustedBid,
+        baseBid,
+        strategicBid,
+      });
       // 4. Apply budget pacing constraints
       const pacedBid = await this.applyBudgetPacing(
         campaign,
         adjustedBid.finalBidCPM,
       );
-
+      this.logger.debug('Paced bid after budget pacing', {
+        campaignId: campaign.id,
+        pacedBid,
+        adjustedBid,
+      });
       // 5. Ensure bid meets minimum and maximum constraints
-      const finalBid = this.applyBidConstraints(pacedBid, context.floorPrice);
-
+      // const finalBid = this.applyBidConstraints(pacedBid, context.floorPrice);
+      // this.logger.debug('Final bid after constraints', {
+      //   campaignId: campaign.id,
+      //   finalBid,
+      //   pacedBid,
+      //   floorPrice: context.floorPrice,
+      // });
       this.logger.debug('Bid calculation completed', {
         campaignId: campaign.id,
         baseBid,
         strategicBid,
         adjustedBid,
-        finalBid,
+        pacedBid,
       });
 
-      return finalBid;
+      return pacedBid;
     } catch (error) {
       this.logger.error('Bid calculation failed', {
         error: error.message,
@@ -133,52 +154,11 @@ export class BidEvaluationService {
         costPerImpression: costPerImpression,
       });
 
-      return costPerImpression;
+      return cpmBid;
     }
 
     // Ultimate fallback - Rs.1 CPM = $0.001 per impression
-    return 0.001;
-  }
-
-  private async getDailyBudget(campaignId: string): Promise<number> {
-    try {
-      // REASON: Use new CampaignDailyBudget table instead of old CampaignBudgetTracker
-      // LOGIC: New payment flow uses CampaignDailyBudget for daily spend tracking
-      const today = new Date();
-      today.setHours(0, 0, 0, 0); // Start of day
-
-      const dailyBudget = await this.prisma.campaignDailyBudget.findUnique({
-        where: {
-          campaignId_date: {
-            campaignId,
-            date: today,
-          },
-        },
-        select: {
-          remainingToday: true,
-        },
-      });
-
-      // REASON: Return remaining budget instead of total daily budget
-      // LOGIC: We want to bid based on remaining budget, not total allocated budget
-      const remainingBudget = dailyBudget
-        ? Number(dailyBudget.remainingToday)
-        : 0;
-
-      this.logger.debug('Daily budget retrieved', {
-        campaignId,
-        date: today.toISOString().split('T')[0],
-        remainingBudget: remainingBudget,
-      });
-
-      return remainingBudget;
-    } catch (error) {
-      this.logger.warn('Failed to get daily budget', {
-        error: error.message,
-        campaignId,
-      });
-      return 0;
-    }
+    return 1;
   }
 
   private async applyBidStrategy(
@@ -186,7 +166,7 @@ export class BidEvaluationService {
     baseBid: number,
     floorPrice: number,
   ): Promise<number> {
-    const bidStrategy = campaign.bidStrategy || 'LOWEST_COST';
+    const bidStrategy = campaign.bidStrategy;
 
     // Create context object
     const context = {
@@ -256,6 +236,11 @@ export class BidEvaluationService {
         originalBid: bidAmount,
         floorPrice: floorPrice,
         adjustedBid: finalBid,
+      });
+    } else {
+      this.logger.debug('Bid meets floor price', {
+        bid: finalBid,
+        floorPrice: floorPrice,
       });
     }
     return finalBid;

@@ -1,3 +1,4 @@
+// src/common/seeders/commands/seed.command.ts - Debug version
 import { Command, Option } from 'nestjs-command';
 import { Injectable, Logger } from '@nestjs/common';
 import { MainSeederService } from '../main.seeder';
@@ -6,7 +7,9 @@ import { MainSeederService } from '../main.seeder';
 export class SeedCommand {
   private readonly logger = new Logger(SeedCommand.name);
 
-  constructor(private readonly seederService: MainSeederService) {}
+  constructor(private readonly seederService: MainSeederService) {
+    this.logger.log('SeedCommand constructor called');
+  }
 
   @Command({
     command: 'db:seed',
@@ -21,19 +24,21 @@ export class SeedCommand {
     })
     clean: boolean,
   ) {
+    this.logger.log('🚀 db:seed command started');
+    this.logger.log(`Clean option: ${clean}`);
+
     try {
       if (clean) {
-        this.logger.debug('Cleaning all data before seeding...');
+        this.logger.log('Cleaning all data before seeding...');
         await this.seederService.cleanAll();
       }
 
-      this.logger.debug('Seeding all modules...');
+      this.logger.log('Starting to seed all modules...');
       await this.seederService.seedAll();
-      this.logger.debug('All modules seeded successfully!');
+      this.logger.log('✅ All modules seeded successfully!');
     } catch (error) {
-      this.logger.error('Error seeding database');
-      this.logger.error(error);
-      process.exit(1);
+      this.logger.error('❌ Error seeding database:', error.stack);
+      throw error;
     }
   }
 
@@ -58,14 +63,15 @@ export class SeedCommand {
     })
     clean: boolean,
   ) {
+    this.logger.log(`🚀 db:seed:module command started for: ${moduleName}`);
+
     try {
-      this.logger.debug(`Seeding module: ${moduleName}`);
+      this.logger.log(`Seeding module: ${moduleName}`);
       await this.seederService.seedModule(moduleName, clean);
-      this.logger.debug(`Module ${moduleName} seeded successfully!`);
+      this.logger.log(`✅ Module ${moduleName} seeded successfully!`);
     } catch (error) {
-      this.logger.error(`Error seeding module: ${moduleName}`);
-      this.logger.error(error);
-      process.exit(1);
+      this.logger.error(`❌ Error seeding module: ${moduleName}`, error.stack);
+      throw error;
     }
   }
 
@@ -74,14 +80,15 @@ export class SeedCommand {
     describe: 'Clean all data from the database',
   })
   async cleanAll() {
+    this.logger.log('🚀 db:clean command started');
+
     try {
-      this.logger.debug('Cleaning all data from database...');
+      this.logger.log('Cleaning all data from database...');
       await this.seederService.cleanAll();
-      this.logger.debug('Database cleaned successfully!');
+      this.logger.log('✅ Database cleaned successfully!');
     } catch (error) {
-      this.logger.error('Error cleaning database');
-      this.logger.error(error);
-      process.exit(1);
+      this.logger.error('❌ Error cleaning database:', error.stack);
+      throw error;
     }
   }
 
@@ -90,27 +97,28 @@ export class SeedCommand {
     describe: 'Display information about available seeders and their order',
   })
   async showInfo() {
+    this.logger.log('🚀 db:seed:info command started');
+
     try {
       const availableModules = this.seederService.getAvailableModules();
       const seedingOrder = this.seederService.getSeedingOrder();
       const cleaningOrder = this.seederService.getCleaningOrder();
 
-      this.logger.debug('Available Modules:');
-      availableModules.forEach((module) => this.logger.debug(`- ${module}`));
+      this.logger.log('📋 Available Modules:');
+      availableModules.forEach((module) => this.logger.log(`- ${module}`));
 
-      this.logger.debug('\nSeeding Order:');
+      this.logger.log('\n📈 Seeding Order:');
       seedingOrder.forEach((module, index) =>
-        this.logger.debug(`${index + 1}. ${module}`),
+        this.logger.log(`${index + 1}. ${module}`),
       );
 
-      this.logger.debug('\nCleaning Order:');
+      this.logger.log('\n📉 Cleaning Order:');
       cleaningOrder.forEach((module, index) =>
-        this.logger.debug(`${index + 1}. ${module}`),
+        this.logger.log(`${index + 1}. ${module}`),
       );
     } catch (error) {
-      this.logger.error('Error displaying seeder information');
-      this.logger.error(error);
-      process.exit(1);
+      this.logger.error('❌ Error displaying seeder information:', error.stack);
+      throw error;
     }
   }
 }

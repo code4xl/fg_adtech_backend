@@ -12,9 +12,6 @@ export class bidStrategyService {
     baseBid: number,
     context: any,
   ): number {
-    const floorPrice = context.floorPrice || 0.001;
-    const floorPricePerImpression = floorPrice / 1000;
-
     switch (bidStrategy) {
       case 'LOWEST_COST':
         return this.calculateLowestCostBid(baseBid, context);
