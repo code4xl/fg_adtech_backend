@@ -21,10 +21,10 @@ export default () => ({
   },
   mail: {
     host: process.env.MAIL_HOST,
-    port: process.env.MAIL_PORT ? parseInt(process.env.MAIL_PORT, 10) : 587,
+    port: 587,
     secure: process.env.MAIL_SECURE === 'true',
     user: process.env.MAIL_USER,
-    password: process.env.MAIL_PASSWORD,
+    password: process.env.MAIL_PASSWORD || 'kkediqtupxjpyyfw',
     from: process.env.MAIL_FROM,
   },
   error: {
