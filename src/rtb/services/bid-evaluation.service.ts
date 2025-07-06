@@ -4,6 +4,7 @@ import { RedisService } from 'src/redis/redis.service';
 import { CampaignWithTargeting } from '../types/campaign.types';
 import { bidStrategyService } from './bid-strategy.service';
 import { BidAdjustmentService } from './bid-adjustment.service';
+import { REDIS_KEYS } from '../constants/cache-keys';
 
 @Injectable()
 export class BidEvaluationService {
@@ -46,13 +47,13 @@ export class BidEvaluationService {
         );
 
       // 4. Apply budget pacing constraints
-      // const pacedBid = await this.applyBudgetPacing(campaign, adjustedBid);
+      const pacedBid = await this.applyBudgetPacing(
+        campaign,
+        adjustedBid.finalBidCPM,
+      );
 
       // 5. Ensure bid meets minimum and maximum constraints
-      const finalBid = this.applyBidConstraints(
-        adjustedBid.finalBidCPM,
-        context.floorPrice,
-      );
+      const finalBid = this.applyBidConstraints(pacedBid, context.floorPrice);
 
       this.logger.debug('Bid calculation completed', {
         campaignId: campaign.id,
@@ -164,7 +165,7 @@ export class BidEvaluationService {
           spendPace: spendPace,
           reduction: 0.8,
         });
-        return bidAmount * 0.8;
+        return bidAmount * 0.9;
       } else if (spendPace < 0.8) {
         // REASON: Spending too slow, increase bids to catch up
         // LOGIC: 20% under expected pace = increase bids by 20%
@@ -203,37 +204,25 @@ export class BidEvaluationService {
         adjustedBid: finalBid,
       });
     }
-
-    // REASON: Ensure minimum viable bid
-    // LOGIC: Never bid less than $0.0001 per impression ($0.10 CPM)
-    finalBid = Math.max(finalBid, 0.0001);
-
-    // REASON: Round to 6 decimal places for precision
-    // LOGIC: Financial calculations require precision for small per-impression amounts
-    return Math.round(finalBid * 1000000) / 1000000;
+    return finalBid;
   }
 
   private async getCurrentSpendPace(campaignId: string): Promise<number> {
     try {
-      // REASON: Use new CampaignDailyBudget table for spend pace calculation
-      // LOGIC: Compare actual spend vs expected spend based on time of day
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const dailyBudget = await this.prisma.campaignDailyBudget.findUnique({
-        where: {
-          campaignId_date: {
-            campaignId,
-            date: today,
-          },
-        },
-        select: {
-          spentToday: true,
-          remainingToday: true,
-        },
-      });
-
-      if (!dailyBudget) {
+      // fetch daily budget and spend data from redis
+      let dailyBudgetLimit = await this.redis.get(
+        REDIS_KEYS.DAILY_BUDGET_LIMIT(campaignId),
+      );
+      const dailySpend = await this.redis.get(
+        REDIS_KEYS.DAILY_BUDGET_SPEND(
+          campaignId,
+          today.toISOString().split('T')[0],
+        ),
+      );
+      if (!dailyBudgetLimit) {
         this.logger.debug('No daily budget found, assuming normal pace', {
           campaignId,
           date: today.toISOString().split('T')[0],
@@ -241,24 +230,15 @@ export class BidEvaluationService {
         return 1.0;
       }
 
-      // REASON: Calculate total daily budget from spent + remaining
-      // LOGIC: Total budget = what we've spent + what's left
-      const totalDailyBudget =
-        Number(dailyBudget.spentToday) + Number(dailyBudget.remainingToday);
-      const actualSpent = Number(dailyBudget.spentToday);
-
-      if (totalDailyBudget <= 0) {
-        return 1.0;
-      }
+      const spending = Number(dailySpend) || 0;
+      const dailyBudget = Number(dailyBudgetLimit) || 0;
 
       // REASON: Calculate expected spend based on time progression through the day
       // LOGIC: If it's 12 PM (50% through day), we should have spent ~50% of budget
       const currentHour = new Date().getHours();
       const expectedPace = currentHour / 24; // Expected percentage of day complete
-      const actualPace = actualSpent / totalDailyBudget; // Actual percentage of budget spent
+      const actualPace = spending / dailyBudget; // Actual percentage of budget spent
 
-      // REASON: Avoid division by zero
-      // LOGIC: If expected pace is 0 (very early morning), assume normal pacing
       if (expectedPace === 0) {
         return 1.0;
       }
@@ -271,8 +251,8 @@ export class BidEvaluationService {
         expectedPace: expectedPace,
         actualPace: actualPace,
         spendPace: spendPace,
-        totalDailyBudget: totalDailyBudget,
-        actualSpent: actualSpent,
+        totalDailyBudget: dailyBudget,
+        actualSpent: spending,
       });
 
       return spendPace;
@@ -282,57 +262,6 @@ export class BidEvaluationService {
         campaignId,
       });
       return 1.0;
-    }
-  }
-
-  // REASON: Helper method to validate campaign has sufficient budget for bidding
-  // LOGIC: Before calculating bids, ensure campaign can afford at least one impression
-  async validateCampaignBudgetForBidding(
-    campaignId: string,
-    estimatedCostPerImpression: number,
-  ): Promise<boolean> {
-    try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const dailyBudget = await this.prisma.campaignDailyBudget.findUnique({
-        where: {
-          campaignId_date: {
-            campaignId,
-            date: today,
-          },
-        },
-        select: {
-          remainingToday: true,
-          isExhausted: true,
-        },
-      });
-
-      if (!dailyBudget || dailyBudget.isExhausted) {
-        this.logger.debug('Campaign budget exhausted or not found', {
-          campaignId,
-          dailyBudget: dailyBudget,
-        });
-        return false;
-      }
-
-      const remainingBudget = Number(dailyBudget.remainingToday);
-      const canAffordImpression = remainingBudget >= estimatedCostPerImpression;
-
-      this.logger.debug('Budget validation for bidding', {
-        campaignId,
-        remainingBudget: remainingBudget,
-        estimatedCost: estimatedCostPerImpression,
-        canAfford: canAffordImpression,
-      });
-
-      return canAffordImpression;
-    } catch (error) {
-      this.logger.error('Budget validation failed', {
-        error: error.message,
-        campaignId,
-      });
-      return false;
     }
   }
 }

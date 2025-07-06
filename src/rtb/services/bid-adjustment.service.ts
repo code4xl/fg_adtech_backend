@@ -163,11 +163,17 @@ export class BidAdjustmentService {
         context.region,
         context.city,
       );
+      // get hour, dayOfWeek (not in context)
+      const dateInIST = new Date().toLocaleString('en-US', {
+        timeZone: 'Asia/Kolkata',
+      });
 
+      const date = new Date(dateInIST);
+      const hour = date.getHours();
+      const dayOfWeek = date.getDay();
       const timeMultiplier = this.getTemporalAdjustment(
-        context.hour,
-        context.dayOfWeek,
-        context.isWeekend,
+        hour,
+        dayOfWeek, // Sunday = 0 ... Saturday = 6
       );
 
       const demographicMultiplier = this.getDemographicAdjustment(
@@ -377,45 +383,52 @@ export class BidAdjustmentService {
       return 1.0;
     }
   }
-
   /**
    * Temporal (time-based) adjustments
    */
   private getTemporalAdjustment(
     hour: number,
-    dayOfWeek: number,
-    isWeekend: boolean,
+    dayOfWeek: number, // Sunday = 0 ... Saturday = 6
   ): number {
-    let timeMultiplier = 1.0;
-    let dayMultiplier = 1.0;
+    const hourMultipliers: Record<number, number> = {
+      0: 0.7,
+      1: 0.7,
+      2: 0.7,
+      3: 0.7,
+      4: 0.7,
+      5: 0.7,
+      6: 0.8,
+      7: 0.9,
+      8: 1.0,
+      9: 1.2,
+      10: 1.2,
+      11: 1.2,
+      12: 1.2,
+      13: 1.2,
+      14: 1.2,
+      15: 1.2,
+      16: 1.2,
+      17: 1.2,
+      18: 1.15,
+      19: 1.3,
+      20: 1.3,
+      21: 1.3,
+      22: 1.3,
+      23: 1.15,
+    };
 
-    // Hour-based adjustments (24-hour format)
-    if (hour >= 9 && hour <= 17) {
-      // Business hours (9 AM - 5 PM)
-      timeMultiplier = 1.2; // +20%
-    } else if (hour >= 19 && hour <= 22) {
-      // Evening prime time (7 PM - 10 PM)
-      timeMultiplier = 1.3; // +30%
-    } else if (hour >= 18 && hour <= 23) {
-      // Extended evening (6 PM - 11 PM)
-      timeMultiplier = 1.15; // +15%
-    } else if (hour >= 23 || hour <= 6) {
-      // Late night / early morning
-      timeMultiplier = 0.7; // -30%
-    } else {
-      // Other hours
-      timeMultiplier = 0.9; // -10%
-    }
+    const dayMultipliers: Record<number, number> = {
+      0: 0.9, // Sunday
+      1: 1.1, // Monday
+      2: 1.1, // Tuesday
+      3: 1.1, // Wednesday
+      4: 1.1, // Thursday
+      5: 1.1, // Friday
+      6: 0.9, // Saturday
+    };
 
-    // Day-based adjustments
-    if (isWeekend) {
-      // Weekend adjustments depend on campaign type
-      // For general campaigns, slightly lower performance
-      dayMultiplier = 0.9; // -10%
-    } else {
-      // Weekday baseline
-      dayMultiplier = 1.1;
-    }
+    const timeMultiplier = hourMultipliers[hour] ?? 1.0;
+    const dayMultiplier = dayMultipliers[dayOfWeek] ?? 1.0;
 
     return timeMultiplier * dayMultiplier;
   }
@@ -466,13 +479,15 @@ export class BidAdjustmentService {
     Array<{ campaignId: string; finalBidCPM: number; multiplier: number }>
   > {
     const results = [];
+    const dateInIST = new Date().toLocaleString('en-US', {
+      timeZone: 'Asia/Kolkata',
+    });
 
+    const date = new Date(dateInIST);
+    const hour = date.getHours();
+    const dayOfWeek = date.getDay();
     // Get common adjustments that apply to all campaigns
-    const timeMultiplier = this.getTemporalAdjustment(
-      context.hour,
-      context.dayOfWeek,
-      context.isWeekend,
-    );
+    const timeMultiplier = this.getTemporalAdjustment(hour, dayOfWeek);
     const demoMultiplier = this.getDemographicAdjustment(
       context.userAge,
       context.userGender,
