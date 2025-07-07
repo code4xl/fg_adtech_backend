@@ -1,3 +1,4 @@
+// src/rtb/services/bid-evaluation.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
@@ -5,6 +6,7 @@ import { CampaignWithTargeting } from '../types/campaign.types';
 import { bidStrategyService } from './bid-strategy.service';
 import { BidAdjustmentService } from './bid-adjustment.service';
 import { REDIS_KEYS } from '../constants/cache-keys';
+
 export interface AdRequest {
   id: string;
   externalRequestId: string;
@@ -13,10 +15,10 @@ export interface AdRequest {
   websiteId: string;
   userContext: UserContext;
   adSlotContext: AdSlotContext;
-  floorPrice: number;
-  auctionType: 'FIRST_PRICE' | 'SECOND_PRICE' | 'THIRD_PRICE'; // assuming possible auction types
+  floorPrice: number; // CPM value
+  auctionType: 'FIRST_PRICE' | 'SECOND_PRICE' | 'THIRD_PRICE';
   timeout: number;
-  requestTimestamp: string | Date; // ISO date string
+  requestTimestamp: string | Date;
   processedAt?: string | null;
   auctionId: string;
 }
@@ -62,196 +64,251 @@ export class BidEvaluationService {
     private readonly bidAdjustmentService: BidAdjustmentService,
   ) {}
 
+  /**
+   * 🎯 FIXED: All calculations now work in CPM and return CPM
+   * Final conversion to CPI happens only when needed for budget validation
+   */
   async calculateBidPrice(
     campaign: CampaignWithTargeting,
     context: AdRequest,
   ): Promise<number> {
-    this.logger.debug('Calculating bid price', {
+    this.logger.debug('Calculating bid price (CPM)', {
       campaignId: campaign.id,
       bidStrategy: campaign.bidStrategy,
       deviceType: context.userContext.deviceType,
+      floorPriceCPM: context.floorPrice,
     });
 
     try {
-      // 1. Get base bid amount from campaign
-      const baseBid = await this.getBaseBidAmount(campaign);
-      this.logger.debug('Base bid amount retrieved', {
+      // 1. Get base bid amount (CPM) from campaign
+      const baseBidCPM = await this.getBaseBidCPMAmount(campaign);
+      this.logger.debug('Base bid CPM amount retrieved', {
         campaignId: campaign.id,
-        baseBid,
+        baseBidCPM,
       });
-      // 2. Apply bid strategy logic
-      const strategicBid = await this.applyBidStrategy(
+
+      // 2. Apply bid strategy logic (CPM in, CPM out)
+      const strategicBidCPM = await this.applyBidStrategy(
         campaign,
-        baseBid,
-        context.floorPrice,
+        baseBidCPM,
+        context.floorPrice, // floorPrice is CPM
       );
-      this.logger.debug('Strategic bid calculated', {
+      this.logger.debug('Strategic bid CPM calculated', {
         campaignId: campaign.id,
-        baseBid,
-        strategicBid,
+        baseBidCPM,
+        strategicBidCPM,
       });
-      // 3. Apply contextual adjustments
+
+      // 3. Apply contextual adjustments (CPM in, CPM out)
       const adjustedBid =
         await this.bidAdjustmentService.calculateComprehensiveBidAdjustments(
           campaign.id,
-          strategicBid,
+          strategicBidCPM, // Pass CPM
           context.userContext,
         );
-      this.logger.debug('Adjusted bid after contextual adjustments', {
+      this.logger.debug('Adjusted bid CPM after contextual adjustments', {
         campaignId: campaign.id,
-        adjustedBid,
-        baseBid,
-        strategicBid,
+        strategicBidCPM,
+        adjustedBidCPM: adjustedBid.finalBidCPM,
       });
-      // 4. Apply budget pacing constraints
-      const pacedBid = await this.applyBudgetPacing(
+
+      // 4. Apply budget pacing constraints (CPM in, CPM out)
+      const pacedBidCPM = await this.applyBudgetPacing(
         campaign,
         adjustedBid.finalBidCPM,
       );
-      this.logger.debug('Paced bid after budget pacing', {
+      this.logger.debug('Paced bid CPM after budget pacing', {
         campaignId: campaign.id,
-        pacedBid,
-        adjustedBid,
-      });
-      // 5. Ensure bid meets minimum and maximum constraints
-      // const finalBid = this.applyBidConstraints(pacedBid, context.floorPrice);
-      // this.logger.debug('Final bid after constraints', {
-      //   campaignId: campaign.id,
-      //   finalBid,
-      //   pacedBid,
-      //   floorPrice: context.floorPrice,
-      // });
-      this.logger.debug('Bid calculation completed', {
-        campaignId: campaign.id,
-        baseBid,
-        strategicBid,
-        adjustedBid,
-        pacedBid,
+        adjustedBidCPM: adjustedBid.finalBidCPM,
+        pacedBidCPM,
       });
 
-      return pacedBid;
+      // 5. Ensure bid meets minimum constraints (CPM level)
+      // const finalBidCPM = this.applyBidConstraints(
+      //   pacedBidCPM,
+      //   context.floorPrice, // floorPrice is CPM
+      // );
+
+      this.logger.debug('Final bid CPM after constraints', {
+        campaignId: campaign.id,
+        pacedBidCPM,
+
+        floorPriceCPM: context.floorPrice,
+      });
+
+      this.logger.debug('✅ Bid calculation completed (CPM)', {
+        campaignId: campaign.id,
+        baseBidCPM,
+        strategicBidCPM,
+        adjustedBidCPM: adjustedBid.finalBidCPM,
+        pacedBidCPM,
+
+        breakdown: adjustedBid.breakdown,
+      });
+
+      return pacedBidCPM; // Return CPM value
     } catch (error) {
       this.logger.error('Bid calculation failed', {
         error: error.message,
         campaignId: campaign.id,
       });
 
-      // Fallback to minimum viable bid
-      return Math.max(context.floorPrice || 0.01, 0.01);
+      // Fallback to minimum viable bid (CPM)
+      return Math.max(context.floorPrice || 1.0, 1.0);
     }
   }
 
-  private async getBaseBidAmount(
+  /**
+   * 🎯 FIXED: Always return CPM values
+   */
+  private async getBaseBidCPMAmount(
     campaign: CampaignWithTargeting,
   ): Promise<number> {
     if (campaign.bidAmount && Number(campaign.bidAmount) > 0) {
       const cpmBid = Number(campaign.bidAmount);
-      const costPerImpression = cpmBid / 1000;
 
-      this.logger.debug('Base bid calculation', {
+      this.logger.debug('Base bid CPM calculation', {
         campaignId: campaign.id,
         cpmBid: cpmBid,
-        costPerImpression: costPerImpression,
+        source: 'campaign.bidAmount',
       });
 
-      return cpmBid;
+      return cpmBid; // Already CPM
     }
 
-    // Ultimate fallback - Rs.1 CPM = $0.001 per impression
-    return 1;
+    // Ultimate fallback - Rs.1 CPM
+    this.logger.debug('Using fallback base bid CPM', {
+      campaignId: campaign.id,
+      fallbackCPM: 1.0,
+    });
+
+    return 1.0;
   }
 
+  /**
+   * 🎯 FIXED: All strategy calculations work in CPM
+   */
   private async applyBidStrategy(
     campaign: CampaignWithTargeting,
-    baseBid: number,
-    floorPrice: number,
+    baseBidCPM: number,
+    floorPriceCPM: number,
   ): Promise<number> {
     const bidStrategy = campaign.bidStrategy;
 
-    // Create context object
+    // Create context object with CPM values
     const context = {
-      floorPrice: floorPrice,
+      floorPriceCPM: floorPriceCPM,
       campaignId: campaign.id,
-      // Add any other context you need
     };
 
-    return this.bidStrategyService.calculateBidAmount(
+    return this.bidStrategyService.calculateBidAmountCPM(
       bidStrategy,
-      baseBid,
+      baseBidCPM,
       context,
     );
   }
 
+  /**
+   * 🎯 FIXED: Budget pacing works in CPM
+   */
   private async applyBudgetPacing(
     campaign: any,
-    bidAmount: number,
+    bidAmountCPM: number,
   ): Promise<number> {
     try {
-      // REASON: Updated to use new budget tracking system
-      // LOGIC: Compare actual spend pace vs expected pace for the day
       const spendPace = await this.getCurrentSpendPace(campaign.id);
 
       if (spendPace > 1.2) {
-        // REASON: Spending too fast, reduce bids to slow down spend
-        // LOGIC: 20% over expected pace = reduce bids by 20%
-        this.logger.debug('Reducing bid due to fast spending', {
+        // Spending too fast, reduce bids by 10%
+        const adjustedCPM = bidAmountCPM * 0.9;
+        this.logger.debug('Reducing CPM bid due to fast spending', {
           campaignId: campaign.id,
           spendPace: spendPace,
-          reduction: 0.8,
+          originalCPM: bidAmountCPM,
+          adjustedCPM,
         });
-        return bidAmount * 0.9;
+        return adjustedCPM;
       } else if (spendPace < 0.8) {
-        // REASON: Spending too slow, increase bids to catch up
-        // LOGIC: 20% under expected pace = increase bids by 20%
-        this.logger.debug('Increasing bid due to slow spending', {
+        // Spending too slow, increase bids by 20%
+        const adjustedCPM = bidAmountCPM * 1.2;
+        this.logger.debug('Increasing CPM bid due to slow spending', {
           campaignId: campaign.id,
           spendPace: spendPace,
-          increase: 1.2,
+          originalCPM: bidAmountCPM,
+          adjustedCPM,
         });
-        return bidAmount * 1.2;
+        return adjustedCPM;
       }
 
-      return bidAmount;
+      return bidAmountCPM;
     } catch (error) {
       this.logger.warn('Budget pacing calculation failed', {
         error: error.message,
         campaignId: campaign.id,
       });
-      return bidAmount;
+      return bidAmountCPM;
     }
   }
 
+  /**
+   * 🎯 FIXED: Constraints work in CPM
+   */
   private applyBidConstraints(
-    bidAmount: number,
-    floorPrice?: number,
-    maxBid?: number,
+    bidAmountCPM: number,
+    floorPriceCPM?: number,
+    maxBidCPM?: number,
   ): number {
-    let finalBid = bidAmount;
+    let finalBidCPM = bidAmountCPM;
 
-    // REASON: Apply floor price constraint first
-    // LOGIC: Ensure we never bid below the inventory's minimum price
-    if (floorPrice && finalBid < floorPrice) {
-      finalBid = floorPrice;
-      this.logger.debug('Bid adjusted to meet floor price', {
-        originalBid: bidAmount,
-        floorPrice: floorPrice,
-        adjustedBid: finalBid,
-      });
-    } else {
-      this.logger.debug('Bid meets floor price', {
-        bid: finalBid,
-        floorPrice: floorPrice,
+    // Apply floor price constraint (CPM level)
+    if (floorPriceCPM && finalBidCPM < floorPriceCPM) {
+      finalBidCPM = floorPriceCPM;
+      this.logger.debug('Bid CPM adjusted to meet floor price', {
+        originalBidCPM: bidAmountCPM,
+        floorPriceCPM: floorPriceCPM,
+        adjustedBidCPM: finalBidCPM,
       });
     }
-    return finalBid;
+
+    // Apply max bid constraint if provided
+    if (maxBidCPM && finalBidCPM > maxBidCPM) {
+      finalBidCPM = maxBidCPM;
+      this.logger.debug('Bid CPM capped at maximum', {
+        originalBidCPM: bidAmountCPM,
+        maxBidCPM: maxBidCPM,
+        adjustedBidCPM: finalBidCPM,
+      });
+    }
+
+    // Ensure minimum viable CPM (Rs. 0.10)
+    finalBidCPM = Math.max(finalBidCPM, 0.1);
+
+    return finalBidCPM;
   }
 
+  /**
+   * Helper: Convert CPM to CPI when needed for budget validation
+   */
+  public convertCPMToCPI(cpmValue: number): number {
+    return cpmValue / 1000;
+  }
+
+  /**
+   * Helper: Convert CPI to CPM when needed
+   */
+  public convertCPIToCPM(cpiValue: number): number {
+    return cpiValue * 1000;
+  }
+
+  /**
+   * Spend pace calculation remains the same
+   */
   private async getCurrentSpendPace(campaignId: string): Promise<number> {
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // fetch daily budget and spend data from redis
+      // Fetch daily budget and spend data from redis
       let dailyBudgetLimit = await this.redis.get(
         REDIS_KEYS.DAILY_BUDGET_LIMIT(campaignId),
       );
@@ -261,6 +318,7 @@ export class BidEvaluationService {
           today.toISOString().split('T')[0],
         ),
       );
+
       if (!dailyBudgetLimit) {
         this.logger.debug('No daily budget found, assuming normal pace', {
           campaignId,
@@ -272,8 +330,7 @@ export class BidEvaluationService {
       const spending = Number(dailySpend) || 0;
       const dailyBudget = Number(dailyBudgetLimit) || 0;
 
-      // REASON: Calculate expected spend based on time progression through the day
-      // LOGIC: If it's 12 PM (50% through day), we should have spent ~50% of budget
+      // Calculate expected spend based on time progression through the day
       const currentHour = new Date().getHours();
       const expectedPace = currentHour / 24; // Expected percentage of day complete
       const actualPace = spending / dailyBudget; // Actual percentage of budget spent

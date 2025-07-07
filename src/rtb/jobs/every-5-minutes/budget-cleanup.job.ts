@@ -39,13 +39,24 @@ export class BudgetCleanupJob {
     try {
       this.logger.debug('🧹 Starting expired reservation cleanup');
 
-      // Get all reservation keys that might have expired
-      const reservationKeys = await this.redis.keys('budget:reservation:*');
+      // 🔧 FIX: Check metadata keys instead of reservation keys
+      // Reservation keys auto-expire, but metadata keys have longer TTL
+      const metadataKeys = await this.redis.keys('revenue:metadata:*');
 
-      if (reservationKeys.length === 0) {
-        this.logger.debug('No reservations found to cleanup');
+      if (metadataKeys.length === 0) {
+        this.logger.debug('No reservation metadata found to cleanup');
         return;
       }
+
+      this.logger.debug(
+        `Found ${metadataKeys.length} metadata entries to check`,
+      );
+
+      // Convert metadata keys to reservation keys for processing
+      const reservationKeys = metadataKeys.map((key) => {
+        const reservationId = key.replace('revenue:metadata:', '');
+        return `budget:reservation:${reservationId}`;
+      });
 
       // Process in batches to avoid overwhelming Redis
       const batchSize = 50;
@@ -67,19 +78,28 @@ export class BudgetCleanupJob {
 
         totalCleaned += batchCleaned;
         totalCredited += batchCredited;
+
+        this.logger.debug(`Processed batch ${Math.floor(i / batchSize) + 1}`, {
+          batchSize: batch.length,
+          batchCleaned,
+          batchCredited,
+          totalCleaned,
+          totalCredited,
+        });
       }
 
       const processingTime = Date.now() - startTime;
 
-      // 🔧 FIX: Update cleanup metrics
+      // Update cleanup metrics
       await this.updateCleanupMetrics({
-        totalReservationsChecked: reservationKeys.length,
+        totalReservationsChecked: metadataKeys.length, // Use metadata count
         totalCleaned,
         totalCreditedAmount: totalCredited,
         processingTimeMs: processingTime,
       });
 
-      this.logger.debug(' Reservation cleanup completed', {
+      this.logger.debug('✅ Reservation cleanup completed', {
+        totalMetadataChecked: metadataKeys.length,
         totalReservationsChecked: reservationKeys.length,
         totalCleaned,
         totalCreditedAmount: totalCredited,
@@ -94,30 +114,47 @@ export class BudgetCleanupJob {
   }
 
   /**
-   * 🔧 FIX: Clean up a single reservation if it has expired
+   * 🔧 FIXED: Clean up single reservation with proper error handling
    */
   private async cleanupSingleReservation(
     reservationKey: string,
   ): Promise<CleanupResult> {
-    try {
-      // Check if reservation still exists (TTL expired = key doesn't exist)
-      const reservationExists = await this.redis.exists(reservationKey);
+    const reservationId = reservationKey.replace('budget:reservation:', '');
+    const metadataKey = REDIS_KEYS.REVENUE_METADATA(reservationId);
+    const lockKey = `lock:cleanup:${reservationId}`;
 
-      if (reservationExists) {
-        // Reservation still active, no cleanup needed
+    try {
+      // 🔧 FIX: Proper Redis SET with NX and EX options
+      const lockResult = await this.redis
+        .getClient()
+        .set(lockKey, '1', 'EX', 30, 'NX');
+      if (!lockResult) {
+        return {
+          cleaned: false,
+          error: 'Already being processed by another worker',
+        };
+      }
+
+      // 🔧 FIX: Check TTL and handle both existing and expired reservations
+      const ttl = await this.redis.ttl(reservationKey);
+
+      // If reservation has significant time left, skip cleanup
+      if (ttl > 30) {
+        this.logger.debug('Reservation still has time left, skipping', {
+          reservationId,
+          ttlRemaining: ttl,
+        });
         return { cleaned: false };
       }
 
-      // Extract reservation ID from key
-      const reservationId = reservationKey.replace('budget:reservation:', '');
-
-      // Get reservation metadata if it exists
-      const metadataKey = REDIS_KEYS.REVENUE_METADATA(reservationId);
+      // Get metadata (this should exist even if reservation expired)
       const metadata = await this.redis.get(metadataKey);
-
       if (!metadata) {
-        // No metadata found, reservation was already processed or invalid
-        return { cleaned: false };
+        this.logger.debug('No metadata found for reservation', {
+          reservationId,
+          metadataKey,
+        });
+        return { cleaned: false, error: 'No metadata found' };
       }
 
       let reservationData;
@@ -128,29 +165,72 @@ export class BudgetCleanupJob {
           reservationId,
           error: parseError.message,
         });
-        // Clean up invalid metadata
         await this.redis.del(metadataKey);
         return { cleaned: true, creditedAmount: 0 };
       }
 
-      // Check if this reservation was already confirmed
+      // Check if already processed to prevent double-processing
+      if (reservationData.processed) {
+        this.logger.debug(
+          'Reservation already processed, cleaning up metadata',
+          {
+            reservationId,
+          },
+        );
+        await this.redis.del(metadataKey);
+        return { cleaned: true, creditedAmount: 0 };
+      }
+
+      // If reservation confirmed, just cleanup metadata
       if (reservationData.confirmed) {
-        // Already confirmed, just cleanup metadata
+        this.logger.debug('Reservation was confirmed, cleaning up metadata', {
+          reservationId,
+        });
         await this.redis.del(metadataKey);
+        await this.redis.del(reservationKey); // Clean up reservation if it still exists
         return { cleaned: true, creditedAmount: 0 };
       }
 
-      // Reservation expired without confirmation - credit back the budget
-      const creditedAmount =
-        await this.creditBackExpiredReservation(reservationData);
+      // 🔧 NEW: Handle the main case - reservation expired but not confirmed
+      if (ttl === -2) {
+        // Reservation key doesn't exist (expired) - this is the main case we want to handle
+        this.logger.debug('Reservation expired, crediting back budget', {
+          reservationId,
+          campaignId: reservationData.campaignId,
+          costPerImpression: reservationData.costPerImpression,
+        });
+      } else if (ttl === -1) {
+        // Key exists but has no expiration (shouldn't happen in our system)
+        this.logger.warn('Reservation key exists without TTL', {
+          reservationId,
+        });
+      } else if (ttl <= 0) {
+        // Key exists but expired
+        this.logger.debug('Reservation key expired, crediting back budget', {
+          reservationId,
+          ttl,
+        });
+      }
 
-      // Clean up metadata
-      await this.redis.del(metadataKey);
+      // Credit back budget atomically
+      const creditedAmount = await this.atomicCreditBackBudget(reservationData);
 
-      this.logger.debug('Credited back expired reservation', {
+      // Mark as processed to prevent double-processing
+      reservationData.processed = true;
+      reservationData.processedAt = new Date().toISOString();
+      reservationData.creditedAmount = creditedAmount;
+
+      // Update metadata with processed flag
+      await this.redis.set(metadataKey, JSON.stringify(reservationData), 300); // Shorter TTL now
+
+      // Clean up reservation key if it still exists
+      await this.redis.del(reservationKey);
+
+      this.logger.debug('✅ Credited back expired reservation', {
         reservationId,
         campaignId: reservationData.campaignId,
         amount: creditedAmount,
+        finalPriceCPM: reservationData.finalPriceCPM,
       });
 
       return {
@@ -158,26 +238,29 @@ export class BudgetCleanupJob {
         creditedAmount,
       };
     } catch (error) {
-      this.logger.warn('Failed to cleanup single reservation', {
+      this.logger.error('❌ Failed to cleanup single reservation', {
         reservationKey,
+        reservationId,
         error: error.message,
       });
       return {
         cleaned: false,
         error: error.message,
       };
+    } finally {
+      // Always release the lock
+      await this.redis.del(lockKey);
     }
   }
 
   /**
-   * 🔧 FIX: Credit back budget for expired reservation
+   * 🔧 FIXED: Atomic budget credit-back with proper Redis operations
    */
-  private async creditBackExpiredReservation(
-    reservationData: any,
-  ): Promise<number> {
+  private async atomicCreditBackBudget(reservationData: any): Promise<number> {
     try {
       const { campaignId, costPerImpression } = reservationData;
       const today = new Date().toISOString().split('T')[0];
+      const currentSpendKey = REDIS_KEYS.DAILY_BUDGET_SPEND(campaignId, today);
 
       if (!campaignId || !costPerImpression) {
         this.logger.warn('Invalid reservation data for credit back', {
@@ -186,36 +269,38 @@ export class BudgetCleanupJob {
         return 0;
       }
 
-      // Credit back to daily spend counter (reduce spend)
-      const currentSpendKey = REDIS_KEYS.DAILY_BUDGET_SPEND(campaignId, today);
-      const currentSpend = await this.redis.get(currentSpendKey);
+      // 🔧 FIX: Use Redis client directly for incrbyfloat
+      const newSpend = await this.redis
+        .getClient()
+        .incrbyfloat(currentSpendKey, -costPerImpression);
 
-      if (currentSpend) {
-        const currentSpendFloat = parseFloat(currentSpend as string);
-        const newSpend = Math.max(0, currentSpendFloat - costPerImpression);
+      // 🔧 FIX: Handle newSpend as number (incrbyfloat returns number as string)
+      const newSpendFloat = parseFloat(newSpend);
 
-        await this.redis.set(currentSpendKey, newSpend.toString());
-
-        // Update campaign status if it was exhausted
-        await this.checkAndUpdateCampaignStatus(campaignId, newSpend);
-
-        this.logger.debug('Budget credited back successfully', {
+      // Ensure spend doesn't go negative
+      if (newSpendFloat < 0) {
+        await this.redis.set(currentSpendKey, '0');
+        this.logger.debug('Corrected negative spend to 0', {
           campaignId,
-          previousSpend: currentSpendFloat,
-          creditAmount: costPerImpression,
-          newSpend,
+          negativeSpend: newSpendFloat,
         });
-
-        return costPerImpression;
-      } else {
-        this.logger.warn('No current spend found for campaign', {
-          campaignId,
-          today,
-        });
-        return 0;
       }
+
+      // Update campaign status if budget was exhausted
+      await this.checkAndUpdateCampaignStatus(
+        campaignId,
+        Math.max(0, newSpendFloat),
+      );
+
+      this.logger.debug('✅ Budget credited back atomically', {
+        campaignId,
+        creditAmount: costPerImpression,
+        newSpend: Math.max(0, newSpendFloat),
+      });
+
+      return costPerImpression;
     } catch (error) {
-      this.logger.error('Failed to credit back expired reservation', {
+      this.logger.error('❌ Failed to credit back budget atomically', {
         error: error.message,
         reservationData,
       });
@@ -224,38 +309,36 @@ export class BudgetCleanupJob {
   }
 
   /**
-   * 🔧 FIX: Check and update campaign status after budget credit
+   * 🔧 IMPROVED: Better campaign status checking
    */
   private async checkAndUpdateCampaignStatus(
     campaignId: string,
     newSpend: number,
   ): Promise<void> {
     try {
-      const campaignStatus = await this.redis.get(
-        REDIS_KEYS.CAMPAIGN_STATUS(campaignId),
-      );
+      const [campaignStatus, dailyLimitStr] = await Promise.all([
+        this.redis.get(REDIS_KEYS.CAMPAIGN_STATUS(campaignId)),
+        this.redis.get(REDIS_KEYS.DAILY_BUDGET_LIMIT(campaignId)),
+      ]);
 
-      if (campaignStatus === 'BUDGET_EXHAUSTED') {
-        // Check if we now have budget available
-        const dailyLimit = await this.redis.get(
-          REDIS_KEYS.DAILY_BUDGET_LIMIT(campaignId),
-        );
+      if (campaignStatus === 'BUDGET_EXHAUSTED' && dailyLimitStr) {
+        const dailyLimit = parseFloat(dailyLimitStr as string);
 
-        if (dailyLimit) {
-          const limit = parseFloat(dailyLimit as string);
+        // Add buffer to prevent immediate re-exhaustion
+        const reactivationThreshold = dailyLimit * 0.95; // 95% of budget
 
-          if (newSpend < limit) {
-            await this.redis.set(
-              REDIS_KEYS.CAMPAIGN_STATUS(campaignId),
-              'ACTIVE',
-            );
+        if (newSpend < reactivationThreshold) {
+          await this.redis.set(
+            REDIS_KEYS.CAMPAIGN_STATUS(campaignId),
+            'ACTIVE',
+          );
 
-            this.logger.debug('Campaign reactivated after budget credit', {
-              campaignId,
-              newSpend,
-              dailyLimit: limit,
-            });
-          }
+          this.logger.debug('✅ Campaign reactivated after budget credit', {
+            campaignId,
+            newSpend,
+            dailyLimit,
+            reactivationThreshold,
+          });
         }
       }
     } catch (error) {
@@ -267,7 +350,7 @@ export class BudgetCleanupJob {
   }
 
   /**
-   * 🔧 FIX: Update cleanup metrics for monitoring
+   * 🔧 FIXED: Update cleanup metrics for monitoring
    */
   private async updateCleanupMetrics(metrics: CleanupMetrics): Promise<void> {
     try {
@@ -287,7 +370,9 @@ export class BudgetCleanupJob {
       );
       pipeline.expire(`cleanup:reservations:count:${today}`, 86400 * 7); // 7 days
 
-      pipeline.incrbyfloat(
+      // 🔧 FIX: Use incrbyfloat through pipeline or Redis client
+      const redisClient = this.redis.getClient();
+      await redisClient.incrbyfloat(
         `cleanup:reservations:credited:${today}`,
         metrics.totalCreditedAmount,
       );
@@ -337,8 +422,8 @@ export class BudgetCleanupJob {
       return {
         pendingReservations: reservationKeys.length,
         lastCleanupRun: lastRun as string,
-        totalCleanedToday: parseInt(todayCount as string) || 0,
-        totalCreditedToday: parseFloat(todayCredited as string) || 0,
+        totalCleanedToday: parseInt((todayCount as string) || '0') || 0,
+        totalCreditedToday: parseFloat((todayCredited as string) || '0') || 0,
         lastProcessingTime: lastProcessingTime
           ? parseInt(lastProcessingTime as string)
           : undefined,
@@ -390,7 +475,7 @@ export class BudgetCleanupJob {
   }
 
   /**
-   * 🆕 NEW: Force cleanup specific reservation (for debugging)
+   * Force cleanup specific reservation (for debugging)
    */
   async forceCleanupReservation(reservationId: string): Promise<{
     success: boolean;
@@ -402,7 +487,7 @@ export class BudgetCleanupJob {
       const result = await this.cleanupSingleReservation(reservationKey);
 
       if (result.cleaned) {
-        this.logger.debug(' Force cleanup completed', {
+        this.logger.debug('✅ Force cleanup completed', {
           reservationId,
           credited: result.creditedAmount || 0,
         });
@@ -431,7 +516,7 @@ export class BudgetCleanupJob {
   }
 
   /**
-   * 🆕 NEW: Get detailed reservation status (for debugging)
+   * Get detailed reservation status (for debugging)
    */
   async getReservationStatus(reservationId: string): Promise<{
     exists: boolean;

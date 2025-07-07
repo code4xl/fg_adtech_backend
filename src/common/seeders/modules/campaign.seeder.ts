@@ -104,8 +104,8 @@ export class CampaignSeeder implements ISeeder {
 
         const bidStrategy = faker.helpers.arrayElement(bidStrategies);
         const bidAmount = faker.number.float({
-          min: 10,
-          max: 50,
+          min: 0.5,
+          max: 4.0,
         });
 
         // Generate targeting arrays
@@ -153,7 +153,7 @@ export class CampaignSeeder implements ISeeder {
             status: CampaignStatus.ACTIVE,
             objective: CampaignObjective.AWARENESS,
             bidStrategy: BidStrategy.TARGET_CPM,
-            bidAmount: 10.0,
+            bidAmount: 2.0,
             pacing: CampaignPacing.STANDARD,
             businessCategory: BusinessCategory.TECHNOLOGY,
             websiteUrl: 'https://example.com',
@@ -385,7 +385,7 @@ export class CampaignSeeder implements ISeeder {
           );
           const spentToday = faker.number.float({
             min: 0,
-            max: 0, // zero
+            max: dailyBudget * 0.7, // zero
             fractionDigits: 2,
           });
           const remainingToday = Math.max(0, dailyBudget - spentToday);

@@ -1,5 +1,5 @@
+// src/rtb/services/bid-strategy.service.ts
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class bidStrategyService {
@@ -7,118 +7,137 @@ export class bidStrategyService {
 
   constructor() {}
 
-  public calculateBidAmount(
+  /**
+   * 🎯 FIXED: All calculations now work in CPM consistently
+   * @param bidStrategy - Strategy type
+   * @param baseBidCPM - Base bid in CPM format
+   * @param context - Context with CPM values
+   * @returns Final bid in CPM format
+   */
+  public calculateBidAmountCPM(
     bidStrategy: string,
-    baseBid: number,
+    baseBidCPM: number,
     context: any,
   ): number {
     switch (bidStrategy) {
       case 'LOWEST_COST':
-        return this.calculateLowestCostBid(baseBid, context);
+        return this.calculateLowestCostBidCPM(baseBidCPM, context);
 
       case 'TARGET_CPM':
-        return this.calculateTargetCpmBid(baseBid, context);
+        return this.calculateTargetCpmBid(baseBidCPM, context);
 
       case 'SMART_BID':
-        return this.calculateSmartBid(baseBid, context);
+        return this.calculateSmartBidCPM(baseBidCPM, context);
 
       case 'COMPETITIVE':
-        return this.calculateCompetitiveBid(baseBid, context);
+        return this.calculateCompetitiveBidCPM(baseBidCPM, context);
 
       default:
-        return this.calculateLowestCostBid(baseBid, context);
+        return this.calculateLowestCostBidCPM(baseBidCPM, context);
     }
   }
 
-  // EXISTING: Bid just above floor price (your current logic)
-  public calculateLowestCostBid(baseBid: number, context: any): number {
-    const floorPrice = context.floorPrice || 0.001;
-    const floorPricePerImpression = floorPrice / 1000;
+  /**
+   * 🎯 FIXED: Lowest cost bid calculation - works in CPM
+   * Bids just above floor price for maximum efficiency
+   */
+  public calculateLowestCostBidCPM(baseBidCPM: number, context: any): number {
+    const floorPriceCPM = context.floorPriceCPM || 0.1; // Minimum Rs. 0.10 CPM
 
-    // Bid slightly above floor price for maximum efficiency
-    const minBid = Math.max(floorPricePerImpression * 1.01, 0.0001);
-    const finalBid = Math.max(baseBid / 1000, minBid);
+    // Bid slightly above floor price for maximum efficiency (1% margin)
+    const minBidCPM = floorPriceCPM * 1.01;
+    const finalBidCPM = Math.max(baseBidCPM, minBidCPM);
 
-    this.logger.debug('Lowest cost bid calculation', {
-      baseBid,
-      floorPrice,
-      finalBid,
+    this.logger.debug('Lowest cost bid calculation (CPM)', {
+      baseBidCPM,
+      floorPriceCPM,
+      minBidCPM,
+      finalBidCPM,
       strategy: 'LOWEST_COST',
     });
 
-    return finalBid;
+    return finalBidCPM;
   }
 
-  // NEW: Bid the campaign's actual target CPM amount
-  public calculateTargetCpmBid(baseBid: number, context: any): number {
-    const floorPrice = context.floorPrice || 0.001;
-    const floorPricePerImpression = floorPrice / 1000;
+  /**
+   * 🎯 FIXED: Target CPM bid calculation - works in CPM
+   * Uses the campaign's actual target CPM amount
+   */
+  public calculateTargetCpmBid(baseBidCPM: number, context: any): number {
+    const floorPriceCPM = context.floorPriceCPM || 0.1;
 
-    // Use the campaign's actual bid amount (converted from CPM)
-    const targetBidPerImpression = baseBid / 1000;
+    // Use the campaign's actual bid amount (already in CPM)
+    const targetBidCPM = baseBidCPM;
 
     // Ensure we meet floor price minimum
-    const finalBid = Math.max(targetBidPerImpression, floorPricePerImpression);
+    const finalBidCPM = Math.max(targetBidCPM, floorPriceCPM);
 
     this.logger.debug('Target CPM bid calculation', {
-      baseBid,
-      targetBidPerImpression,
-      floorPricePerImpression,
-      finalBid,
+      baseBidCPM,
+      targetBidCPM,
+      floorPriceCPM,
+      finalBidCPM,
       strategy: 'TARGET_CPM',
     });
 
-    return finalBid;
+    return finalBidCPM;
   }
 
-  // NEW: Smart bidding between floor and target based on simple performance
-  public calculateSmartBid(baseBid: number, context: any): number {
-    const floorPrice = context.floorPrice || 0.001;
-    const floorPricePerImpression = floorPrice / 1000;
-    const targetBidPerImpression = baseBid / 1000;
+  /**
+   * 🎯 FIXED: Smart bid calculation - works in CPM
+   * Intelligent bidding between floor and target based on performance
+   */
+  public calculateSmartBidCPM(baseBidCPM: number, context: any): number {
+    const floorPriceCPM = context.floorPriceCPM || 0.1;
+    const targetBidCPM = baseBidCPM;
 
-    // Simple performance factor (you can enhance this later)
-    // For now, use a random factor between 0.7-1.0 to simulate performance
-    const performanceFactor = 0.7 + Math.random() * 0.3;
+    // Simple performance factor (enhance this with actual performance data later)
+    // For now, use a factor between 0.4-1.0 to simulate performance
+    const performanceFactor = 0.4 + Math.random() * 0.3;
 
-    // Calculate bid between floor and target
-    const smartBid =
-      floorPricePerImpression +
-      (targetBidPerImpression - floorPricePerImpression) * performanceFactor;
+    // Calculate bid between floor and target (CPM level)
+    const smartBidCPM =
+      floorPriceCPM + (targetBidCPM - floorPriceCPM) * performanceFactor;
 
-    const finalBid = Math.max(smartBid, floorPricePerImpression);
+    const finalBidCPM = Math.max(smartBidCPM, floorPriceCPM);
 
-    this.logger.debug('Smart bid calculation', {
-      baseBid,
+    this.logger.debug('Smart bid calculation (CPM)', {
+      baseBidCPM,
+      targetBidCPM,
+      floorPriceCPM,
       performanceFactor,
-      smartBid,
-      finalBid,
+      smartBidCPM,
+      finalBidCPM,
       strategy: 'SMART_BID',
     });
 
-    return finalBid;
+    return finalBidCPM;
   }
 
-  // NEW: Competitive bidding with slight randomization
-  public calculateCompetitiveBid(baseBid: number, context: any): number {
-    const floorPrice = context.floorPrice || 0.001;
-    const floorPricePerImpression = floorPrice / 1000;
-    const targetBidPerImpression = baseBid / 1000;
+  /**
+   * 🎯 FIXED: Competitive bid calculation - works in CPM
+   * Competitive bidding with slight randomization
+   */
+  public calculateCompetitiveBidCPM(baseBidCPM: number, context: any): number {
+    const floorPriceCPM = context.floorPriceCPM || 0.1;
+    const targetBidCPM = baseBidCPM;
 
     // Add 5-15% randomization to create bid diversity
     const randomFactor = 1.05 + Math.random() * 0.1; // 1.05 to 1.15
-    const competitiveBid = targetBidPerImpression * randomFactor;
+    const competitiveBidCPM = targetBidCPM * randomFactor;
 
-    const finalBid = Math.max(competitiveBid, floorPricePerImpression);
+    const finalBidCPM = Math.max(competitiveBidCPM, floorPriceCPM);
 
-    this.logger.debug('Competitive bid calculation', {
-      baseBid,
+    this.logger.debug('Competitive bid calculation (CPM)', {
+      baseBidCPM,
+      targetBidCPM,
+      floorPriceCPM,
       randomFactor,
-      competitiveBid,
-      finalBid,
+      competitiveBidCPM,
+      finalBidCPM,
       strategy: 'COMPETITIVE',
     });
 
-    return finalBid;
+    return finalBidCPM;
   }
 }

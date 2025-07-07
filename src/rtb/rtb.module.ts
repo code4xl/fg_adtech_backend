@@ -37,6 +37,7 @@ import { CampaignPoolJob } from './jobs/every-10-minutes/campaign-pool.job';
 import { PublisherTierJob } from './jobs/monthly/publisher-tier.job';
 import { ActiveCampaignsJob } from './jobs/daily/active-campaigns.job';
 import { BudgetMonitoringController } from './controllers/budget-monitoring.controller';
+import { BudgetCleanupJob } from './jobs/every-5-minutes/budget-cleanup.job';
 
 @Module({
   imports: [
@@ -84,6 +85,7 @@ import { BudgetMonitoringController } from './controllers/budget-monitoring.cont
     CampaignPoolJob,
     PublisherTierJob,
     ActiveCampaignsJob,
+    BudgetCleanupJob,
   ],
   exports: [
     RtbService,
