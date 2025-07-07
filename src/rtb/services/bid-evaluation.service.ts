@@ -72,12 +72,12 @@ export class BidEvaluationService {
     campaign: CampaignWithTargeting,
     context: AdRequest,
   ): Promise<number> {
-    this.logger.debug('Calculating bid price (CPM)', {
-      campaignId: campaign.id,
-      bidStrategy: campaign.bidStrategy,
-      deviceType: context.userContext.deviceType,
-      floorPriceCPM: context.floorPrice,
-    });
+    // this.logger.debug('Calculating bid price (CPM)', {
+    //   campaignId: campaign.id,
+    //   bidStrategy: campaign.bidStrategy,
+    //   deviceType: context.userContext.deviceType,
+    //   floorPriceCPM: context.floorPrice,
+    // });
 
     try {
       // 1. Get base bid amount (CPM) from campaign
@@ -93,11 +93,11 @@ export class BidEvaluationService {
         baseBidCPM,
         context.floorPrice, // floorPrice is CPM
       );
-      this.logger.debug('Strategic bid CPM calculated', {
-        campaignId: campaign.id,
-        baseBidCPM,
-        strategicBidCPM,
-      });
+      // this.logger.debug('Strategic bid CPM calculated', {
+      //   campaignId: campaign.id,
+      //   baseBidCPM,
+      //   strategicBidCPM,
+      // });
 
       // 3. Apply contextual adjustments (CPM in, CPM out)
       const adjustedBid =
@@ -106,22 +106,22 @@ export class BidEvaluationService {
           strategicBidCPM, // Pass CPM
           context.userContext,
         );
-      this.logger.debug('Adjusted bid CPM after contextual adjustments', {
-        campaignId: campaign.id,
-        strategicBidCPM,
-        adjustedBidCPM: adjustedBid.finalBidCPM,
-      });
+      // this.logger.debug('Adjusted bid CPM after contextual adjustments', {
+      //   campaignId: campaign.id,
+      //   strategicBidCPM,
+      //   adjustedBidCPM: adjustedBid.finalBidCPM,
+      // });
 
       // 4. Apply budget pacing constraints (CPM in, CPM out)
       const pacedBidCPM = await this.applyBudgetPacing(
         campaign,
         adjustedBid.finalBidCPM,
       );
-      this.logger.debug('Paced bid CPM after budget pacing', {
-        campaignId: campaign.id,
-        adjustedBidCPM: adjustedBid.finalBidCPM,
-        pacedBidCPM,
-      });
+      // this.logger.debug('Paced bid CPM after budget pacing', {
+      //   campaignId: campaign.id,
+      //   adjustedBidCPM: adjustedBid.finalBidCPM,
+      //   pacedBidCPM,
+      // });
 
       // 5. Ensure bid meets minimum constraints (CPM level)
       // const finalBidCPM = this.applyBidConstraints(
@@ -129,12 +129,12 @@ export class BidEvaluationService {
       //   context.floorPrice, // floorPrice is CPM
       // );
 
-      this.logger.debug('Final bid CPM after constraints', {
-        campaignId: campaign.id,
-        pacedBidCPM,
+      // this.logger.debug('Final bid CPM after constraints', {
+      //   campaignId: campaign.id,
+      //   pacedBidCPM,
 
-        floorPriceCPM: context.floorPrice,
-      });
+      //   floorPriceCPM: context.floorPrice,
+      // });
 
       this.logger.debug(' Bid calculation completed (CPM)', {
         campaignId: campaign.id,
@@ -167,11 +167,11 @@ export class BidEvaluationService {
     if (campaign.bidAmount && Number(campaign.bidAmount) > 0) {
       const cpmBid = Number(campaign.bidAmount);
 
-      this.logger.debug('Base bid CPM calculation', {
-        campaignId: campaign.id,
-        cpmBid: cpmBid,
-        source: 'campaign.bidAmount',
-      });
+      // this.logger.debug('Base bid CPM calculation', {
+      //   campaignId: campaign.id,
+      //   cpmBid: cpmBid,
+      //   source: 'campaign.bidAmount',
+      // });
 
       return cpmBid; // Already CPM
     }
@@ -221,22 +221,22 @@ export class BidEvaluationService {
       if (spendPace > 1.2) {
         // Spending too fast, reduce bids by 10%
         const adjustedCPM = bidAmountCPM * 0.9;
-        this.logger.debug('Reducing CPM bid due to fast spending', {
-          campaignId: campaign.id,
-          spendPace: spendPace,
-          originalCPM: bidAmountCPM,
-          adjustedCPM,
-        });
+        // this.logger.debug('Reducing CPM bid due to fast spending', {
+        //   campaignId: campaign.id,
+        //   spendPace: spendPace,
+        //   originalCPM: bidAmountCPM,
+        //   adjustedCPM,
+        // });
         return adjustedCPM;
       } else if (spendPace < 0.8) {
         // Spending too slow, increase bids by 20%
         const adjustedCPM = bidAmountCPM * 1.2;
-        this.logger.debug('Increasing CPM bid due to slow spending', {
-          campaignId: campaign.id,
-          spendPace: spendPace,
-          originalCPM: bidAmountCPM,
-          adjustedCPM,
-        });
+        // this.logger.debug('Increasing CPM bid due to slow spending', {
+        //   campaignId: campaign.id,
+        //   spendPace: spendPace,
+        //   originalCPM: bidAmountCPM,
+        //   adjustedCPM,
+        // });
         return adjustedCPM;
       }
 
@@ -263,21 +263,21 @@ export class BidEvaluationService {
     // Apply floor price constraint (CPM level)
     if (floorPriceCPM && finalBidCPM < floorPriceCPM) {
       finalBidCPM = floorPriceCPM;
-      this.logger.debug('Bid CPM adjusted to meet floor price', {
-        originalBidCPM: bidAmountCPM,
-        floorPriceCPM: floorPriceCPM,
-        adjustedBidCPM: finalBidCPM,
-      });
+      // this.logger.debug('Bid CPM adjusted to meet floor price', {
+      //   originalBidCPM: bidAmountCPM,
+      //   floorPriceCPM: floorPriceCPM,
+      //   adjustedBidCPM: finalBidCPM,
+      // });
     }
 
     // Apply max bid constraint if provided
     if (maxBidCPM && finalBidCPM > maxBidCPM) {
       finalBidCPM = maxBidCPM;
-      this.logger.debug('Bid CPM capped at maximum', {
-        originalBidCPM: bidAmountCPM,
-        maxBidCPM: maxBidCPM,
-        adjustedBidCPM: finalBidCPM,
-      });
+      // this.logger.debug('Bid CPM capped at maximum', {
+      //   originalBidCPM: bidAmountCPM,
+      //   maxBidCPM: maxBidCPM,
+      //   adjustedBidCPM: finalBidCPM,
+      // });
     }
 
     // Ensure minimum viable CPM (Rs. 0.10)
@@ -341,15 +341,15 @@ export class BidEvaluationService {
 
       const spendPace = actualPace / expectedPace;
 
-      this.logger.debug('Spend pace calculation', {
-        campaignId,
-        currentHour: currentHour,
-        expectedPace: expectedPace,
-        actualPace: actualPace,
-        spendPace: spendPace,
-        totalDailyBudget: dailyBudget,
-        actualSpent: spending,
-      });
+      // this.logger.debug('Spend pace calculation', {
+      //   campaignId,
+      //   currentHour: currentHour,
+      //   expectedPace: expectedPace,
+      //   actualPace: actualPace,
+      //   spendPace: spendPace,
+      //   totalDailyBudget: dailyBudget,
+      //   actualSpent: spending,
+      // });
 
       return spendPace;
     } catch (error) {
