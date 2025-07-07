@@ -94,7 +94,7 @@ export class TrackingController {
       // Budget validation (Redis-based real-time check)
       const budgetValid = await this.budgetValidation.validateCampaignBudget(
         impressionData.campaignId,
-        impressionData.bidPrice,
+        impressionData.bidPrice / 1000,
       );
 
       if (!budgetValid) {

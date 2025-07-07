@@ -38,6 +38,9 @@ import { PublisherTierJob } from './jobs/monthly/publisher-tier.job';
 import { ActiveCampaignsJob } from './jobs/daily/active-campaigns.job';
 import { BudgetMonitoringController } from './controllers/budget-monitoring.controller';
 import { BudgetCleanupJob } from './jobs/every-5-minutes/budget-cleanup.job';
+import { BudgetSyncService } from './services/budget-sync.service';
+import { BudgetSyncToPostgresJob } from './jobs/every-15-minutes/budget-sync-to-postgres.job';
+import { BudgetSyncController } from './controllers/budget-sync-monitoring.controller';
 
 @Module({
   imports: [
@@ -51,6 +54,7 @@ import { BudgetCleanupJob } from './jobs/every-5-minutes/budget-cleanup.job';
     RTBController,
     FinancialMonitoringController,
     BudgetMonitoringController,
+    BudgetSyncController,
   ],
   providers: [
     BudgetManagerService,
@@ -86,6 +90,8 @@ import { BudgetCleanupJob } from './jobs/every-5-minutes/budget-cleanup.job';
     PublisherTierJob,
     ActiveCampaignsJob,
     BudgetCleanupJob,
+    BudgetSyncService,
+    BudgetSyncToPostgresJob,
   ],
   exports: [
     RtbService,
@@ -103,6 +109,7 @@ import { BudgetCleanupJob } from './jobs/every-5-minutes/budget-cleanup.job';
     BudgetRedisSyncService,
     BudgetManagerService,
     BudgetInitializationService,
+    BudgetSyncService,
   ],
 })
 export class RTBModule implements OnModuleInit {

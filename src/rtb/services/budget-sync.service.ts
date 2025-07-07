@@ -462,4 +462,127 @@ export class BudgetSyncService {
       };
     }
   }
+  /**
+   * Compare campaign budget data between Redis and PostgreSQL
+   */
+  async compareCampaignBudgetData(campaignId: string): Promise<{
+    campaignId: string;
+    redis: any;
+    postgres: any;
+    differences: string[];
+    recommendation: string;
+  }> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      // Get Redis data
+      const [redisSpend, redisLimit, status] = await Promise.all([
+        this.redis.get(REDIS_KEYS.DAILY_BUDGET_SPEND(campaignId, today)),
+        this.redis.get(REDIS_KEYS.DAILY_BUDGET_LIMIT(campaignId)),
+        this.redis.get(REDIS_KEYS.CAMPAIGN_STATUS(campaignId)),
+      ]);
+      const campaignStatus = status
+        ? JSON.parse(status as string).status
+        : null;
+      // Get PostgreSQL data
+      const [campaignData, dailyBudgetData] = await Promise.all([
+        this.prisma.campaign.findUnique({
+          where: { id: campaignId },
+          include: { campaignBudget: true },
+        }),
+        this.prisma.campaignDailyBudget.findUnique({
+          where: {
+            campaignId_date: {
+              campaignId,
+              date: new Date(today),
+            },
+          },
+        }),
+      ]);
+
+      const redisData = {
+        dailySpend: redisSpend ? parseFloat(redisSpend as string) : 0,
+        dailyLimit: redisLimit ? parseFloat(redisLimit as string) : 0,
+        status: campaignStatus || 'UNKNOWN',
+        source: 'Redis',
+      };
+
+      const postgresData = {
+        dailySpend: dailyBudgetData
+          ? parseFloat(dailyBudgetData.spentToday.toString())
+          : 0,
+        dailyLimit: campaignData?.campaignBudget
+          ? parseFloat(campaignData.campaignBudget.dailyBudget.toString())
+          : 0,
+        status: campaignData?.status || 'UNKNOWN',
+        isExhausted: dailyBudgetData?.isExhausted || false,
+        lastUpdated: dailyBudgetData?.lastUpdated?.toISOString(),
+        source: 'PostgreSQL',
+      };
+
+      // Identify differences
+      const differences: string[] = [];
+      let recommendation = 'Data is synchronized';
+
+      const spendDiff = Math.abs(
+        redisData.dailySpend - postgresData.dailySpend,
+      );
+      if (spendDiff > 0.01) {
+        // More than 1 paisa difference
+        differences.push(
+          `Daily spend differs: Redis=${redisData.dailySpend}, PG=${postgresData.dailySpend} (diff: ${spendDiff})`,
+        );
+      }
+
+      const limitDiff = Math.abs(
+        redisData.dailyLimit - postgresData.dailyLimit,
+      );
+      if (limitDiff > 0.01) {
+        differences.push(
+          `Daily limit differs: Redis=${redisData.dailyLimit}, PG=${postgresData.dailyLimit} (diff: ${limitDiff})`,
+        );
+      }
+
+      if (redisData.status !== postgresData.status) {
+        differences.push(
+          `Status differs: Redis=${redisData.status}, PG=${postgresData.status}`,
+        );
+      }
+
+      // Provide recommendations
+      if (differences.length > 0) {
+        if (spendDiff > 1 || limitDiff > 1) {
+          recommendation =
+            'URGENT: Significant differences detected. Run emergency sync immediately.';
+        } else if (differences.length > 1) {
+          recommendation =
+            'Multiple differences detected. Consider running manual sync.';
+        } else {
+          recommendation =
+            'Minor differences detected. Monitor or run sync if needed.';
+        }
+      }
+
+      return {
+        campaignId,
+        redis: redisData,
+        postgres: postgresData,
+        differences,
+        recommendation,
+      };
+    } catch (error) {
+      this.logger.error('❌ Failed to compare campaign budget data', {
+        error: error.message,
+        campaignId,
+      });
+
+      return {
+        campaignId,
+        redis: { error: 'Failed to fetch Redis data' },
+        postgres: { error: 'Failed to fetch PostgreSQL data' },
+        differences: ['Comparison failed due to error'],
+        recommendation: 'Fix the underlying error and retry comparison',
+      };
+    }
+  }
 }

@@ -385,7 +385,7 @@ export class CampaignSeeder implements ISeeder {
           );
           const spentToday = faker.number.float({
             min: 0,
-            max: dailyBudget * 0.7, // zero
+            max: 0, // zero
             fractionDigits: 2,
           });
           const remainingToday = Math.max(0, dailyBudget - spentToday);
