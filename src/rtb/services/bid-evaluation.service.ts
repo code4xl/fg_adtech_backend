@@ -136,7 +136,7 @@ export class BidEvaluationService {
         floorPriceCPM: context.floorPrice,
       });
 
-      this.logger.debug('✅ Bid calculation completed (CPM)', {
+      this.logger.debug(' Bid calculation completed (CPM)', {
         campaignId: campaign.id,
         baseBidCPM,
         strategicBidCPM,

@@ -105,7 +105,7 @@ export class BudgetSyncService {
 
       const processingTime = Date.now() - startTime;
 
-      this.logger.debug('✅ Daily budget spend sync completed', {
+      this.logger.debug(' Daily budget spend sync completed', {
         campaignsSynced,
         totalSpendSynced,
         errors: errors.length,
@@ -194,7 +194,7 @@ export class BudgetSyncService {
         });
       }
 
-      this.logger.debug('✅ Campaign daily budget synced', {
+      this.logger.debug(' Campaign daily budget synced', {
         campaignId,
         date,
         spentToday: currentSpend,
@@ -287,7 +287,7 @@ export class BudgetSyncService {
 
           campaignsSynced++;
 
-          this.logger.debug('✅ Campaign total budget synced', {
+          this.logger.debug(' Campaign total budget synced', {
             campaignId: campaign.id,
             totalSpent,
             totalBudget,
@@ -303,7 +303,7 @@ export class BudgetSyncService {
 
       const processingTime = Date.now() - startTime;
 
-      this.logger.debug('✅ Total campaign budget sync completed', {
+      this.logger.debug(' Total campaign budget sync completed', {
         campaignsSynced,
         errors: errors.length,
         processingTimeMs: processingTime,

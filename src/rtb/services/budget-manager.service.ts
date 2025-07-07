@@ -126,6 +126,14 @@ export class BudgetManagerService {
           costPerImpression,
           today,
         );
+        this.logger.debug(
+          ' Budget deducted without reservation and proceeding to revenue sharing',
+          {
+            reservationId,
+            campaignId,
+            costPerImpression,
+          },
+        );
         await this.processRevenueSharing(
           campaignId,
           publisherId,
@@ -257,7 +265,15 @@ export class BudgetManagerService {
       const grossRevenue = costPerImpression;
       const publisherShare = grossRevenue * commissionRate;
       const systemEarning = grossRevenue - publisherShare;
-
+      this.logger.debug('Processing revenue sharing', {
+        campaignId,
+        publisherId,
+        grossRevenue,
+        costPerImpression,
+        publisherShare,
+        systemEarning,
+        commissionRate,
+      });
       // 1. Publisher Revenue
       const publisherRevenueData = {
         publisherId,

@@ -44,7 +44,7 @@ class RedisMonitor {
   async checkRedisConnection() {
     try {
       await redis.ping();
-      this.log('✅ Connected to Redis', 'green');
+      this.log(' Connected to Redis', 'green');
       return true;
     } catch (error) {
       this.log(`❌ Redis connection failed: ${error.message}`, 'red');
@@ -340,7 +340,7 @@ async function main() {
   const intervalInput = await monitor.promptForInput();
   const interval = (parseInt(intervalInput) || 2) * 1000;
 
-  console.log(`\n${colors.green}✅ Starting monitor...${colors.reset}`);
+  console.log(`\n${colors.green} Starting monitor...${colors.reset}`);
 
   // Set up monitoring
   await monitor.monitorSpecificKeys(reservationIds, campaignIds, date);

@@ -35,7 +35,7 @@ export class SeedCommand {
 
       this.logger.log('Starting to seed all modules...');
       await this.seederService.seedAll();
-      this.logger.log('✅ All modules seeded successfully!');
+      this.logger.log(' All modules seeded successfully!');
     } catch (error) {
       this.logger.error('❌ Error seeding database:', error.stack);
       throw error;
@@ -68,7 +68,7 @@ export class SeedCommand {
     try {
       this.logger.log(`Seeding module: ${moduleName}`);
       await this.seederService.seedModule(moduleName, clean);
-      this.logger.log(`✅ Module ${moduleName} seeded successfully!`);
+      this.logger.log(` Module ${moduleName} seeded successfully!`);
     } catch (error) {
       this.logger.error(`❌ Error seeding module: ${moduleName}`, error.stack);
       throw error;
@@ -85,7 +85,7 @@ export class SeedCommand {
     try {
       this.logger.log('Cleaning all data from database...');
       await this.seederService.cleanAll();
-      this.logger.log('✅ Database cleaned successfully!');
+      this.logger.log(' Database cleaned successfully!');
     } catch (error) {
       this.logger.error('❌ Error cleaning database:', error.stack);
       throw error;

@@ -32,7 +32,7 @@ export class BudgetSyncToPostgresJob {
       const processingTime = Date.now() - startTime;
 
       if (result.success) {
-        this.logger.debug('✅ Scheduled daily budget sync completed', {
+        this.logger.debug(' Scheduled daily budget sync completed', {
           campaignsSynced: result.campaignsSynced,
           totalSpendSynced: result.totalSpendSynced,
           processingTimeMs: processingTime,
@@ -85,7 +85,7 @@ export class BudgetSyncToPostgresJob {
       const result = await this.budgetSyncService.syncTotalCampaignBudgets();
 
       if (result.success) {
-        this.logger.debug('✅ Scheduled total budget sync completed', {
+        this.logger.debug(' Scheduled total budget sync completed', {
           campaignsSynced: result.campaignsSynced,
         });
       } else {

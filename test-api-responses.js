@@ -1,104 +1,90 @@
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 
-// Your inventory data
-const inventoryData = [
-  {
-    inventoryId: '0001609b-5234-434c-9fc5-22fb960322c3',
-    publisherId: '1bc2bcb8-08f7-4910-be9c-727603e2afd3',
-    websiteId: '1a2ab6ea-35ad-423b-907d-4cc8a2e7d6cb',
-    width: 320,
-    height: 50,
-    format: 'BANNER',
-    position: 'HEADER',
-  },
-  {
-    inventoryId: '01899f41-9f7b-497e-8005-b2766eca712d',
-    publisherId: '31ec645d-59a1-4600-9bfd-e9f30c51308d',
-    websiteId: 'cb633138-ea9d-4948-94c4-aeb18355bad9',
-    width: 320,
-    height: 50,
-    format: 'BANNER',
-    position: 'HEADER',
-  },
-  {
-    inventoryId: '021fd96f-e922-488d-8c77-8014baf07f9a',
-    publisherId: '2974130b-65f8-45f1-b330-7c15d45367a3',
-    websiteId: '9c5c88ae-ada4-4287-bff5-7d60c65b1f97',
-    width: 728,
-    height: 90,
-    format: 'BANNER',
-    position: 'HEADER',
-  },
-  {
-    inventoryId: '02b15396-ab8d-44d8-9f91-8a994968f360',
-    publisherId: 'c77f0795-6ee2-4957-a30e-bcce5e5e0195',
-    websiteId: 'def10596-2b53-4950-8dc4-6e8bc6c5a359',
-    width: 800,
-    height: 600,
-    format: 'INTERSTITIAL',
-    position: 'ABOVE_FOLD',
-  },
-  {
-    inventoryId: '035a9948-683d-4e11-9baa-9b31a51b67b2',
-    publisherId: '731e97dd-7f86-4519-9b62-79b5dfc7bc4b',
-    websiteId: 'e38e76c3-6e61-4b34-a306-426cbc635da7',
-    width: 320,
-    height: 480,
-    format: 'REWARDED',
-    position: 'ABOVE_FOLD',
-  },
-  {
-    inventoryId: '043f9bd1-5bcc-45c4-9d5a-aa65d720b504',
-    publisherId: '543ba291-f834-4787-b008-0a1afb43183e',
-    websiteId: '90756f2c-14e7-45d9-bdc7-1976dd251838',
-    width: 320,
-    height: 480,
-    format: 'REWARDED',
-    position: 'ABOVE_FOLD',
-  },
-  {
-    inventoryId: '04cb43a7-f055-4adb-9c8b-29bc9d03dd81',
-    publisherId: '750dbf6d-ffc2-452a-bfa2-63b62c78c348',
-    websiteId: 'c35a86d1-e60b-4d9e-8a77-1747b7ace3e6',
-    width: 320,
-    height: 50,
-    format: 'BANNER',
-    position: 'HEADER',
-  },
-  {
-    inventoryId: '06668006-32d4-4bcf-9f85-247b2e02d2b7',
-    publisherId: '458e4598-0b5e-42ba-b906-8f2174e55f7e',
-    websiteId: '3424eec7-ccd7-4aa9-ab93-63068427c94a',
-    width: 300,
-    height: 250,
-    format: 'NATIVE',
-    position: 'IN_CONTENT',
-  },
-  {
-    inventoryId: '07748873-55d2-4a41-8794-5b305addbcad',
-    publisherId: 'c569adbe-afc3-40ed-a7a4-eab48d858c21',
-    websiteId: '084824b1-2397-46f8-9a2c-415d859a6ed1',
-    width: 160,
-    height: 600,
-    format: 'BANNER',
-    position: 'SIDEBAR',
-  },
-  {
-    inventoryId: '0a067905-80ff-4e38-b988-bdc37a813aae',
-    publisherId: '6540b482-6418-439a-b702-f4269ce3b69a',
-    websiteId: 'b7f5f271-888c-41b0-b634-73a7fb5e4cac',
-    width: 728,
-    height: 90,
-    format: 'BANNER',
-    position: 'HEADER',
-  },
-];
+// Load inventory data from external JSON file
+function loadInventoryData() {
+  try {
+    const inventoryPath = path.join(__dirname, './bid-request-data.json');
+
+    if (!fs.existsSync(inventoryPath)) {
+      console.error('❌ Error: inventory-data.json file not found!');
+      console.log(
+        '📝 Please create inventory-data.json with the following structure:',
+      );
+      console.log(
+        JSON.stringify(
+          [
+            {
+              inventoryId: 'your-inventory-id',
+              publisherId: 'your-publisher-id',
+              websiteId: 'your-website-id',
+              width: 300,
+              height: 250,
+              format: 'BANNER',
+              position: 'HEADER',
+            },
+          ],
+          null,
+          2,
+        ),
+      );
+      process.exit(1);
+    }
+
+    const rawData = fs.readFileSync(inventoryPath, 'utf8');
+    const inventoryData = JSON.parse(rawData);
+
+    if (!Array.isArray(inventoryData) || inventoryData.length === 0) {
+      throw new Error('Inventory data must be a non-empty array');
+    }
+
+    // Validate required fields
+    const requiredFields = [
+      'inventoryId',
+      'publisherId',
+      'websiteId',
+      'width',
+      'height',
+      'format',
+      'position',
+    ];
+    for (let i = 0; i < inventoryData.length; i++) {
+      const item = inventoryData[i];
+      for (const field of requiredFields) {
+        if (!item[field]) {
+          throw new Error(
+            `Missing required field '${field}' in inventory item ${i + 1}`,
+          );
+        }
+      }
+    }
+
+    console.log(
+      ` Loaded ${inventoryData.length} inventory items from inventory-data.json`,
+    );
+    return inventoryData;
+  } catch (error) {
+    console.error('❌ Error loading inventory data:', error.message);
+
+    if (error instanceof SyntaxError) {
+      console.log(
+        '💡 Tip: Check if your inventory-data.json has valid JSON syntax',
+      );
+    }
+
+    process.exit(1);
+  }
+}
+
+// Load inventory data at startup
+const inventoryData = loadInventoryData();
 
 // Configuration
 const CONFIG = {
   endpoint: 'http://localhost:3000/rtb/bid-request',
-  numberOfRequests: 25, // You can change this between 20-30
-  concurrentRequests: 5, // Number of parallel requests
+  numberOfRequests: 120, // You can change this between 20-30
+  concurrentRequests: 20, // Number of parallel requests
   delayBetweenBatches: 100, // ms delay between batches
 };
 
@@ -309,12 +295,18 @@ async function sendBidResponseRequest(requestId, index) {
 
     const responseTime = Date.now() - startTime;
 
+    // Extract data from nested response structure
+    const responseData = response.data?.data || response.data;
+    const hasWinningBid = !!responseData?.winningBid;
+    const impressionUrls = responseData?.winningBid?.impressionUrls || [];
+
     console.log(` Bid-response ${index + 1} SUCCESS (${responseTime}ms):`, {
       status: response.status,
       requestId: requestId.substring(0, 12) + '...',
-      responseStatus: response.data?.status,
-      hasWinner: !!response.data?.winningBid,
-      message: response.data?.message,
+      responseStatus: responseData?.status,
+      hasWinner: hasWinningBid,
+      impressionUrls: impressionUrls.length,
+      message: responseData?.message,
     });
 
     return {
@@ -323,10 +315,12 @@ async function sendBidResponseRequest(requestId, index) {
       responseTime,
       requestId: requestId,
       status: response.status,
-      bidResponseStatus: response.data?.status,
-      hasWinningBid: !!response.data?.winningBid,
-      auctionData: response.data?.auctionData,
-      message: response.data?.message,
+      bidResponseStatus: responseData?.status,
+      hasWinningBid: hasWinningBid,
+      impressionUrls: impressionUrls,
+      auctionData: responseData?.auctionData,
+      message: responseData?.message,
+      responseData: responseData, // Keep full response for impression tracking
     };
   } catch (error) {
     const responseTime = Date.now() - startTime;
@@ -344,6 +338,63 @@ async function sendBidResponseRequest(requestId, index) {
       error: error.response?.data?.message || error.message,
       status: error.response?.status || 'ERROR',
       requestId: requestId,
+      impressionUrls: [],
+    };
+  }
+}
+
+// NEW: Send impression tracking request
+async function sendImpressionTrackingRequest(impressionUrl, index, requestId) {
+  const startTime = Date.now();
+
+  try {
+    console.log(
+      `👁️  Tracking impression ${index + 1} for requestId: ${requestId.substring(0, 12)}...`,
+    );
+
+    const response = await axios.get(impressionUrl, {
+      headers: {
+        'User-Agent': 'RTB-Load-Test/1.0',
+        Accept: 'image/png,image/jpeg,image/gif,image/webp,*/*',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+      timeout: 5000, // 5 second timeout for tracking
+      validateStatus: () => true, // Accept any status code
+    });
+
+    const responseTime = Date.now() - startTime;
+
+    console.log(` Impression ${index + 1} TRACKED (${responseTime}ms):`, {
+      status: response.status,
+      requestId: requestId.substring(0, 12) + '...',
+      url: impressionUrl.substring(0, 80) + '...',
+    });
+
+    return {
+      index: index + 1,
+      success: true,
+      responseTime,
+      requestId: requestId,
+      status: response.status,
+      impressionUrl: impressionUrl,
+    };
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+
+    console.log(`❌ Impression ${index + 1} FAILED (${responseTime}ms):`, {
+      error: error.message,
+      status: error.response?.status || 'NO_RESPONSE',
+      requestId: requestId.substring(0, 12) + '...',
+    });
+
+    return {
+      index: index + 1,
+      success: false,
+      responseTime,
+      error: error.message,
+      status: error.response?.status || 'ERROR',
+      requestId: requestId,
+      impressionUrl: impressionUrl,
     };
   }
 }
@@ -420,8 +471,76 @@ async function sendBatchBidResponseRequests(
   return results;
 }
 
+// NEW: Send impression tracking requests for successful bid responses with winners
+async function sendBatchImpressionRequests(
+  bidResponseResults,
+  batchSize = CONFIG.concurrentRequests,
+) {
+  const impressionRequests = [];
+
+  // Extract impression URLs from successful bid responses with winners
+  bidResponseResults.forEach((result) => {
+    if (
+      result.success &&
+      result.hasWinningBid &&
+      result.impressionUrls.length > 0
+    ) {
+      impressionRequests.push({
+        impressionUrl: result.impressionUrls[0], // Use first impression URL
+        requestId: result.requestId,
+        index: result.index,
+      });
+    }
+  });
+
+  if (impressionRequests.length === 0) {
+    console.log('\n👁️  No impression URLs to track');
+    return [];
+  }
+
+  const results = [];
+  console.log(
+    `\n👁️  Starting impression tracking for ${impressionRequests.length} impression URLs...`,
+  );
+
+  for (let i = 0; i < impressionRequests.length; i += batchSize) {
+    const batch = impressionRequests.slice(i, i + batchSize);
+    console.log(
+      `\n📦 Processing impression batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(impressionRequests.length / batchSize)} (${batch.length} requests)`,
+    );
+
+    const batchPromises = batch.map((request, batchIndex) =>
+      sendImpressionTrackingRequest(
+        request.impressionUrl,
+        i + batchIndex,
+        request.requestId,
+      ),
+    );
+
+    const batchResults = await Promise.all(batchPromises);
+    results.push(...batchResults);
+
+    // Add delay between batches (except for the last batch)
+    if (i + batchSize < impressionRequests.length) {
+      console.log(
+        `⏳ Waiting ${CONFIG.delayBetweenBatches}ms before next batch...`,
+      );
+      await new Promise((resolve) =>
+        setTimeout(resolve, CONFIG.delayBetweenBatches),
+      );
+    }
+  }
+
+  return results;
+}
+
 // Generate summary statistics
-function generateSummary(bidRequestResults, bidResponseResults, totalTime) {
+function generateSummary(
+  bidRequestResults,
+  bidResponseResults,
+  impressionResults,
+  totalTime,
+) {
   // Bid Request Summary
   const successfulBidRequests = bidRequestResults.filter((r) => r.success);
   const failedBidRequests = bidRequestResults.filter(
@@ -456,6 +575,23 @@ function generateSummary(bidRequestResults, bidResponseResults, totalTime) {
         )
       : 0;
 
+  // Impression Summary
+  const successfulImpressions = impressionResults.filter((r) => r.success);
+  const failedImpressions = impressionResults.filter(
+    (r) => r.success === false,
+  );
+
+  const impressionResponseTimes = successfulImpressions.map(
+    (r) => r.responseTime,
+  );
+  const avgImpressionTime =
+    impressionResponseTimes.length > 0
+      ? Math.round(
+          impressionResponseTimes.reduce((a, b) => a + b, 0) /
+            impressionResponseTimes.length,
+        )
+      : 0;
+
   // Auction Results Analysis
   const completedAuctions = successfulBidResponses.filter(
     (r) => r.bidResponseStatus === 'completed',
@@ -473,23 +609,28 @@ function generateSummary(bidRequestResults, bidResponseResults, totalTime) {
   const allResponseTimes = [
     ...bidRequestResponseTimes,
     ...bidResponseResponseTimes,
+    ...impressionResponseTimes,
   ];
   const minResponseTime =
     allResponseTimes.length > 0 ? Math.min(...allResponseTimes) : 0;
   const maxResponseTime =
     allResponseTimes.length > 0 ? Math.max(...allResponseTimes) : 0;
 
-  const totalRequests = bidRequestResults.length + bidResponseResults.length;
+  const totalRequests =
+    bidRequestResults.length +
+    bidResponseResults.length +
+    impressionResults.length;
   const totalSuccessful =
-    successfulBidRequests.length + successfulBidResponses.length;
+    successfulBidRequests.length +
+    successfulBidResponses.length +
+    successfulImpressions.length;
   const throughput = (totalSuccessful / (totalTime / 1000)).toFixed(2);
 
   return {
     // Overall
     totalRequests,
     totalSuccessful,
-    totalFailed:
-      bidRequestResults.length + bidResponseResults.length - totalSuccessful,
+    totalFailed: totalRequests - totalSuccessful,
     overallSuccessRate: ((totalSuccessful / totalRequests) * 100).toFixed(1),
     totalTime: (totalTime / 1000).toFixed(2),
     throughput,
@@ -534,16 +675,47 @@ function generateSummary(bidRequestResults, bidResponseResults, totalTime) {
           : 0,
     },
 
+    // Impression Tracking
+    impressionResults: {
+      total: impressionResults.length,
+      successful: successfulImpressions.length,
+      failed: failedImpressions.length,
+      successRate:
+        impressionResults.length > 0
+          ? (
+              (successfulImpressions.length / impressionResults.length) *
+              100
+            ).toFixed(1)
+          : '0.0',
+      avgResponseTime: avgImpressionTime,
+      minResponseTime:
+        impressionResponseTimes.length > 0
+          ? Math.min(...impressionResponseTimes)
+          : 0,
+      maxResponseTime:
+        impressionResponseTimes.length > 0
+          ? Math.max(...impressionResponseTimes)
+          : 0,
+    },
+
     // Auction Analysis
     auctionAnalysis: {
       completed: completedAuctions.length,
       processing: processingAuctions.length,
       noBids: noBidsAuctions.length,
       withWinners: auctionsWithWinners.length,
+      impressionsTracked: successfulImpressions.length,
       winRate:
         bidResponseResults.length > 0
           ? (
               (auctionsWithWinners.length / bidResponseResults.length) *
+              100
+            ).toFixed(1)
+          : '0.0',
+      impressionTrackingRate:
+        auctionsWithWinners.length > 0
+          ? (
+              (successfulImpressions.length / auctionsWithWinners.length) *
               100
             ).toFixed(1)
           : '0.0',
@@ -554,7 +726,7 @@ function generateSummary(bidRequestResults, bidResponseResults, totalTime) {
       minResponseTime,
       maxResponseTime,
       avgOverallResponseTime: Math.round(
-        (avgBidRequestTime + avgBidResponseTime) / 2,
+        (avgBidRequestTime + avgBidResponseTime + avgImpressionTime) / 3,
       ),
     },
   };
@@ -562,18 +734,21 @@ function generateSummary(bidRequestResults, bidResponseResults, totalTime) {
 
 // Main execution function
 async function runLoadTest() {
-  console.log('🎯 Starting RTB Bid Request + Response Load Test');
-  console.log('='.repeat(60));
+  console.log(
+    '🎯 Starting Enhanced RTB Load Test (Bid Request + Response + Impression Tracking)',
+  );
+  console.log('='.repeat(80));
   console.log(`📊 Configuration:`);
   console.log(`   • Bid Request Endpoint: ${CONFIG.endpoint}`);
   console.log(
     `   • Bid Response Endpoint: http://localhost:3000/rtb/bid-response/{requestId}`,
   );
+  console.log(`   • Impression Tracking: Automatic for winning bids`);
   console.log(`   • Total Requests: ${CONFIG.numberOfRequests}`);
   console.log(`   • Concurrent Requests: ${CONFIG.concurrentRequests}`);
   console.log(`   • Delay Between Batches: ${CONFIG.delayBetweenBatches}ms`);
   console.log(`   • Available Inventory Slots: ${inventoryData.length}`);
-  console.log('='.repeat(60));
+  console.log('='.repeat(80));
 
   const startTime = Date.now();
 
@@ -616,7 +791,20 @@ async function runLoadTest() {
   const bidResponseResults =
     await sendBatchBidResponseRequests(successfulRequestIds);
 
+  console.log(
+    `\n Phase 2 Complete: ${bidResponseResults.filter((r) => r.success).length}/${bidResponseResults.length} bid-responses successful`,
+  );
+
+  // PHASE 3: Track impressions for winning bids
+  console.log('\n👁️  PHASE 3: Starting impression tracking...');
+  const impressionResults =
+    await sendBatchImpressionRequests(bidResponseResults);
+
   const totalTime = Date.now() - startTime;
+
+  console.log(
+    `\n Phase 3 Complete: ${impressionResults.filter((r) => r.success).length}/${impressionResults.length} impressions tracked`,
+  );
 
   // Generate and display comprehensive summary
   console.log('\n' + '='.repeat(80));
@@ -626,12 +814,13 @@ async function runLoadTest() {
   const summary = generateSummary(
     bidRequestResults,
     bidResponseResults,
+    impressionResults,
     totalTime,
   );
 
   console.log(`📊 Overall Statistics:`);
   console.log(
-    `   • Total API Calls: ${summary.totalRequests} (${summary.bidRequestResults.total} bid-requests + ${summary.bidResponseResults.total} bid-responses)`,
+    `   • Total API Calls: ${summary.totalRequests} (${summary.bidRequestResults.total} bid-requests + ${summary.bidResponseResults.total} bid-responses + ${summary.impressionResults.total} impressions)`,
   );
   console.log(
     `   • Overall Success: ${summary.totalSuccessful}/${summary.totalRequests} (${summary.overallSuccessRate}%)`,
@@ -661,12 +850,26 @@ async function runLoadTest() {
     `   • Min/Max: ${summary.bidResponseResults.minResponseTime}ms / ${summary.bidResponseResults.maxResponseTime}ms`,
   );
 
+  console.log(`\n👁️  Impression Tracking Performance:`);
+  console.log(
+    `   • Success Rate: ${summary.impressionResults.successful}/${summary.impressionResults.total} (${summary.impressionResults.successRate}%)`,
+  );
+  console.log(
+    `   • Avg Response Time: ${summary.impressionResults.avgResponseTime}ms`,
+  );
+  console.log(
+    `   • Min/Max: ${summary.impressionResults.minResponseTime}ms / ${summary.impressionResults.maxResponseTime}ms`,
+  );
+
   console.log(`\n🎯 Auction Analysis:`);
   console.log(`   • Completed Auctions: ${summary.auctionAnalysis.completed}`);
   console.log(`   • Still Processing: ${summary.auctionAnalysis.processing}`);
   console.log(`   • No Bids: ${summary.auctionAnalysis.noBids}`);
   console.log(
     `   • Auctions with Winners: ${summary.auctionAnalysis.withWinners} (${summary.auctionAnalysis.winRate}% win rate)`,
+  );
+  console.log(
+    `   • Impressions Tracked: ${summary.auctionAnalysis.impressionsTracked} (${summary.auctionAnalysis.impressionTrackingRate}% tracking rate)`,
   );
 
   console.log(`\n⚡ Overall Performance:`);
@@ -688,6 +891,9 @@ async function runLoadTest() {
     ...bidResponseResults
       .filter((r) => !r.success)
       .map((r) => ({ ...r, type: 'bid-response' })),
+    ...impressionResults
+      .filter((r) => !r.success)
+      .map((r) => ({ ...r, type: 'impression' })),
   ];
 
   if (allFailedRequests.length > 0) {
@@ -702,6 +908,19 @@ async function runLoadTest() {
     }
   }
 
+  // Show sample successful auction results with impressions tracked
+  const auctionsWithTrackedImpressions = impressionResults
+    .filter((r) => r.success)
+    .slice(0, 3);
+  if (auctionsWithTrackedImpressions.length > 0) {
+    console.log(`\n🏆 Sample Successful Auctions with Tracked Impressions:`);
+    auctionsWithTrackedImpressions.forEach((impression) => {
+      console.log(
+        `   • Request ${impression.index}: ${impression.requestId?.substring(0, 20)}... (${impression.responseTime}ms tracking)`,
+      );
+    });
+  }
+
   // Show sample successful auction results
   const auctionsWithWinners = bidResponseResults
     .filter((r) => r.success && r.hasWinningBid)
@@ -709,8 +928,11 @@ async function runLoadTest() {
   if (auctionsWithWinners.length > 0) {
     console.log(`\n🏆 Sample Successful Auctions with Winners:`);
     auctionsWithWinners.forEach((auction) => {
+      const hasTrackedImpression = impressionResults.some(
+        (imp) => imp.requestId === auction.requestId && imp.success,
+      );
       console.log(
-        `   • Request ${auction.index}: ${auction.requestId?.substring(0, 20)}... (${auction.responseTime}ms)`,
+        `   • Request ${auction.index}: ${auction.requestId?.substring(0, 20)}... (${auction.responseTime}ms) ${hasTrackedImpression ? '👁️ ' : '👁️ ❌'}`,
       );
     });
   }
@@ -728,7 +950,35 @@ async function runLoadTest() {
     });
   }
 
-  console.log('\n🎉 Complete RTB load test finished!');
+  // Show funnel analysis
+  console.log(`\n📊 RTB Funnel Analysis:`);
+  console.log(`   • Bid Requests Sent: ${bidRequestResults.length}`);
+  console.log(
+    `   • Bid Requests Successful: ${bidRequestResults.filter((r) => r.success).length} (${((bidRequestResults.filter((r) => r.success).length / bidRequestResults.length) * 100).toFixed(1)}%)`,
+  );
+  console.log(
+    `   • Bid Responses Received: ${bidResponseResults.filter((r) => r.success).length} (${((bidResponseResults.filter((r) => r.success).length / bidRequestResults.filter((r) => r.success).length) * 100).toFixed(1)}%)`,
+  );
+  console.log(
+    `   • Auctions with Winners: ${summary.auctionAnalysis.withWinners} (${summary.auctionAnalysis.winRate}%)`,
+  );
+  console.log(
+    `   • Impressions Tracked: ${summary.auctionAnalysis.impressionsTracked} (${summary.auctionAnalysis.impressionTrackingRate}%)`,
+  );
+
+  const conversionRate =
+    bidRequestResults.length > 0
+      ? (
+          (summary.auctionAnalysis.impressionsTracked /
+            bidRequestResults.length) *
+          100
+        ).toFixed(2)
+      : '0.00';
+  console.log(
+    `   • End-to-End Conversion: ${conversionRate}% (bid-request → impression tracked)`,
+  );
+
+  console.log('\n🎉 Enhanced RTB load test finished!');
   console.log('='.repeat(80));
 }
 

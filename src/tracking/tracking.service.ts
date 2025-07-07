@@ -104,7 +104,7 @@ export class TrackingService {
       const reservationId = impression.bidResponseId;
 
       // 🔧 FIX: Use per-impression cost consistently
-      const costPerImpression = (impression.finalPrice || 0) / 1000;
+      const costPerImpression = impression.finalPrice;
 
       await this.budgetManager.confirmReservedBudget(
         reservationId,

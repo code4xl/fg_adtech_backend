@@ -98,7 +98,7 @@ export class BudgetCleanupJob {
         processingTimeMs: processingTime,
       });
 
-      this.logger.debug('✅ Reservation cleanup completed', {
+      this.logger.debug(' Reservation cleanup completed', {
         totalMetadataChecked: metadataKeys.length,
         totalReservationsChecked: reservationKeys.length,
         totalCleaned,
@@ -226,7 +226,7 @@ export class BudgetCleanupJob {
       // Clean up reservation key if it still exists
       await this.redis.del(reservationKey);
 
-      this.logger.debug('✅ Credited back expired reservation', {
+      this.logger.debug(' Credited back expired reservation', {
         reservationId,
         campaignId: reservationData.campaignId,
         amount: creditedAmount,
@@ -292,7 +292,7 @@ export class BudgetCleanupJob {
         Math.max(0, newSpendFloat),
       );
 
-      this.logger.debug('✅ Budget credited back atomically', {
+      this.logger.debug(' Budget credited back atomically', {
         campaignId,
         creditAmount: costPerImpression,
         newSpend: Math.max(0, newSpendFloat),
@@ -315,38 +315,35 @@ export class BudgetCleanupJob {
     campaignId: string,
     newSpend: number,
   ): Promise<void> {
-    try {
-      const [campaignStatus, dailyLimitStr] = await Promise.all([
-        this.redis.get(REDIS_KEYS.CAMPAIGN_STATUS(campaignId)),
-        this.redis.get(REDIS_KEYS.DAILY_BUDGET_LIMIT(campaignId)),
-      ]);
+    // try {
+    const [campaignStatus, dailyLimitStr] = await Promise.all([
+      this.redis.get(REDIS_KEYS.CAMPAIGN_STATUS(campaignId)),
+      this.redis.get(REDIS_KEYS.DAILY_BUDGET_LIMIT(campaignId)),
+    ]);
 
-      if (campaignStatus === 'BUDGET_EXHAUSTED' && dailyLimitStr) {
-        const dailyLimit = parseFloat(dailyLimitStr as string);
+    if (campaignStatus === 'BUDGET_EXHAUSTED' && dailyLimitStr) {
+      const dailyLimit = parseFloat(dailyLimitStr as string);
 
-        // Add buffer to prevent immediate re-exhaustion
-        const reactivationThreshold = dailyLimit * 0.95; // 95% of budget
+      // Add buffer to prevent immediate re-exhaustion
+      const reactivationThreshold = dailyLimit * 0.95; // 95% of budget
 
-        if (newSpend < reactivationThreshold) {
-          await this.redis.set(
-            REDIS_KEYS.CAMPAIGN_STATUS(campaignId),
-            'ACTIVE',
-          );
+      if (newSpend < reactivationThreshold) {
+        await this.redis.set(REDIS_KEYS.CAMPAIGN_STATUS(campaignId), 'ACTIVE');
 
-          this.logger.debug('✅ Campaign reactivated after budget credit', {
-            campaignId,
-            newSpend,
-            dailyLimit,
-            reactivationThreshold,
-          });
-        }
+        this.logger.debug(' Campaign reactivated after budget credit', {
+          campaignId,
+          newSpend,
+          dailyLimit,
+          reactivationThreshold,
+        });
       }
-    } catch (error) {
-      this.logger.warn('Failed to update campaign status after credit', {
-        error: error.message,
-        campaignId,
-      });
     }
+    // } catch (error) {
+    //   this.logger.warn('Failed to update campaign status after credit', {
+    //     error: error.message,
+    //     campaignId,
+    //   });
+    // }
   }
 
   /**
@@ -487,7 +484,7 @@ export class BudgetCleanupJob {
       const result = await this.cleanupSingleReservation(reservationKey);
 
       if (result.cleaned) {
-        this.logger.debug('✅ Force cleanup completed', {
+        this.logger.debug(' Force cleanup completed', {
           reservationId,
           credited: result.creditedAmount || 0,
         });
