@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ocean Ads - Multiple Slots Test (Backend Fixed)</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+
+      h1 {
+        color: #333;
+        text-align: center;
+      }
+
+      .info-box {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        border-radius: 4px;
+        padding: 15px;
+        margin: 20px 0;
+        color: #155724;
+      }
+
+      .section {
+        background: white;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Basic ad slot styling */
+      .ocean-ad,
+      .ocean-ad-2 {
+        background: #f0f8ff;
+        border: 2px dashed #2196f3;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 20px 0;
+        font-weight: bold;
+        color: #1976d2;
+        min-height: 100px;
+        position: relative;
+      }
+
+      /* Fixed sizes for different ad formats */
+      .ocean-ad[data-size='800x600'],
+      .ocean-ad-2[data-size='800x600'] {
+        width: 800px;
+        height: 600px;
+      }
+
+      .ocean-ad[data-size='320x180'],
+      .ocean-ad-2[data-size='320x180'] {
+        width: 320px;
+        height: 180px;
+      }
+
+      .ocean-ad[data-size='728x90'],
+      .ocean-ad-2[data-size='728x90'] {
+        width: 728px;
+        height: 90px;
+      }
+
+      .ocean-ad[data-size='300x250'],
+      .ocean-ad-2[data-size='300x250'] {
+        width: 300px;
+        height: 250px;
+      }
+
+      .slot-label {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        font-size: 10px;
+        background: #2196f3;
+        color: white;
+        padding: 2px 5px;
+        border-radius: 3px;
+      }
+
+      .debug-info {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 10px;
+        margin: 10px 0;
+        font-family: monospace;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🌊 Ocean Ads - Multiple Slots Test</h1>
+    
+    <div class="info-box">
+      <h3>✅ Backend Now Supports Multiple Slots!</h3>
+      <p>The RTB backend has been updated to process ALL slots in a batch request.</p>
+      <p>Each slot will get its own auction and bid response.</p>
+    </div>
+
+    <div class="section">
+      <h2>Test Information</h2>
+      <p><strong>Publisher:</strong> rhea31@hotmail.com</p>
+      <p><strong>Domain:</strong> healthhub601-378.net</p>
+      <p><strong>SDK Mode:</strong> Multi-slot batch processing enabled</p>
+    </div>
+
+    <div class="section">
+      <h2>Desktop Interstitial Ads (800x600)</h2>
+      <p>All using the same inventory ID: <code>15fb5073-c093-4595-b0bf-e4ec34e2e6c1</code></p>
+      
+      <!-- Desktop Interstitial Slot 1 -->
+      <div 
+        class="ocean-ad" 
+        data-size="800x600"
+        data-inventory="15fb5073-c093-4595-b0bf-e4ec34e2e6c1"
+        data-format="INTERSTITIAL"
+        data-position="ABOVE_FOLD"
+      >
+        Desktop Interstitial Ad Slot #1
+        <span class="slot-label">Slot 1</span>
+      </div>
+
+      <!-- Desktop Interstitial Slot 2 -->
+      <div 
+        class="ocean-ad" 
+        data-size="800x600"
+        data-inventory="15fb5073-c093-4595-b0bf-e4ec34e2e6c1"
+        data-format="INTERSTITIAL"
+        data-position="ABOVE_FOLD"
+      >
+        Desktop Interstitial Ad Slot #2
+        <span class="slot-label">Slot 2</span>
+      </div>
+
+      <!-- Desktop Interstitial Slot 3 -->
+      <div 
+        class="ocean-ad" 
+        data-size="800x600"
+        data-inventory="15fb5073-c093-4595-b0bf-e4ec34e2e6c1"
+        data-format="INTERSTITIAL"
+        data-position="ABOVE_FOLD"
+      >
+        Desktop Interstitial Ad Slot #3
+        <span class="slot-label">Slot 3</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Mobile Video Ads (320x180)</h2>
+      <p>All using the same inventory ID: <code>814c4b35-ed6a-49b6-bb4d-bac19399f659</code></p>
+      
+      <!-- Mobile Video Slot 1 -->
+      <div 
+        class="ocean-ad-2" 
+        data-size="320x180"
+        data-inventory="814c4b35-ed6a-49b6-bb4d-bac19399f659"
+        data-format="VIDEO"
+        data-position="ABOVE_FOLD"
+      >
+        Mobile Video Ad Slot #1
+        <span class="slot-label">Video 1</span>
+      </div>
+
+      <!-- Mobile Video Slot 2 -->
+      <div 
+        class="ocean-ad-2" 
+        data-size="320x180"
+        data-inventory="814c4b35-ed6a-49b6-bb4d-bac19399f659"
+        data-format="VIDEO"
+        data-position="ABOVE_FOLD"
+      >
+        Mobile Video Ad Slot #2
+        <span class="slot-label">Video 2</span>
+      </div>
+
+      <!-- Mobile Video Slot 3 -->
+      <div 
+        class="ocean-ad-2" 
+        data-size="320x180"
+        data-inventory="814c4b35-ed6a-49b6-bb4d-bac19399f659"
+        data-format="VIDEO"
+        data-position="ABOVE_FOLD"
+      >
+        Mobile Video Ad Slot #3
+        <span class="slot-label">Video 3</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Debug Information</h2>
+      <div class="debug-info">
+        <p><strong>Expected Behavior:</strong></p>
+        <ul>
+          <li>SDK discovers 6 total slots (3 desktop + 3 mobile)</li>
+          <li>SDK sends ONE batch request with all 6 slots</li>
+          <li>Backend processes each slot individually</li>
+          <li>Backend returns a master request ID</li>
+          <li>Ads appear in ALL slots (if campaigns are available)</li>
+        </ul>
+        <p><strong>Check Network Tab:</strong> Look for a single bid-request with 6 slots in the payload</p>
+      </div>
+    </div>
+
+    <!-- 🌊 OCEAN ADS CDN SCRIPT - THIS IS THE ONLY JAVASCRIPT -->
+    <script src="http://localhost:3001/cdn/p/02912083-a026-4c61-8df7-0fd68ab4ad93/init.js" async></script>
+
+    <!-- Simple debug script -->
+    <script>
+      // Monitor when SDK loads
+      let checkInterval = setInterval(() => {
+        if (window.OceanAds) {
+          console.log('✅ Ocean Ads SDK loaded!');
+          
+          // Enable debug mode
+          if (window.OceanAds.debug) {
+            window.OceanAds.debug(true);
+            console.log('🐛 Debug mode enabled');
+          }
+          
+          clearInterval(checkInterval);
+        }
+      }, 500);
+
+      // Log when page loads
+      window.addEventListener('load', () => {
+        console.log('🌊 Page loaded - waiting for Ocean Ads SDK...');
+        
+        // Count slots after a delay
+        setTimeout(() => {
+          const slots = document.querySelectorAll('.ocean-ad, .ocean-ad-2');
+          console.log(`📊 Total ad slots in DOM: ${slots.length}`);
+        }, 2000);
+      });
+    </script>
+  </body>
+</html>
