@@ -21,7 +21,7 @@ export class AdvertiserSeeder implements ISeeder {
   }
 
   async seed(count: number = 150): Promise<void> {
-    this.logger.log(`Seeding ${count} advertisers...`);
+    this.logger.debug(`Seeding ${count} advertisers...`);
 
     try {
       const advertiserData: any = [];
@@ -73,7 +73,7 @@ export class AdvertiserSeeder implements ISeeder {
       });
 
       const advertiserCount = await this.prisma.advertiser.count();
-      this.logger.log(`Successfully seeded ${advertiserCount} advertisers`);
+      this.logger.debug(`Successfully seeded ${advertiserCount} advertisers`);
     } catch (error) {
       this.logger.error('Error seeding advertisers');
       this.logger.error(error);
@@ -82,7 +82,7 @@ export class AdvertiserSeeder implements ISeeder {
   }
 
   async clean(): Promise<void> {
-    this.logger.log('Cleaning advertisers table...');
+    this.logger.debug('Cleaning advertisers table...');
 
     try {
       // Clean related data first to avoid foreign key constraint issues
@@ -90,7 +90,7 @@ export class AdvertiserSeeder implements ISeeder {
       await this.prisma.campaign.deleteMany({});
 
       const deleted = await this.prisma.advertiser.deleteMany({});
-      this.logger.log(`Deleted ${deleted.count} advertisers`);
+      this.logger.debug(`Deleted ${deleted.count} advertisers`);
     } catch (error) {
       this.logger.error('Error cleaning advertisers table');
       this.logger.error(error);

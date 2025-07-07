@@ -18,7 +18,7 @@ export class InventoryMapperService {
     inventoryRecords: any[],
     publisherTier: PublisherTier,
   ): Promise<IInventoryConfig[]> {
-    this.logger.log(`Mapping ${inventoryRecords.length} inventory records for ${publisherTier} tier`);
+    this.logger.debug(`Mapping ${inventoryRecords.length} inventory records for ${publisherTier} tier`);
 
     const tierFeatures = TIER_FEATURES[publisherTier];
     const mappedInventory: IInventoryConfig[] = [];
@@ -36,7 +36,7 @@ export class InventoryMapperService {
       }
     }
 
-    this.logger.log(`Mapped ${mappedInventory.length} inventory configurations`);
+    this.logger.debug(`Mapped ${mappedInventory.length} inventory configurations`);
     return mappedInventory;
   }
 

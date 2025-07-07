@@ -20,7 +20,7 @@ export class AdInventorySeeder implements ISeeder {
   }
 
   async seed(count: number = 1000): Promise<void> {
-    this.logger.log(`Seeding ${count} ad inventory slots...`);
+    this.logger.debug(`Seeding ${count} ad inventory slots...`);
 
     try {
       // Get all required entities
@@ -130,7 +130,7 @@ export class AdInventorySeeder implements ISeeder {
       });
 
       const inventoryCount = await this.prisma.adInventory.count();
-      this.logger.log(
+      this.logger.debug(
         `Successfully seeded ${inventoryCount} ad inventory slots`,
       );
     } catch (error) {
@@ -141,7 +141,7 @@ export class AdInventorySeeder implements ISeeder {
   }
 
   async clean(): Promise<void> {
-    this.logger.log('Cleaning ad inventory tables...');
+    this.logger.debug('Cleaning ad inventory tables...');
 
     try {
       // Clean related tables first (respecting foreign key constraints)
@@ -157,7 +157,7 @@ export class AdInventorySeeder implements ISeeder {
 
       // Finally clean the main table
       const deleted = await this.prisma.adInventory.deleteMany({});
-      this.logger.log(`Deleted ${deleted.count} ad inventory slots`);
+      this.logger.debug(`Deleted ${deleted.count} ad inventory slots`);
     } catch (error) {
       this.logger.error('Error cleaning ad inventory tables');
       this.logger.error(error);

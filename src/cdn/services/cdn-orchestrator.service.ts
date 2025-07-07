@@ -45,7 +45,7 @@ export class CdnOrchestratorService {
   ): Promise<ICdnBuildResult> {
     const startTime = Date.now();
     
-    this.logger.log(
+    this.logger.debug(
       `Starting V2 CDN generation for publisher ${publisherId}`,
     );
 
@@ -54,7 +54,7 @@ export class CdnOrchestratorService {
       if (!options?.forceRebuild) {
         const cached = await this.cdnCache.getBuild(publisherId);
         if (cached) {
-          this.logger.log('Serving publisher CDN from cache');
+          this.logger.debug('Serving publisher CDN from cache');
           return {
             success: true,
             cdnUrl: this.buildCdnUrl(publisherId, options?.environment),
@@ -77,7 +77,7 @@ export class CdnOrchestratorService {
         throw new Error(`V2 Configuration validation failed: ${validation.errors.join(', ')}`);
       }
 
-      this.logger.log(
+      this.logger.debug(
         `V2 Configuration validated: ${validation.websiteCount} websites, ${validation.inventoryCount} total inventory slots`,
       );
 
@@ -131,7 +131,7 @@ export class CdnOrchestratorService {
       ]);
 
       const duration = Date.now() - startTime;
-      this.logger.log(
+      this.logger.debug(
         `V2 CDN generation completed in ${duration}ms for publisher ${publisherId}: ${buildResult.websiteCount} websites`,
       );
 
@@ -156,7 +156,7 @@ export class CdnOrchestratorService {
       includeDebug?: boolean;
     },
   ): Promise<ICdnBuildResult> {
-    this.logger.log(`Adding website ${websiteId} to publisher ${publisherId} CDN`);
+    this.logger.debug(`Adding website ${websiteId} to publisher ${publisherId} CDN`);
 
     // Regenerate entire publisher CDN to include new website
     return this.generatePublisherCdn(publisherId, {
@@ -176,7 +176,7 @@ export class CdnOrchestratorService {
       includeDebug?: boolean;
     },
   ): Promise<ICdnBuildResult> {
-    this.logger.log(`Removing website ${websiteId} from publisher ${publisherId} CDN`);
+    this.logger.debug(`Removing website ${websiteId} from publisher ${publisherId} CDN`);
 
     // Invalidate caches
     await this.cdnCache.invalidateConfiguration(publisherId, websiteId);
@@ -196,7 +196,7 @@ export class CdnOrchestratorService {
   async generateAndDeployDN(dto: GenerateCdnDto): Promise<ICdnBuildResult> {
     const startTime = Date.now();
     
-    this.logger.log(
+    this.logger.debug(
       `Starting CDN generation for publisher ${dto.publisherId}, website ${dto.websiteId}`,
     );
 
@@ -205,7 +205,7 @@ export class CdnOrchestratorService {
       if (!dto.forceRebuild) {
         const cached = await this.cdnCache.getBuild(dto.publisherId);
         if (cached) {
-          this.logger.log('Serving CDN from cache');
+          this.logger.debug('Serving CDN from cache');
           return {
             success: true,
             cdnUrl: this.buildCdnUrl(dto.publisherId, dto.environment),
@@ -268,7 +268,7 @@ export class CdnOrchestratorService {
       ]);
 
       const duration = Date.now() - startTime;
-      this.logger.log(
+      this.logger.debug(
         `CDN generation completed in ${duration}ms for publisher ${dto.publisherId}`,
       );
 
@@ -292,7 +292,7 @@ export class CdnOrchestratorService {
       includeDebug?: boolean;
     },
   ): Promise<Map<string, ICdnBuildResult>> {
-    this.logger.log(`Regenerating CDN for all websites of publisher ${publisherId}`);
+    this.logger.debug(`Regenerating CDN for all websites of publisher ${publisherId}`);
 
     const results = new Map<string, ICdnBuildResult>();
 
@@ -335,7 +335,7 @@ export class CdnOrchestratorService {
     websiteId?: string,
     regenerate = true,
   ): Promise<void> {
-    this.logger.log(
+    this.logger.debug(
       `Invalidating CDN for publisher ${publisherId}${websiteId ? `, website ${websiteId}` : ''}`,
     );
 
@@ -570,7 +570,7 @@ export class CdnOrchestratorService {
     },
   ): Promise<void> {
     try {
-      this.logger.log(`Updating CDN info for website ${websiteId}`);
+      this.logger.debug(`Updating CDN info for website ${websiteId}`);
       
       await this.prisma.website.update({
         where: { id: websiteId },
@@ -580,10 +580,10 @@ export class CdnOrchestratorService {
         },
       });
       
-      this.logger.log(`✅ CDN info updated successfully for website ${websiteId}`);
-      this.logger.log(`   CDN URL: ${cdnInfo.cdnUrl}`);
-      this.logger.log(`   Build ID: ${cdnInfo.buildId}`);
-      this.logger.log(`   Version: ${cdnInfo.version}`);
+      this.logger.debug(`✅ CDN info updated successfully for website ${websiteId}`);
+      this.logger.debug(`   CDN URL: ${cdnInfo.cdnUrl}`);
+      this.logger.debug(`   Build ID: ${cdnInfo.buildId}`);
+      this.logger.debug(`   Version: ${cdnInfo.version}`);
     } catch (error) {
       this.logger.error(`❌ Failed to update CDN info for website ${websiteId}: ${error.message}`);
       // Don't throw error - CDN generation succeeded, this is just database update
@@ -603,7 +603,7 @@ export class CdnOrchestratorService {
     },
   ): Promise<void> {
     try {
-      this.logger.log(`Updating V2 CDN info for publisher ${publisherId} (${websiteIds.length} websites)`);
+      this.logger.debug(`Updating V2 CDN info for publisher ${publisherId} (${websiteIds.length} websites)`);
       
       const initScript = `<script src="${cdnInfo.cdnUrl}" async></script>`;
       
@@ -618,10 +618,10 @@ export class CdnOrchestratorService {
         },
       });
       
-      this.logger.log(`✅ V2 CDN info updated successfully for ${websiteIds.length} websites`);
-      this.logger.log(`   CDN URL: ${cdnInfo.cdnUrl}`);
-      this.logger.log(`   Build ID: ${cdnInfo.buildId}`);
-      this.logger.log(`   Version: ${cdnInfo.version}`);
+      this.logger.debug(`✅ V2 CDN info updated successfully for ${websiteIds.length} websites`);
+      this.logger.debug(`   CDN URL: ${cdnInfo.cdnUrl}`);
+      this.logger.debug(`   Build ID: ${cdnInfo.buildId}`);
+      this.logger.debug(`   Version: ${cdnInfo.version}`);
     } catch (error) {
       this.logger.error(`❌ Failed to update V2 CDN info for publisher ${publisherId}: ${error.message}`);
       // Don't throw error - CDN generation succeeded, this is just database update
@@ -639,7 +639,7 @@ export class CdnOrchestratorService {
       cleanupDatabase?: boolean;
     },
   ): Promise<void> {
-    this.logger.log(`Starting complete CDN cleanup for publisher ${publisherId}`);
+    this.logger.debug(`Starting complete CDN cleanup for publisher ${publisherId}`);
     
     try {
       // 1. Clear cache
@@ -660,7 +660,7 @@ export class CdnOrchestratorService {
         await this.cleanupDatabaseCdnReferences(publisherId, options?.websiteId);
       }
       
-      this.logger.log(`✅ Complete CDN cleanup finished for publisher ${publisherId}`);
+      this.logger.debug(`✅ Complete CDN cleanup finished for publisher ${publisherId}`);
     } catch (error) {
       this.logger.error(`❌ CDN cleanup failed: ${error.message}`);
       throw error;
@@ -675,7 +675,7 @@ export class CdnOrchestratorService {
     websiteId?: string,
   ): Promise<void> {
     try {
-      this.logger.log(`Cleaning database CDN references for publisher ${publisherId}`);
+      this.logger.debug(`Cleaning database CDN references for publisher ${publisherId}`);
       
       const whereCondition = {
         publisherId,
@@ -690,7 +690,7 @@ export class CdnOrchestratorService {
         },
       });
       
-      this.logger.log(`✅ Cleaned CDN references from ${result.count} websites`);
+      this.logger.debug(`✅ Cleaned CDN references from ${result.count} websites`);
     } catch (error) {
       this.logger.error(`❌ Failed to clean database CDN references: ${error.message}`);
       // Don't throw - this is cleanup, not critical
@@ -708,7 +708,7 @@ export class CdnOrchestratorService {
       includeDebug?: boolean;
     },
   ): Promise<ICdnBuildResult> {
-    this.logger.log(`Force regenerating CDN for publisher ${publisherId}, website ${websiteId}`);
+    this.logger.debug(`Force regenerating CDN for publisher ${publisherId}, website ${websiteId}`);
     
     // Step 1: Complete cleanup
     await this.cleanupCdn(publisherId, {
@@ -729,7 +729,7 @@ export class CdnOrchestratorService {
       includeDebug: options?.includeDebug,
     });
     
-    this.logger.log(`✅ Force regeneration completed for publisher ${publisherId}`);
+    this.logger.debug(`✅ Force regeneration completed for publisher ${publisherId}`);
     return result;
   }
 
@@ -737,7 +737,7 @@ export class CdnOrchestratorService {
    * Clear SDK cache (for debugging)
    */
   clearSdkCache(): void {
-    this.logger.log('Clearing SDK cache via orchestrator');
+    this.logger.debug('Clearing SDK cache via orchestrator');
     this.cdnGenerator.clearSdkCache();
   }
 }

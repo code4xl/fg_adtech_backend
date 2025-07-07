@@ -27,7 +27,7 @@ export class TimescaleDBConnection implements OnModuleInit, OnModuleDestroy {
             // Get configuration from the nested timescale object
             const timescaleConfig = this.configService.get('timescale');
 
-            this.logger.log('🔄 Initializing TimescaleDB connection with config:', {
+            this.logger.debug('🔄 Initializing TimescaleDB connection with config:', {
                 host: timescaleConfig?.host || 'not set',
                 port: timescaleConfig?.port || 'not set',
                 database: timescaleConfig?.database || 'not set',
@@ -75,7 +75,7 @@ export class TimescaleDBConnection implements OnModuleInit, OnModuleDestroy {
             await client.query('SELECT NOW()');
             client.release();
 
-            this.logger.log(
+            this.logger.debug(
                 '✅ TimescaleDB connection pool initialized successfully',
             );
         } catch (error) {
@@ -132,7 +132,7 @@ export class TimescaleDBConnection implements OnModuleInit, OnModuleDestroy {
     private async closePool() {
         if (this.pool) {
             await this.pool.end();
-            this.logger.log('✅ TimescaleDB connection pool closed');
+            this.logger.debug('✅ TimescaleDB connection pool closed');
         }
     }
 

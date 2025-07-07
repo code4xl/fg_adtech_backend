@@ -63,7 +63,7 @@ export class CampaignAIService {
       );
 
     const processingTime = Date.now() - startTime;
-    this.logger.log(`Campaign analysis completed in ${processingTime}ms`);
+    this.logger.debug(`Campaign analysis completed in ${processingTime}ms`);
 
     return this.transformAIResponse(aiSuggestion, request);
   }

@@ -27,7 +27,7 @@ export class CampaignSeeder implements ISeeder {
   }
 
   async seed(count: number = 100): Promise<void> {
-    this.logger.log(`Seeding ${count} campaigns...`);
+    this.logger.debug(`Seeding ${count} campaigns...`);
 
     try {
       // Get all advertisers with their clients in one query
@@ -65,7 +65,7 @@ export class CampaignSeeder implements ISeeder {
         );
       }
 
-      this.logger.log(
+      this.logger.debug(
         `Found ${validAdvertisers.length} advertisers with clients. Creating campaigns...`,
       );
 
@@ -234,7 +234,7 @@ export class CampaignSeeder implements ISeeder {
       }
 
       const campaignCount = await this.prisma.campaign.count();
-      this.logger.log(
+      this.logger.debug(
         `Successfully seeded ${successfullyCreated} new campaigns (total: ${campaignCount})`,
       );
 
@@ -250,9 +250,9 @@ export class CampaignSeeder implements ISeeder {
         },
       });
 
-      this.logger.log('Campaign distribution per advertiser:');
+      this.logger.debug('Campaign distribution per advertiser:');
       campaignDistribution.forEach((advertiser) => {
-        this.logger.log(
+        this.logger.debug(
           `  ${advertiser.email}: ${advertiser._count.Campaign} campaigns`,
         );
       });
@@ -270,7 +270,7 @@ export class CampaignSeeder implements ISeeder {
   }
 
   async clean(): Promise<void> {
-    this.logger.log('Cleaning campaigns table...');
+    this.logger.debug('Cleaning campaigns table...');
 
     try {
       // Clean related tables first (respecting foreign key constraints)
@@ -297,7 +297,7 @@ export class CampaignSeeder implements ISeeder {
       // Clean campaign budgets
       const deletedBudgets = await this.prisma.campaignBudget.deleteMany({});
 
-      this.logger.log(
+      this.logger.debug(
         `Deleted ${deletedCampaigns.count} campaigns and ${deletedBudgets.count} budgets`,
       );
     } catch (error) {
@@ -364,7 +364,7 @@ export class CampaignSeeder implements ISeeder {
         skipDuplicates: true,
       });
 
-      this.logger.log(`Seeded ${statisticsData.length} campaign statistics`);
+      this.logger.debug(`Seeded ${statisticsData.length} campaign statistics`);
     } catch (error) {
       this.logger.warn('Error seeding campaign statistics, but continuing...');
     }
@@ -416,7 +416,7 @@ export class CampaignSeeder implements ISeeder {
         skipDuplicates: true,
       });
 
-      this.logger.log(
+      this.logger.debug(
         `Seeded ${dailyBudgetData.length} campaign daily budget tracking records`,
       );
     } catch (error) {

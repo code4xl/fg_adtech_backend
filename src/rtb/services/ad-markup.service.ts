@@ -1,18 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ImpressionClickLinkingService } from 'src/tracking/services/impression-click-linking.service';
 
 @Injectable()
 export class AdMarkupService {
+  private readonly logger = new Logger(AdMarkupService.name);
   private readonly trackingBaseUrl: string;
   constructor(
     private readonly configService: ConfigService,
     private readonly impressionClickLinking: ImpressionClickLinkingService,
   ) {
-    // Base URL for tracking, can be configured as needed
     this.trackingBaseUrl =
+      this.configService.get<string>('APP_URL') ||
       this.configService.get<string>('tracking.baseUrl') ||
-      'http://localhost:3000/';
+      'http://localhost:3001';
   }
 
   public generateTrackingUrls(
@@ -32,7 +33,7 @@ export class AdMarkupService {
         `${baseUrl}/track/impression/${bidResponseId}?slotId=${slotId}&auctionId=${auctionId}&t=${Date.now()}`,
       ],
       click: [
-        `${baseUrl}/track/click/${bidResponseId}?slotId=${slotId}&auctionId=${auctionId}&t=${Date.now()}`,
+        `${baseUrl}/track/click/${bidResponseId}?slotId=${slotId}&auctionId=${auctionId}&t=${Date.now()}&url=`,
       ],
     };
   }
@@ -51,7 +52,7 @@ export class AdMarkupService {
 
     // Determine format from creative or context
     const creativeFormat =
-      format || creative.adSlotTemplate?.format || 'BANNER';
+      format || creative.format || 'BANNER';
 
     // Generate markup based on creative type
     switch (creativeFormat) {
@@ -94,11 +95,21 @@ export class AdMarkupService {
     impressionUrl: string,
     clickUrl: string,
   ): string {
+    const finalClickUrl = `${clickUrl}${encodeURIComponent(creative.landingUrl || '')}`;
+    
+    this.logger.debug('Generating banner markup:', {
+      creativeId: creative.id,
+      fileUrl: creative.fileUrl,
+      landingUrl: creative.landingUrl,
+      name: creative.name,
+      finalClickUrl,
+    });
+    
     return `
             <div class="ocean-ad-container" style="width: ${width}px; height: ${height}px; position: relative; overflow: hidden;">
-                <a href="${clickUrl}&url=${encodeURIComponent(creative.landingUrl)}" target="_blank" style="display: block; width: 100%; height: 100%;">
+                <a href="${finalClickUrl}" target="_blank" style="display: block; width: 100%; height: 100%;">
                     <img src="${creative.fileUrl}" 
-                         alt="${creative.name}"
+                         alt="${creative.name || 'Advertisement'}"
                          style="width: 100%; height: 100%; object-fit: cover;" />
                 </a>
                 <img src="${impressionUrl}" style="position: absolute; width: 1px; height: 1px; opacity: 0;" alt="" />
@@ -111,12 +122,14 @@ export class AdMarkupService {
     impressionUrl: string,
     clickUrl: string,
   ): string {
+    const finalClickUrl = `${clickUrl}${encodeURIComponent(creative.landingUrl || '')}`;
+    
     return `
             <div class="ocean-native-ad">
                 <div class="ocean-native-content">
-                    <h3 class="ocean-native-title">${creative.title || creative.name}</h3>
-                    <p class="ocean-native-description">${creative.description || ''}</p>
-                    <a href="${clickUrl}&url=${encodeURIComponent(creative.landingUrl)}" target="_blank" class="ocean-native-cta">
+                    <h3 class="ocean-native-title">${creative.name || 'Advertisement'}</h3>
+                    <p class="ocean-native-description">Learn more about ${creative.name || 'this offer'}</p>
+                    <a href="${finalClickUrl}" target="_blank" class="ocean-native-cta">
                         Learn More
                     </a>
                 </div>
@@ -132,6 +145,8 @@ export class AdMarkupService {
     impressionUrl: string,
     clickUrl: string,
   ): string {
+    const finalClickUrl = `${clickUrl}${encodeURIComponent(creative.landingUrl || '')}`;
+    
     return `
             <div class="ocean-video-ad" style="width: ${width}px; height: ${height}px; position: relative;">
                 <video width="${width}" height="${height}" controls autoplay muted>
@@ -139,7 +154,7 @@ export class AdMarkupService {
                     Your browser does not support the video tag.
                 </video>
                 <div class="ocean-video-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;">
-                    <a href="${clickUrl}&url=${encodeURIComponent(creative.landingUrl)}" target="_blank" 
+                    <a href="${finalClickUrl}" target="_blank" 
                        style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; text-decoration: none; pointer-events: auto;">
                         Learn More
                     </a>
@@ -156,11 +171,13 @@ export class AdMarkupService {
     impressionUrl: string,
     clickUrl: string,
   ): string {
+    const finalClickUrl = `${clickUrl}${encodeURIComponent(creative.landingUrl || '')}`;
+    
     return `
             <div class="ocean-ad" style="width: ${width}px; height: ${height}px;">
-                <a href="${clickUrl}&url=${encodeURIComponent(creative.landingUrl)}" target="_blank">
+                <a href="${finalClickUrl}" target="_blank">
                     <img src="${creative.fileUrl}" 
-                         alt="${creative.name}"
+                         alt="${creative.name || 'Advertisement'}"
                          style="width: 100%; height: 100%;" />
                 </a>
                 <img src="${impressionUrl}" style="display: none;" alt="" />

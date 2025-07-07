@@ -82,7 +82,7 @@ export class BudgetRedisSyncService {
         select: { id: true },
       });
 
-      this.logger.log(
+      this.logger.debug(
         `Syncing ${activeCampaigns.length} active campaigns to Redis`,
       );
 
@@ -101,7 +101,7 @@ export class BudgetRedisSyncService {
         }
       }
 
-      this.logger.log(
+      this.logger.debug(
         `✅ Completed bulk sync of ${activeCampaigns.length} campaigns`,
       );
     } catch (error) {

@@ -601,6 +601,6 @@ Provide enhanced targeting with specific additions/removals and expected impact.
   }
 
   private async saveTargetingAnalysis(campaignId: string, analysis: any) {
-    this.logger.log(`Saving targeting analysis for campaign ${campaignId}`);
+    this.logger.debug(`Saving targeting analysis for campaign ${campaignId}`);
   }
 }

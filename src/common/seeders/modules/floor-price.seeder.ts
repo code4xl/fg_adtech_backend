@@ -20,7 +20,7 @@ export class FloorPriceSeeder implements ISeeder {
   }
 
   async seed(): Promise<void> {
-    this.logger.log('Seeding floor prices...');
+    this.logger.debug('Seeding floor prices...');
 
     try {
       // Get all active ad inventory
@@ -147,7 +147,7 @@ export class FloorPriceSeeder implements ISeeder {
       });
 
       const floorPriceCount = await this.prisma.floorPrice.count();
-      this.logger.log(`Successfully seeded ${floorPriceCount} floor prices`);
+      this.logger.debug(`Successfully seeded ${floorPriceCount} floor prices`);
     } catch (error) {
       this.logger.error('Error seeding floor prices');
       this.logger.error(error);
@@ -156,11 +156,11 @@ export class FloorPriceSeeder implements ISeeder {
   }
 
   async clean(): Promise<void> {
-    this.logger.log('Cleaning floor prices table...');
+    this.logger.debug('Cleaning floor prices table...');
 
     try {
       const deleted = await this.prisma.floorPrice.deleteMany({});
-      this.logger.log(`Deleted ${deleted.count} floor prices`);
+      this.logger.debug(`Deleted ${deleted.count} floor prices`);
     } catch (error) {
       this.logger.error('Error cleaning floor prices table');
       this.logger.error(error);

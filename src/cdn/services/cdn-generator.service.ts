@@ -23,17 +23,17 @@ export class CdnGeneratorService {
     
     if (envPath) {
       this.sdkBuildPath = envPath;
-      this.logger.log(`Using SDK path from environment: ${envPath}`);
+      this.logger.debug(`Using SDK path from environment: ${envPath}`);
     } else {
       // Auto-detect based on platform and existence
       this.sdkBuildPath = this.detectSdkPath();
-      this.logger.log(`Auto-detected SDK path: ${this.sdkBuildPath}`);
+      this.logger.debug(`Auto-detected SDK path: ${this.sdkBuildPath}`);
     }
     
     // Validate SDK path on startup
     this.validateSdkFile().then(result => {
       if (result.isValid) {
-        this.logger.log('✅ SDK file validated successfully');
+        this.logger.debug('✅ SDK file validated successfully');
       } else {
         this.logger.error(`❌ SDK file validation failed: ${result.error}`);
         this.logger.error('🔧 Please check your SDK_BUILD_PATH environment variable');
@@ -61,7 +61,7 @@ export class CdnGeneratorService {
         SDK_CONFIG.DEFAULT_PATHS.DOCKER_FALLBACK,
         SDK_CONFIG.DEFAULT_PATHS.PRODUCTION,
       );
-      this.logger.log('🐳 Docker environment detected, using Docker SDK paths');
+      this.logger.debug('🐳 Docker environment detected, using Docker SDK paths');
     } else {
       // Local environment - use local paths
       paths.push(
@@ -70,7 +70,7 @@ export class CdnGeneratorService {
         SDK_CONFIG.DEFAULT_PATHS.LOCAL_FALLBACK,
         SDK_CONFIG.DEFAULT_PATHS.NPM_PACKAGE,
       );
-      this.logger.log('💻 Local environment detected, using local SDK paths');
+      this.logger.debug('💻 Local environment detected, using local SDK paths');
     }
 
     // For production environments
@@ -80,7 +80,7 @@ export class CdnGeneratorService {
 
     // Return first path (we'll validate it later in the validation method)
     const selectedPath = paths[0];
-    this.logger.log(`🎯 Selected SDK path: ${selectedPath}`);
+    this.logger.debug(`🎯 Selected SDK path: ${selectedPath}`);
     
     return selectedPath;
   }
@@ -93,7 +93,7 @@ export class CdnGeneratorService {
     context: ICdnBuildContext,
   ): Promise<ICdnBuildResult> {
     try {
-      this.logger.log(
+      this.logger.debug(
         `Generating V2 CDN build for publisher ${context.publisherId} with ${Object.keys(config.websites).length} websites`,
       );
 
@@ -111,7 +111,7 @@ export class CdnGeneratorService {
       const integrity = this.generateIntegrity(cdnContent);
       const buildId = config.meta.buildId;
 
-      this.logger.log(`V2 CDN build generated successfully: ${buildId}`);
+      this.logger.debug(`V2 CDN build generated successfully: ${buildId}`);
 
       return {
         success: true,
@@ -167,7 +167,7 @@ export class CdnGeneratorService {
     try {
       // Support both legacy websiteId and new websiteIds
       const websiteId = context.websiteId || (context.websiteIds && context.websiteIds[0]);
-      this.logger.log(
+      this.logger.debug(
         `Generating CDN build for publisher ${context.publisherId}, website ${websiteId}`,
       );
 
@@ -187,7 +187,7 @@ export class CdnGeneratorService {
       // Generate build ID
       const buildId = this.generateBuildId(context);
 
-      this.logger.log(`CDN build generated successfully: ${buildId}`);
+      this.logger.debug(`CDN build generated successfully: ${buildId}`);
 
       return {
         success: true,
@@ -324,7 +324,7 @@ export class CdnGeneratorService {
         throw new Error('Generated content is missing SDK components');
       }
 
-      this.logger.log(`CDN content generated successfully: ${combinedContent.length} bytes`);
+      this.logger.debug(`CDN content generated successfully: ${combinedContent.length} bytes`);
       return combinedContent;
       
     } catch (error) {
@@ -432,7 +432,7 @@ export class CdnGeneratorService {
       // Additional validation of cached content
       try {
         new Function(content);
-        this.logger.log(`SDK content validated and cached successfully: ${content.length} bytes`);
+        this.logger.debug(`SDK content validated and cached successfully: ${content.length} bytes`);
         return content;
       } catch (cacheValidationError) {
         this.logger.error(`❌ SDK content validation failed:`);
@@ -843,7 +843,7 @@ export class CdnGeneratorService {
       baseUrl = this.configService.get<string>('CDN_BASE_URL', CDN_URL_CONFIG.LOCAL.BASE_URL);
       pathPrefix = this.configService.get<string>('CDN_PATH_PREFIX', CDN_URL_CONFIG.LOCAL.PATH_PREFIX);
       
-      this.logger.log(`🔧 Using local CDN URL for development: ${baseUrl}${pathPrefix}`);
+      this.logger.debug(`🔧 Using local CDN URL for development: ${baseUrl}${pathPrefix}`);
     } else {
       // Production configuration
       baseUrl = this.configService.get<string>('CDN_BASE_URL', CDN_URL_CONFIG.PRODUCTION.BASE_URL);
@@ -903,7 +903,7 @@ export class CdnGeneratorService {
           };
         }
 
-        this.logger.log(`SDK validation successful: ${this.sdkBuildPath} (${stats.size} bytes)`);
+        this.logger.debug(`SDK validation successful: ${this.sdkBuildPath} (${stats.size} bytes)`);
         return { isValid: true };
         
       } catch (readError) {
@@ -922,6 +922,6 @@ export class CdnGeneratorService {
    */
   clearSdkCache(): void {
     this.sdkCache.clear();
-    this.logger.log('SDK cache cleared');
+    this.logger.debug('SDK cache cleared');
   }
 }

@@ -20,7 +20,7 @@ export class NotificationSeeder implements ISeeder {
   }
 
   async seed(count: number = 100): Promise<void> {
-    this.logger.log(`Seeding ${count} notifications...`);
+    this.logger.debug(`Seeding ${count} notifications...`);
 
     try {
       // Get all users from different tables
@@ -210,7 +210,7 @@ export class NotificationSeeder implements ISeeder {
       });
 
       const notificationCount = await this.prisma.notification.count();
-      this.logger.log(`Successfully seeded ${notificationCount} notifications`);
+      this.logger.debug(`Successfully seeded ${notificationCount} notifications`);
     } catch (error) {
       this.logger.error('Error seeding notifications');
       this.logger.error(error);
@@ -219,11 +219,11 @@ export class NotificationSeeder implements ISeeder {
   }
 
   async clean(): Promise<void> {
-    this.logger.log('Cleaning notifications table...');
+    this.logger.debug('Cleaning notifications table...');
 
     try {
       const deleted = await this.prisma.notification.deleteMany({});
-      this.logger.log(`Deleted ${deleted.count} notifications`);
+      this.logger.debug(`Deleted ${deleted.count} notifications`);
     } catch (error) {
       this.logger.error('Error cleaning notifications table');
       this.logger.error(error);

@@ -27,7 +27,7 @@ export class AdvertiserSpendingJob {
     const startTime = Date.now();
     const batchId = uuidv4();
 
-    this.logger.log('🚀 Starting daily advertiser spending processing', {
+    this.logger.debug('🚀 Starting daily advertiser spending processing', {
       batchId,
       timestamp: new Date().toISOString(),
     });
@@ -44,7 +44,7 @@ export class AdvertiserSpendingJob {
 
       const processingTime = Date.now() - startTime;
 
-      this.logger.log('✅ Advertiser spending processing completed', {
+      this.logger.debug('✅ Advertiser spending processing completed', {
         batchId,
         spendingRecordsProcessed: spendingCount,
         dailyRecordsProcessed: dailyCount,
@@ -459,7 +459,7 @@ export class AdvertiserSpendingJob {
     const batchId = `manual-${uuidv4()}`;
 
     try {
-      this.logger.log('🔄 Manual advertiser spending processing triggered', {
+      this.logger.debug('🔄 Manual advertiser spending processing triggered', {
         batchId,
       });
 

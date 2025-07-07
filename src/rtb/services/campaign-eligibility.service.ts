@@ -55,7 +55,7 @@ export class CampaignEligibilityService {
 
       const processingTime = Date.now() - startTime;
 
-      this.logger.log('Campaign eligibility calculated (CACHED)', {
+      this.logger.debug('Campaign eligibility calculated (CACHED)', {
         inventoryId,
         totalCampaigns: campaignPool.length,
         // targetingFiltered: targetingFilteredCampaigns.length,

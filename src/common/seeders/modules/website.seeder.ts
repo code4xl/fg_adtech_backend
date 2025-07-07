@@ -19,7 +19,7 @@ export class WebsiteSeeder implements ISeeder {
   }
 
   async seed(count: number = 500): Promise<void> {
-    this.logger.log(`Seeding ${count} websites...`);
+    this.logger.debug(`Seeding ${count} websites...`);
 
     try {
       // Get all publishers to assign websites to
@@ -151,7 +151,7 @@ export class WebsiteSeeder implements ISeeder {
       }
 
       const websiteCount = await this.prisma.website.count();
-      this.logger.log(`Successfully seeded ${websiteCount} websites`);
+      this.logger.debug(`Successfully seeded ${websiteCount} websites`);
     } catch (error) {
       this.logger.error('Error seeding websites');
       this.logger.error(error);
@@ -160,7 +160,7 @@ export class WebsiteSeeder implements ISeeder {
   }
 
   async clean(): Promise<void> {
-    this.logger.log('Cleaning websites table...');
+    this.logger.debug('Cleaning websites table...');
 
     try {
       // Clean related data first to avoid foreign key constraint issues
@@ -168,7 +168,7 @@ export class WebsiteSeeder implements ISeeder {
       await this.prisma.bidRequest.deleteMany({});
 
       const deleted = await this.prisma.website.deleteMany({});
-      this.logger.log(`Deleted ${deleted.count} websites`);
+      this.logger.debug(`Deleted ${deleted.count} websites`);
     } catch (error) {
       this.logger.error('Error cleaning websites table');
       this.logger.error(error);

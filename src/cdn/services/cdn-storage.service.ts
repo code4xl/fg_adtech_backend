@@ -66,9 +66,9 @@ export class CdnStorageService {
       // Initialize S3 client (placeholder - implement with actual AWS SDK)
       // this.s3Client = new S3Client(this.s3Config);
       
-      this.logger.log('CDN Storage initialized with S3');
+      this.logger.debug('CDN Storage initialized with S3');
     } else {
-      this.logger.log(`CDN Storage initialized with local filesystem at ${this.basePath}`);
+      this.logger.debug(`CDN Storage initialized with local filesystem at ${this.basePath}`);
     }
   }
 
@@ -133,7 +133,7 @@ export class CdnStorageService {
       this.logger.warn(`Could not delete metadata for publisher ${publisherId}: ${error.message}`);
     }
 
-    this.logger.log(`✅ Deleted CDN file and metadata for publisher ${publisherId}`);
+    this.logger.debug(`✅ Deleted CDN file and metadata for publisher ${publisherId}`);
   }
 
   /**
@@ -213,9 +213,9 @@ export class CdnStorageService {
     const tempPath = fullPath + '.tmp';
 
     try {
-      this.logger.log(`Attempting to store CDN file: ${filePath}`);
-      this.logger.log(`Full path: ${fullPath}`);
-      this.logger.log(`Directory: ${dir}`);
+      this.logger.debug(`Attempting to store CDN file: ${filePath}`);
+      this.logger.debug(`Full path: ${fullPath}`);
+      this.logger.debug(`Directory: ${dir}`);
       
       // Validate content before writing
       if (!content || content.length === 0) {
@@ -234,13 +234,13 @@ export class CdnStorageService {
       }
 
       // Force create directory structure with maximum permissions
-      this.logger.log(`Creating directory structure: ${dir}`);
+      this.logger.debug(`Creating directory structure: ${dir}`);
       await fs.mkdir(dir, { recursive: true, mode: 0o755 });
       
       // Verify directory was created
       try {
         const dirStats = await fs.stat(dir);
-        this.logger.log(`Directory created successfully: ${dir} (${dirStats.isDirectory()})`);
+        this.logger.debug(`Directory created successfully: ${dir} (${dirStats.isDirectory()})`);
       } catch (dirError) {
         throw new Error(`Failed to verify directory creation: ${dirError.message}`);
       }
@@ -257,7 +257,7 @@ export class CdnStorageService {
         }
       }
 
-      this.logger.log(`Writing content to temporary file: ${tempPath}`);
+      this.logger.debug(`Writing content to temporary file: ${tempPath}`);
       
       // Write to temporary file first (atomic operation) with explicit encoding
       await fs.writeFile(tempPath, content, { 
@@ -267,7 +267,7 @@ export class CdnStorageService {
       });
 
       // Verify the written content
-      this.logger.log(`Verifying written content...`);
+      this.logger.debug(`Verifying written content...`);
       const writtenContent = await fs.readFile(tempPath, 'utf8');
       if (writtenContent.length !== content.length) {
         throw new Error(
@@ -278,7 +278,7 @@ export class CdnStorageService {
       // Verify JavaScript syntax of written file
       try {
         new Function(writtenContent);
-        this.logger.log(`JavaScript syntax validation passed`);
+        this.logger.debug(`JavaScript syntax validation passed`);
       } catch (syntaxError) {
         throw new Error(`Written file has syntax errors: ${syntaxError.message}`);
       }
@@ -286,7 +286,7 @@ export class CdnStorageService {
       // Remove existing file if it exists (for atomic replacement)
       try {
         await fs.unlink(fullPath);
-        this.logger.log(`Removed existing file: ${fullPath}`);
+        this.logger.debug(`Removed existing file: ${fullPath}`);
       } catch (unlinkError) {
         if (unlinkError.code !== 'ENOENT') {
           this.logger.warn(`Could not remove existing file: ${unlinkError.message}`);
@@ -294,12 +294,12 @@ export class CdnStorageService {
       }
 
       // Atomic move to final location
-      this.logger.log(`Moving temporary file to final location: ${fullPath}`);
+      this.logger.debug(`Moving temporary file to final location: ${fullPath}`);
       await fs.rename(tempPath, fullPath);
 
       // Verify final file exists and get stats
       const stats = await fs.stat(fullPath);
-      this.logger.log(`Final verification: File exists with size ${stats.size} bytes`);
+      this.logger.debug(`Final verification: File exists with size ${stats.size} bytes`);
 
       // Double-check we can read the final file
       const finalContent = await fs.readFile(fullPath, 'utf8');
@@ -309,7 +309,7 @@ export class CdnStorageService {
         );
       }
 
-      this.logger.log(`✅ CDN file stored successfully: ${filePath} (${stats.size} bytes)`);
+      this.logger.debug(`✅ CDN file stored successfully: ${filePath} (${stats.size} bytes)`);
 
       return {
         path: filePath,
@@ -329,7 +329,7 @@ export class CdnStorageService {
       // Cleanup temporary file if it exists
       try {
         await fs.unlink(tempPath);
-        this.logger.log(`Cleaned up temporary file: ${tempPath}`);
+        this.logger.debug(`Cleaned up temporary file: ${tempPath}`);
       } catch (cleanupError) {
         this.logger.warn(`Could not cleanup temporary file: ${cleanupError.message}`);
       }

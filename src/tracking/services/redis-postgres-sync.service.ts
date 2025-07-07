@@ -38,7 +38,7 @@ export class RedisPostgresSyncService {
     const batchId = uuidv4();
     const startTime = Date.now();
 
-    this.logger.log('🔄 Starting sequential sync: impressions → clicks', {
+    this.logger.debug('🔄 Starting sequential sync: impressions → clicks', {
       batchId,
     });
 
@@ -50,7 +50,7 @@ export class RedisPostgresSyncService {
       await this.syncClicksOnly();
 
       const processingTime = Date.now() - startTime;
-      this.logger.log('✅ Sequential sync completed', {
+      this.logger.debug('✅ Sequential sync completed', {
         batchId,
         processingTimeMs: processingTime,
       });
@@ -513,7 +513,7 @@ export class RedisPostgresSyncService {
    * Manual sync trigger for testing/recovery
    */
   async triggerManualSync(): Promise<{ impressions: number; clicks: number }> {
-    this.logger.log('🔄 Manual sync triggered');
+    this.logger.debug('🔄 Manual sync triggered');
 
     const impressionsStart = Date.now();
     await this.syncImpressionsOnly();

@@ -36,7 +36,7 @@ export class SSEService {
     private readonly formatter: SSEEventFormatterService,
     private readonly tracker: SSETrackerService,
   ) {
-    this.logger.log('SSE Service initialized');
+    this.logger.debug('SSE Service initialized');
   }
 
   /**
@@ -94,13 +94,13 @@ export class SSEService {
 
       // Subscribe to Redis channel for real-time updates
       const channelKey = SSE_REDIS_KEYS.EVENT_CHANNEL(requestId);
-      this.logger.log('Subscribing to Redis channel', {
+      this.logger.debug('Subscribing to Redis channel', {
         requestId,
         channelKey,
       });
       subscriber = await this.redis.subscribe(channelKey, async (message: string) => {
         try {
-          this.logger.log('📨 Received message on SSE channel', {
+          this.logger.debug('📨 Received message on SSE channel', {
             requestId,
             channelKey,
             messageLength: message.length,
@@ -115,6 +115,10 @@ export class SSEService {
             hasData: !!event.data,
             dataKeys: event.data ? Object.keys(event.data) : [],
           });
+
+          this.logger.debug('Event data', {
+            event,
+          });
           
           // Mark that we've received initial response
           if (!hasReceivedInitialResponse) {
@@ -124,7 +128,7 @@ export class SSEService {
               clearTimeout(timeoutTimer);
               timeoutTimer = setTimeout(async () => {
                 if (!streamClosed) {
-                  this.logger.error(`Extended timeout reached for ${requestId} after ${SSE_CONFIG.MAX_PROCESSING_TIME}ms`);
+                  this.logger.debug(`Extended timeout reached for ${requestId} after ${SSE_CONFIG.MAX_PROCESSING_TIME}ms`);
                   await this.sendTimeoutEvent(requestId, res, SSE_CONFIG.MAX_PROCESSING_TIME);
                   this.closeStream(res);
                 }
@@ -143,7 +147,7 @@ export class SSEService {
 
           // Close stream if complete or error
           if (event.type === SSE_EVENTS.BID_COMPLETE || event.type === SSE_EVENTS.ERROR) {
-            this.logger.log(`Closing stream for ${requestId} - Event: ${event.type}`);
+            this.logger.debug(`Closing stream for ${requestId} - Event: ${event.type}`);
             this.closeStream(res);
           }
 
@@ -174,7 +178,7 @@ export class SSEService {
       // Cleanup function
       res.on('close', async () => {
         streamClosed = true;
-        this.logger.log(`Client disconnected from SSE stream: ${requestId}`);
+        this.logger.debug(`Client disconnected from SSE stream: ${requestId}`);
         
         // Clear timers
         if (timeoutTimer) clearTimeout(timeoutTimer);

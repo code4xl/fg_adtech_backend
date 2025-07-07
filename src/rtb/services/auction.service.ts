@@ -374,7 +374,7 @@ export class AuctionService {
     winningBid.processedAt = new Date();
 
     if (winningBid) {
-      this.logger.log('Auction win recorded successfully', {
+      this.logger.debug('Auction win recorded successfully', {
         campaignId: winningBid.campaignId,
       });
     }

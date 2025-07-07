@@ -22,7 +22,7 @@ export class SelectorGeneratorService {
       useCustomSelectors?: boolean;
     },
   ): IInventoryConfig[] {
-    this.logger.log(`Generating selectors for ${inventory.length} inventory items on ${websiteDomain}`);
+    this.logger.debug(`Generating selectors for ${inventory.length} inventory items on ${websiteDomain}`);
 
     const positionCounts = new Map<string, number>();
     const inventoryWithSelectors: IInventoryConfig[] = [];
@@ -48,7 +48,7 @@ export class SelectorGeneratorService {
       });
     }
 
-    this.logger.log(`Generated selectors for ${inventoryWithSelectors.length} items`);
+    this.logger.debug(`Generated selectors for ${inventoryWithSelectors.length} items`);
     return inventoryWithSelectors;
   }
 

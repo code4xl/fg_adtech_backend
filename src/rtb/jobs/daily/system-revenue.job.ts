@@ -27,7 +27,7 @@ export class SystemRevenueJob {
     const startTime = Date.now();
     const batchId = uuidv4();
 
-    this.logger.log('🚀 Starting daily system revenue processing', {
+    this.logger.debug('🚀 Starting daily system revenue processing', {
       batchId,
       timestamp: new Date().toISOString(),
     });
@@ -44,7 +44,7 @@ export class SystemRevenueJob {
 
       const processingTime = Date.now() - startTime;
 
-      this.logger.log('✅ System revenue processing completed', {
+      this.logger.debug('✅ System revenue processing completed', {
         batchId,
         revenueRecordsProcessed: revenueCount,
         dailyRecordsProcessed: dailyCount,
@@ -244,7 +244,7 @@ export class SystemRevenueJob {
       // Clean up processed Redis key
       await this.redis.del(systemDailyKey);
 
-      this.logger.log('Daily system revenue synced', {
+      this.logger.debug('Daily system revenue synced', {
         date: dateStr,
         totalImpressions,
         totalClicks,
@@ -558,7 +558,7 @@ export class SystemRevenueJob {
     const batchId = `manual-${uuidv4()}`;
 
     try {
-      this.logger.log('🔄 Manual system revenue processing triggered', {
+      this.logger.debug('🔄 Manual system revenue processing triggered', {
         batchId,
       });
 

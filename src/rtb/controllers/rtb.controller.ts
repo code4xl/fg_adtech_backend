@@ -41,7 +41,7 @@ export class RTBController {
         private readonly configService: ConfigService,  
         private readonly sseTracker: SSETrackerService, 
     ) {
-        this.logger.log('RTB Controller initialized - Phase 3 Complete');
+        this.logger.debug('RTB Controller initialized - Phase 3 Complete');
     }
 
     @Post('bid-request')
@@ -136,13 +136,13 @@ export class RTBController {
                     }
                 });
 
-                this.logger.log('SSE enabled for bid request', {
+                this.logger.debug('SSE enabled for bid request', {
                     requestId: result.requestId,
                     sseUrl: response.sseUrl,
                 });
             }
 
-            this.logger.log('Bid request processed successfully', {
+            this.logger.debug('Bid request processed successfully', {
                 requestId: result.requestId,
                 inventoryId: bidRequestDto.inventoryId,
                 sseEnabled,
@@ -227,7 +227,7 @@ export class RTBController {
             }
 
             // Return successful auction result
-            this.logger.log('Bid response returned successfully', {
+            this.logger.debug('Bid response returned successfully', {
                 requestId,
                 hasWinner: !!bidResponse.winningBid,
             });

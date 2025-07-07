@@ -46,7 +46,7 @@ export class SSETrackerService {
   private readonly logger = new Logger(SSETrackerService.name);
 
   constructor(private readonly redis: RedisService) {
-    this.logger.log('SSE Tracker Service initialized');
+    this.logger.debug('SSE Tracker Service initialized');
   }
 
   /**

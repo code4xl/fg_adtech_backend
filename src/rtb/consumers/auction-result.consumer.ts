@@ -28,7 +28,7 @@ export class AuctionResultKafkaConsumer implements OnModuleInit {
     private readonly auctionProducer: AuctionProducer,
     private readonly rtbHelper: RtbHelper,
   ) {
-    this.logger.log('Auction Completion Consumer initialized');
+    this.logger.debug('Auction Completion Consumer initialized');
   }
 
   async onModuleInit() {
@@ -130,7 +130,7 @@ export class AuctionResultKafkaConsumer implements OnModuleInit {
         );
       }
 
-      this.logger.log('✅ Bid responses generated', {
+      this.logger.debug('✅ Bid responses generated', {
         responseCount: bidResponses.length,
         auctionType,
         auctionId: auctionResult.auctionId,
@@ -153,7 +153,7 @@ export class AuctionResultKafkaConsumer implements OnModuleInit {
 
       const processingTime = Date.now() - startTime;
 
-      this.logger.log('✅ Auction result processed', {
+      this.logger.debug('✅ Auction result processed', {
         auctionId: auctionResult.auctionId,
         auctionType,
         processingTime: `${processingTime}ms`,
@@ -266,6 +266,8 @@ export class AuctionResultKafkaConsumer implements OnModuleInit {
               campaignId: response.winningBid.campaignId,
               creativeId: response.winningBid.creativeId,
               hasAdMarkup: !!response.winningBid.adMarkup,
+              adMarkupLength: response.winningBid.adMarkup?.length,
+              adMarkupPreview: response.winningBid.adMarkup?.substring(0, 200),
               adSlotWidth: auctionResult.originalBidRequest.adSlotContext?.width,
               adSlotHeight: auctionResult.originalBidRequest.adSlotContext?.height,
             });
@@ -282,7 +284,7 @@ export class AuctionResultKafkaConsumer implements OnModuleInit {
               },
               creative: {
                 type: 'banner' as const,
-                markup: response.winningBid.adMarkup || '<div style="width:100%;height:100%;background:#007bff;color:white;display:flex;align-items:center;justify-content:center;font-size:24px;">Ocean Ads</div>',
+                markup: response.winningBid.adMarkup,
                 width: auctionResult.originalBidRequest.adSlotContext?.width || 300,
                 height: auctionResult.originalBidRequest.adSlotContext?.height || 250,
                 trackers: {
@@ -330,7 +332,7 @@ export class AuctionResultKafkaConsumer implements OnModuleInit {
       // Publish to Redis SSE channel
       const channelKey = SSE_REDIS_KEYS.EVENT_CHANNEL(requestId);
       
-      this.logger.log('🚀 Publishing auction result to SSE channel', {
+      this.logger.debug('🚀 Publishing auction result to SSE channel', {
         requestId,
         channelKey,
         auctionId: auctionResult.auctionId,
@@ -343,7 +345,7 @@ export class AuctionResultKafkaConsumer implements OnModuleInit {
       
       await this.redis.publish(channelKey, JSON.stringify(sseEvent));
       
-      this.logger.log('✅ Successfully published to SSE channel', {
+      this.logger.debug('✅ Successfully published to SSE channel', {
         requestId,
         channelKey,
         eventSent: true,

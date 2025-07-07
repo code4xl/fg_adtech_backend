@@ -277,7 +277,7 @@ export default class AuctionProducer {
         },
       });
 
-      this.logger.log('Budget warning sent', {
+      this.logger.debug('Budget warning sent', {
         campaignId,
         remainingBudget,
       });

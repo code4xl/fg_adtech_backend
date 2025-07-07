@@ -36,20 +36,20 @@ export class RedisIoAdapter extends IoAdapter {
         await Promise.all([
             new Promise<void>((resolve) => {
                 pubClient.on('ready', () => {
-                    this.logger.log('Redis PubClient ready');
+                    this.logger.debug('Redis PubClient ready');
                     resolve();
                 });
             }),
             new Promise<void>((resolve) => {
                 subClient.on('ready', () => {
-                    this.logger.log('Redis SubClient ready');
+                    this.logger.debug('Redis SubClient ready');
                     resolve();
                 });
             }),
         ]);
 
         this.adapterConstructor = createAdapter(pubClient, subClient);
-        this.logger.log('Redis adapter created successfully');
+        this.logger.debug('Redis adapter created successfully');
     }
 
     createIOServer(port: number, options?: ServerOptions): any {
@@ -57,7 +57,7 @@ export class RedisIoAdapter extends IoAdapter {
 
         if (this.adapterConstructor) {
             server.adapter(this.adapterConstructor);
-            this.logger.log('Redis adapter applied to Socket.IO server');
+            this.logger.debug('Redis adapter applied to Socket.IO server');
         } else {
             this.logger.warn('Redis adapter not available, using default adapter');
         }

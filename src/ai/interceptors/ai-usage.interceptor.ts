@@ -25,7 +25,7 @@ import {
           response.setHeader('X-AI-Processing-Time', processingTime.toString());
           response.setHeader('X-AI-Requests-Remaining', remainingRequests.toString());
           
-          this.logger.log(
+          this.logger.debug(
             `AI Request - User: ${request.user?.id} | ` +
             `Endpoint: ${request.url} | ` +
             `Processing Time: ${processingTime}ms | ` +

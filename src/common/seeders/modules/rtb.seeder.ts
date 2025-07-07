@@ -20,7 +20,7 @@
 //   }
 
 //   async seed(count: number = 20): Promise<void> {
-//     this.logger.log(`Seeding ${count} RTB records...`);
+//     this.logger.debug(`Seeding ${count} RTB records...`);
 
 //     try {
 //       // Get required entities
@@ -270,7 +270,7 @@
 //       const bidResponseCount = await this.prisma.bidResponse.count();
 //       const auctionLogCount = await this.prisma.auctionLog.count();
 
-//       this.logger.log(
+//       this.logger.debug(
 //         `Successfully seeded ${bidRequestCount} bid requests, ${bidResponseCount} bid responses, and ${auctionLogCount} auction logs`,
 //       );
 //     } catch (error) {
@@ -281,7 +281,7 @@
 //   }
 
 //   async clean(): Promise<void> {
-//     this.logger.log('Cleaning RTB tables...');
+//     this.logger.debug('Cleaning RTB tables...');
 
 //     try {
 //       // Clean in proper order to respect foreign key constraints
@@ -289,7 +289,7 @@
 //       await this.prisma.bidResponse.deleteMany({});
 //       await this.prisma.bidRequest.deleteMany({});
 
-//       this.logger.log('RTB tables cleaned successfully');
+//       this.logger.debug('RTB tables cleaned successfully');
 //     } catch (error) {
 //       this.logger.error('Error cleaning RTB tables');
 //       this.logger.error(error);

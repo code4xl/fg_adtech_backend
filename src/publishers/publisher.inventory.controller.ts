@@ -200,7 +200,7 @@ export class PublisherInventoryController {
         },
       });
 
-      this.logger.log(
+      this.logger.debug(
         `CDN regeneration triggered for publisher ${publisherId}, website ${websiteId} - Reason: ${reason}`,
       );
 

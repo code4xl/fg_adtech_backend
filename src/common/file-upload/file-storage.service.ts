@@ -20,7 +20,7 @@ export class FileStorageService {
             this.ensureDirectoryExists(path.dirname(fullPath));
 
             await fs.promises.writeFile(fullPath, fileBuffer);
-            this.logger.log(`File saved: ${filePath}`);
+            this.logger.debug(`File saved: ${filePath}`);
             return filePath;
         } catch (error) {
             this.logger.error(`Error saving file ${filePath}:`, error);
@@ -43,7 +43,7 @@ export class FileStorageService {
             const fullPath = path.join(this.basePath, filePath);
             if (fs.existsSync(fullPath)) {
                 await fs.promises.unlink(fullPath);
-                this.logger.log(`File deleted: ${filePath}`);
+                this.logger.debug(`File deleted: ${filePath}`);
                 return true;
             }
             return false;
@@ -57,7 +57,7 @@ export class FileStorageService {
     private ensureDirectoryExists(directoryPath: string): void {
         if (!fs.existsSync(directoryPath)) {
             fs.mkdirSync(directoryPath, { recursive: true });
-            this.logger.log(`Created directory: ${directoryPath}`);
+            this.logger.debug(`Created directory: ${directoryPath}`);
         }
     }
 

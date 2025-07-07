@@ -50,13 +50,13 @@ export class TrackingModule {
   ) {}
   async onModuleInit() {
     try {
-      this.logger.log('🚀 Starting application initialization...');
+      this.logger.debug('🚀 Starting application initialization...');
 
       // Sync all campaign budgets to Redis on startup
       await this.budgetRedisSyncService.syncAllActiveCampaigns();
       await this.budgetManagerService.syncPublisherRevenueTiers();
 
-      this.logger.log('✅ Application initialization completed');
+      this.logger.debug('✅ Application initialization completed');
     } catch (error) {
       this.logger.error('❌ Application initialization failed:', error);
       // Don't throw - let app start but log the error

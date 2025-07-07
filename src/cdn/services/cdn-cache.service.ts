@@ -23,7 +23,7 @@ export class CdnCacheService {
     this.cacheEnabled = this.configService.get<boolean>('CDN_CACHE_ENABLED', true);
     this.keyPrefix = CDN_CACHE_KEYS.PREFIX;
 
-    this.logger.log(
+    this.logger.debug(
       `CDN Cache initialized: ${this.cacheEnabled ? 'enabled' : 'disabled'}, TTL: ${this.cacheTTL}s`,
     );
   }
@@ -166,11 +166,11 @@ export class CdnCacheService {
       if (websiteId) {
         const key = this.buildConfigKey(publisherId, websiteId);
         await this.redis.del(key);
-        this.logger.log(`Invalidated configuration cache for ${key}`);
+        this.logger.debug(`Invalidated configuration cache for ${key}`);
       } else {
         // For bulk invalidation, we'll use a simple approach
         // In a production environment, you might want to implement a more efficient pattern-based deletion
-        this.logger.log(`Invalidated configuration caches for publisher ${publisherId}`);
+        this.logger.debug(`Invalidated configuration caches for publisher ${publisherId}`);
       }
 
       await this.trackInvalidation(publisherId, websiteId);
@@ -190,7 +190,7 @@ export class CdnCacheService {
     try {
       await this.redis.del(key);
       await this.redis.del(`${key}:metadata`);
-      this.logger.log(`Invalidated build cache for ${key}`);
+      this.logger.debug(`Invalidated build cache for ${key}`);
       
       await this.trackInvalidation(publisherId);
     } catch (error) {
@@ -211,7 +211,7 @@ export class CdnCacheService {
       // Invalidate builds
       await this.invalidateBuild(publisherId);
       
-      this.logger.log(`Invalidated all caches for publisher ${publisherId}`);
+      this.logger.debug(`Invalidated all caches for publisher ${publisherId}`);
     } catch (error) {
       this.logger.error(`Failed to invalidate all caches: ${error.message}`);
     }
@@ -234,7 +234,7 @@ export class CdnCacheService {
 
     try {
       await Promise.all(promises);
-      this.logger.log(`Warmed cache for publisher ${publisherId} with ${configs.size} configurations`);
+      this.logger.debug(`Warmed cache for publisher ${publisherId} with ${configs.size} configurations`);
     } catch (error) {
       this.logger.error(`Failed to warm cache: ${error.message}`);
     }
@@ -300,7 +300,7 @@ export class CdnCacheService {
     try {
       // Since we don't have keys() method, we'll use reset() to clear all cache
       await this.redis.reset();
-      this.logger.log(`Cleared all CDN cache entries`);
+      this.logger.debug(`Cleared all CDN cache entries`);
     } catch (error) {
       this.logger.error(`Failed to clear all caches: ${error.message}`);
     }

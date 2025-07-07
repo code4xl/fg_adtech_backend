@@ -28,7 +28,7 @@ export class CdnRegenerationConsumer {
   async handleCdnRegeneration(
     @Payload() data: CdnRegenerationEvent,
   ): Promise<void> {
-    this.logger.log(
+    this.logger.debug(
       `Processing CDN regeneration request: ${JSON.stringify(data)}`,
     );
 
@@ -44,7 +44,7 @@ export class CdnRegenerationConsumer {
           true, // regenerate = true
         );
 
-        this.logger.log(
+        this.logger.debug(
           `CDN regeneration completed successfully for ${data.publisherId}/${data.websiteId}`,
         );
         

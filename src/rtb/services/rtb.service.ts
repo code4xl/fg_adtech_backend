@@ -111,7 +111,7 @@ export class RtbService {
         processingTime,
       );
 
-      this.logger.log('Bid request processed successfully', {
+      this.logger.debug('Bid request processed successfully', {
         requestId,
         auctionId,
         processingTime: `${processingTime}ms`,

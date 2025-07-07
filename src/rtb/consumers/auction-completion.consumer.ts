@@ -26,7 +26,7 @@ export class AuctionCompletionKafkaConsumer implements OnModuleInit {
             // Add delay to ensure Kafka is fully ready
             await new Promise(resolve => setTimeout(resolve, 7000));
             
-            this.logger.log('🚀 Initializing Auction Completion Kafka Consumer...');
+            this.logger.debug('🚀 Initializing Auction Completion Kafka Consumer...');
             
             await this.kafka.subscribe(
                 kafkaTopics.AUCTION_COMPLETION,
@@ -34,7 +34,7 @@ export class AuctionCompletionKafkaConsumer implements OnModuleInit {
                 this.processAuctionCompletion.bind(this),
             );
 
-            this.logger.log('✅ Auction Completion Kafka Consumer initialized successfully');
+            this.logger.debug('✅ Auction Completion Kafka Consumer initialized successfully');
         } catch (error) {
             this.logger.error('❌ Failed to initialize Auction Completion Kafka Consumer', {
                 error: error.message,
@@ -65,7 +65,7 @@ export class AuctionCompletionKafkaConsumer implements OnModuleInit {
             // await this.auctionProcessor.processAuctionCompletion(auctionData);
 
             const processingTime = Date.now() - startTime;
-            this.logger.log('✅ Auction completion processed', {
+            this.logger.debug('✅ Auction completion processed', {
                 auctionId: auctionData.auctionId,
                 processingTime: `${processingTime}ms`,
                 hasWinner: !!auctionData.winner,

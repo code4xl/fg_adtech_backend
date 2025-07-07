@@ -74,7 +74,7 @@ export class GeneratePublisherCdnDto {
       @Param('websiteId') websiteId: string,
       @Query('includeDebug') includeDebug?: boolean,
     ): Promise<PublisherSdkConfigDto> {
-      this.logger.log(`Preview SDK config for publisher ${publisherId}, website ${websiteId}`);
+      this.logger.debug(`Preview SDK config for publisher ${publisherId}, website ${websiteId}`);
   
       try {
         const config = await this.configBuilder.buildConfiguration(publisherId, websiteId, {
@@ -122,7 +122,7 @@ export class GeneratePublisherCdnDto {
       @Param('publisherId') publisherId: string,
       @Param('websiteId') websiteId: string,
     ): Promise<any> {
-      this.logger.log(`Debug check for publisher ${publisherId}, website ${websiteId}`);
+      this.logger.debug(`Debug check for publisher ${publisherId}, website ${websiteId}`);
   
       try {
         // Check if publisher exists
@@ -204,7 +204,7 @@ export class GeneratePublisherCdnDto {
       @Param('websiteId') websiteId: string,
       @Body() dto: Partial<GenerateCdnDto>,
     ): Promise<CdnBuildResponseDto> {
-      this.logger.log(`Generate CDN for publisher ${publisherId}, website ${websiteId}`);
+      this.logger.debug(`Generate CDN for publisher ${publisherId}, website ${websiteId}`);
   
       // Ensure dto is not undefined by providing default empty object
       const requestDto = dto || {};
@@ -268,7 +268,7 @@ export class GeneratePublisherCdnDto {
       @Param('publisherId') publisherId: string,
       @Body() dto: { environment?: BuildEnvironment; includeDebug?: boolean },
     ): Promise<{ websiteId: string; result: CdnBuildResponseDto }[]> {
-      this.logger.log(`Regenerate all CDN for publisher ${publisherId}`);
+      this.logger.debug(`Regenerate all CDN for publisher ${publisherId}`);
   
       try {
         const results = await this.cdnOrchestrator.regenerateAllPublisherCdn(
@@ -320,7 +320,7 @@ export class GeneratePublisherCdnDto {
       @Param('publisherId') publisherId: string,
       @Query('websiteId') websiteId?: string,
     ): Promise<CdnStatusDto> {
-      this.logger.log(`Get CDN status for publisher ${publisherId}`);
+      this.logger.debug(`Get CDN status for publisher ${publisherId}`);
   
       try {
         const status = await this.cdnOrchestrator.getCdnStatus(publisherId, websiteId);
@@ -361,7 +361,7 @@ export class GeneratePublisherCdnDto {
       @Param('publisherId') publisherId: string,
       @Body() dto: InvalidateCdnDto,
     ): Promise<{ message: string }> {
-      this.logger.log(`Invalidate CDN for publisher ${publisherId}`);
+      this.logger.debug(`Invalidate CDN for publisher ${publisherId}`);
   
       try {
         await this.cdnOrchestrator.invalidateAndRegenerate(
@@ -411,7 +411,7 @@ export class GeneratePublisherCdnDto {
       @Query('env') environment: string,
       @Res() res: Response,
     ): Promise<void> {
-      this.logger.log(`Serve CDN for publisher ${publisherId}`);
+      this.logger.debug(`Serve CDN for publisher ${publisherId}`);
 
       try {
         const content = await this.cdnOrchestrator.serveCdnContent(
@@ -483,7 +483,7 @@ export class GeneratePublisherCdnDto {
         // Send content
         res.status(200).send(content.content);
         
-        this.logger.log(`CDN served successfully for publisher ${publisherId} (${content.content.length} bytes)`);
+        this.logger.debug(`CDN served successfully for publisher ${publisherId} (${content.content.length} bytes)`);
         
       } catch (error) {
         this.logger.error(`Failed to serve CDN: ${error.message}`);
@@ -509,7 +509,7 @@ export class GeneratePublisherCdnDto {
     @UseGuards(AuthGuard('jwt'), RoleGuard)
     @Roles('PUBLISHER', 'ADMIN')
     async getCacheStats(): Promise<any> {
-      this.logger.log('Get CDN cache statistics');
+      this.logger.debug('Get CDN cache statistics');
   
       try {
         return await this.cdnCache.getCacheStats();
@@ -533,7 +533,7 @@ export class GeneratePublisherCdnDto {
     @UseGuards(AuthGuard('jwt'), RoleGuard)
     @Roles('PUBLISHER', 'ADMIN')
     async clearCache(): Promise<{ message: string }> {
-      this.logger.log('Clear all CDN caches');
+      this.logger.debug('Clear all CDN caches');
   
       try {
         await this.cdnCache.clearAll();
@@ -562,7 +562,7 @@ export class GeneratePublisherCdnDto {
       @Param('websiteId') websiteId: string,
       @Body() dto: Partial<GenerateCdnDto>,
     ): Promise<CdnBuildResponseDto> {
-      this.logger.log(`Force regenerating CDN for publisher ${publisherId}, website ${websiteId}`);
+      this.logger.debug(`Force regenerating CDN for publisher ${publisherId}, website ${websiteId}`);
 
       try {
         const result = await this.cdnOrchestrator.forceRegenerateCdn(
@@ -627,7 +627,7 @@ export class GeneratePublisherCdnDto {
         cleanupDatabase?: boolean; 
       },
     ): Promise<{ message: string }> {
-      this.logger.log(`CDN cleanup for publisher ${publisherId}`);
+      this.logger.debug(`CDN cleanup for publisher ${publisherId}`);
 
       try {
         await this.cdnOrchestrator.cleanupCdn(publisherId, {
@@ -659,7 +659,7 @@ export class GeneratePublisherCdnDto {
     @UseGuards(AuthGuard('jwt'), RoleGuard)
     @Roles('PUBLISHER', 'ADMIN')
     async clearSdkCache(): Promise<{ message: string }> {
-      this.logger.log('Clearing SDK cache');
+      this.logger.debug('Clearing SDK cache');
       
       try {
         this.cdnOrchestrator.clearSdkCache();
@@ -689,7 +689,7 @@ export class GeneratePublisherCdnDto {
       @Param('publisherId') publisherId: string,
       @Body() dto: GeneratePublisherCdnDto,
     ): Promise<CdnBuildResponseDto> {
-      this.logger.log(`V2 CDN generation request for publisher ${publisherId}`);
+      this.logger.debug(`V2 CDN generation request for publisher ${publisherId}`);
 
       try {
         const result = await this.cdnOrchestrator.generatePublisherCdn(
@@ -748,7 +748,7 @@ export class GeneratePublisherCdnDto {
       @Param('websiteId') websiteId: string,
       @Body() dto: { environment?: BuildEnvironment; includeDebug?: boolean },
     ): Promise<CdnBuildResponseDto> {
-      this.logger.log(
+      this.logger.debug(
         `Adding website ${websiteId} to publisher ${publisherId} CDN`,
       );
 
@@ -810,7 +810,7 @@ export class GeneratePublisherCdnDto {
       @Param('websiteId') websiteId: string,
       @Body() dto: { environment?: BuildEnvironment; includeDebug?: boolean },
     ): Promise<CdnBuildResponseDto> {
-      this.logger.log(
+      this.logger.debug(
         `Removing website ${websiteId} from publisher ${publisherId} CDN`,
       );
 
@@ -874,7 +874,7 @@ export class GeneratePublisherCdnDto {
       @Query('includeDebug') includeDebug?: boolean,
       @Query('websiteIds') websiteIds?: string,
     ): Promise<any> {
-      this.logger.log(`V2 config preview for publisher ${publisherId}`);
+      this.logger.debug(`V2 config preview for publisher ${publisherId}`);
 
       try {
         const websiteIdArray = websiteIds
@@ -934,7 +934,7 @@ export class GeneratePublisherCdnDto {
       @Param('publisherId') publisherId: string,
       @Body() dto: { websiteId: string; generateCdn?: boolean },
     ): Promise<any> {
-      this.logger.log(
+      this.logger.debug(
         `Migrating publisher ${publisherId} from V1 to V2 configuration`,
       );
 

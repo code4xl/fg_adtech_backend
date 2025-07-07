@@ -60,7 +60,7 @@ export class S3StorageService {
             });
 
             await this.s3Client.send(command);
-            this.logger.log(`File uploaded successfully to S3: ${key}`);
+            this.logger.debug(`File uploaded successfully to S3: ${key}`);
             return key;
         } catch (error) {
             this.logger.error(`Error uploading file to S3: ${error.message}`, error.stack);
@@ -81,7 +81,7 @@ export class S3StorageService {
             });
 
             await this.s3Client.send(command);
-            this.logger.log(`File deleted successfully from S3: ${key}`);
+            this.logger.debug(`File deleted successfully from S3: ${key}`);
             return true;
         } catch (error) {
             this.logger.error(`Error deleting file from S3: ${error.message}`, error.stack);
@@ -136,7 +136,7 @@ export class S3StorageService {
                 expiresIn
             });
 
-            this.logger.log(`Pre-signed URL generated for: ${key}`);
+            this.logger.debug(`Pre-signed URL generated for: ${key}`);
             return presignedUrl;
         } catch (error) {
             this.logger.error(`Error generating pre-signed URL: ${error.message}`, error.stack);
@@ -159,7 +159,7 @@ export class S3StorageService {
             });
 
             await this.s3Client.send(command);
-            this.logger.log(`File copied successfully from ${sourceKey} to ${destinationKey}`);
+            this.logger.debug(`File copied successfully from ${sourceKey} to ${destinationKey}`);
             return true;
         } catch (error) {
             this.logger.error(`Error copying file in S3: ${error.message}`, error.stack);
@@ -191,7 +191,7 @@ export class S3StorageService {
             });
 
             await this.s3Client.send(command);
-            this.logger.log(`Campaign folder created successfully: ${folderKey}`);
+            this.logger.debug(`Campaign folder created successfully: ${folderKey}`);
             return true;
         } catch (error) {
             this.logger.error(`Error creating campaign folder: ${error.message}`, error.stack);
@@ -243,7 +243,7 @@ export class S3StorageService {
             // Upload the file
             await this.uploadFile(fileBuffer, s3Key, contentType);
 
-            this.logger.log(`Creative uploaded successfully: ${s3Key}`);
+            this.logger.debug(`Creative uploaded successfully: ${s3Key}`);
             return s3Key;
         } catch (error) {
             this.logger.error(`Error uploading creative: ${error.message}`, error.stack);
@@ -261,7 +261,7 @@ export class S3StorageService {
             const deleted = await this.deleteFile(s3Key);
 
             if (deleted) {
-                this.logger.log(`Creative file deleted successfully: ${s3Key}`);
+                this.logger.debug(`Creative file deleted successfully: ${s3Key}`);
             }
 
             return deleted;
@@ -291,7 +291,7 @@ export class S3StorageService {
             const response = await this.s3Client.send(listCommand);
 
             if (!response.Contents || response.Contents.length === 0) {
-                this.logger.log(`No objects found in campaign folder: ${prefix}`);
+                this.logger.debug(`No objects found in campaign folder: ${prefix}`);
                 return true;
             }
 
@@ -308,7 +308,7 @@ export class S3StorageService {
                 await this.s3Client.send(deleteCommand);
             }
 
-            this.logger.log(`Campaign folder deleted successfully: ${prefix}`);
+            this.logger.debug(`Campaign folder deleted successfully: ${prefix}`);
             return true;
         } catch (error) {
             this.logger.error(`Error deleting campaign folder: ${error.message}`, error.stack);
@@ -380,7 +380,7 @@ export class S3StorageService {
             const response = await this.s3Client.send(listCommand);
 
             if (!response.Contents || response.Contents.length === 0) {
-                this.logger.log(`No objects found in campaign folder to move: ${sourcePrefix}`);
+                this.logger.debug(`No objects found in campaign folder to move: ${sourcePrefix}`);
                 return true;
             }
 
@@ -397,7 +397,7 @@ export class S3StorageService {
                 await this.deleteFile(sourceKey);
             }
 
-            this.logger.log(`Campaign folder renamed successfully from ${sourcePrefix} to ${destPrefix}`);
+            this.logger.debug(`Campaign folder renamed successfully from ${sourcePrefix} to ${destPrefix}`);
             return true;
         } catch (error) {
             this.logger.error(`Error renaming campaign folder: ${error.message}`, error.stack);

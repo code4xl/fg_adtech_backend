@@ -47,7 +47,7 @@ export class LocalPublisherStrategy extends PassportStrategy(
   }
 
   async validate(email: string, password: string): Promise<any> {
-    // this.logger.log(
+    // this.logger.debug(
     //   `Validating publisher with email: ${email} and password: ${password}`,
     // );
     const user = await this.authService.validateUser(

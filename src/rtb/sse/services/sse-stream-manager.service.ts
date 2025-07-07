@@ -24,7 +24,7 @@ export class SSEStreamManagerService implements OnModuleDestroy {
   private monitoringInterval: NodeJS.Timeout | null = null;
 
   constructor() {
-    this.logger.log('SSE Stream Manager initialized');
+    this.logger.debug('SSE Stream Manager initialized');
     this.startMonitoring();
   }
 
@@ -198,7 +198,7 @@ export class SSEStreamManagerService implements OnModuleDestroy {
     // Log statistics
     const stats = this.getStreamStats();
     if (stats.total > 0) {
-      this.logger.log('Stream health check', stats);
+      this.logger.debug('Stream health check', stats);
     }
   }
 
@@ -221,7 +221,7 @@ export class SSEStreamManagerService implements OnModuleDestroy {
    * Clean up on module destroy
    */
   async onModuleDestroy(): Promise<void> {
-    this.logger.log('Shutting down SSE Stream Manager');
+    this.logger.debug('Shutting down SSE Stream Manager');
     
     // Stop monitoring
     if (this.monitoringInterval) {
@@ -232,7 +232,7 @@ export class SSEStreamManagerService implements OnModuleDestroy {
     const activeStreams = Array.from(this.streams.entries())
       .filter(([_, stream]) => stream.status === 'active');
     
-    this.logger.log(`Closing ${activeStreams.length} active streams`);
+    this.logger.debug(`Closing ${activeStreams.length} active streams`);
     
     for (const [key, stream] of activeStreams) {
       try {
@@ -246,6 +246,6 @@ export class SSEStreamManagerService implements OnModuleDestroy {
       }
     }
     
-    this.logger.log('SSE Stream Manager shutdown complete');
+    this.logger.debug('SSE Stream Manager shutdown complete');
   }
 }

@@ -101,7 +101,7 @@ export class BidRequestProcessor {
 
       const processingTime = Date.now() - startTime;
 
-      this.logger.log('✅ Bid request processed successfully', {
+      this.logger.debug('✅ Bid request processed successfully', {
         auctionId: bidRequest.auctionId,
         winnerId: auctionResult.winner?.id,
         finalPrice: auctionResult.finalPrice,
@@ -204,7 +204,7 @@ export class BidRequestProcessor {
   ): Promise<HandleNoBidsResult> {
     const processingTime = Date.now() - startTime;
 
-    this.logger.log('Auction completed with no bids', {
+    this.logger.debug('Auction completed with no bids', {
       auctionId,
       requestId: bidRequest.id,
       processingTime: `${processingTime}ms`,

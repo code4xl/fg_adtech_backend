@@ -16,7 +16,7 @@
 //     private readonly timescaleDb: TimescaleDBConnection,
 //     private readonly kafka: KafkaService,
 //   ) {
-//     this.logger.log('TimescaleDB Service initialized - Phase 6');
+//     this.logger.debug('TimescaleDB Service initialized - Phase 6');
 //   }
 
 //   /**
@@ -110,7 +110,7 @@
 //       });
 
 //       const processingTime = Date.now() - startTime;
-//       this.logger.log(
+//       this.logger.debug(
 //         `✅ Successfully wrote ${processedCount} impressions to TimescaleDB in ${processingTime}ms`,
 //       );
 
@@ -200,7 +200,7 @@
 //       });
 
 //       const processingTime = Date.now() - startTime;
-//       this.logger.log(
+//       this.logger.debug(
 //         `✅ Successfully wrote ${processedCount} clicks to TimescaleDB in ${processingTime}ms`,
 //       );
 
@@ -281,7 +281,7 @@
 //       });
 
 //       const processingTime = Date.now() - startTime;
-//       this.logger.log(
+//       this.logger.debug(
 //         `✅ Successfully wrote ${processedCount} bid metrics to TimescaleDB in ${processingTime}ms`,
 //       );
 
@@ -553,7 +553,7 @@ export class TimescaleService implements OnModuleInit {
                 password: this.configService.get<string>('TIMESCALEDB_PASSWORD', 'password'),
             };
 
-            this.logger.log('🔄 Initializing TimescaleDB connection', {
+            this.logger.debug('🔄 Initializing TimescaleDB connection', {
                 host: timescaleConfig.host,
                 port: timescaleConfig.port,
                 database: timescaleConfig.database,
@@ -581,7 +581,7 @@ export class TimescaleService implements OnModuleInit {
             const result = await client.query('SELECT NOW() as current_time, version() as version');
             client.release();
 
-            this.logger.log('✅ TimescaleDB connection established successfully', {
+            this.logger.debug('✅ TimescaleDB connection established successfully', {
                 currentTime: result.rows[0].current_time,
                 version: result.rows[0].version,
             });
@@ -709,7 +709,7 @@ export class TimescaleService implements OnModuleInit {
 
             const processingTime = Date.now() - startTime;
 
-            this.logger.log('✅ Impressions written to TimescaleDB', {
+            this.logger.debug('✅ Impressions written to TimescaleDB', {
                 requested: impressions.length,
                 inserted: result,
                 processingTimeMs: processingTime,
@@ -795,7 +795,7 @@ export class TimescaleService implements OnModuleInit {
 
             const processingTime = Date.now() - startTime;
 
-            this.logger.log('✅ Clicks written to TimescaleDB', {
+            this.logger.debug('✅ Clicks written to TimescaleDB', {
                 requested: clicks.length,
                 inserted: result,
                 processingTimeMs: processingTime,
@@ -995,7 +995,7 @@ export class TimescaleService implements OnModuleInit {
                     [cutoffDate]
                 );
 
-                this.logger.log('✅ Old data cleanup completed', {
+                this.logger.debug('✅ Old data cleanup completed', {
                     cutoffDate: cutoffDate.toISOString(),
                     deletedImpressions: impressionResult.rowCount,
                     deletedClicks: clickResult.rowCount,
@@ -1087,7 +1087,7 @@ export class TimescaleService implements OnModuleInit {
 
             const processingTime = Date.now() - startTime;
 
-            this.logger.log('✅ Impressions bulk inserted to TimescaleDB', {
+            this.logger.debug('✅ Impressions bulk inserted to TimescaleDB', {
                 requested: impressions.length,
                 inserted: result,
                 processingTimeMs: processingTime,
@@ -1193,7 +1193,7 @@ export class TimescaleService implements OnModuleInit {
 
             const processingTime = Date.now() - startTime;
 
-            this.logger.log('✅ Clicks bulk inserted to TimescaleDB', {
+            this.logger.debug('✅ Clicks bulk inserted to TimescaleDB', {
                 requested: clicks.length,
                 inserted: result,
                 processingTimeMs: processingTime,

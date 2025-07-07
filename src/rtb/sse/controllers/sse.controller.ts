@@ -40,7 +40,7 @@ import {
       private readonly sseService: SSEService,
       private readonly trackerService: SSETrackerService,
     ) {
-      this.logger.log('SSE Controller initialized');
+      this.logger.debug('SSE Controller initialized');
     }
   
     /**
@@ -106,7 +106,7 @@ import {
       @Query('timeout') customTimeout?: string,
     ): Promise<void> {
       try {
-        this.logger.log(`SSE connection requested for request: ${requestId}`);
+        this.logger.debug(`SSE connection requested for request: ${requestId}`);
   
         // Validate request exists
         const requestInfo = await this.trackerService.getRequestInfo(requestId);
@@ -140,7 +140,7 @@ import {
   
         // Set up connection cleanup
         const cleanup = async () => {
-          this.logger.log(`Cleaning up SSE connection for request: ${requestId}`);
+          this.logger.debug(`Cleaning up SSE connection for request: ${requestId}`);
           await this.trackerService.removeConnection(requestId, connectionId);
           await this.sseService.cleanup(requestId);
         };

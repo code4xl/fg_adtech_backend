@@ -19,7 +19,7 @@ export class CampaignLifecycleService {
       // Sync budget data to Redis for RTB
       await this.budgetRedisSyncService.syncCampaignBudgetToRedis(campaignId);
 
-      this.logger.log(
+      this.logger.debug(
         `✅ Campaign ${campaignId} activated and synced to Redis`,
       );
     } catch (error) {
@@ -39,7 +39,7 @@ export class CampaignLifecycleService {
       // Refresh budget data in Redis
       await this.budgetRedisSyncService.syncCampaignBudgetToRedis(campaignId);
 
-      this.logger.log(
+      this.logger.debug(
         `✅ Campaign ${campaignId} budget updated and synced to Redis`,
       );
     } catch (error) {

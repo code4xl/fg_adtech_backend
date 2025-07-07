@@ -42,11 +42,11 @@ export class ConfigBuilderService {
     if (isLocalDev) {
       // Use local development URLs - force localhost for development
       this.defaultApiUrl = 'http://localhost:3001';
-      this.logger.log('🔧 Using local development API URL: ' + this.defaultApiUrl);
+      this.logger.debug('🔧 Using local development API URL: ' + this.defaultApiUrl);
     } else {
       // Use production URLs
       this.defaultApiUrl = this.configService.get<string>('CDN_API_URL', 'http://localhost:3001');
-      this.logger.log('🚀 Using production API URL: ' + this.defaultApiUrl);
+      this.logger.debug('🚀 Using production API URL: ' + this.defaultApiUrl);
     }
     
     this.defaultSseTimeout = this.configService.get<number>('CDN_SSE_TIMEOUT', 15000);
@@ -64,7 +64,7 @@ export class ConfigBuilderService {
       websiteIds?: string[]; // Optional filter for specific websites
     },
   ): Promise<IOceanConfigV2> {
-    this.logger.log(`Building V2 configuration for publisher: ${publisherId}`);
+    this.logger.debug(`Building V2 configuration for publisher: ${publisherId}`);
 
     // Fetch publisher with ALL websites and inventories
     const publisherData = await this.fetchPublisherWithAllWebsites(publisherId, options?.websiteIds);
@@ -137,7 +137,7 @@ export class ConfigBuilderService {
       );
     }
 
-    this.logger.log(
+    this.logger.debug(
       `V2 Configuration built successfully for publisher ${publisherId}: ${validation.websiteCount} websites, ${validation.inventoryCount} total inventory slots`,
     );
 
@@ -156,7 +156,7 @@ export class ConfigBuilderService {
       environment?: string;
     },
   ): Promise<IOceanConfig> {
-    this.logger.log(`Building configuration for publisher: ${publisherId}, website: ${websiteId}`);
+    this.logger.debug(`Building configuration for publisher: ${publisherId}, website: ${websiteId}`);
 
     // Fetch publisher with website and inventory data
     const publisherData = await this.fetchPublisherData(publisherId, websiteId);
@@ -207,7 +207,7 @@ export class ConfigBuilderService {
       settings,
     };
 
-    this.logger.log(`Configuration built successfully for ${publisherId}`);
+    this.logger.debug(`Configuration built successfully for ${publisherId}`);
     return config;
   }
 
@@ -221,7 +221,7 @@ export class ConfigBuilderService {
       environment?: string;
     },
   ): Promise<Map<string, IOceanConfig>> {
-    this.logger.log(`Building all configurations for publisher: ${publisherId}`);
+    this.logger.debug(`Building all configurations for publisher: ${publisherId}`);
 
     // First verify publisher exists
     const publisher = await this.prisma.publisher.findUnique({
@@ -434,7 +434,7 @@ export class ConfigBuilderService {
     }
     // Basic tier uses default 15000ms
 
-    this.logger.log(`🎯 SDK settings built for ${isDevelopment ? 'DEVELOPMENT' : 'PRODUCTION'}:`, {
+    this.logger.debug(`🎯 SDK settings built for ${isDevelopment ? 'DEVELOPMENT' : 'PRODUCTION'}:`, {
       apiUrl: settings.apiUrl,
       bid: settings.endpoints.bid,
       track: settings.endpoints.track,

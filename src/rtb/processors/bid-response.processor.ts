@@ -12,6 +12,7 @@ import {
 import { WinningBidResponse } from '../types/bid-response.types';
 import { RTB_CACHE_TTL, REDIS_KEYS } from '../constants/cache-keys';
 import { AdMarkupService } from '../services/ad-markup.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class BidResponseProcessor {
@@ -23,10 +24,11 @@ export class BidResponseProcessor {
     private readonly auctionService: AuctionService,
     private readonly redis: RedisService,
     private readonly adMarkupService: AdMarkupService,
+    private readonly prisma: PrismaService,
   ) {
     this.trackingBaseUrl =
       this.config.get<string>('APP_URL') || 'https://track.oceanadtech.com';
-    this.logger.log('Bid Response Processor initialized - Phase 4');
+    this.logger.debug('Bid Response Processor initialized - Phase 4');
   }
 
   async generateCompletedAuctionResponses(
@@ -66,9 +68,27 @@ export class BidResponseProcessor {
     this.logger.debug('Generating winning bid response', {
       auctionId,
       winnerId: winner.id,
-      finalPrice: auctionResult.finalPrice, // Use finalPrice from auction result
+      finalPrice: auctionResult.finalPrice,
       creativeId,
       adSlotContext: auctionResult.originalBidRequest.adSlotContext,
+    });
+
+    // Fetch creative details from database
+    const creative = await this.prisma.creative.findUnique({
+      where: { id: creativeId },
+    });
+
+    if (!creative) {
+      this.logger.error('Creative not found', { creativeId });
+      throw new Error(`Creative ${creativeId} not found`);
+    }
+
+    this.logger.debug('Creative fetched for winning bid', {
+      creativeId: creative.id,
+      creativeName: creative.name,
+      fileUrl: creative.fileUrl,
+      landingUrl: creative.landingUrl,
+      type: creative.type,
     });
 
     // Use auction service for tracking URLs
@@ -78,9 +98,22 @@ export class BidResponseProcessor {
     );
     const adSlotContextData = auctionResult.originalBidRequest.adSlotContext;
 
-    // Use auction service for ad markup
+    // Prepare creative object with all required properties
+    const creativeData = {
+      id: creative.id,
+      name: creative.name,
+      fileUrl: creative.fileUrl,
+      landingUrl: creative.landingUrl,
+      type: creative.type,
+      // Format is determined by type - map CreativeType to InventoryFormat
+      format: creative.type === 'IMAGE' || creative.type === 'HTML5' ? 'BANNER' : 
+              creative.type === 'VIDEO' ? 'VIDEO' : 
+              creative.type === 'HTML' ? 'NATIVE' : 'BANNER',
+    };
+
+    // Use auction service for ad markup with full creative data
     const adMarkup = this.adMarkupService.generateAdMarkup(
-      creativeId,
+      creativeData,
       trackingUrls,
       {
         width: adSlotContextData.width,
@@ -88,6 +121,12 @@ export class BidResponseProcessor {
         format: adSlotContextData.format,
       },
     );
+
+    this.logger.debug('Ad markup generated', {
+      hasMarkup: !!adMarkup,
+      markupLength: adMarkup?.length,
+      imageUrl: creative.fileUrl,
+    });
 
     return {
       requestId: auctionResult.originalBidRequest.externalRequestId,
@@ -101,7 +140,7 @@ export class BidResponseProcessor {
         adMarkup,
         impressionUrls: trackingUrls.impression,
         clickUrls: trackingUrls.click,
-        landingUrl: winner.landingUrl,
+        landingUrl: creative.landingUrl,
       },
       auctionData: {
         totalBids: auctionResult.totalBids || 1,
@@ -215,7 +254,7 @@ export class BidResponseProcessor {
 
       await Promise.all(storePromises);
 
-      this.logger.log('✅ Bid responses stored in cache', {
+      this.logger.debug('✅ Bid responses stored in cache', {
         count: bidResponses.length,
       });
     } catch (error) {

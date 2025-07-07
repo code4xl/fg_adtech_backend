@@ -207,9 +207,9 @@
 
     <!-- Configuration Display -->
     <div class="debug-info">
-      <h3>📋 Configuration</h3>
-      <div class="config-display" id="config-display">
-        Waiting for configuration...
+      <h2>⚙️ Configuration Display</h2>
+      <div id="config-display" class="config-display">
+        [Configuration will appear here after SDK loads]
       </div>
     </div>
 
@@ -254,8 +254,32 @@
       <div class="logs" id="debug-logs"></div>
     </div>
 
-    <!-- Ocean Ads SDK -->
-    <script src="http://localhost:3001/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js"></script>
+    <!-- 🌊 OCEAN ADS CDN SCRIPT -->
+    <script>
+      // Add cache busting
+      var script = document.createElement('script');
+      script.src =
+        'http://localhost:3001/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js?v=' +
+        Date.now();
+      script.async = true;
+
+      // Override config after load
+      script.onload = function () {
+        if (window.__OCEAN_CONFIG__ && window.__OCEAN_CONFIG__.settings) {
+          console.log(
+            'Original sseTimeout:',
+            window.__OCEAN_CONFIG__.settings.sseTimeout,
+          );
+          window.__OCEAN_CONFIG__.settings.sseTimeout = 15000;
+          console.log(
+            'Updated sseTimeout to:',
+            window.__OCEAN_CONFIG__.settings.sseTimeout,
+          );
+        }
+      };
+
+      document.head.appendChild(script);
+    </script>
 
     <!-- Test and Debug Scripts -->
     <script>

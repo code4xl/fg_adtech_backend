@@ -75,7 +75,7 @@ export class PostgresTimescaleSyncService {
         this.circuitBreaker.isOpen = false;
         this.circuitBreaker.failureCount = 0;
         this.syncStatus.circuitBreakerOpen = false;
-        this.logger.log('🔄 Circuit breaker reset, retrying TimescaleDB sync');
+        this.logger.debug('🔄 Circuit breaker reset, retrying TimescaleDB sync');
       } else {
         this.logger.warn('⚠️ Circuit breaker open, skipping TimescaleDB sync');
         return;
@@ -85,7 +85,7 @@ export class PostgresTimescaleSyncService {
     this.syncStatus.isRunning = true;
     const syncId = uuidv4();
 
-    this.logger.log('🔄 Starting PostgreSQL → TimescaleDB sync', {
+    this.logger.debug('🔄 Starting PostgreSQL → TimescaleDB sync', {
       syncId,
       timestamp: new Date().toISOString(),
     });
@@ -102,7 +102,7 @@ export class PostgresTimescaleSyncService {
         timestamp: new Date(),
       });
 
-      this.logger.log('✅ PostgreSQL → TimescaleDB sync completed', {
+      this.logger.debug('✅ PostgreSQL → TimescaleDB sync completed', {
         syncId,
         impressionsProcessed: impressionResult.processedCount,
         clicksProcessed: clickResult.processedCount,
@@ -143,7 +143,7 @@ export class PostgresTimescaleSyncService {
         };
       }
 
-      this.logger.log(
+      this.logger.debug(
         `📊 Found ${unsyncedImpressions.length} unsynced impressions`,
         { batchId },
       );
@@ -205,7 +205,7 @@ export class PostgresTimescaleSyncService {
         };
       }
 
-      this.logger.log(`📊 Found ${unsyncedClicks.length} unsynced clicks`, {
+      this.logger.debug(`📊 Found ${unsyncedClicks.length} unsynced clicks`, {
         batchId,
       });
 
@@ -546,7 +546,7 @@ export class PostgresTimescaleSyncService {
       throw new Error('Sync is already running');
     }
 
-    this.logger.log('🔄 Manual PostgreSQL → TimescaleDB sync triggered');
+    this.logger.debug('🔄 Manual PostgreSQL → TimescaleDB sync triggered');
 
     const syncId = `manual-${uuidv4()}`;
     this.syncStatus.isRunning = true;

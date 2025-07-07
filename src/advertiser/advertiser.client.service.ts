@@ -49,7 +49,7 @@ export class AdvertiserClientService {
  * Create a new client (Advertiser only)
  */
     async createClient(advertiserId: string, createClientDto: CreateClientDto) {
-        this.logger.log(`Creating client for advertiser: ${advertiserId}`);
+        this.logger.debug(`Creating client for advertiser: ${advertiserId}`);
 
         // Verify advertiser exists
         const advertiser = await this.prisma.advertiser.findUnique({
@@ -140,7 +140,7 @@ export class AdvertiserClientService {
                 advertiser.email,
                 advertiser.companyName || advertiser.name
             );
-            this.logger.log(`Welcome email sent to client: ${result.email}`);
+            this.logger.debug(`Welcome email sent to client: ${result.email}`);
         } catch (error) {
             this.logger.error(`Failed to send welcome email: ${error.message}`);
             // Note: We don't throw here as the client was created successfully

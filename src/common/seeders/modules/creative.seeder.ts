@@ -20,7 +20,7 @@ export class CreativeSeeder implements ISeeder {
   }
 
   async seed(): Promise<void> {
-    this.logger.log('Seeding creatives...');
+    this.logger.debug('Seeding creatives...');
 
     try {
       // Get all campaigns to assign creatives to
@@ -188,7 +188,7 @@ export class CreativeSeeder implements ISeeder {
       });
 
       const creativeCount = await this.prisma.creative.count();
-      this.logger.log(`Successfully seeded ${creativeCount} creatives`);
+      this.logger.debug(`Successfully seeded ${creativeCount} creatives`);
     } catch (error) {
       this.logger.error('Error seeding creatives');
       this.logger.error(error);
@@ -197,11 +197,11 @@ export class CreativeSeeder implements ISeeder {
   }
 
   async clean(): Promise<void> {
-    this.logger.log('Cleaning creatives table...');
+    this.logger.debug('Cleaning creatives table...');
 
     try {
       const deleted = await this.prisma.creative.deleteMany({});
-      this.logger.log(`Deleted ${deleted.count} creatives`);
+      this.logger.debug(`Deleted ${deleted.count} creatives`);
     } catch (error) {
       this.logger.error('Error cleaning creatives table');
       this.logger.error(error);

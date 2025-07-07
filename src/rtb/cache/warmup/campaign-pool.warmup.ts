@@ -16,7 +16,7 @@ export class CampaignPoolWarmupService {
   ) {}
   async warmupCaches(): Promise<void> {
     try {
-      this.logger.log(
+      this.logger.debug(
         'Starting comprehensive cache warmup for all ad formats...',
       );
 
@@ -31,7 +31,7 @@ export class CampaignPoolWarmupService {
         },
       });
 
-      this.logger.log('Warming up campaign pools for all formats', {
+      this.logger.debug('Warming up campaign pools for all formats', {
         totalSizes: allPopularSizes.length,
       });
 
@@ -86,7 +86,7 @@ export class CampaignPoolWarmupService {
         }
       }
 
-      this.logger.log('🎯 Comprehensive cache warmup completed!', {
+      this.logger.debug('🎯 Comprehensive cache warmup completed!', {
         campaignPoolsWarmed: warmedCount,
         totalSizesAttempted: allPopularSizes.length,
       });

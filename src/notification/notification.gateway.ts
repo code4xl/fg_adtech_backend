@@ -47,7 +47,7 @@ export class NotificationGateway implements OnGatewayInit, OnGatewayConnection, 
      */
     afterInit(server: Server) {
         try {
-            this.logger.log('WebSocket Gateway initialized');
+            this.logger.debug('WebSocket Gateway initialized');
 
             // Subscribe to broadcast channels - do this only once on gateway init
             this.subscribeToBroadcastChannels();
@@ -61,7 +61,7 @@ export class NotificationGateway implements OnGatewayInit, OnGatewayConnection, 
      */
     async handleConnection(client: Socket) {
         try {
-            this.logger.log(`New client connecting: ${client.id}`);
+            this.logger.debug(`New client connecting: ${client.id}`);
 
             // Get token from handshake auth
             const token = client.handshake.auth.token || client.handshake.headers.authorization?.split(' ')[1];
@@ -97,7 +97,7 @@ export class NotificationGateway implements OnGatewayInit, OnGatewayConnection, 
             }
             this.userSockets.get(userId)!.push(authClient);
 
-            this.logger.log(`Client connected: ${client.id} (User: ${userId}, Role: ${payload.role})`);
+            this.logger.debug(`Client connected: ${client.id} (User: ${userId}, Role: ${payload.role})`);
 
             // Join appropriate room based on role
             client.join(`${payload.role.toLowerCase()}:${userId}`);
@@ -134,13 +134,13 @@ export class NotificationGateway implements OnGatewayInit, OnGatewayConnection, 
                 if (updatedSockets.length === 0) {
                     // User has no more active connections
                     this.userSockets.delete(userId);
-                    this.logger.log(`User ${userId} is now completely offline`);
+                    this.logger.debug(`User ${userId} is now completely offline`);
                 } else {
                     this.userSockets.set(userId, updatedSockets);
                 }
             }
 
-            this.logger.log(`Client disconnected: ${client.id}`);
+            this.logger.debug(`Client disconnected: ${client.id}`);
         } catch (error) {
             this.logger.error(`Error during client disconnection: ${error.message}`);
         }

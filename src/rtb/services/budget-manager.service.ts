@@ -480,7 +480,7 @@ export class BudgetManagerService {
    */
   async syncPublisherRevenueTiers(): Promise<void> {
     try {
-      this.logger.log('Syncing publisher revenue tiers to Redis...');
+      this.logger.debug('Syncing publisher revenue tiers to Redis...');
 
       const publishers = await this.prisma.publisher.findMany({
         where: { status: 'ACTIVE' },
@@ -504,7 +504,7 @@ export class BudgetManagerService {
 
       await pipeline.exec();
 
-      this.logger.log(
+      this.logger.debug(
         `✅ Synced ${publishers.length} publisher revenue tiers to Redis`,
       );
     } catch (error) {
