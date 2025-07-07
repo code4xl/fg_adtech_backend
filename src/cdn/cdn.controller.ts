@@ -43,13 +43,8 @@ export class GeneratePublisherCdnDto {
 }
   
   /**
-   * CDN Controller
-   * 
-   * Handles all CDN-related endpoints for:
-   * - SDK configuration preview
-   * - CDN generation
-   * - CDN serving
-   * - Cache management
+   * Preview SDK configuration for a publisher website
+   * GET /api/publishers/:publisherId/websites/:websiteId/sdk-config
    */
   @Controller()
   export class CdnController {
@@ -249,12 +244,36 @@ export class GeneratePublisherCdnDto {
         throw new HttpException(
           {
             statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-            message: 'Failed to generate CDN',
-            error: error.message,
+            message: 'CDN generation failed',
+            error: result.error,
           },
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
+
+      return {
+        cdnUrl: result.cdnUrl!,
+        integrity: result.integrity!,
+        version: result.version!,
+        publisherId,
+        websiteId,
+        buildId: result.buildId!,
+        environment: generateDto.environment || 'production',
+        createdAt: new Date().toISOString(),
+      } as CdnBuildResponseDto;
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: 'Failed to generate CDN',
+          error: error.message,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   
     /**
@@ -429,7 +448,6 @@ export class GeneratePublisherCdnDto {
             statusCode: 404,
             message: 'CDN file not found',
           });
-          return;
         }
 
         // Validate content before serving
@@ -498,7 +516,26 @@ export class GeneratePublisherCdnDto {
           message: 'Failed to serve CDN file',
           error: error.message
         });
+        return;
       }
+
+      // Set headers
+      Object.entries(content.headers).forEach(([key, value]) => {
+        res.setHeader(key, value);
+      });
+
+      // Additional security headers
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+
+      // Send content
+      res.status(200).send(content.content);
+    } catch (error) {
+      this.logger.error(`Failed to serve CDN: ${error.message}`);
+      res.status(500).json({
+        statusCode: 500,
+        message: 'Failed to serve CDN file',
+      });
     }
   
     /**

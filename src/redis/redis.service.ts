@@ -44,7 +44,27 @@ export class RedisService {
   async get<T>(key: string): Promise<T | undefined> {
     try {
       const result = await this.pubClient.get(key);
-      return result ? (JSON.parse(result) as T) : undefined;
+      if (!result) return undefined;
+
+      // Try to parse as JSON first
+      try {
+        return JSON.parse(result) as T;
+      } catch (parseError) {
+        // If JSON parsing fails, return as plain string
+        // This handles cases like:
+        // - Campaign status: "ACTIVE"
+        // - Simple string values
+        // - Numbers stored as strings
+        this.logger.debug(
+          `Value for key ${key} is not JSON, returning as string`,
+          {
+            key,
+            value: result,
+            type: typeof result,
+          },
+        );
+        return result as T;
+      }
     } catch (error) {
       this.logger.error(
         `Error getting value from Redis for key ${key}: ${error.message}`,
@@ -205,7 +225,7 @@ export class RedisService {
     count?: number,
   ): Promise<string[]> {
     try {
-      // ✅ CORRECTED: Build command with proper Redis syntax
+      //  CORRECTED: Build command with proper Redis syntax
       if (
         limitKeyword === 'LIMIT' &&
         offset !== undefined &&

@@ -20,7 +20,7 @@ export class CampaignLifecycleService {
       await this.budgetRedisSyncService.syncCampaignBudgetToRedis(campaignId);
 
       this.logger.debug(
-        `✅ Campaign ${campaignId} activated and synced to Redis`,
+        ` Campaign ${campaignId} activated and synced to Redis`,
       );
     } catch (error) {
       this.logger.error(
@@ -40,7 +40,7 @@ export class CampaignLifecycleService {
       await this.budgetRedisSyncService.syncCampaignBudgetToRedis(campaignId);
 
       this.logger.debug(
-        `✅ Campaign ${campaignId} budget updated and synced to Redis`,
+        ` Campaign ${campaignId} budget updated and synced to Redis`,
       );
     } catch (error) {
       this.logger.error(

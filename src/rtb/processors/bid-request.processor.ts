@@ -101,14 +101,14 @@ export class BidRequestProcessor {
 
       const processingTime = Date.now() - startTime;
 
-      this.logger.debug('✅ Bid request processed successfully', {
-        auctionId: bidRequest.auctionId,
-        winnerId: auctionResult.winner?.id,
-        finalPrice: auctionResult.finalPrice,
-        totalBids: bidResponses.length,
-        res: auctionResult,
-        processingTime: `${processingTime}ms`,
-      });
+      // this.logger.debug(' Bid request processed successfully', {
+      //   auctionId: bidRequest.auctionId,
+      //   winnerId: auctionResult.winner?.id,
+      //   finalPrice: auctionResult.finalPrice,
+      //   totalBids: bidResponses.length,
+      //   res: auctionResult,
+      //   processingTime: `${processingTime}ms`,
+      // });
 
       return {
         auctionId: bidRequest.auctionId,

@@ -44,7 +44,7 @@ export class ActiveCampaignsJob {
         });
       } else {
         this.logger.debug(
-          '✅ Daily budget initialization completed successfully',
+          ' Daily budget initialization completed successfully',
           {
             campaignsProcessed: initResult.campaignsProcessed,
             campaignsCreated: initResult.campaignsCreated,
@@ -59,7 +59,7 @@ export class ActiveCampaignsJob {
 
       const processingTime = Date.now() - startTime;
 
-      this.logger.debug('✅ Daily campaign budget job completed successfully', {
+      this.logger.debug(' Daily campaign budget job completed successfully', {
         processingTimeMs: processingTime,
         campaignsInitialized: initResult.campaignsProcessed,
         hasErrors: !initResult.success,

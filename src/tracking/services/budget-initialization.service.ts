@@ -87,7 +87,7 @@ export class BudgetInitializationService {
         errors,
       };
 
-      this.logger.debug('✅ Daily budget initialization completed', result);
+      this.logger.debug(' Daily budget initialization completed', result);
       return result;
     } catch (error) {
       const errorMsg = `Daily budget initialization failed: ${error.message}`;
@@ -194,7 +194,7 @@ export class BudgetInitializationService {
 
       await this.initializeCampaignDailyBudget(campaign, today);
 
-      this.logger.debug(`✅ Single campaign budget initialized: ${campaignId}`);
+      this.logger.debug(` Single campaign budget initialized: ${campaignId}`);
       return true;
     } catch (error) {
       this.logger.error(
@@ -223,7 +223,9 @@ export class BudgetInitializationService {
         },
       });
 
-      this.logger.debug(`🧹 Cleaned up ${result.count} old daily budget records`);
+      this.logger.debug(
+        `🧹 Cleaned up ${result.count} old daily budget records`,
+      );
       return result.count;
     } catch (error) {
       this.logger.error(

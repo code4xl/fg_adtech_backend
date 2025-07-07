@@ -103,15 +103,10 @@ export class CampaignSeeder implements ISeeder {
         });
 
         const bidStrategy = faker.helpers.arrayElement(bidStrategies);
-        const bidAmount =
-          bidStrategy === BidStrategy.BID_CAP ||
-          bidStrategy === BidStrategy.TARGET_COST
-            ? faker.number.float({
-                min: 0.5,
-                max: 3,
-                fractionDigits: 2,
-              })
-            : 1.0;
+        const bidAmount = faker.number.float({
+          min: 0.5,
+          max: 4.0,
+        });
 
         // Generate targeting arrays
         const selectedInterests = faker.helpers.arrayElements(interests, {
@@ -157,8 +152,8 @@ export class CampaignSeeder implements ISeeder {
             endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
             status: CampaignStatus.ACTIVE,
             objective: CampaignObjective.AWARENESS,
-            bidStrategy: BidStrategy.LOWEST_COST,
-            bidAmount: 1.0,
+            bidStrategy: BidStrategy.TARGET_CPM,
+            bidAmount: 2.0,
             pacing: CampaignPacing.STANDARD,
             businessCategory: BusinessCategory.TECHNOLOGY,
             websiteUrl: 'https://example.com',

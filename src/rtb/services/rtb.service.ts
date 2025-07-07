@@ -74,7 +74,7 @@ export class RtbService {
     try {
       await this.rtbHelper.validateInventoryAdSlotContext(
         bidRequestData.inventoryId,
-        bidRequestData.adSlotContext
+        bidRequestData.adSlotContext,
       );
 
       this.logger.debug('Processing bid request', {
@@ -271,7 +271,8 @@ export class RtbService {
 
     try {
       // 1. Check Redis cache first for fast response
-      const cachedResponse = await this.rtbCacheService.getCachedBidResponse(requestId);
+      const cachedResponse =
+        await this.rtbCacheService.getCachedBidResponse(requestId);
       if (cachedResponse) {
         this.logger.debug('Bid response cache hit', { requestId });
         return cachedResponse;

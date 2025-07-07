@@ -223,13 +223,21 @@ export class CdnOrchestratorService {
       // Step 3: Validate configuration
       const validation = this.configBuilder.validateConfiguration(config);
       if (!validation.isValid) {
-        throw new Error(`Configuration validation failed: ${validation.errors.join(', ')}`);
+        throw new Error(
+          `Configuration validation failed: ${validation.errors.join(', ')}`,
+        );
       }
 
       // Step 4: Generate CDN content
       const buildContext = this.createBuildContext(dto);
-      const cdnContent = await this.cdnGenerator.generateCdnContent(config, buildContext);
-      const buildResult = await this.cdnGenerator.generateBuild(config, buildContext);
+      const cdnContent = await this.cdnGenerator.generateCdnContent(
+        config,
+        buildContext,
+      );
+      const buildResult = await this.cdnGenerator.generateBuild(
+        config,
+        buildContext,
+      );
 
       if (!buildResult.success) {
         throw new Error(buildResult.error || 'CDN generation failed');
@@ -263,8 +271,16 @@ export class CdnOrchestratorService {
 
       // Step 8: Update cache
       await Promise.all([
-        this.cdnCache.cacheConfiguration(dto.publisherId, dto.websiteId, config),
-        this.cdnCache.cacheBuild(dto.publisherId, cdnContent, buildResult.metadata!),
+        this.cdnCache.cacheConfiguration(
+          dto.publisherId,
+          dto.websiteId,
+          config,
+        ),
+        this.cdnCache.cacheBuild(
+          dto.publisherId,
+          cdnContent,
+          buildResult.metadata!,
+        ),
       ]);
 
       const duration = Date.now() - startTime;
@@ -298,10 +314,13 @@ export class CdnOrchestratorService {
 
     try {
       // Get all configurations
-      const configs = await this.configBuilder.buildAllConfigurations(publisherId, {
-        includeDebug: options?.includeDebug,
-        environment: options?.environment,
-      });
+      const configs = await this.configBuilder.buildAllConfigurations(
+        publisherId,
+        {
+          includeDebug: options?.includeDebug,
+          environment: options?.environment,
+        },
+      );
 
       // Generate CDN for each website
       for (const [websiteId, config] of configs) {
@@ -378,9 +397,9 @@ export class CdnOrchestratorService {
       : (await this.cdnCache.getBuild(publisherId)) !== null;
 
     const hasStorage = await this.cdnStorage.fileExists(publisherId);
-    
+
     const metadata = await this.cdnStorage.retrieveMetadata(publisherId);
-    
+
     const cacheStats = await this.cdnCache.getCacheStats();
 
     return {
@@ -410,12 +429,18 @@ export class CdnOrchestratorService {
       }
 
       // Fallback to storage
-      const stored = await this.cdnStorage.retrieveFile(publisherId, environment);
+      const stored = await this.cdnStorage.retrieveFile(
+        publisherId,
+        environment,
+      );
       if (stored) {
         this.logger.debug(`Serving CDN from storage for ${publisherId}`);
-        
+
         // Update cache for next time
-        const metadata = await this.cdnStorage.retrieveMetadata(publisherId, environment);
+        const metadata = await this.cdnStorage.retrieveMetadata(
+          publisherId,
+          environment,
+        );
         if (metadata) {
           await this.cdnCache.cacheBuild(publisherId, stored.content, metadata);
         }
@@ -439,17 +464,24 @@ export class CdnOrchestratorService {
   private async buildConfiguration(dto: GenerateCdnDto): Promise<IOceanConfig> {
     // Check cache first
     if (!dto.forceRebuild) {
-      const cached = await this.cdnCache.getConfiguration(dto.publisherId, dto.websiteId);
+      const cached = await this.cdnCache.getConfiguration(
+        dto.publisherId,
+        dto.websiteId,
+      );
       if (cached) {
         return cached;
       }
     }
 
     // Build fresh configuration
-    return this.configBuilder.buildConfiguration(dto.publisherId, dto.websiteId, {
-      includeDebug: dto.includeDebug,
-      environment: dto.environment,
-    });
+    return this.configBuilder.buildConfiguration(
+      dto.publisherId,
+      dto.websiteId,
+      {
+        includeDebug: dto.includeDebug,
+        environment: dto.environment,
+      },
+    );
   }
 
   /**

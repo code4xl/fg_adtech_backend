@@ -1,7 +1,7 @@
 model FloorPrice {
   id          String    @id @default(uuid()) @db.Uuid
   inventoryId String    @db.Uuid
-  basePrice   Decimal   @db.Decimal(10, 2)
+  basePrice   Decimal   @db.Decimal(10, 4)
   currency    Currency  @default(INR)
   startDate   DateTime
   endDate     DateTime?

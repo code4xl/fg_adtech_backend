@@ -1,5 +1,5 @@
 import { ConfigService } from '@nestjs/config';
-import { KafkaConfig } from 'kafkajs';
+import { KafkaConfig, logLevel } from 'kafkajs';
 
 export const getKafkaConfig = (configService: ConfigService): KafkaConfig => ({
   clientId: 'ocean-ad-network',
@@ -9,4 +9,5 @@ export const getKafkaConfig = (configService: ConfigService): KafkaConfig => ({
     initialRetryTime: 100,
     retries: 3,
   },
+  logLevel: logLevel.NOTHING,
 });

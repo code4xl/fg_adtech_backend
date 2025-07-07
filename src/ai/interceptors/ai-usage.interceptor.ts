@@ -29,9 +29,9 @@ import {
             `AI Request - User: ${request.user?.id} | ` +
             `Endpoint: ${request.url} | ` +
             `Processing Time: ${processingTime}ms | ` +
-            `Remaining Requests: ${remainingRequests}`
-          );
-        })
-      );
-    }
+            `Remaining Requests: ${remainingRequests}`,
+        );
+      }),
+    );
   }
+}

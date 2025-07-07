@@ -43,14 +43,14 @@ export class RedisPostgresSyncService {
     });
 
     try {
-      // ✅ STEP 1: Sync impressions FIRST
+      //  STEP 1: Sync impressions FIRST
       await this.syncImpressionsOnly();
 
-      // ✅ STEP 2: Then sync clicks (impressions are now in PostgreSQL)
+      //  STEP 2: Then sync clicks (impressions are now in PostgreSQL)
       await this.syncClicksOnly();
 
       const processingTime = Date.now() - startTime;
-      this.logger.debug('✅ Sequential sync completed', {
+      this.logger.debug(' Sequential sync completed', {
         batchId,
         processingTimeMs: processingTime,
       });
@@ -82,7 +82,7 @@ export class RedisPostgresSyncService {
         const chunk = await this.getPendingImpressions(chunkSize);
 
         if (chunk.length === 0) {
-          this.logger.debug('✅ No more pending impressions');
+          this.logger.debug(' No more pending impressions');
           break;
         }
 
@@ -90,7 +90,7 @@ export class RedisPostgresSyncService {
           const processed = await this.insertImpressionBatch(chunk);
           totalProcessed += processed;
 
-          this.logger.debug(`✅ Processed impressions chunk`, {
+          this.logger.debug(` Processed impressions chunk`, {
             batchId,
             chunkSize: chunk.length,
             processed,
@@ -114,7 +114,7 @@ export class RedisPostgresSyncService {
       const processingTime = Date.now() - startTime;
       this.updateSyncMetrics(processingTime, totalProcessed, errors.length > 0);
 
-      this.logger.debug('✅ Impressions sync completed', {
+      this.logger.debug(' Impressions sync completed', {
         batchId,
         totalProcessed,
         errors: errors.length,
@@ -156,7 +156,7 @@ export class RedisPostgresSyncService {
         const chunk = await this.getPendingClicks(chunkSize);
 
         if (chunk.length === 0) {
-          this.logger.debug('✅ No more pending clicks');
+          this.logger.debug(' No more pending clicks');
           break;
         }
 
@@ -164,7 +164,7 @@ export class RedisPostgresSyncService {
           const processed = await this.insertClickBatch(chunk);
           totalProcessed += processed;
 
-          this.logger.debug(`✅ Processed clicks chunk`, {
+          this.logger.debug(` Processed clicks chunk`, {
             batchId,
             chunkSize: chunk.length,
             processed,
@@ -188,7 +188,7 @@ export class RedisPostgresSyncService {
       const processingTime = Date.now() - startTime;
       this.updateSyncMetrics(processingTime, totalProcessed, errors.length > 0);
 
-      this.logger.debug('✅ Clicks sync completed', {
+      this.logger.debug(' Clicks sync completed', {
         batchId,
         totalProcessed,
         errors: errors.length,

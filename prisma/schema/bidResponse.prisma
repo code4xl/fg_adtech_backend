@@ -15,7 +15,7 @@ model BidResponse {
 
   // Win details (if applicable)
   finalPrice          Decimal? @db.Decimal(10, 4) // Cost per mille
-  cpi                 Decimal? @db.Decimal(10, 10) // Cost per impression
+  cpi                 Decimal? @db.Decimal(10, 4) // Cost per impression
   winNotificationSent Boolean  @default(false)
 
   landingUrl String

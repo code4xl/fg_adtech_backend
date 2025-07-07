@@ -189,7 +189,7 @@ export class AuctionService {
             bidRequest,
           );
 
-        // 2. ✅ PRECISE budget validation with actual calculated bid
+        // 2.  PRECISE budget validation with actual calculated bid
         const costPerImpression = actualBidPrice / 1000; // Convert CPM to per-impression
         const hasBudget =
           await this.budgetValidationService.validateCampaignBudget(
@@ -353,6 +353,25 @@ export class AuctionService {
       bidRequest.websiteId,
       bidRequest.auctionId,
       finalPrice,
+    );
+    // sync winning bid response to redis
+    const winningBidCache = {
+      bidResponseId: winningBid.id,
+      creativeId: winningBid.creativeId,
+      campaignId: winningBid.campaignId,
+      advertiserId: winningBid.advertiserId,
+      inventoryId: bidRequest.inventoryId,
+      publisherId: bidRequest.publisherId,
+      websiteId: bidRequest.websiteId,
+      templateId: bidRequest.adSlotContext.adSlotTemplateId,
+      bidPrice: parseFloat(winningBid.bidPrice.toString()),
+      finalPrice: parseFloat(finalPrice.toString()),
+      landingUrl: winningBid.landingUrl,
+    };
+    this.redis.set(
+      REDIS_KEYS.BID_RESPONSE(winningBid.id),
+      JSON.stringify(winningBidCache),
+      3600, // Set TTL for 1 hour
     );
     // Update all other bids to LOST
     await this.updateBidResponseStatuses(

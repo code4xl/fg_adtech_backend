@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { InventoryMapperService } from './inventory-mapper.service';
@@ -160,10 +165,10 @@ export class ConfigBuilderService {
 
     // Fetch publisher with website and inventory data
     const publisherData = await this.fetchPublisherData(publisherId, websiteId);
-    
+
     // Validate publisher and website status
     this.validatePublisherStatus(publisherData);
-    
+
     // Get website from publisher data
     const website = publisherData.website;
     if (!website) {
@@ -173,7 +178,7 @@ export class ConfigBuilderService {
       );
     }
 
-    // Map inventory to SDK configuration format  
+    // Map inventory to SDK configuration format
     // For now, we'll use a default tier since Publisher model doesn't have tier field
     const defaultTier = PublisherTier.BASIC;
     const inventoryConfigs = await this.inventoryMapper.mapInventoryToConfig(
@@ -237,9 +242,9 @@ export class ConfigBuilderService {
 
     // Get all active websites for the publisher
     const websites = await this.prisma.website.findMany({
-      where: { 
+      where: {
         publisherId: publisherId,
-        isActive: true 
+        isActive: true,
       },
       include: {
         inventories: {
@@ -248,10 +253,7 @@ export class ConfigBuilderService {
             adSlotTemplate: true,
             floorPrices: {
               where: {
-                OR: [
-                  { endDate: null },
-                  { endDate: { gte: new Date() } },
-                ],
+                OR: [{ endDate: null }, { endDate: { gte: new Date() } }],
               },
               orderBy: { createdAt: 'desc' },
               take: 1,
@@ -278,7 +280,10 @@ export class ConfigBuilderService {
   /**
    * Validate configuration against tier limits
    */
-  validateConfiguration(config: IOceanConfig): { isValid: boolean; errors: string[] } {
+  validateConfiguration(config: IOceanConfig): {
+    isValid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
     const tierFeatures = TIER_FEATURES[config.publisher.tier];
 
@@ -336,9 +341,9 @@ export class ConfigBuilderService {
 
     // Get the specific website with its inventories
     const website = await this.prisma.website.findUnique({
-      where: { 
+      where: {
         id: websiteId,
-        publisherId: publisherId 
+        publisherId: publisherId,
       },
       include: {
         inventories: {
@@ -450,13 +455,15 @@ export class ConfigBuilderService {
    */
   getTierFeatures(tier: PublisherTier): ITierFeatures {
     const features = TIER_FEATURES[tier];
-    
+
     return {
       tier,
       features: [...features.features] as any[], // Create a copy to avoid readonly issues
       maxInventorySlots: features.maxInventorySlots,
       refreshInterval: features.refreshInterval,
-      analyticsEnabled: features.features.includes('performanceAnalytics' as any),
+      analyticsEnabled: features.features.includes(
+        'performanceAnalytics' as any,
+      ),
       customTargetingEnabled: tier !== PublisherTier.BASIC,
       headerBiddingEnabled: features.features.includes('headerBidding' as any),
     };

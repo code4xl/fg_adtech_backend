@@ -231,7 +231,7 @@ export class ClientSeeder implements ISeeder {
           this.logger.warn(`- ${advertiser.email} (ID: ${advertiser.id})`);
         });
       } else {
-        this.logger.debug('✅ All advertisers now have at least one client!');
+        this.logger.debug(' All advertisers now have at least one client!');
       }
 
       this.logger.debug(

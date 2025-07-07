@@ -6,6 +6,9 @@ services:
       - '9092:9092' # External/client communication
       - '9093:9093' # Internal controller communication
     environment:
+      # Timezone Configuration
+      - TZ=Asia/Kolkata
+
       # KRaft mode configuration
       - KAFKA_CFG_NODE_ID=1
       - KAFKA_CFG_PROCESS_ROLES=broker,controller
@@ -28,6 +31,9 @@ services:
       - KAFKA_KRAFT_CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk
     volumes:
       - kafka-data:/bitnami/kafka
+      # Mount timezone data (optional, for better timezone support)
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     networks:
       - app-network
     healthcheck:
@@ -48,8 +54,14 @@ services:
     ports:
       - '9000:9000'
     environment:
+      # Timezone Configuration
+      - TZ=Asia/Kolkata
       - KAFKA_BROKERCONNECT=kafka:9092
       - JVM_OPTS=-Xms32M -Xmx64M
+    volumes:
+      # Mount timezone data
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     depends_on:
       kafka:
         condition: service_healthy
@@ -62,10 +74,16 @@ services:
     ports:
       - '6379:6379'
       - '8001:8001'
-    networks:
-      - app-network
+    environment:
+      # Timezone Configuration
+      - TZ=Asia/Kolkata
     volumes:
       - redis-data:/data
+      # Mount timezone data
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    networks:
+      - app-network
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
@@ -78,6 +96,11 @@ services:
     ports:
       - '5433:5432'
     environment:
+      # Timezone Configuration
+      - TZ=Asia/Kolkata
+      - PGTZ=Asia/Kolkata
+
+      # Database Configuration
       - POSTGRES_DB=rtb_timeseries
       - POSTGRES_USER=timescale_user
       - POSTGRES_PASSWORD=timescale_pass
@@ -85,6 +108,9 @@ services:
     volumes:
       - timescaledb-data:/var/lib/postgresql/data
       - ./timescaledb/init:/docker-entrypoint-initdb.d/
+      # Mount timezone data
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     networks:
       - app-network
     healthcheck:

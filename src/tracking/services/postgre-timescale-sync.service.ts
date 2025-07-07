@@ -75,7 +75,9 @@ export class PostgresTimescaleSyncService {
         this.circuitBreaker.isOpen = false;
         this.circuitBreaker.failureCount = 0;
         this.syncStatus.circuitBreakerOpen = false;
-        this.logger.debug('🔄 Circuit breaker reset, retrying TimescaleDB sync');
+        this.logger.debug(
+          '🔄 Circuit breaker reset, retrying TimescaleDB sync',
+        );
       } else {
         this.logger.warn('⚠️ Circuit breaker open, skipping TimescaleDB sync');
         return;
@@ -102,7 +104,7 @@ export class PostgresTimescaleSyncService {
         timestamp: new Date(),
       });
 
-      this.logger.debug('✅ PostgreSQL → TimescaleDB sync completed', {
+      this.logger.debug(' PostgreSQL → TimescaleDB sync completed', {
         syncId,
         impressionsProcessed: impressionResult.processedCount,
         clicksProcessed: clickResult.processedCount,
@@ -134,7 +136,7 @@ export class PostgresTimescaleSyncService {
       const unsyncedImpressions = await this.getUnsyncedImpressions();
 
       if (unsyncedImpressions.length === 0) {
-        this.logger.debug('✅ No unsynced impressions found');
+        this.logger.debug(' No unsynced impressions found');
         return {
           success: true,
           processedCount: 0,
@@ -196,7 +198,7 @@ export class PostgresTimescaleSyncService {
       const unsyncedClicks = await this.getUnsyncedClicks();
 
       if (unsyncedClicks.length === 0) {
-        this.logger.debug('✅ No unsynced clicks found');
+        this.logger.debug(' No unsynced clicks found');
         return {
           success: true,
           processedCount: 0,
@@ -489,7 +491,7 @@ export class PostgresTimescaleSyncService {
     });
 
     this.logger.debug(
-      `✅ Marked ${impressionIds.length} impressions as synced to TimescaleDB`,
+      ` Marked ${impressionIds.length} impressions as synced to TimescaleDB`,
     );
   }
 
@@ -510,7 +512,7 @@ export class PostgresTimescaleSyncService {
     });
 
     this.logger.debug(
-      `✅ Marked ${clickIds.length} clicks as synced to TimescaleDB`,
+      ` Marked ${clickIds.length} clicks as synced to TimescaleDB`,
     );
   }
 

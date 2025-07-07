@@ -23,9 +23,7 @@ export class BidRequestKafkaConsumer implements OnModuleInit {
     private readonly bidRequestProcessor: BidRequestProcessor,
     private readonly rtbProducer: AuctionProducer,
     private readonly rtbHelper: RtbHelper,
-  ) {
-    this.logger.debug('RTB Kafka Consumer initialized - Phase 4');
-  }
+  ) {}
 
   async onModuleInit() {
     try {
@@ -115,7 +113,7 @@ export class BidRequestKafkaConsumer implements OnModuleInit {
       //     auctionId: auctionResult.auctionId,
       //   });
 
-      this.logger.debug('✅ Auction processed successfully', {
+      this.logger.debug(' Auction processed successfully', {
         auctionId: auctionResult.auctionId,
         winner: auctionResult.winner ? 'yes' : 'no',
       });

@@ -41,7 +41,7 @@ async function checkServer() {
         req.on('timeout', () => reject(new Error('Timeout')));
       });
 
-      console.log(`✅ ${result.path}`);
+      console.log(` ${result.path}`);
       console.log(`   Status: ${result.status}`);
       console.log(`   Content-Type: ${result.contentType}`);
       console.log(

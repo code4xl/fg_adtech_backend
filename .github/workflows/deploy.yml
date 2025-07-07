@@ -67,7 +67,7 @@ jobs:
           response=$(curl -s -o /dev/null -w "%{http_code}" http://$SSH_HOST/health || echo "Failed to connect")
 
           if [ "$response" = "200" ]; then
-            echo "✅ Deployment successful! Health check passed."
+            echo " Deployment successful! Health check passed."
           else
             echo "❌ Health check failed with status: $response"
             echo "Checking application logs..."

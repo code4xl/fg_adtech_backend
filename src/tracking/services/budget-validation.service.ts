@@ -42,7 +42,6 @@ export class BudgetValidationService {
           `Redis cache miss for campaign ${campaignId}, syncing from database`,
         );
 
-        // Inject BudgetRedisSyncService (add to constructor)
         await this.budgetRedisSyncService.syncCampaignBudgetToRedis(campaignId);
 
         // Retry Redis read after sync

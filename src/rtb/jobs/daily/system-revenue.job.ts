@@ -44,7 +44,7 @@ export class SystemRevenueJob {
 
       const processingTime = Date.now() - startTime;
 
-      this.logger.debug('✅ System revenue processing completed', {
+      this.logger.debug(' System revenue processing completed', {
         batchId,
         revenueRecordsProcessed: revenueCount,
         dailyRecordsProcessed: dailyCount,

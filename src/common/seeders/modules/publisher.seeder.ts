@@ -153,7 +153,9 @@ export class PublisherSeeder implements ISeeder {
     const existingTiers = await this.prisma.publisherTier.findMany();
 
     if (existingTiers.length > 0) {
-      this.logger.debug(`Found ${existingTiers.length} existing publisher tiers`);
+      this.logger.debug(
+        `Found ${existingTiers.length} existing publisher tiers`,
+      );
       return;
     }
 

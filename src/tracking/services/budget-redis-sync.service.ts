@@ -62,7 +62,7 @@ export class BudgetRedisSyncService {
 
       await pipeline.exec();
 
-      this.logger.debug(`✅ Synced budget to Redis for campaign ${campaignId}`);
+      // this.logger.debug(` Synced budget to Redis for campaign ${campaignId}`);
     } catch (error) {
       this.logger.error(
         `Failed to sync budget for campaign ${campaignId}:`,
@@ -82,9 +82,9 @@ export class BudgetRedisSyncService {
         select: { id: true },
       });
 
-      this.logger.debug(
-        `Syncing ${activeCampaigns.length} active campaigns to Redis`,
-      );
+      // this.logger.debug(
+      //   `Syncing ${activeCampaigns.length} active campaigns to Redis`,
+      // );
 
       // Process in batches to avoid overwhelming Redis
       const batchSize = 10;
@@ -102,7 +102,7 @@ export class BudgetRedisSyncService {
       }
 
       this.logger.debug(
-        `✅ Completed bulk sync of ${activeCampaigns.length} campaigns`,
+        ` Completed bulk sync of ${activeCampaigns.length} campaigns`,
       );
     } catch (error) {
       this.logger.error('Failed to sync all active campaigns:', error);

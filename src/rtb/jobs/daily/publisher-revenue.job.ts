@@ -41,7 +41,7 @@ export class PublisherRevenueJob {
 
       const processingTime = Date.now() - startTime;
 
-      this.logger.debug('✅ Publisher revenue processing completed', {
+      this.logger.debug(' Publisher revenue processing completed', {
         batchId,
         revenueRecordsProcessed: revenueCount,
         dailyRecordsProcessed: dailyCount,

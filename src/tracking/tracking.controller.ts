@@ -94,7 +94,7 @@ export class TrackingController {
       // Budget validation (Redis-based real-time check)
       const budgetValid = await this.budgetValidation.validateCampaignBudget(
         impressionData.campaignId,
-        impressionData.bidPrice,
+        impressionData.bidPrice / 1000,
       );
 
       if (!budgetValid) {
@@ -177,7 +177,7 @@ export class TrackingController {
   ) {
     try {
       const startTime = Date.now();
-      const clickId = this.trackingService.generateId(); // ✅ Generate click ID upfront
+      const clickId = this.trackingService.generateId(); //  Generate click ID upfront
       const userData = this.extractUserData(req, query);
       const userFingerprint =
         this.impressionClickLinking.generateUserFingerprint(req, userData);

@@ -53,7 +53,7 @@ pnpm seed:module --module=ModuleName [--clean=true|false]
   pnpm seed:module --module=Campaign --clean=false
   ```
 
-### ✅ Available Modules
+### Available Modules
 
 - `Admin`
 - `Advertiser`

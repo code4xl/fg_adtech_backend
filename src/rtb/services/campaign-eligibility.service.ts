@@ -82,19 +82,19 @@ export class CampaignEligibilityService {
     // Try cache first
     const cached = await this.redis.get<string>(cacheKey);
     if (cached) {
-      this.logger.debug('✅ Campaign pool cache HIT', {
-        width,
-        height,
-        format,
-      });
+      // this.logger.debug(' Campaign pool cache HIT', {
+      //   width,
+      //   height,
+      //   format,
+      // });
       return JSON.parse(cached);
     }
 
-    this.logger.debug('❌ Campaign pool cache MISS - querying DB', {
-      width,
-      height,
-      format,
-    });
+    // this.logger.debug('❌ Campaign pool cache MISS - querying DB', {
+    //   width,
+    //   height,
+    //   format,
+    // });
 
     // Fallback to database (expensive)
     const now = new Date();
@@ -145,13 +145,13 @@ export class CampaignEligibilityService {
     // Cache for 10 minutes (campaigns don't change frequently)
     await this.redis.set(cacheKey, JSON.stringify(campaigns), 600);
 
-    this.logger.debug('Campaign pool cached', {
-      width,
-      height,
-      format,
-      campaignCount: campaigns.length,
-      ttl: '10 minutes',
-    });
+    // this.logger.debug('Campaign pool cached', {
+    //   width,
+    //   height,
+    //   format,
+    //   campaignCount: campaigns.length,
+    //   ttl: '10 minutes',
+    // });
 
     return campaigns;
   }
@@ -160,7 +160,7 @@ export class CampaignEligibilityService {
   ): Promise<CampaignWithTargeting[]> {
     if (campaigns.length === 0) return [];
 
-    // ✅ RE-ENABLED: Proper budget validation with minBid rough filtering
+    //  RE-ENABLED: Proper budget validation with minBid rough filtering
     const budgetChecks = await Promise.all(
       campaigns.map(async (campaign: CampaignWithTargeting) => {
         try {

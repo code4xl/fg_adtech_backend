@@ -210,7 +210,9 @@ export class NotificationSeeder implements ISeeder {
       });
 
       const notificationCount = await this.prisma.notification.count();
-      this.logger.debug(`Successfully seeded ${notificationCount} notifications`);
+      this.logger.debug(
+        `Successfully seeded ${notificationCount} notifications`,
+      );
     } catch (error) {
       this.logger.error('Error seeding notifications');
       this.logger.error(error);

@@ -3,16 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from 'src/redis/redis.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { REDIS_KEYS, RTB_CACHE_TTL } from '../constants/cache-keys';
-import { CreatedBidResponse } from '../types/bid-response.types';
-export interface BudgetReservation {
-  reservationId: string;
-  campaignId: string;
-  bidResponseId: string;
-  amount: number;
-  auctionId: string;
-  reservedAt: string;
-  status: 'RESERVED' | 'CONFIRMED' | 'EXPIRED' | 'CANCELLED';
-}
+
 @Injectable()
 export class BudgetManagerService {
   private readonly logger = new Logger(BudgetManagerService.name);
@@ -23,78 +14,90 @@ export class BudgetManagerService {
   ) {}
 
   /**
-   * Reserve budget for a winning bid (real-time)
-   * This method is used to deduct the budget immediately when a bid wins.
-   * It updates the daily spend and campaign spending in Redis.
+   * 🎯 FIXED: Reserve budget when auction is won
+   * This creates a temporary reservation that expires if not confirmed
    */
   async reserveBudgetOnWin(
-    winningBid: CreatedBidResponse,
+    winningBid: any,
     publisherId: string,
     inventoryId: string,
     websiteId: string,
     auctionId: string,
-    finalPrice: number,
-  ): Promise<void> {
+    finalPriceCPM: number,
+  ): Promise<string> {
     const today = new Date().toISOString().split('T')[0];
-    const costPerImpression = finalPrice / 1000; // Convert CPM to per-impression cost
-    const reservationId = `${winningBid.id}-${today}`;
-    try {
-      // this.logger.debug('Reserving budget on win', {
-      //   campaignId: winningBid.campaignId,
-      //   finalPrice,
-      //   costPerImpression,
-      //   publisherId,
-      // });
-      // Reserve in redis
-      // This is a real-time operation to ensure budget is reserved immediately
 
-      const pipeline = this.redis.pipeline();
-      const reservationData: BudgetReservation = {
+    // 🔧 SIMPLIFIED: Use only bidResponseId for reservation tracking
+    const reservationId = winningBid.id; // Just the bidResponseId
+
+    // 🔧 FIX: Convert CPM to per-impression cost consistently
+    const costPerImpression = finalPriceCPM / 1000;
+
+    try {
+      // 1. Create reservation metadata
+      const reservationData = {
         reservationId,
         campaignId: winningBid.campaignId,
-        bidResponseId: winningBid.id,
-        amount: costPerImpression,
-        auctionId,
-        reservedAt: new Date().toISOString(),
-        status: 'RESERVED',
-      };
-      pipeline.set(
-        REDIS_KEYS.BUDGET_RESERVATION(reservationId),
-        JSON.stringify(reservationData),
-      );
-      pipeline.expire(
-        REDIS_KEYS.BUDGET_RESERVATION(reservationId),
-        RTB_CACHE_TTL.BUDGET_RESERVATION, // 5 minutes
-      );
-      // Deduct campaign budget in Redis
-      await this.deductCampaignBudget(
-        winningBid.campaignId,
+        advertiserId: winningBid.advertiserId,
         publisherId,
         inventoryId,
         websiteId,
+        creativeId: winningBid.creativeId,
+        bidResponseId: winningBid.id,
+        auctionId,
+        finalPriceCPM,
+        costPerImpression,
+        reservedAt: new Date().toISOString(),
+        confirmed: false,
+      };
+
+      // 2. Store reservation with TTL (5 minutes)
+      await this.redis.set(
+        REDIS_KEYS.BUDGET_RESERVATION(reservationId),
+        JSON.stringify(reservationData),
+        RTB_CACHE_TTL.BUDGET_RESERVATION, // 300 seconds = 5 minutes
+      );
+
+      // 3. Store metadata separately for cleanup job
+      await this.redis.set(
+        REDIS_KEYS.REVENUE_METADATA(reservationId),
+        JSON.stringify(reservationData),
+        RTB_CACHE_TTL.REVENUE_METADATA, // 600 seconds = 10 minutes (longer than reservation)
+      );
+
+      // 4. Immediately deduct from available budget (optimistic locking)
+      await this.deductBudgetForReservation(
+        winningBid.campaignId,
         costPerImpression,
         today,
       );
-      await pipeline.exec();
-      this.logger.debug('✅ Budget reserved successfully', {
+
+      // 5. Track reservation for monitoring
+      await this.trackReservation(reservationId, winningBid.campaignId, today);
+
+      this.logger.debug(' Budget reserved successfully', {
+        reservationId,
         campaignId: winningBid.campaignId,
-        finalPrice,
+        costPerImpression,
+        finalPriceCPM,
       });
+
+      return reservationId;
     } catch (error) {
-      this.logger.error('❌ Failed to reserve budget on win', {
+      this.logger.error('❌ Failed to reserve budget', {
         error: error.message,
         campaignId: winningBid.campaignId,
-        finalPrice,
+        costPerImpression,
       });
       throw error;
     }
   }
 
   /**
-   * Confirm reserved budget on impression
-   * This method is called when an impression is confirmed to ensure the budget is deducted.
-   **/
-  public async confirmReservedBudget(
+   * 🎯 FIXED: Confirm budget when impression is tracked
+   * This converts the reservation into actual spend
+   */
+  async confirmReservedBudget(
     reservationId: string,
     campaignId: string,
     publisherId: string,
@@ -103,282 +106,208 @@ export class BudgetManagerService {
     advertiserId: string,
     creativeId: string,
     costPerImpression: number,
-  ): Promise<void> {
-    const today = new Date().toISOString().split('T')[0];
+  ): Promise<boolean> {
     try {
-      this.logger.debug('Confirming reserved budget', {
-        reservationId,
-        campaignId,
-        publisherId,
-      });
-
-      // Get the reserved amount
-      const reservedAmount: BudgetReservation = await this.redis.get(
+      // 1. Check if reservation exists
+      const reservation = await this.redis.get(
         REDIS_KEYS.BUDGET_RESERVATION(reservationId),
       );
-      // ===== 2. CACHE PUBLISHER REVENUE =====
-      await this.cachePublisherRevenue(
-        publisherId,
-        campaignId,
-        inventoryId,
-        websiteId,
-        costPerImpression,
-        today,
-      );
 
-      // ===== 3. CACHE ADVERTISER SPENDING =====
-      await this.cacheAdvertiserSpending(
-        advertiserId,
-        campaignId,
-        creativeId,
-        costPerImpression,
-        today,
-      );
-
-      // ===== 4. CACHE SYSTEM REVENUE =====
-      await this.cacheSystemRevenue(
-        campaignId,
-        publisherId,
-        advertiserId,
-        creativeId,
-        inventoryId,
-        costPerImpression,
-        today,
-      );
-
-      if (!reservedAmount) {
-        this.logger.warn('No reserved budget found', { reservationId });
-        // If no reservation found, it might be expired or cancelled
-        // We can deduct immediately if needed
-        this.logger.warn('No reservation found, skipping confirmation', {
+      if (!reservation) {
+        this.logger.warn('⚠️ Reservation not found or expired', {
           reservationId,
+          campaignId,
         });
-        await this.deductCampaignBudget(
+
+        // Fallback: Deduct budget directly if reservation expired
+        const today = new Date().toISOString().split('T')[0];
+        await this.deductBudgetForReservation(
+          campaignId,
+          costPerImpression,
+          today,
+        );
+        this.logger.debug(
+          ' Budget deducted without reservation and proceeding to revenue sharing',
+          {
+            reservationId,
+            campaignId,
+            costPerImpression,
+          },
+        );
+        await this.processRevenueSharing(
           campaignId,
           publisherId,
           inventoryId,
           websiteId,
+          advertiserId,
+          creativeId,
           costPerImpression,
-          today,
         );
-
-        return;
+        return true;
       }
 
-      // Remove the reservation
+      const reservationData = JSON.parse(reservation as string);
+
+      // 2. Validate reservation data
+      if (reservationData.campaignId !== campaignId) {
+        this.logger.error('❌ Campaign ID mismatch in reservation', {
+          reservationId,
+          expectedCampaignId: campaignId,
+          actualCampaignId: reservationData.campaignId,
+        });
+        return false;
+      }
+
+      // 3. Mark reservation as confirmed
+      reservationData.confirmed = true;
+      reservationData.confirmedAt = new Date().toISOString();
+
+      // 4. Update metadata
+      await this.redis.set(
+        REDIS_KEYS.REVENUE_METADATA(reservationId),
+        JSON.stringify(reservationData),
+        RTB_CACHE_TTL.REVENUE_METADATA,
+      );
+
+      // 5. Process revenue sharing (publisher, advertiser, system)
+      await this.processRevenueSharing(
+        campaignId,
+        publisherId,
+        inventoryId,
+        websiteId,
+        advertiserId,
+        creativeId,
+        costPerImpression,
+      );
+
+      // 6. Clean up reservation (it's now confirmed)
       await this.redis.del(REDIS_KEYS.BUDGET_RESERVATION(reservationId));
 
-      this.logger.debug('✅ Reserved budget confirmed', {
+      this.logger.debug(' Budget confirmed successfully', {
         reservationId,
         campaignId,
+        costPerImpression,
       });
+
+      return true;
     } catch (error) {
-      this.logger.error('❌ Failed to confirm reserved budget', {
+      this.logger.error('❌ Failed to confirm budget', {
         error: error.message,
         reservationId,
         campaignId,
       });
-      throw error;
+      return false;
     }
   }
+
   /**
-   * Deduct campaign budget in Redis (real-time)
+   * Deduct budget from campaign's daily allocation
    */
-  private async deductCampaignBudget(
+  private async deductBudgetForReservation(
     campaignId: string,
-    publisherId: string,
-    inventoryId: string,
-    websiteId: string,
     costPerImpression: number,
     today: string,
   ): Promise<void> {
     const pipeline = this.redis.pipeline();
 
-    // Update daily spend
-    const dailySpendKey = REDIS_KEYS.DAILY_BUDGET_SPEND(campaignId, today);
-    pipeline.incrbyfloat(dailySpendKey, costPerImpression);
-
-    // Update campaign spending cache for job processing -- ambiguous
-    const campaignSpendKey = REDIS_KEYS.CAMPAIGN_SPENDING(campaignId, today);
-    pipeline.incrbyfloat(campaignSpendKey, costPerImpression);
-
-    // Cache budget transaction for PostgreSQL sync
-    const transactionData = {
-      campaignId,
-      type: 'IMPRESSION_COST',
-      amount: costPerImpression,
-      description: 'RTB impression cost deduction',
-      createdAt: new Date().toISOString(),
-      publisherId,
-      inventoryId,
-      websiteId,
-    };
-    // -- ambiguous
-    pipeline.lpush(
-      REDIS_KEYS.BUDGET_TRANSACTION_PENDING,
-      JSON.stringify(transactionData),
+    // Increment daily spend
+    pipeline.incrbyfloat(
+      REDIS_KEYS.DAILY_BUDGET_SPEND(campaignId, today),
+      costPerImpression,
     );
 
-    await pipeline.exec();
+    // Check if budget is exhausted
+    const [, dailyLimit] = await Promise.all([
+      pipeline.exec(),
+      this.redis.get(REDIS_KEYS.DAILY_BUDGET_LIMIT(campaignId)),
+    ]);
 
-    // this.logger.debug('Campaign budget deducted', {
-    //   campaignId,
-    //   costPerImpression,
-    //   today,
-    // });
+    if (dailyLimit) {
+      const currentSpend = await this.redis.get(
+        REDIS_KEYS.DAILY_BUDGET_SPEND(campaignId, today),
+      );
+      const limit = parseFloat(dailyLimit as string);
+      const spend = parseFloat((currentSpend as string) || '0');
+
+      if (spend >= limit) {
+        await this.redis.set(
+          REDIS_KEYS.CAMPAIGN_STATUS(campaignId),
+          'BUDGET_EXHAUSTED',
+        );
+
+        this.logger.warn('Campaign budget exhausted', {
+          campaignId,
+          spend,
+          limit,
+        });
+      }
+    }
   }
 
   /**
-   * Cache publisher revenue data for batch processing
+   * Process revenue sharing between publisher, advertiser, and system
    */
-  private async cachePublisherRevenue(
-    publisherId: string,
+  private async processRevenueSharing(
     campaignId: string,
+    publisherId: string,
     inventoryId: string,
     websiteId: string,
-    grossRevenue: number,
-    today: string,
+    advertiserId: string,
+    creativeId: string,
+    costPerImpression: number,
   ): Promise<void> {
+    const today = new Date().toISOString().split('T')[0];
+
     try {
       // Get publisher commission rate
       const commissionRate = await this.getPublisherCommissionRate(publisherId);
-      const netRevenue = grossRevenue * (1 - commissionRate);
 
-      const pipeline = this.redis.pipeline();
-
-      // Update publisher daily revenue accumulation
-      const revenueKey = REDIS_KEYS.PUBLISHER_REVENUE(publisherId, today);
-      pipeline.incrbyfloat(revenueKey, netRevenue);
-
-      // Cache detailed revenue data for PostgreSQL sync
-      const revenueData = {
+      const grossRevenue = costPerImpression;
+      const publisherShare = grossRevenue * commissionRate;
+      const systemEarning = grossRevenue - publisherShare;
+      this.logger.debug('Processing revenue sharing', {
+        campaignId,
+        publisherId,
+        grossRevenue,
+        costPerImpression,
+        publisherShare,
+        systemEarning,
+        commissionRate,
+      });
+      // 1. Publisher Revenue
+      const publisherRevenueData = {
         publisherId,
         campaignId,
         inventoryId,
         websiteId,
-        grossRevenue: grossRevenue, // Convert back to per-impression
+        grossRevenue,
         commissionRate,
-        netRevenue: netRevenue,
+        netRevenue: publisherShare,
         eventType: 'IMPRESSION',
         createdAt: new Date().toISOString(),
       };
 
-      pipeline.lpush(
+      await this.redis.lpush(
         REDIS_KEYS.PUBLISHER_REVENUE_PENDING,
-        JSON.stringify(revenueData),
+        JSON.stringify(publisherRevenueData),
       );
 
-      // Update daily aggregation cache
-      const dailyKey = REDIS_KEYS.PUBLISHER_REVENUE_DAILY(publisherId, today);
-      pipeline.hincrby(dailyKey, 'totalImpressions', 1);
-      pipeline.hincrbyfloat(dailyKey, 'grossRevenue', grossRevenue);
-      pipeline.hincrbyfloat(dailyKey, 'netRevenue', netRevenue);
-      pipeline.hincrbyfloat(
-        dailyKey,
-        'commissionPaid',
-        grossRevenue * commissionRate,
-      );
-      pipeline.expire(dailyKey, RTB_CACHE_TTL.PUBLISHER_REVENUE_PIPELINE); // 7 days
-
-      await pipeline.exec();
-
-      this.logger.debug('Publisher revenue cached', {
-        publisherId,
-        grossRevenue: grossRevenue,
-        netRevenue: netRevenue,
-        commissionRate,
-      });
-    } catch (error) {
-      this.logger.error('Failed to cache publisher revenue', {
-        error: error.message,
-        publisherId,
-        campaignId,
-      });
-    }
-  }
-
-  /**
-   * Cache advertiser spending data for batch processing
-   */
-  private async cacheAdvertiserSpending(
-    advertiserId: string,
-    campaignId: string,
-    creativeId: string,
-    amount: number,
-    today: string,
-  ): Promise<void> {
-    try {
-      const pipeline = this.redis.pipeline();
-
-      // Update advertiser daily spending accumulation
-      const spendingKey = REDIS_KEYS.ADVERTISER_SPENDING(advertiserId, today);
-      pipeline.incrbyfloat(spendingKey, amount);
-
-      // Cache detailed spending data for PostgreSQL sync
-      const spendingData = {
+      // 2. Advertiser Spending
+      const advertiserSpendingData = {
         advertiserId,
         campaignId,
         creativeId,
-        amount,
+        amount: costPerImpression,
         eventType: 'IMPRESSION',
         createdAt: new Date().toISOString(),
       };
 
-      pipeline.lpush(
+      await this.redis.lpush(
         REDIS_KEYS.ADVERTISER_SPENDING_PENDING,
-        JSON.stringify(spendingData),
+        JSON.stringify(advertiserSpendingData),
       );
 
-      // Update daily aggregation cache
-      const dailyKey = REDIS_KEYS.ADVERTISER_SPENDING_DAILY(
-        advertiserId,
-        campaignId,
-        today,
-      );
-      pipeline.hincrby(dailyKey, 'totalImpressions', 1);
-      pipeline.hincrbyfloat(dailyKey, 'totalSpend', amount);
-      pipeline.expire(dailyKey, RTB_CACHE_TTL.ADVERTISER_SPENDING_PIPELINE); // 7 days
-
-      await pipeline.exec();
-
-      this.logger.debug('Advertiser spending cached', {
-        advertiserId,
-        campaignId,
-        amount,
-      });
-    } catch (error) {
-      this.logger.error('Failed to cache advertiser spending', {
-        error: error.message,
-        advertiserId,
-        campaignId,
-      });
-    }
-  }
-
-  /**
-   * Cache system revenue data for batch processing
-   */
-  private async cacheSystemRevenue(
-    campaignId: string,
-    publisherId: string,
-    advertiserId: string,
-    creativeId: string,
-    inventoryId: string,
-    grossRevenue: number,
-    today: string,
-  ): Promise<void> {
-    try {
-      const commissionRate = await this.getPublisherCommissionRate(publisherId);
-      const systemEarning = grossRevenue * commissionRate;
-      const publisherShare = grossRevenue * (1 - commissionRate);
-
-      const pipeline = this.redis.pipeline();
-
-      // Update system daily revenue accumulation
-      const systemRevenueKey = REDIS_KEYS.SYSTEM_REVENUE(today);
-      pipeline.incrbyfloat(systemRevenueKey, systemEarning);
-
-      // Cache detailed system revenue data for PostgreSQL sync
+      // 3. System Revenue
       const systemRevenueData = {
         campaignId,
         publisherId,
@@ -393,40 +322,52 @@ export class BudgetManagerService {
         createdAt: new Date().toISOString(),
       };
 
-      pipeline.lpush(
+      await this.redis.lpush(
         REDIS_KEYS.SYSTEM_REVENUE_PENDING,
         JSON.stringify(systemRevenueData),
       );
 
-      // Update daily system aggregation cache
-      const systemDailyKey = REDIS_KEYS.SYSTEM_REVENUE_DAILY(today);
-      pipeline.hincrby(systemDailyKey, 'totalImpressions', 1);
-      pipeline.hincrbyfloat(systemDailyKey, 'totalGrossRevenue', grossRevenue);
-      pipeline.hincrbyfloat(
-        systemDailyKey,
-        'totalCommissionEarned',
-        systemEarning,
-      );
-      pipeline.hincrbyfloat(
-        systemDailyKey,
-        'totalPublisherPayout',
-        publisherShare,
-      );
-      pipeline.expire(systemDailyKey, RTB_CACHE_TTL.SYSTEM_REVENUE_PIPELINE); // 30 days
-
-      await pipeline.exec();
-
-      this.logger.debug('System revenue cached', {
+      // 4. Budget Transaction Record
+      const budgetTransactionData = {
         campaignId,
-        grossRevenue: grossRevenue,
-        systemEarning,
+        type: 'IMPRESSION_COST',
+        amount: costPerImpression,
+        description: `Impression cost for creative ${creativeId}`,
+        publisherId,
+        inventoryId,
+        createdAt: new Date().toISOString(),
+      };
+
+      await this.redis.lpush(
+        REDIS_KEYS.BUDGET_TRANSACTION_PENDING,
+        JSON.stringify(budgetTransactionData),
+      );
+
+      // 5. Update daily aggregations
+      await this.updateDailyAggregations(
+        publisherId,
+        advertiserId,
+        campaignId,
+        grossRevenue,
         publisherShare,
+        systemEarning,
+        today,
+      );
+
+      this.logger.debug(' Revenue sharing processed', {
+        campaignId,
+        publisherId,
+        grossRevenue,
+        publisherShare,
+        systemEarning,
       });
     } catch (error) {
-      this.logger.error('Failed to cache system revenue', {
+      this.logger.error('❌ Failed to process revenue sharing', {
         error: error.message,
         campaignId,
+        publisherId,
       });
+      throw error;
     }
   }
 
@@ -438,11 +379,11 @@ export class BudgetManagerService {
   ): Promise<number> {
     try {
       // Check cache first
-      const cacheKey = REDIS_KEYS.PUBLISHER_REVENUE_TIERS(publisherId);
-      const cached = await this.redis.get<string>(cacheKey);
-
+      const cached = await this.redis.get(
+        REDIS_KEYS.PUBLISHER_REVENUE_TIERS(publisherId),
+      );
       if (cached) {
-        return parseFloat(cached);
+        return parseFloat(cached as string);
       }
 
       // Fallback to database
@@ -452,12 +393,12 @@ export class BudgetManagerService {
       });
 
       const commissionRate = publisher?.tier?.commissionRate
-        ? Number(publisher.tier.commissionRate)
-        : 0.4; // Default 40% commission
+        ? parseFloat(publisher.tier.commissionRate.toString())
+        : 0.4; // Default 40%
 
       // Cache for 30 days
       await this.redis.set(
-        cacheKey,
+        REDIS_KEYS.PUBLISHER_REVENUE_TIERS(publisherId),
         commissionRate.toString(),
         RTB_CACHE_TTL.PUBLISHER_REVENUE_TIERS,
       );
@@ -471,87 +412,123 @@ export class BudgetManagerService {
           publisherId,
         },
       );
-      return 0.4; // Default 40% commission
+      return 0.4; // Default 40%
     }
   }
 
   /**
-   * Sync publisher revenue tiers to Redis cache
+   * Update daily aggregations in Redis
+   */
+  private async updateDailyAggregations(
+    publisherId: string,
+    advertiserId: string,
+    campaignId: string,
+    grossRevenue: number,
+    publisherShare: number,
+    systemEarning: number,
+    today: string,
+  ): Promise<void> {
+    const pipeline = this.redis.pipeline();
+
+    // Publisher daily aggregation
+    const publisherDailyKey = REDIS_KEYS.PUBLISHER_REVENUE_DAILY(
+      publisherId,
+      today,
+    );
+    pipeline.hincrby(publisherDailyKey, 'totalImpressions', 1);
+    pipeline.hincrbyfloat(publisherDailyKey, 'grossRevenue', grossRevenue);
+    pipeline.hincrbyfloat(publisherDailyKey, 'netRevenue', publisherShare);
+    pipeline.hincrbyfloat(
+      publisherDailyKey,
+      'commissionPaid',
+      grossRevenue - publisherShare,
+    );
+    pipeline.expire(publisherDailyKey, 86400 * 32); // 32 days
+
+    // Advertiser daily aggregation
+    const advertiserDailyKey = REDIS_KEYS.ADVERTISER_SPENDING_DAILY(
+      advertiserId,
+      campaignId,
+      today,
+    );
+    pipeline.hincrby(advertiserDailyKey, 'totalImpressions', 1);
+    pipeline.hincrbyfloat(advertiserDailyKey, 'totalSpend', grossRevenue);
+    pipeline.expire(advertiserDailyKey, 86400 * 32); // 32 days
+
+    // System daily aggregation
+    const systemDailyKey = REDIS_KEYS.SYSTEM_REVENUE_DAILY(today);
+    pipeline.hincrby(systemDailyKey, 'totalImpressions', 1);
+    pipeline.hincrbyfloat(systemDailyKey, 'totalGrossRevenue', grossRevenue);
+    pipeline.hincrbyfloat(
+      systemDailyKey,
+      'totalCommissionEarned',
+      systemEarning,
+    );
+    pipeline.hincrbyfloat(
+      systemDailyKey,
+      'totalPublisherPayout',
+      publisherShare,
+    );
+    pipeline.expire(systemDailyKey, 86400 * 32); // 32 days
+
+    await pipeline.exec();
+  }
+
+  /**
+   * Track reservation for monitoring
+   */
+  private async trackReservation(
+    reservationId: string,
+    campaignId: string,
+    today: string,
+  ): Promise<void> {
+    const trackingKey = REDIS_KEYS.RESERVATION_TRACKING(today, campaignId);
+    await this.redis.sadd(trackingKey, reservationId);
+    await this.redis.expire(trackingKey, RTB_CACHE_TTL.RESERVATION_TRACKING);
+  }
+
+  /**
+   * Sync publisher revenue tiers from database to Redis
    */
   async syncPublisherRevenueTiers(): Promise<void> {
     try {
+<<<<<<< HEAD
       this.logger.debug('Syncing publisher revenue tiers to Redis...');
 
+=======
+>>>>>>> 1aeb99e2866ac6f9caefe7507c43cc91689c53d3
       const publishers = await this.prisma.publisher.findMany({
-        where: { status: 'ACTIVE' },
         include: { tier: true },
+        where: { status: 'ACTIVE' },
       });
 
       const pipeline = this.redis.pipeline();
 
       for (const publisher of publishers) {
         const commissionRate = publisher.tier?.commissionRate
-          ? Number(publisher.tier.commissionRate)
+          ? parseFloat(publisher.tier.commissionRate.toString())
           : 0.4;
 
-        const cacheKey = REDIS_KEYS.PUBLISHER_REVENUE_TIERS(publisher.id);
         pipeline.setex(
-          cacheKey,
+          REDIS_KEYS.PUBLISHER_REVENUE_TIERS(publisher.id),
           RTB_CACHE_TTL.PUBLISHER_REVENUE_TIERS,
           commissionRate.toString(),
-        ); // 30 days TTL
+        );
       }
 
       await pipeline.exec();
 
+<<<<<<< HEAD
       this.logger.debug(
         `✅ Synced ${publishers.length} publisher revenue tiers to Redis`,
       );
+=======
+      this.logger.debug(`${publishers.length} Publisher revenue tiers synced`);
+>>>>>>> 1aeb99e2866ac6f9caefe7507c43cc91689c53d3
     } catch (error) {
-      this.logger.error('Failed to sync publisher revenue tiers', {
+      this.logger.error('❌ Failed to sync publisher revenue tiers', {
         error: error.message,
       });
-    }
-  }
-
-  /**
-   * Get pending transaction counts for monitoring
-   */
-  async getPendingTransactionCounts(): Promise<{
-    budgetTransactions: number;
-    publisherRevenue: number;
-    advertiserSpending: number;
-    systemRevenue: number;
-  }> {
-    try {
-      const [
-        budgetTransactions,
-        publisherRevenue,
-        advertiserSpending,
-        systemRevenue,
-      ] = await Promise.all([
-        this.redis.llen(REDIS_KEYS.BUDGET_TRANSACTION_PENDING),
-        this.redis.llen(REDIS_KEYS.PUBLISHER_REVENUE_PENDING),
-        this.redis.llen(REDIS_KEYS.ADVERTISER_SPENDING_PENDING),
-        this.redis.llen(REDIS_KEYS.SYSTEM_REVENUE_PENDING),
-      ]);
-
-      return {
-        budgetTransactions,
-        publisherRevenue,
-        advertiserSpending,
-        systemRevenue,
-      };
-    } catch (error) {
-      this.logger.error('Failed to get pending transaction counts', {
-        error: error.message,
-      });
-      return {
-        budgetTransactions: 0,
-        publisherRevenue: 0,
-        advertiserSpending: 0,
-        systemRevenue: 0,
-      };
     }
   }
 }

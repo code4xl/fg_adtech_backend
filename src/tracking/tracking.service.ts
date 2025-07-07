@@ -47,7 +47,7 @@ export class TrackingService {
   }
 
   /**
-    Process impression event with complete financial tracking
+   * 🔧 FIXED: Process impression event with correct reservation confirmation
    */
   async processImpression(impression: ImpressionEvent): Promise<void> {
     const pipeline = this.redis.pipeline();
@@ -59,6 +59,7 @@ export class TrackingService {
         campaignId: impression.campaignId,
         publisherId: impression.publisherId,
         finalPrice: impression.finalPrice,
+        bidResponseId: impression.bidResponseId,
       });
 
       // ===== 1. STORE COMPLETE EVENT DATA =====
@@ -98,16 +99,24 @@ export class TrackingService {
         REDIS_KEYS.PENDING_IMPRESSIONS,
         JSON.stringify(impressionData),
       );
+
+      // 🔧 SIMPLIFIED: Use only bidResponseId as reservation ID
+      const reservationId = impression.bidResponseId;
+
+      // 🔧 FIX: Use per-impression cost consistently
+      const costPerImpression = impression.finalPrice;
+
       await this.budgetManager.confirmReservedBudget(
-        `${impressionData.bidResponseId}_${today}`,
+        reservationId,
         impression.campaignId,
         impression.publisherId,
         impression.inventoryId,
         impression.websiteId,
         impression.advertiserId,
         impression.creativeId,
-        impression.finalPrice / 1000,
+        costPerImpression,
       );
+
       // ===== 2. UPDATE REAL-TIME METRICS =====
       pipeline.incr(
         REDIS_KEYS.CAMPAIGN_IMPRESSIONS(impression.campaignId, today),
@@ -116,7 +125,7 @@ export class TrackingService {
         REDIS_KEYS.CREATIVE_IMPRESSIONS(impression.creativeId, today),
       );
 
-      // ===== 4. SET EXPIRATION FOR METRICS =====
+      // ===== 3. SET EXPIRATION FOR METRICS =====
       pipeline.expire(
         REDIS_KEYS.CAMPAIGN_IMPRESSIONS(impression.campaignId, today),
         2592000,
@@ -129,17 +138,20 @@ export class TrackingService {
       await pipeline.exec();
 
       this.logger.debug(
-        `✅ Impression processed with financial tracking: ${impression.id}`,
+        ` Impression processed with financial tracking: ${impression.id}`,
         {
           finalPrice: impression.finalPrice,
+          costPerImpression,
           publisherId: impression.publisherId,
+          reservationId,
         },
       );
     } catch (error) {
-      this.logger.error(
-        `❌ Failed to process impression: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`❌ Failed to process impression: ${error.message}`, {
+        impressionId: impression.id,
+        bidResponseId: impression.bidResponseId,
+        error: error.stack,
+      });
       throw error;
     }
   }
@@ -208,7 +220,7 @@ export class TrackingService {
       await pipeline.exec();
 
       this.logger.debug(
-        `✅ Click processed with financial tracking: ${click.id}`,
+        ` Click processed with financial tracking: ${click.id}`,
       );
     } catch (error) {
       this.logger.error(

@@ -15,7 +15,8 @@ import { VERSION_FORMAT, CDN_ERROR_CODES, SDK_CONFIG, CDN_URL_CONFIG } from '../
 export class CdnGeneratorService {
   private readonly logger = new Logger(CdnGeneratorService.name);
   private readonly sdkBuildPath: string;
-  private readonly sdkCache: Map<string, { content: string; hash: string }> = new Map();
+  private readonly sdkCache: Map<string, { content: string; hash: string }> =
+    new Map();
 
   constructor(private readonly configService: ConfigService) {
     // Try environment variable first, then fallback to default paths
@@ -178,7 +179,11 @@ export class CdnGeneratorService {
       const configScript = this.generateConfigScript(config, context);
 
       // Combine SDK and configuration
-      const cdnContent = this.combineSdkAndConfig(sdkContent, configScript, context);
+      const cdnContent = this.combineSdkAndConfig(
+        sdkContent,
+        configScript,
+        context,
+      );
 
       // Generate version and integrity
       const version = this.generateVersion(config, context);
@@ -809,9 +814,7 @@ export class CdnGeneratorService {
    * Generate integrity hash for subresource integrity
    */
   private generateIntegrity(content: string): string {
-    const hash = createHash('sha384')
-      .update(content, 'utf8')
-      .digest('base64');
+    const hash = createHash('sha384').update(content, 'utf8').digest('base64');
 
     return `sha384-${hash}`;
   }
@@ -822,7 +825,7 @@ export class CdnGeneratorService {
   private generateBuildId(context: ICdnBuildContext): string {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 8);
-    
+
     return `${context.publisherId.substring(0, 8)}-${timestamp}-${random}`;
   }
 

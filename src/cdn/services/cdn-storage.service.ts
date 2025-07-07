@@ -2,7 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { ICdnStorageOptions, ICdnStorageMetadata, ICdnFileMetadata } from '../interfaces';
+import {
+  ICdnStorageOptions,
+  ICdnStorageMetadata,
+  ICdnFileMetadata,
+} from '../interfaces';
 import { CDN_PATHS, CDN_CONTENT_TYPES } from '../constants/cdn.constants';
 
 /**
@@ -23,10 +27,7 @@ interface IS3Client {
     Key: string;
   }): Promise<{ Body: Buffer; Metadata?: Record<string, string> }>;
 
-  deleteObject(params: {
-    Bucket: string;
-    Key: string;
-  }): Promise<void>;
+  deleteObject(params: { Bucket: string; Key: string }): Promise<void>;
 
   headObject(params: {
     Bucket: string;
@@ -62,7 +63,7 @@ export class CdnStorageService {
         accessKey: this.configService.get<string>('AWS_S3_ACCESS_KEY', ''),
         secretKey: this.configService.get<string>('AWS_S3_SECRET_KEY', ''),
       };
-      
+
       // Initialize S3 client (placeholder - implement with actual AWS SDK)
       // this.s3Client = new S3Client(this.s3Config);
       
@@ -89,7 +90,12 @@ export class CdnStorageService {
     if (this.storageType === 's3') {
       return this.storeFileS3(filePath, content, metadata);
     } else {
-      return this.storeFileLocal(filePath, content, metadata, options?.overwrite);
+      return this.storeFileLocal(
+        filePath,
+        content,
+        metadata,
+        options?.overwrite,
+      );
     }
   }
 
@@ -139,7 +145,10 @@ export class CdnStorageService {
   /**
    * Check if file exists
    */
-  async fileExists(publisherId: string, environment?: string): Promise<boolean> {
+  async fileExists(
+    publisherId: string,
+    environment?: string,
+  ): Promise<boolean> {
     const filePath = this.buildFilePath(publisherId, environment);
 
     if (this.storageType === 's3') {
@@ -347,14 +356,14 @@ export class CdnStorageService {
     filePath: string,
   ): Promise<{ content: string; metadata: ICdnStorageMetadata }> {
     const fullPath = path.join(this.basePath, filePath);
-    
+
     const content = await fs.readFile(fullPath, 'utf8');
     const stats = await fs.stat(fullPath);
 
     // Try to get metadata
     const metadataPath = filePath.replace(/\.js$/, '.metadata.json');
     let fileMetadata: Record<string, string> = {};
-    
+
     try {
       const metadataContent = await fs.readFile(
         path.join(this.basePath, metadataPath),
@@ -416,7 +425,7 @@ export class CdnStorageService {
   ): Promise<void> {
     const fullPath = path.join(this.basePath, metadataPath);
     const dir = path.dirname(fullPath);
-    
+
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(fullPath, content, 'utf8');
   }
@@ -437,14 +446,18 @@ export class CdnStorageService {
    */
   private async listPublishersLocal(environment?: string): Promise<string[]> {
     const basePath = environment
-      ? path.join(this.basePath, environment, CDN_PATHS.PUBLISHER_PATH.substring(1))
+      ? path.join(
+          this.basePath,
+          environment,
+          CDN_PATHS.PUBLISHER_PATH.substring(1),
+        )
       : path.join(this.basePath, CDN_PATHS.PUBLISHER_PATH.substring(1));
 
     try {
       const dirs = await fs.readdir(basePath, { withFileTypes: true });
       return dirs
-        .filter(dirent => dirent.isDirectory())
-        .map(dirent => dirent.name);
+        .filter((dirent) => dirent.isDirectory())
+        .map((dirent) => dirent.name);
     } catch {
       return [];
     }
@@ -479,12 +492,17 @@ export class CdnStorageService {
     throw new Error('S3 existence check not implemented');
   }
 
-  private async storeMetadataS3(metadataPath: string, content: string): Promise<void> {
+  private async storeMetadataS3(
+    metadataPath: string,
+    content: string,
+  ): Promise<void> {
     // Implement S3 metadata storage
     throw new Error('S3 metadata storage not implemented');
   }
 
-  private async retrieveMetadataS3(metadataPath: string): Promise<ICdnFileMetadata> {
+  private async retrieveMetadataS3(
+    metadataPath: string,
+  ): Promise<ICdnFileMetadata> {
     // Implement S3 metadata retrieval
     throw new Error('S3 metadata retrieval not implemented');
   }
@@ -499,11 +517,11 @@ export class CdnStorageService {
    */
   private buildFilePath(publisherId: string, environment?: string): string {
     const parts = [];
-    
+
     if (environment && environment !== 'production') {
       parts.push(environment);
     }
-    
+
     parts.push(
       CDN_PATHS.PUBLISHER_PATH.substring(1),
       publisherId,
@@ -518,11 +536,11 @@ export class CdnStorageService {
    */
   private buildMetadataPath(publisherId: string, environment?: string): string {
     const parts = [];
-    
+
     if (environment && environment !== 'production') {
       parts.push(environment);
     }
-    
+
     parts.push(
       CDN_PATHS.PUBLISHER_PATH.substring(1),
       publisherId,

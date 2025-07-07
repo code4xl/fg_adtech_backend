@@ -1,0 +1,2918 @@
+[
+  {
+    "inventoryId": "0211b121-7a2f-483e-9a19-7b9babb8dd2a",
+    "publisherId": "2e24cb4f-6316-4a3b-9aff-310752ddd335",
+    "websiteId": "deba58ee-1a3d-4eee-93da-0ad29dfac3a8",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "032fbf7a-4da5-48f7-9c7e-0aee736916c6",
+    "publisherId": "4c6636aa-7c1a-4ce8-a5f5-8552d78f02bb",
+    "websiteId": "76937b03-7fbd-41b0-a5c6-ad50a70074b3",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "04086c9f-fad8-4918-b022-72a8d82e1aa4",
+    "publisherId": "2dd6d593-93cb-4b1e-8491-2dfc85cebf5b",
+    "websiteId": "003ab77a-1a65-4ea0-a895-c804b02c457d",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "04d501ef-1907-4d30-9416-f9919554bb1b",
+    "publisherId": "c42f7a43-88f1-4371-81ae-802a2de35d16",
+    "websiteId": "97ed4132-1801-4c46-a7a7-762a1d44eb2f",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "04f0ecdf-a709-4be3-a59d-e0d764d35980",
+    "publisherId": "38c1b123-cccd-4fc0-90fe-f6bfe239447f",
+    "websiteId": "070c1cfc-8570-4b49-a52a-8afa7f1c5ac4",
+    "width": 320,
+    "height": 50,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "055a6a33-404c-4c06-8ea6-0ec1e5f7d5dc",
+    "publisherId": "f00bcd40-c6ef-4230-b0ac-1262d7f78590",
+    "websiteId": "d0cdbbc7-233b-4ae1-8c52-e8e6c0239689",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "0665b719-a4ac-4125-a9a3-8158b6db0be8",
+    "publisherId": "2ee159d6-4646-4357-aaf5-b2efd7bcc21b",
+    "websiteId": "094ee429-b8aa-4fc4-9521-52a1b3a9f9ca",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "0678075c-2ef5-4d23-bbf4-72e36fa8248b",
+    "publisherId": "b6fa4392-b1eb-4fd5-b9ce-d5dda99ec80e",
+    "websiteId": "2f581742-3ef6-46ae-8b14-59fdb9543f30",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "06799eeb-a608-4851-a9d3-5a733cdb92ad",
+    "publisherId": "ec6c609f-b15e-4a76-801e-eefe0adca253",
+    "websiteId": "694c320d-9877-43bb-85bf-10c3126428f1",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "072bc0e5-3ae3-4575-b2a5-b7bb75c85ca8",
+    "publisherId": "c893e3bf-258e-4425-bc08-6b4a37d91897",
+    "websiteId": "007a03c1-4318-457e-9f47-2c6a2f658b47",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "088a3eda-58f3-45cd-95f8-8d37d3cfd664",
+    "publisherId": "286b0407-02ee-438e-93ea-e2e3acf4ae0a",
+    "websiteId": "110a907a-e3f3-47b6-a5e6-7ad9c48bd563",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "08dc6b39-3206-48bb-89c1-4f446ca7ad4b",
+    "publisherId": "773bf7e5-7773-4cbd-b3d1-5f9e2ee35a41",
+    "websiteId": "03878599-2da5-4203-aae7-1cdf374aafd4",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "09b60730-6bdc-4768-a798-f12ad1b14631",
+    "publisherId": "add8e99f-dde7-4a92-8cde-49a175437e56",
+    "websiteId": "c1af8675-dab9-4f49-b9b7-5144cc9371bd",
+    "width": 970,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "0b49a39a-ebbb-4cd5-a50f-83c74deec5bf",
+    "publisherId": "9be3b63f-3d42-4a03-98ff-2105c9b2d230",
+    "websiteId": "9bc2891a-db64-4c01-967c-36f52f379947",
+    "width": 800,
+    "height": 600,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "0c36459e-b14c-42aa-804b-e401783b1959",
+    "publisherId": "c9b4294e-b0a8-4ff2-8e54-d8d6caef90f5",
+    "websiteId": "fa8fd279-7c01-407b-879b-f2d4b238b98e",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "0cc49038-9d22-4620-a15a-76970851f6a1",
+    "publisherId": "1cf59334-3a98-4e4a-93e3-d112f9bd70cf",
+    "websiteId": "f00ffc61-1de0-4e97-910e-c3fc83b18211",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "0e46219d-1901-4cc4-80e8-d8cd0e348294",
+    "publisherId": "36b57d3c-46d9-4123-9b56-046325c220a5",
+    "websiteId": "43c927cb-f7e0-4763-aaf3-f41ab5f1576d",
+    "width": 320,
+    "height": 50,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "0f787a16-a039-4940-8747-76610d401da7",
+    "publisherId": "000d260f-a4d6-4355-9212-70859dc2a1f5",
+    "websiteId": "ae9e92d0-4509-4a29-9b8c-76204c473fbf",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "12173001-88e2-4b99-9e28-35b5960e6a1d",
+    "publisherId": "9c436dab-c015-42a1-9cac-650c26b3d31e",
+    "websiteId": "a5cabe7e-7859-40b8-8a56-4c519d0c73a5",
+    "width": 970,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "130b58e4-5650-4a0a-b3ce-a67ba4576e92",
+    "publisherId": "7066cf4b-4c19-4cbd-bd40-235e5c6322ac",
+    "websiteId": "0d861c9f-6169-4b4c-bb6b-87950e4d6fd2",
+    "width": 320,
+    "height": 50,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "13eb431c-2f03-4787-8a0e-e9009574883d",
+    "publisherId": "ddc1267c-81ed-48fa-8fe5-6452e5971cbd",
+    "websiteId": "ebd7c58e-e492-431d-b7db-3144fc3eebb5",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "13f77850-5639-42fd-b6c8-c509970f4539",
+    "publisherId": "0df71875-3d8a-460a-9b89-df1b0a36b307",
+    "websiteId": "2b6c78c6-10ca-4b91-a6e7-260bd61d85e5",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "14a6bc42-c561-48cb-aa52-ef52462a42f1",
+    "publisherId": "7066cf4b-4c19-4cbd-bd40-235e5c6322ac",
+    "websiteId": "fac3b3ed-6e57-4c12-bca6-be2c4a3a51ac",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "1670a131-0cb7-4013-9fb7-6ac2dfc3caca",
+    "publisherId": "e8a05c29-5329-4c65-bf33-292185c337e7",
+    "websiteId": "84507fca-f6d1-48a9-8845-d72174c028d2",
+    "width": 800,
+    "height": 600,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "16877ca1-f8bf-4e42-a6e8-570fb53ec275",
+    "publisherId": "9a8d23c9-5f18-4279-a584-c722037703ab",
+    "websiteId": "e974a4d8-27e7-4d47-9ecb-0841e0c3a494",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "177948f8-273f-4dc1-a581-3301e388ddec",
+    "publisherId": "7ff949c2-3684-4ae2-b8ed-97a508b4d821",
+    "websiteId": "1efd1a37-4b06-45eb-ac1f-61bd995f58ca",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "17a7f478-d258-4407-9604-424379fd2de0",
+    "publisherId": "654093d3-5f91-4c84-bc63-0ee12db75047",
+    "websiteId": "d507ea39-67aa-4509-8e71-11d9b5303d9e",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "17f6efb3-a479-4c8b-85da-208b10c5b139",
+    "publisherId": "654093d3-5f91-4c84-bc63-0ee12db75047",
+    "websiteId": "cd3bd307-1702-4e4c-851f-8789eb02b0df",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "181b9e70-7518-473e-bfcc-0647254cc35c",
+    "publisherId": "3273a7d2-d3d0-468c-970e-d15a7614741d",
+    "websiteId": "13ab6324-d998-40e1-944a-a3f3c93eefbe",
+    "width": 970,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "18664ce0-2bb3-4619-bbe9-e1461ad03cc3",
+    "publisherId": "8f08115f-0ae5-4171-9e56-be1314c5323d",
+    "websiteId": "4915e0e1-53e6-426f-a18b-ad602b2807cc",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "19172340-c10a-4d83-b6df-1c386fd9854f",
+    "publisherId": "410d3797-6bab-4bac-8449-fabd9f083ecf",
+    "websiteId": "9eff1a01-5f81-4e75-a8c5-45593af76ca2",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "1a990070-c59a-44ab-a5e8-a9d70772c68f",
+    "publisherId": "654093d3-5f91-4c84-bc63-0ee12db75047",
+    "websiteId": "d507ea39-67aa-4509-8e71-11d9b5303d9e",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "1ae16a2c-2dee-403b-87f3-c7be22bc2ff9",
+    "publisherId": "2e24cb4f-6316-4a3b-9aff-310752ddd335",
+    "websiteId": "7faf4a28-8043-43c9-bcc4-020c49c7c6f6",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "1aff3639-9c9d-46ab-bf4a-feea0fec29a3",
+    "publisherId": "e3e9a547-2782-4791-9f85-6bc8e60b6d32",
+    "websiteId": "1ceb6cb0-a18e-4013-9247-663babbd5f74",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "1b5527a3-45c7-4f99-ab86-1a45c809442a",
+    "publisherId": "6539a6d5-04ee-44a3-b954-0d9f9fd86f12",
+    "websiteId": "c7054fbb-500f-44cd-8cdf-7919e79d2bef",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "1ca02808-1b47-42f0-97b5-6df1467f534b",
+    "publisherId": "c1dbface-d88e-467d-9fdd-50c18d946d84",
+    "websiteId": "796f697c-8cf3-4f93-9e0a-e70113fae6cc",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "1d5633dc-8775-408e-987b-bed95821f8fe",
+    "publisherId": "efbacc47-ae9b-4bbd-8057-6b666899e71d",
+    "websiteId": "894cfdcb-1ad4-46cf-9783-ed0f4706869b",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "1dc3b146-644a-44fd-9f5d-a8bd8584462c",
+    "publisherId": "fb9d2664-bf77-448c-b6a5-364d4cc270e3",
+    "websiteId": "f854c92e-1bf3-4084-9646-53e53f8bfbaf",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "1e1a150a-43b4-485f-9e04-d61925af6eb2",
+    "publisherId": "1d817d54-9a32-479c-a144-975bf95c776f",
+    "websiteId": "fb08a099-9603-4b69-bcc6-daf6df956da7",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "1ea49103-4e31-46e9-94fc-9461bf920791",
+    "publisherId": "ea0afce7-1032-498e-9129-2d6a76de12bc",
+    "websiteId": "89bd6d04-4e2d-4f73-bbc5-b81f8a38fe40",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "1eab88b6-3bf0-48ea-81d5-7c9657d57e11",
+    "publisherId": "7ff949c2-3684-4ae2-b8ed-97a508b4d821",
+    "websiteId": "32b74291-fad0-4f5c-a840-8c434017e741",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "1ebc1976-644d-4ec9-986b-6d2deade928b",
+    "publisherId": "09967c2d-e832-4cd3-9ede-69ed3172a6b0",
+    "websiteId": "047661b5-f4ff-4123-a484-62a16de45ff0",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "1fc161bf-2e6a-492b-b010-33bc4cbad446",
+    "publisherId": "9a8d23c9-5f18-4279-a584-c722037703ab",
+    "websiteId": "1c2cddf4-162f-4b43-847e-18e6cfada9f2",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "1fe23cf6-8149-4d15-92ec-9c84baa1fd19",
+    "publisherId": "fe6fcead-d735-4aa5-a671-5b5bd79590dc",
+    "websiteId": "18756530-d9e7-48a8-a8c8-c852045e6b6d",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "20ceff31-0b3b-4503-bde3-f848e407bd22",
+    "publisherId": "a87bb4cd-0017-4c9a-858e-cd8eadebfe4d",
+    "websiteId": "89719a36-4a48-4718-8137-1c5d41379834",
+    "width": 320,
+    "height": 50,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "21451809-665a-4ad4-b6e8-a4824484be23",
+    "publisherId": "fd6693af-4995-4b84-9027-dd19ff454121",
+    "websiteId": "96e34aed-a8e9-431a-8245-0d05646891fc",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "22b1685f-74f3-4c5b-85d0-08fa10a7bb75",
+    "publisherId": "fe6fcead-d735-4aa5-a671-5b5bd79590dc",
+    "websiteId": "18756530-d9e7-48a8-a8c8-c852045e6b6d",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "22d982a2-6623-494b-8b76-9488aaf283fe",
+    "publisherId": "21515e17-14cd-4a69-b5d1-812f855aec4d",
+    "websiteId": "bbf2d5ad-0f44-4fd5-967e-b383005f40a2",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "246206b5-47de-4c0f-83ca-a7254d951430",
+    "publisherId": "247b5c10-1674-4663-8a02-e8f241c46455",
+    "websiteId": "31f8e91f-dd2c-472c-a1ec-80cb1c82adaa",
+    "width": 320,
+    "height": 50,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "26311d72-e3b5-4519-9162-be7613eed707",
+    "publisherId": "62e1815a-4cb3-4d84-883a-5f9c16d9eca2",
+    "websiteId": "67ef4e84-86db-4eaf-93f1-b138a423c0da",
+    "width": 970,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "2753b0f6-a659-4897-acad-6678bf2f493b",
+    "publisherId": "128b12e2-b1e1-48d4-acf0-b1d8a3e2087b",
+    "websiteId": "8044aa78-efe0-4382-87a3-70235cc100a0",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "28251e2b-86a2-464b-b476-62008d4fa828",
+    "publisherId": "8f08115f-0ae5-4171-9e56-be1314c5323d",
+    "websiteId": "20a56628-d18f-4f6d-889e-e5b343739b80",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "28420027-a497-4dcc-913a-747ae271efda",
+    "publisherId": "89aa628c-4e20-486b-b144-4dd3ca60bc44",
+    "websiteId": "e86e8c48-eeef-46a3-9b99-391390663eb5",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "2931e5b6-b286-459f-9927-4c944a602491",
+    "publisherId": "7845749d-c7a0-4d96-a025-50f8e4a6ed11",
+    "websiteId": "fa93433b-404e-494d-a063-ce3fca404506",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "2b39a088-fcf6-4fcd-a03c-57f5824198eb",
+    "publisherId": "c980e59b-7056-4527-a91e-4644cce1a5b1",
+    "websiteId": "23829cfa-e04e-425c-a544-18f7730d248c",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "2b5f5965-97aa-4701-b276-6415ab091640",
+    "publisherId": "8a48ee72-e9d6-4b5a-b668-ccf55b6bd6cb",
+    "websiteId": "298dd2ec-ab18-4cef-ad8e-7dec5b057b53",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "2cccb204-0fe2-45d6-9179-fb4632214a42",
+    "publisherId": "7545a880-6f5a-4853-98ac-92da57475058",
+    "websiteId": "fc8aa765-ef46-4f02-84f7-7e16dddeb30d",
+    "width": 320,
+    "height": 50,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "2e1e5f82-ffa9-4345-8163-288a7396fa45",
+    "publisherId": "c9d79d25-efbf-4591-93ec-b846799612e9",
+    "websiteId": "0d5e5b87-9bdc-4c15-a640-f3736f07925e",
+    "width": 970,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "2f39b05f-11e9-4502-9b7a-79a1d1f51d97",
+    "publisherId": "773bf7e5-7773-4cbd-b3d1-5f9e2ee35a41",
+    "websiteId": "c3dc962f-0a73-47e4-ba12-592cd882378f",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "2f7519dd-37e7-4ca7-9759-ea642414d63c",
+    "publisherId": "3d5e155f-3ba6-4c0f-a751-e576734dea10",
+    "websiteId": "ba4270c9-deef-4724-a771-97e061972732",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "2f915ade-ded9-4b8a-beda-e423d508af1a",
+    "publisherId": "0e16bcc9-2b4b-411a-af8e-5db05200467f",
+    "websiteId": "0d7fbf2d-4566-4924-95a6-4df8a3423d50",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "2fa8fe9d-556c-4041-b8a1-f6ec7474d40f",
+    "publisherId": "7635e8e4-6dab-4df2-8a68-c6955e849ec0",
+    "websiteId": "b582e997-4658-46d7-883c-7fdb238264e6",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "30e68cc5-0172-4c12-9ec6-bc3fb721fc2c",
+    "publisherId": "ddc1267c-81ed-48fa-8fe5-6452e5971cbd",
+    "websiteId": "93050229-5197-4d8f-b3f4-0209e9901405",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "311c8fa7-66a6-4c26-b60a-c9b21d4a4643",
+    "publisherId": "f5db0497-71c1-4474-a7e0-95083bfb7c7f",
+    "websiteId": "74c48802-f48e-4d17-b3a0-e08c63240679",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "33d2cadc-f893-4ca4-a4b8-bf0454f2ca34",
+    "publisherId": "ec4635f3-7365-4965-9d37-cd76a89c4a68",
+    "websiteId": "dd98a425-ecf7-45ab-9f2a-cb1747a34034",
+    "width": 800,
+    "height": 600,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "33da884f-181a-4a08-b161-1088fe89448c",
+    "publisherId": "d0db1d79-b60c-49e6-b577-35dfd1822501",
+    "websiteId": "d710b352-f80d-48e9-a0c8-e05408be3236",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "357c3d00-4061-468f-ae2c-ad9c78b735ca",
+    "publisherId": "96432d53-4de0-4bd8-a38f-72c86f25eb78",
+    "websiteId": "4e61ac7b-3000-48be-9b6d-4b91c977650e",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "35c8e216-1574-4446-a3cc-c037b6544146",
+    "publisherId": "7066cf4b-4c19-4cbd-bd40-235e5c6322ac",
+    "websiteId": "a5fd31f2-dd89-4691-973d-8cc06e63ca78",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "35e4d31e-14a0-43b4-9dd9-cb17777dc5ff",
+    "publisherId": "c9b4294e-b0a8-4ff2-8e54-d8d6caef90f5",
+    "websiteId": "14392086-05ca-4047-af7f-ff80dd02f7fc",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "364e7c1e-9b49-4814-b06e-437cf6e05ee6",
+    "publisherId": "2dd6d593-93cb-4b1e-8491-2dfc85cebf5b",
+    "websiteId": "003ab77a-1a65-4ea0-a895-c804b02c457d",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "371cf75b-574b-4d8f-9e77-9a7cbbe9967f",
+    "publisherId": "9ef0953b-51ff-49d7-a9e0-1d26a8c63d0c",
+    "websiteId": "cdbfe730-51af-4a88-871a-4fe60e9eb1fd",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "37313b81-db90-4df8-94f8-e9816de10123",
+    "publisherId": "2e24cb4f-6316-4a3b-9aff-310752ddd335",
+    "websiteId": "deba58ee-1a3d-4eee-93da-0ad29dfac3a8",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "37769f4f-3ef6-4f9b-b9db-c10812496ab4",
+    "publisherId": "c42f7a43-88f1-4371-81ae-802a2de35d16",
+    "websiteId": "97ed4132-1801-4c46-a7a7-762a1d44eb2f",
+    "width": 800,
+    "height": 600,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "38448071-3a1e-4645-814b-720dca24659c",
+    "publisherId": "94840158-12bf-42be-9540-256b12216a8b",
+    "websiteId": "d7e6b7d0-27a7-4664-8157-4ac8b89c5614",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "39a15dbd-4d08-4e9b-8d35-87abab19188d",
+    "publisherId": "4f858441-12b2-423f-9952-34aaaf921659",
+    "websiteId": "8a4951bb-406b-4acb-b0d4-48c7dfcaa9a7",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "3c1f302e-2758-4abf-bf56-580b57e294d0",
+    "publisherId": "ae98dba5-ccd5-4f01-89ba-2c0eac0b7995",
+    "websiteId": "e46fdcda-b6c6-4e78-b642-9ba22c2c4aff",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "3e688b8a-b99f-461c-bfdc-83670d73768b",
+    "publisherId": "4c9942c9-324f-4767-981b-01d68cf953dc",
+    "websiteId": "0dd00f94-9939-4742-83a1-01639a343e46",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "3f2cd3c6-04e4-4913-9c62-573f2e43746d",
+    "publisherId": "9ac7dee4-182d-4c3e-bcd9-fc23668c3cac",
+    "websiteId": "22d13e4a-32c3-4476-bb7f-f519a811d3ed",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "41a3e57c-5e81-4c67-83c9-4b7bdf9de1df",
+    "publisherId": "6dc11e60-b22c-4007-a5d7-f8d8ed177bc4",
+    "websiteId": "eab549fc-3b3e-4c86-88af-a11f4a2d3b9f",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "455d49db-f831-4546-8ad4-c753fe258d8c",
+    "publisherId": "add8e99f-dde7-4a92-8cde-49a175437e56",
+    "websiteId": "29b1c1d8-a117-4590-94ff-31a8ff95816f",
+    "width": 800,
+    "height": 600,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "45f049b3-10ca-4e80-9d87-d8b0d7fc035c",
+    "publisherId": "f55048d3-7281-4c42-988b-4caa5eb15f3c",
+    "websiteId": "5005d961-aad3-4e59-92af-6216050c6053",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "46590400-ccff-4276-bcc4-e7472df61925",
+    "publisherId": "04ff1918-9ea0-4ef5-9c37-adb457731748",
+    "websiteId": "b1cda1a1-881b-4bad-b90a-5f684cec56e0",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "46bd677d-5a16-491b-a902-cdc4b8a5338a",
+    "publisherId": "be155595-3866-469b-a00c-1c4665ac210e",
+    "websiteId": "afddc217-1edc-4e57-9997-e899f2e9ad13",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "485d0faa-ac8f-4ae4-8365-23a2e5e13e2f",
+    "publisherId": "c1dbface-d88e-467d-9fdd-50c18d946d84",
+    "websiteId": "796f697c-8cf3-4f93-9e0a-e70113fae6cc",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "4bdd958e-083a-4356-a78d-5c104670d425",
+    "publisherId": "9c436dab-c015-42a1-9cac-650c26b3d31e",
+    "websiteId": "97fe54f3-8f22-4b9a-9d1b-63a03b3ec1d0",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "4c406348-1b61-4b56-b1d3-7a2937feb123",
+    "publisherId": "e202c22d-22d0-45d1-b572-afa950e2a845",
+    "websiteId": "4ca97892-70b3-474c-ab6f-cee46be521ee",
+    "width": 320,
+    "height": 50,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "4cddae69-9109-4a8e-8d36-fe9368319ead",
+    "publisherId": "0fecc69c-6842-4afb-a1e3-d3abdd439ff0",
+    "websiteId": "aed8d8aa-aef9-4912-9c20-f249ba16e992",
+    "width": 970,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "4f1a6f11-f3a2-4d12-8a75-4d5f71d28f4c",
+    "publisherId": "bbd67af0-4ddc-4169-8a4f-b5935372be9c",
+    "websiteId": "6c8d776d-f603-4152-9947-898397a75cbd",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "4fb1b64e-dfa3-4502-acf8-da8b409e35e6",
+    "publisherId": "7479e1ca-3614-40ba-b0e6-b6bedd0c2b0e",
+    "websiteId": "338a921f-5a56-4e50-aafd-b108f6bc69a6",
+    "width": 970,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "4fc9b509-6166-42b8-9521-0bf4090af25a",
+    "publisherId": "7066cf4b-4c19-4cbd-bd40-235e5c6322ac",
+    "websiteId": "0d861c9f-6169-4b4c-bb6b-87950e4d6fd2",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "5104d9b5-9230-4dc2-987f-68c2125da7e0",
+    "publisherId": "04ff1918-9ea0-4ef5-9c37-adb457731748",
+    "websiteId": "b1cda1a1-881b-4bad-b90a-5f684cec56e0",
+    "width": 320,
+    "height": 50,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "51509ea5-7ded-4f73-b8d5-67686252cc2e",
+    "publisherId": "0df71875-3d8a-460a-9b89-df1b0a36b307",
+    "websiteId": "98149f69-5ef4-4868-9031-07f4ca7a59f9",
+    "width": 320,
+    "height": 50,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "51935713-9d1f-4dac-8e71-bfc03968ae56",
+    "publisherId": "9ef0953b-51ff-49d7-a9e0-1d26a8c63d0c",
+    "websiteId": "53ba05db-1416-46ac-bb95-05ee60b25e25",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "51f30130-4d64-4893-b9c5-b4f2884420d2",
+    "publisherId": "c9b4294e-b0a8-4ff2-8e54-d8d6caef90f5",
+    "websiteId": "61d5776c-ed51-4f03-a3ee-e7cc1cbe8d0f",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "5295af22-c0f9-42ef-8655-13ca23fe7ba5",
+    "publisherId": "5c59887e-941a-4cae-8c75-5115213bcee9",
+    "websiteId": "3ba178a6-54fc-4fe1-a5d8-56f214c26082",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "52d3fce6-5b8e-46c7-9336-f32b81a1167a",
+    "publisherId": "06d4bde9-9a32-4027-b62f-d0de67570342",
+    "websiteId": "a06991d2-b27c-456a-92d6-bed2a8fb8476",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "53cb1d17-48db-404b-a991-18df194cf575",
+    "publisherId": "dcc77ee3-e037-4d0f-a159-67d7742e863a",
+    "websiteId": "4806ccac-3865-45a6-9347-b9519c1f1a7e",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "53d6bc5a-d8ad-426a-a895-35b03d0831fb",
+    "publisherId": "9c436dab-c015-42a1-9cac-650c26b3d31e",
+    "websiteId": "97fe54f3-8f22-4b9a-9d1b-63a03b3ec1d0",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "54000910-bdf0-47d2-8180-8e2d0426bef1",
+    "publisherId": "342532f8-c3da-4c08-aab1-282642407e8b",
+    "websiteId": "73f0b044-5ec8-406e-9f97-dd50c0c2d4ba",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "542dcacf-3f83-4d62-b8a7-6bba36c4b398",
+    "publisherId": "ddc1267c-81ed-48fa-8fe5-6452e5971cbd",
+    "websiteId": "269b1e9b-c133-4303-8351-93c34f9d713b",
+    "width": 970,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "55620e9e-a1e9-43d7-8869-f12a33639d3f",
+    "publisherId": "128b12e2-b1e1-48d4-acf0-b1d8a3e2087b",
+    "websiteId": "f0323528-1be3-4378-8d65-f14500e3986b",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "557bf689-52cf-4f8c-98f8-fcd64d55e68c",
+    "publisherId": "7635e8e4-6dab-4df2-8a68-c6955e849ec0",
+    "websiteId": "a7e3d688-7dd1-4c18-8aba-5e24a251ff60",
+    "width": 800,
+    "height": 600,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "5597992b-8222-4bae-8b77-51558f8d48e8",
+    "publisherId": "5c59887e-941a-4cae-8c75-5115213bcee9",
+    "websiteId": "3ba178a6-54fc-4fe1-a5d8-56f214c26082",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "55ef5561-9026-4ecb-938b-f96b87599cd8",
+    "publisherId": "9d88a738-1835-460c-91ee-507248abf73e",
+    "websiteId": "0d3e2541-17ed-4568-83c3-866348829882",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "5944821d-9f2a-4e90-9d8d-2c50fdf3fb48",
+    "publisherId": "574a9802-3c51-4acc-b01e-9de10335e878",
+    "websiteId": "daaf9591-c069-41db-ae4e-d09f1d89e81c",
+    "width": 970,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "59a0be31-8d26-43aa-9a3b-b5fa938d6bd2",
+    "publisherId": "3fa1d1fc-74a5-4f5b-84ed-b60e8d9db1ca",
+    "websiteId": "8feb4873-fefe-4ed7-bdc7-958b8ff3a12d",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "59beb489-da41-4a1b-b1a1-3b6b33056fa6",
+    "publisherId": "ddc1267c-81ed-48fa-8fe5-6452e5971cbd",
+    "websiteId": "269b1e9b-c133-4303-8351-93c34f9d713b",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "5a6cdf28-1c92-4860-9172-88a58fdc3809",
+    "publisherId": "9ef0953b-51ff-49d7-a9e0-1d26a8c63d0c",
+    "websiteId": "cdbfe730-51af-4a88-871a-4fe60e9eb1fd",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "5ad98c62-946f-4bdd-b18f-f323ec07594f",
+    "publisherId": "f427a7d0-f735-4718-801d-f54530488a22",
+    "websiteId": "2cc47941-d49f-4387-8b65-5cff6f0df730",
+    "width": 970,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "5bdbd466-8e82-429a-96c4-ed99c518b3a6",
+    "publisherId": "fac7dc48-af74-4e96-8d53-f26aa706adf9",
+    "websiteId": "a58b468f-ebe6-44b2-a7ac-9c1f0420df68",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "5be9ed79-673c-4e1f-897d-b4074c70999e",
+    "publisherId": "050bfe5e-cc30-4fe8-9b78-722d1151b6e4",
+    "websiteId": "137533aa-e851-4296-bf3c-5f7306050972",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "5c083a40-7e84-4efe-9f37-a0cf473229c8",
+    "publisherId": "fd6693af-4995-4b84-9027-dd19ff454121",
+    "websiteId": "0142a1e3-689b-44bd-90f5-8b2ffeeec063",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "5c41909b-d064-4ec8-b1ba-dd35f8e59ad6",
+    "publisherId": "e3e9a547-2782-4791-9f85-6bc8e60b6d32",
+    "websiteId": "a7205920-0332-41ca-a8a6-b45536b070ff",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "5d897534-d568-45f2-a9f5-8a78a3c8c1ec",
+    "publisherId": "8a48ee72-e9d6-4b5a-b668-ccf55b6bd6cb",
+    "websiteId": "0215205a-ec69-4271-bd7f-6fb1c230d9f7",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "5fc696a4-38a3-4dfe-b637-17c5a569b687",
+    "publisherId": "654093d3-5f91-4c84-bc63-0ee12db75047",
+    "websiteId": "efcebc8c-0786-4190-a23d-74d1ebedb50d",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "611a106d-52b1-4079-97aa-299b1d3bcee5",
+    "publisherId": "654093d3-5f91-4c84-bc63-0ee12db75047",
+    "websiteId": "cd3bd307-1702-4e4c-851f-8789eb02b0df",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "6137d364-291c-4377-99c8-3ffd079da1c1",
+    "publisherId": "be155595-3866-469b-a00c-1c4665ac210e",
+    "websiteId": "afddc217-1edc-4e57-9997-e899f2e9ad13",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "61863e65-cc04-485d-932b-95d698ae9818",
+    "publisherId": "384c76ec-c4d7-4900-8761-032f16117834",
+    "websiteId": "1d8f2b15-0857-44e6-8803-b32f472e00f8",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "6260a5ca-6cdc-4244-9f92-06b9ecb5e3de",
+    "publisherId": "cd0091d9-ce4c-46ac-abd3-31cee30801e5",
+    "websiteId": "ac72fcd3-0cc8-498e-a401-e2a3f8289767",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "62c06e2c-c8ab-4112-a963-c3a41f7478bf",
+    "publisherId": "fd6693af-4995-4b84-9027-dd19ff454121",
+    "websiteId": "0142a1e3-689b-44bd-90f5-8b2ffeeec063",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "638b1ed1-118f-429c-82ba-0d282a381430",
+    "publisherId": "a87bb4cd-0017-4c9a-858e-cd8eadebfe4d",
+    "websiteId": "89719a36-4a48-4718-8137-1c5d41379834",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "6476ca77-92a8-4617-b668-e0a52e904bf5",
+    "publisherId": "be155595-3866-469b-a00c-1c4665ac210e",
+    "websiteId": "b37beb46-dd4d-4719-9db9-6ebc334dbdab",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "64f4d8d7-14d5-445f-b583-4797f7e054db",
+    "publisherId": "c980e59b-7056-4527-a91e-4644cce1a5b1",
+    "websiteId": "23829cfa-e04e-425c-a544-18f7730d248c",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "6698c7bc-fdd9-4e07-b563-893e2cb22b6d",
+    "publisherId": "286b0407-02ee-438e-93ea-e2e3acf4ae0a",
+    "websiteId": "b7f39008-19ca-4e08-bbbd-2f01bdb0499c",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "6732a4a2-96ad-4169-9cc8-7cc4771783a9",
+    "publisherId": "ddc1267c-81ed-48fa-8fe5-6452e5971cbd",
+    "websiteId": "23ec6f1a-dee0-483e-8519-f3df5f55bee8",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "6b31736a-ca90-465c-ae51-d06aa1b47f7d",
+    "publisherId": "3941b17a-c7f3-4029-b9a6-112f2d7a31e9",
+    "websiteId": "5005fb45-91c0-4904-b07d-9b7efaf8457b",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "6b31bb81-f849-40a7-907b-4aae8e003a2a",
+    "publisherId": "2069e81a-3c27-46d2-9c3c-1ff75442f1fc",
+    "websiteId": "c94dafc7-213a-494c-9d77-7f01eb0f4665",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "6c4767c2-7bf8-4eea-830f-6c041e6f75d7",
+    "publisherId": "ec6c609f-b15e-4a76-801e-eefe0adca253",
+    "websiteId": "14e87eab-30d3-4077-b013-de4cc0f3ef49",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "6d222461-d848-422a-946f-320580c1d36e",
+    "publisherId": "36b57d3c-46d9-4123-9b56-046325c220a5",
+    "websiteId": "43c927cb-f7e0-4763-aaf3-f41ab5f1576d",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "6f7e82d0-1742-4a49-8ca8-7eb1d7fb516f",
+    "publisherId": "d316d9f1-d5db-414e-80ad-453ab4392a27",
+    "websiteId": "35c986dc-f681-4eb1-8c76-313d5871ff82",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "70496327-880f-4306-9fc5-d02c4444d4e3",
+    "publisherId": "22fd7f8b-ee96-4ac8-be45-dcf35fd24e17",
+    "websiteId": "aa7ac226-1e7d-49fb-bbdf-d538a42f0c47",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "70cd2f26-1254-4295-b74a-10a625dc2482",
+    "publisherId": "128b12e2-b1e1-48d4-acf0-b1d8a3e2087b",
+    "websiteId": "8044aa78-efe0-4382-87a3-70235cc100a0",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "712d3662-535f-4028-87d5-cd4426f5828d",
+    "publisherId": "384c76ec-c4d7-4900-8761-032f16117834",
+    "websiteId": "1d8f2b15-0857-44e6-8803-b32f472e00f8",
+    "width": 970,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "71d05bf8-b41c-4387-bcc7-db0ce934903d",
+    "publisherId": "9c436dab-c015-42a1-9cac-650c26b3d31e",
+    "websiteId": "92ef1503-2df4-4d28-af2f-e51fa9752940",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "724fa2d2-fe30-4923-872b-750aa7274384",
+    "publisherId": "23919f24-eab4-4a5f-adf7-51b8e148aca9",
+    "websiteId": "1107a9d8-3076-4dd2-a6fa-b7d65ef57d45",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "734d65b3-be9b-4240-93c8-d8d67ea4847d",
+    "publisherId": "714dba20-63b2-48a1-ac46-7f9c978ecf58",
+    "websiteId": "8c77a3be-f103-47cf-80c9-15fab18bd33b",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "738c0c42-a5fc-4e18-846a-705792735375",
+    "publisherId": "b92e05d1-bf1a-40ef-8aa1-6541f77fe5e9",
+    "websiteId": "60f49acc-62c9-4d2d-afc1-ab10e09bcfa4",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "7399b195-80c6-404b-9a2f-fd9c885368e9",
+    "publisherId": "ffdfac48-34da-48bf-88bd-41b814538274",
+    "websiteId": "99277780-f087-4431-9479-903228fadf6e",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "7419e1d2-3b66-4ad4-b87c-5539d2d25151",
+    "publisherId": "8f08115f-0ae5-4171-9e56-be1314c5323d",
+    "websiteId": "4915e0e1-53e6-426f-a18b-ad602b2807cc",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "763a0836-2245-44fe-9a6d-a35e2c55a224",
+    "publisherId": "374be57b-1260-48e2-af41-a0ac3be9b478",
+    "websiteId": "a8b3cb55-9719-4c48-adc7-621357a683c7",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "772356e7-6905-4663-b0f8-c578e0960911",
+    "publisherId": "41ecd73b-ca52-48db-a01f-4a23257ec54f",
+    "websiteId": "6a686727-cb65-47ba-904d-ecb0b95408e5",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "7a4fb56c-e790-407d-9058-c5b27c49c1f7",
+    "publisherId": "fd6693af-4995-4b84-9027-dd19ff454121",
+    "websiteId": "0142a1e3-689b-44bd-90f5-8b2ffeeec063",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "7a68fddc-e690-411a-a894-874ed9c2182c",
+    "publisherId": "dc5f6b91-9895-412c-8476-91c02ee58502",
+    "websiteId": "52a81a1b-bf14-4c1f-8147-5160af827a69",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "7c4b2f38-2fc3-480d-9725-9782d207b2e2",
+    "publisherId": "7ff949c2-3684-4ae2-b8ed-97a508b4d821",
+    "websiteId": "759e5d46-a433-438f-9d4e-8f9787ccfebd",
+    "width": 970,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "7cbaa2bd-659e-4f7d-a1d2-1975ce4e8d0c",
+    "publisherId": "342532f8-c3da-4c08-aab1-282642407e8b",
+    "websiteId": "2868aa21-d250-4ef9-8f42-0f54489e28c2",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "7ce941da-3f4f-464b-b76c-eec5627e6393",
+    "publisherId": "4c6636aa-7c1a-4ce8-a5f5-8552d78f02bb",
+    "websiteId": "0fec5ed9-12af-4dca-8045-304776df6761",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "7d3b7268-f95d-4bb0-b61c-13558c0dd239",
+    "publisherId": "d316d9f1-d5db-414e-80ad-453ab4392a27",
+    "websiteId": "73cd1015-623d-4a31-b4c6-59c31100b74d",
+    "width": 320,
+    "height": 50,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "7d7d8405-234a-4624-bdde-36d4b4b83445",
+    "publisherId": "67779799-f9ff-48b2-9fae-0a20f86c7af4",
+    "websiteId": "6f2c2577-f7aa-477f-b4c3-652877ca8d3b",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "7d87bc9b-910b-4018-b2d9-a3ba89fbe95f",
+    "publisherId": "2ee159d6-4646-4357-aaf5-b2efd7bcc21b",
+    "websiteId": "6277e1c6-d68d-48c6-95ff-104665bc17ac",
+    "width": 970,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "7df71f1e-859f-45ae-860c-11fd4855bbf2",
+    "publisherId": "8a48ee72-e9d6-4b5a-b668-ccf55b6bd6cb",
+    "websiteId": "442cbb82-8813-4f24-8df3-8a07d5731868",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "7f2820a6-780d-496f-a44d-440a16f25225",
+    "publisherId": "ffdfac48-34da-48bf-88bd-41b814538274",
+    "websiteId": "d41a4372-de12-4a01-ba4f-247814c110f1",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "803daf9a-a62a-4478-b849-97957480716c",
+    "publisherId": "714dba20-63b2-48a1-ac46-7f9c978ecf58",
+    "websiteId": "8c77a3be-f103-47cf-80c9-15fab18bd33b",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "81ff6fd8-6553-44a9-aa3b-c33b27162b7b",
+    "publisherId": "ea0afce7-1032-498e-9129-2d6a76de12bc",
+    "websiteId": "89bd6d04-4e2d-4f73-bbc5-b81f8a38fe40",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "821090c9-e6af-4d5e-8e8d-1500041fb8fb",
+    "publisherId": "efbacc47-ae9b-4bbd-8057-6b666899e71d",
+    "websiteId": "3f003092-bfb5-4ee0-9a79-be17b4287533",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "82e196bb-bbfb-4f11-b90f-b12e4959d07e",
+    "publisherId": "0b3f5bda-5878-4486-b030-eedb9e93bdf0",
+    "websiteId": "1b240308-63e1-48d3-966d-3a7161b8aaa5",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "8630062a-a9c4-4018-aaa1-91db04ce21d2",
+    "publisherId": "1fafe4c5-53f4-4d38-a871-46c5db5e8d2e",
+    "websiteId": "556fb8f7-1204-4d49-8147-04cff8440428",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "86907112-f77f-435f-92ab-70b4c71679db",
+    "publisherId": "773bf7e5-7773-4cbd-b3d1-5f9e2ee35a41",
+    "websiteId": "ebabfebc-3548-43f8-a9aa-23fbc20ebb81",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "87bdc2fb-364f-444c-9cbf-0f268d9410ae",
+    "publisherId": "d0841932-b102-4159-b8db-4f8dda75af1e",
+    "websiteId": "be55cda7-eb2a-4e99-ae75-c665e31136ae",
+    "width": 800,
+    "height": 600,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "8ad9f1d6-fcdc-47a4-ba34-41b633cd4ed3",
+    "publisherId": "f5db0497-71c1-4474-a7e0-95083bfb7c7f",
+    "websiteId": "74c48802-f48e-4d17-b3a0-e08c63240679",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "8ba029be-8467-4054-b7a0-31941adc28fe",
+    "publisherId": "d0db1d79-b60c-49e6-b577-35dfd1822501",
+    "websiteId": "d09d2fe2-1c10-4003-a7c8-7c912978d8fc",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "8c522447-b03f-421d-a164-8d3ff4e5ae95",
+    "publisherId": "0df71875-3d8a-460a-9b89-df1b0a36b307",
+    "websiteId": "98149f69-5ef4-4868-9031-07f4ca7a59f9",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "8c8d3661-9424-4d36-9adc-2e338d4af8d2",
+    "publisherId": "128b12e2-b1e1-48d4-acf0-b1d8a3e2087b",
+    "websiteId": "94da4c30-df1c-4793-a733-612f06da945a",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "8d0c5bb4-fb34-4722-b107-2be61797c0c6",
+    "publisherId": "9c436dab-c015-42a1-9cac-650c26b3d31e",
+    "websiteId": "1fe43bcc-ae46-45c8-bd4b-6d9313a27f1c",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "8d17412b-9b3e-4b76-ba98-668f98c91a9f",
+    "publisherId": "9f616f82-d3f7-432b-bb75-6be2e1cc5a1c",
+    "websiteId": "143bbf73-9db1-4442-a7f4-ed6741fb754d",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "8dc84b3e-8e78-4f61-8067-ef50aa5026ef",
+    "publisherId": "be155595-3866-469b-a00c-1c4665ac210e",
+    "websiteId": "afddc217-1edc-4e57-9997-e899f2e9ad13",
+    "width": 970,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "8f073044-f387-4f49-bbd1-386411ca03a5",
+    "publisherId": "41ecd73b-ca52-48db-a01f-4a23257ec54f",
+    "websiteId": "6a686727-cb65-47ba-904d-ecb0b95408e5",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "8f37d868-ae0f-4d3f-8041-44ecb2193b1f",
+    "publisherId": "00625537-5df9-461d-b732-f0666ea5f893",
+    "websiteId": "92acf018-356f-4b5e-bfb6-3f6cd3a1ab5e",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "8fb47b0d-3f3b-4083-88b9-ad46a6a917e5",
+    "publisherId": "773bf7e5-7773-4cbd-b3d1-5f9e2ee35a41",
+    "websiteId": "cb8a02ca-60cc-45c4-aba4-6dd30520ab31",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "90d3e762-2beb-454b-9675-0698200168c0",
+    "publisherId": "000d260f-a4d6-4355-9212-70859dc2a1f5",
+    "websiteId": "f783b296-c3b1-4db2-837c-8ee037dc9e27",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "919a0653-3421-4a05-b72e-09b8ba72c201",
+    "publisherId": "4c9942c9-324f-4767-981b-01d68cf953dc",
+    "websiteId": "0dd00f94-9939-4742-83a1-01639a343e46",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "92051525-8ab2-44a2-a2b0-00b3ae0725d1",
+    "publisherId": "57af12f5-7b78-4fa9-be65-2e0e4dedc8d0",
+    "websiteId": "f271f513-9e05-4e73-938e-70611ef718ee",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "922c2e38-ef44-4f8e-a943-780e61bf918c",
+    "publisherId": "4c9942c9-324f-4767-981b-01d68cf953dc",
+    "websiteId": "0dd00f94-9939-4742-83a1-01639a343e46",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "93e2f021-a460-4989-b542-5dbd562df584",
+    "publisherId": "21a08006-6c69-4ee4-86c8-797966e71119",
+    "websiteId": "1a8002a1-33bf-4527-b8b5-f55d696b8a20",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "94acb87f-759b-4bb3-a8aa-9d1740ad393d",
+    "publisherId": "0fecc69c-6842-4afb-a1e3-d3abdd439ff0",
+    "websiteId": "93d8e4f9-0975-4645-9687-910b1a9e2d48",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "94cf39c5-864b-4ece-aa0c-a9d52bfa46b8",
+    "publisherId": "d0db1d79-b60c-49e6-b577-35dfd1822501",
+    "websiteId": "2d0a92a3-e393-47b7-a3bd-76ac08a2fdf9",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "95bbcee3-08f8-4196-937b-e8cfda5230c3",
+    "publisherId": "d0db1d79-b60c-49e6-b577-35dfd1822501",
+    "websiteId": "d09d2fe2-1c10-4003-a7c8-7c912978d8fc",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "964a9a37-da00-42df-9583-431626f42e95",
+    "publisherId": "fac7dc48-af74-4e96-8d53-f26aa706adf9",
+    "websiteId": "828e956e-8676-4a9c-a354-bf8065f0c126",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "978d91f2-1b02-4fd7-8a88-54c8eb918667",
+    "publisherId": "57af12f5-7b78-4fa9-be65-2e0e4dedc8d0",
+    "websiteId": "9b33f5de-ff97-4b07-810a-ac361762a586",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "983a4c35-e4ca-4f0b-8a40-5e139d99c975",
+    "publisherId": "4f858441-12b2-423f-9952-34aaaf921659",
+    "websiteId": "08b1793c-8187-482d-93fa-4149bb3e3718",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "9935886e-50b3-4958-a715-e406930d0be3",
+    "publisherId": "5c59887e-941a-4cae-8c75-5115213bcee9",
+    "websiteId": "3ba178a6-54fc-4fe1-a5d8-56f214c26082",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "9a5170ae-3592-4229-96c2-94450213f6f2",
+    "publisherId": "de79606f-29a0-4949-8d5a-243b7acd5e8f",
+    "websiteId": "e4d0737e-fe60-44dd-abf5-ba15b1c83383",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "9a84ffd3-9390-40bf-b825-4425fb71debc",
+    "publisherId": "ad78bdbb-e80b-47ba-af42-981a31919422",
+    "websiteId": "cced52a2-faf7-453d-99bc-47ecfc3649d4",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "9ab35621-96d9-47a6-b4ff-08a011c18d85",
+    "publisherId": "8f4649f5-518b-4d9f-b42c-722938c8ffc9",
+    "websiteId": "386e2267-1b70-4933-a1eb-e3a6d0e13918",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "9d795b50-41ea-4f11-b81b-02e14cea41c8",
+    "publisherId": "89aa628c-4e20-486b-b144-4dd3ca60bc44",
+    "websiteId": "5c31b591-3fc4-4d64-b7c7-8f6ce1ea4190",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "9d9b7754-dad2-4977-9497-0673e3750605",
+    "publisherId": "8f280fb5-9b37-4579-be1d-f201202ee557",
+    "websiteId": "0d491626-adb7-4b0b-bd9a-1aea98b95434",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "9da05ab2-f5d7-4cf8-901e-84d1d0a2d0bf",
+    "publisherId": "654093d3-5f91-4c84-bc63-0ee12db75047",
+    "websiteId": "ad73e46d-5ee2-41a8-8ce6-761adf74dce6",
+    "width": 800,
+    "height": 600,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "9ea573f2-ca9d-4608-8c7f-3055a2553ab2",
+    "publisherId": "ec6c609f-b15e-4a76-801e-eefe0adca253",
+    "websiteId": "d0b2312a-0a86-47cc-ac91-59f676f9bfec",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "9ef6f38d-3f42-496c-bbd0-baed8e4284d8",
+    "publisherId": "3fa1d1fc-74a5-4f5b-84ed-b60e8d9db1ca",
+    "websiteId": "3f8e5d70-be39-4400-9516-d24325f0e052",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "9efa183f-6d9a-4e7e-a5ae-fb000c767517",
+    "publisherId": "7ee6f546-4e54-4070-b6c2-d0a3ffba86d8",
+    "websiteId": "c7a40aac-c0a8-4358-b647-955da1db8ea7",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "9efd87b0-c5c1-48eb-b896-d6b7b556a789",
+    "publisherId": "9ef0953b-51ff-49d7-a9e0-1d26a8c63d0c",
+    "websiteId": "cdbfe730-51af-4a88-871a-4fe60e9eb1fd",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "a02b6427-ca3a-4ad4-8b7a-d2c2872974a0",
+    "publisherId": "654093d3-5f91-4c84-bc63-0ee12db75047",
+    "websiteId": "efcebc8c-0786-4190-a23d-74d1ebedb50d",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "a0a9b328-c3e5-4371-a8af-e6e571e064d2",
+    "publisherId": "e61a1d4c-46b0-4d0a-a272-299140fdcb93",
+    "websiteId": "1a387466-16bd-4bd8-847b-33433d42b631",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "a3045315-99b7-48d7-8e94-ca22509eab3a",
+    "publisherId": "d8a547a3-1d2b-4051-95b7-9d7ab55338e9",
+    "websiteId": "898097d6-b13b-4b32-89dc-d166a4e1065a",
+    "width": 320,
+    "height": 50,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "a3a25aed-ad32-4bd1-b35f-fd67cc0108fa",
+    "publisherId": "dcc77ee3-e037-4d0f-a159-67d7742e863a",
+    "websiteId": "6ca10ad8-0aff-45dd-9670-f85f4565a38f",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "a3ae1e0f-de22-4af9-9934-ae08fd8776f9",
+    "publisherId": "68eed334-6229-48e8-a45b-c40f060e8c92",
+    "websiteId": "7e548cdc-4101-486d-9c4f-d1e961837512",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "a4da58ea-9d10-440a-8e28-85e542f9d92d",
+    "publisherId": "e8a05c29-5329-4c65-bf33-292185c337e7",
+    "websiteId": "84507fca-f6d1-48a9-8845-d72174c028d2",
+    "width": 800,
+    "height": 600,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "a5166e67-861c-4339-9e39-fcb05f449326",
+    "publisherId": "374be57b-1260-48e2-af41-a0ac3be9b478",
+    "websiteId": "0934c2e0-c847-448f-893e-a7e91e79f3ce",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "a5a413c4-57e8-4abc-9cdf-46a80091b437",
+    "publisherId": "1eaead32-b82e-4c81-949d-feef37ed2ee1",
+    "websiteId": "f7479ebb-17de-44dd-87c8-d03adbdcf8e2",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "a6540bb2-c9a1-4ccf-a04f-779e64e6e845",
+    "publisherId": "3fa1d1fc-74a5-4f5b-84ed-b60e8d9db1ca",
+    "websiteId": "8feb4873-fefe-4ed7-bdc7-958b8ff3a12d",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "a6807370-35bd-4ce9-b0fe-5ea0e73c59c9",
+    "publisherId": "0dd42256-b5eb-46fd-bc98-7544d73f4db5",
+    "websiteId": "794905ac-c0ee-4172-9b9a-b07b4dfe584f",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "a6b125f6-3d75-4a14-9b62-5dd77f5b64af",
+    "publisherId": "7479e1ca-3614-40ba-b0e6-b6bedd0c2b0e",
+    "websiteId": "338a921f-5a56-4e50-aafd-b108f6bc69a6",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "a7ce1846-5a37-406a-b370-49cc1a748a93",
+    "publisherId": "e202c22d-22d0-45d1-b572-afa950e2a845",
+    "websiteId": "4ca97892-70b3-474c-ab6f-cee46be521ee",
+    "width": 970,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "a90e0bb3-5c05-477b-a554-b93bf276de60",
+    "publisherId": "be155595-3866-469b-a00c-1c4665ac210e",
+    "websiteId": "b37beb46-dd4d-4719-9db9-6ebc334dbdab",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "a9ede0d6-5ea7-49c2-a541-99845be1ba53",
+    "publisherId": "b35b53ac-9c0b-4f90-b106-6a75a7320f76",
+    "websiteId": "89572c93-1b1c-466f-ad27-5006512f1e01",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "aaba721e-3955-4fea-b232-f06ca2486cf0",
+    "publisherId": "0df71875-3d8a-460a-9b89-df1b0a36b307",
+    "websiteId": "51fe0a8a-92af-4f55-b1ec-9cd8cf71a8f8",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "aad8be5a-e797-452e-aedc-3abcc21fb7ca",
+    "publisherId": "7ee6f546-4e54-4070-b6c2-d0a3ffba86d8",
+    "websiteId": "c7a40aac-c0a8-4358-b647-955da1db8ea7",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "aaf47bea-63fd-49a0-895d-82d5b7fb9342",
+    "publisherId": "bbd67af0-4ddc-4169-8a4f-b5935372be9c",
+    "websiteId": "046fae76-671a-4980-8bad-6cc8f1fd7ffa",
+    "width": 320,
+    "height": 50,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "aaf8c951-03ba-471c-9556-6fee96f72a23",
+    "publisherId": "06d4bde9-9a32-4027-b62f-d0de67570342",
+    "websiteId": "fdcce5ba-33f3-4f73-86dc-6678a88e5cbd",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "ac1ff8b6-02e8-4517-a6dc-ccfce22b4ba7",
+    "publisherId": "23919f24-eab4-4a5f-adf7-51b8e148aca9",
+    "websiteId": "c7246344-aabc-4ce0-b391-07eb7dc1213a",
+    "width": 320,
+    "height": 50,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "ad321f05-a958-47b6-b2b5-cfa513e6cc03",
+    "publisherId": "374be57b-1260-48e2-af41-a0ac3be9b478",
+    "websiteId": "a8b3cb55-9719-4c48-adc7-621357a683c7",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "ad8172b6-103b-4ed7-b8ee-0640b8dd633d",
+    "publisherId": "ffdc21cb-8746-4fca-8db6-ce277fcf8b54",
+    "websiteId": "a93fb343-ece2-41e1-aa42-743611f04c8b",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "af4c2aa4-ce34-45b6-a12f-ff91d5df846b",
+    "publisherId": "773bf7e5-7773-4cbd-b3d1-5f9e2ee35a41",
+    "websiteId": "ebabfebc-3548-43f8-a9aa-23fbc20ebb81",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "b078c56c-3180-4079-960c-e208904ca756",
+    "publisherId": "8fe67cef-dc18-4b86-80da-cacc1aa4930f",
+    "websiteId": "84f496fc-5b99-46eb-9699-d4887dc45e4b",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "b1ea00f1-f686-4cc2-92f3-be4368313dad",
+    "publisherId": "bbd67af0-4ddc-4169-8a4f-b5935372be9c",
+    "websiteId": "f05d4628-4b04-4825-9b4d-18ad4b5df790",
+    "width": 320,
+    "height": 50,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "b255f815-aee6-41b1-a69a-a98fff54a6c5",
+    "publisherId": "3fa1d1fc-74a5-4f5b-84ed-b60e8d9db1ca",
+    "websiteId": "601a1a3e-9435-4626-b43a-8dde14d6fbb5",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "b5d921a3-f06e-4e7e-8573-28fb087c7d2d",
+    "publisherId": "654093d3-5f91-4c84-bc63-0ee12db75047",
+    "websiteId": "8f35b58e-71d2-45a5-aae3-1964abd16b4b",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "b5fada9a-5ee8-40c3-a0d8-44a738c3edcb",
+    "publisherId": "22fd7f8b-ee96-4ac8-be45-dcf35fd24e17",
+    "websiteId": "aa7ac226-1e7d-49fb-bbdf-d538a42f0c47",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "b62ddc02-efb0-4e92-9e3c-950c091667db",
+    "publisherId": "6539a6d5-04ee-44a3-b954-0d9f9fd86f12",
+    "websiteId": "a0f838c9-8603-4679-8865-a4de5eb65292",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "b6cc2679-88b1-458c-a07a-630b98e92873",
+    "publisherId": "dac53344-e329-484f-b274-9d40df492df5",
+    "websiteId": "399c21d0-867f-4eb7-93b1-cff1dbcb1285",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "b7998937-84e1-48f1-87c3-9d6b8c624b7e",
+    "publisherId": "dc5f6b91-9895-412c-8476-91c02ee58502",
+    "websiteId": "cf7a0bc3-ef81-4c08-8441-32f1d8c9c5fc",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "b8914a84-943c-4dd2-a8b8-06060462bb5b",
+    "publisherId": "e3fb44cf-1b95-4057-a3bc-ac65827d790f",
+    "websiteId": "1daac63f-4c53-4871-804e-29e3b012e700",
+    "width": 970,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "b8ff09c7-3203-4226-98c2-226f3e778b23",
+    "publisherId": "7ff949c2-3684-4ae2-b8ed-97a508b4d821",
+    "websiteId": "1efd1a37-4b06-45eb-ac1f-61bd995f58ca",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "ba509913-cfdc-42fb-bc0d-e70555e78444",
+    "publisherId": "289c6643-658e-44c2-b003-bc50093667e3",
+    "websiteId": "ce638bab-339d-41fd-86fa-fa17c4c22d4d",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "baeeb5b1-34f9-478a-b81b-e89ce1da08da",
+    "publisherId": "286b0407-02ee-438e-93ea-e2e3acf4ae0a",
+    "websiteId": "b7f39008-19ca-4e08-bbbd-2f01bdb0499c",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "bb705cee-6270-4f92-aa50-843dc2f7d7a5",
+    "publisherId": "0fecc69c-6842-4afb-a1e3-d3abdd439ff0",
+    "websiteId": "3a6ce1a4-3520-4c38-8c06-48005e78c271",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "bcb34d39-d126-4435-9d5f-9677fc38d9b6",
+    "publisherId": "8f08115f-0ae5-4171-9e56-be1314c5323d",
+    "websiteId": "93a8b2e1-85cd-49f8-b5cb-80e7ccd6ca6a",
+    "width": 970,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "bcb7a962-0181-489f-8fe7-cdb40042b9b7",
+    "publisherId": "384c76ec-c4d7-4900-8761-032f16117834",
+    "websiteId": "1770ad9e-5d0b-48d5-b0c5-3a4591352274",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "bdd83b9a-98e5-479d-814c-3c398f5aa564",
+    "publisherId": "1d817d54-9a32-479c-a144-975bf95c776f",
+    "websiteId": "fb08a099-9603-4b69-bcc6-daf6df956da7",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "bfb30ee6-0325-4ee4-bf7a-c11d10cefbdf",
+    "publisherId": "c980e59b-7056-4527-a91e-4644cce1a5b1",
+    "websiteId": "d72015d9-7c87-49f0-b3a4-b68f9776374e",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "bfce3d46-df62-40a8-aa19-0fe6a1c572f4",
+    "publisherId": "9ef0953b-51ff-49d7-a9e0-1d26a8c63d0c",
+    "websiteId": "7df38235-dd9c-48b9-bbda-ab633adf7f76",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "c02e0a52-029c-43d0-82c3-02aef7f76974",
+    "publisherId": "21a08006-6c69-4ee4-86c8-797966e71119",
+    "websiteId": "1a8002a1-33bf-4527-b8b5-f55d696b8a20",
+    "width": 800,
+    "height": 600,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "c0c2aa47-2191-4cc6-9c38-2d55fe562d04",
+    "publisherId": "ea0afce7-1032-498e-9129-2d6a76de12bc",
+    "websiteId": "89bd6d04-4e2d-4f73-bbc5-b81f8a38fe40",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "c0e93c4b-aadf-455b-a1ca-6fdd68c9bc40",
+    "publisherId": "2eca4fdc-7f29-476c-9b1b-484617b80747",
+    "websiteId": "6b16a8f7-0e0a-4df6-88b8-7207ae07d47f",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "c38585fb-b631-46c9-ac3d-f31a31b74607",
+    "publisherId": "000d260f-a4d6-4355-9212-70859dc2a1f5",
+    "websiteId": "ae9e92d0-4509-4a29-9b8c-76204c473fbf",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "c4839744-b162-4523-9d85-2c5b17bfd0be",
+    "publisherId": "26c88ef9-e555-41f3-8430-cd26371f45d2",
+    "websiteId": "1b55cce8-7748-4123-80a3-509305d94103",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "c4fe23df-7a2a-4ade-ad20-10c728e95bf0",
+    "publisherId": "0a0198c6-05e8-42c5-aa04-125f49ea96b7",
+    "websiteId": "2c565fb4-cccf-4d5d-b97b-00b549f1de8c",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "c5187609-b7f8-41e7-8e84-e4ed44d4ff4d",
+    "publisherId": "654093d3-5f91-4c84-bc63-0ee12db75047",
+    "websiteId": "cd3bd307-1702-4e4c-851f-8789eb02b0df",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "c53cc8ca-9769-4823-bcbb-508d8997b008",
+    "publisherId": "773bf7e5-7773-4cbd-b3d1-5f9e2ee35a41",
+    "websiteId": "cb8a02ca-60cc-45c4-aba4-6dd30520ab31",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "c5cb12a9-f85c-4ff7-8d15-7dc0ede1903d",
+    "publisherId": "9ef0953b-51ff-49d7-a9e0-1d26a8c63d0c",
+    "websiteId": "13807b9c-28ef-4e1a-9f06-29d7e6fbb7c0",
+    "width": 320,
+    "height": 50,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "c68e4741-7eb1-4a6e-a000-80f87590d16f",
+    "publisherId": "7635e8e4-6dab-4df2-8a68-c6955e849ec0",
+    "websiteId": "1bc6698e-2515-4a32-b906-9abc43a31bed",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "c6a791c3-f7ee-480c-9b15-ebd5f2355238",
+    "publisherId": "5ac46832-dddf-4017-91ce-ff25cb1c87e6",
+    "websiteId": "9bfc7f37-a6b1-405d-95ab-3961baca3c85",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "c6de3d53-d546-44b3-ae5f-7163178736f9",
+    "publisherId": "add8e99f-dde7-4a92-8cde-49a175437e56",
+    "websiteId": "289716d5-3237-4c79-a3ef-1fbcf0b19f2f",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "c6e40178-d3dd-449d-b45c-0e1dcae1ce90",
+    "publisherId": "dac53344-e329-484f-b274-9d40df492df5",
+    "websiteId": "41e81948-cbfd-45d8-9aa1-a50800d8b7b8",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "c7471af0-e181-445c-bd85-ab8baf805359",
+    "publisherId": "2dd6d593-93cb-4b1e-8491-2dfc85cebf5b",
+    "websiteId": "10353963-6656-4a93-92d2-f3d533e18fd6",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "c7734f0c-dfa3-46f2-b814-1c1b12a40ed2",
+    "publisherId": "0df71875-3d8a-460a-9b89-df1b0a36b307",
+    "websiteId": "c932bd55-a9e5-4673-bfa3-48e7a8fb06e1",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "c81aea0a-6dd6-41bf-b3b6-cd9c1d5c8872",
+    "publisherId": "bbd67af0-4ddc-4169-8a4f-b5935372be9c",
+    "websiteId": "7ee5dd12-5476-4ba2-ae1f-277b02386349",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "c914e1b6-06b9-4d3b-ba0b-fd05f581de79",
+    "publisherId": "7066cf4b-4c19-4cbd-bd40-235e5c6322ac",
+    "websiteId": "8b320c15-32f5-4d17-bb2a-09f35279d0e7",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "c9727504-8e7c-4952-b9c8-4213ac9528b1",
+    "publisherId": "f9bf5730-ee02-4bc7-95f7-9158178479fe",
+    "websiteId": "43b9569f-e0b3-4d73-8a77-099bcb0b13ac",
+    "width": 800,
+    "height": 600,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "c9ba2c7e-fd40-46b0-9e0e-49775fa4a63c",
+    "publisherId": "dcc77ee3-e037-4d0f-a159-67d7742e863a",
+    "websiteId": "6ca10ad8-0aff-45dd-9670-f85f4565a38f",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "c9bf7a05-44b0-4fdf-8694-20746d12fb67",
+    "publisherId": "465d7d4f-df73-49f5-838f-72f538371013",
+    "websiteId": "92d8ae78-8535-4918-8ddd-93d5544d0aa3",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "ca64c8ac-f398-4768-8e71-6acf2d987048",
+    "publisherId": "128b12e2-b1e1-48d4-acf0-b1d8a3e2087b",
+    "websiteId": "f0323528-1be3-4378-8d65-f14500e3986b",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "caa05e89-21aa-4ef1-924e-e320dba9b23b",
+    "publisherId": "5ac46832-dddf-4017-91ce-ff25cb1c87e6",
+    "websiteId": "9bfc7f37-a6b1-405d-95ab-3961baca3c85",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "cac4b0de-fb63-458c-8f00-88c50c8a0d5d",
+    "publisherId": "d069dad3-c943-464c-9f0d-ff1276448f6e",
+    "websiteId": "c2ec2c65-70e7-4de7-a47e-9711bccd8852",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "cbf13b89-0065-4866-ae70-2c2dff848d4a",
+    "publisherId": "5c59887e-941a-4cae-8c75-5115213bcee9",
+    "websiteId": "2bcfaf61-ec26-4c5f-b26d-702a2e44f91a",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "ccf2b773-70e6-43f0-98d0-fc517723787f",
+    "publisherId": "d14495d7-0664-443d-945e-834e00a649d8",
+    "websiteId": "a48f6957-557b-4399-8c7c-2a50b00b2412",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "cd370007-c044-4606-a3bb-0bc763484648",
+    "publisherId": "96432d53-4de0-4bd8-a38f-72c86f25eb78",
+    "websiteId": "4e61ac7b-3000-48be-9b6d-4b91c977650e",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "cd799a38-8f0e-44c6-9da3-63188f0fd0f6",
+    "publisherId": "57af12f5-7b78-4fa9-be65-2e0e4dedc8d0",
+    "websiteId": "9b33f5de-ff97-4b07-810a-ac361762a586",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "cea6b926-a4c8-45ab-8b9a-c9fa7e798aeb",
+    "publisherId": "c1dbface-d88e-467d-9fdd-50c18d946d84",
+    "websiteId": "796f697c-8cf3-4f93-9e0a-e70113fae6cc",
+    "width": 800,
+    "height": 600,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "cec3493b-3840-4e0e-a55d-2e7752704e38",
+    "publisherId": "465d7d4f-df73-49f5-838f-72f538371013",
+    "websiteId": "92d8ae78-8535-4918-8ddd-93d5544d0aa3",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "d0b1bdef-2799-44b4-94b8-7bb143331e81",
+    "publisherId": "9f616f82-d3f7-432b-bb75-6be2e1cc5a1c",
+    "websiteId": "9a6f199f-1e7f-4fa3-ae15-60006dea6688",
+    "width": 320,
+    "height": 50,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "d0fd3ccd-db49-470a-a9d2-a452f18c3172",
+    "publisherId": "7066cf4b-4c19-4cbd-bd40-235e5c6322ac",
+    "websiteId": "8b320c15-32f5-4d17-bb2a-09f35279d0e7",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "d18052f5-97ae-44c6-bd25-1390079d53b5",
+    "publisherId": "2e24cb4f-6316-4a3b-9aff-310752ddd335",
+    "websiteId": "31b062a8-ade6-4c82-89b6-f6b6d3f2a62d",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "d199522b-4e9f-4410-8d74-433978821d77",
+    "publisherId": "7ff949c2-3684-4ae2-b8ed-97a508b4d821",
+    "websiteId": "1efd1a37-4b06-45eb-ac1f-61bd995f58ca",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "d1b5857a-d3ee-466c-8efa-1c8958fd7167",
+    "publisherId": "ca5a1b8d-882f-4892-831d-4aa791faa4a6",
+    "websiteId": "939f061e-fffd-445a-8be1-dad3558fa6d5",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "d1e35655-2ad0-49ce-84da-112e67cc3fdf",
+    "publisherId": "9ef0953b-51ff-49d7-a9e0-1d26a8c63d0c",
+    "websiteId": "7df38235-dd9c-48b9-bbda-ab633adf7f76",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "d665ff3c-45ef-430c-9485-96d206746d4e",
+    "publisherId": "c9d79d25-efbf-4591-93ec-b846799612e9",
+    "websiteId": "9bfc8391-4a38-4879-8b3d-b668a81aaba5",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "d6cd8c7a-097b-49a7-9cf5-bfeda3a79529",
+    "publisherId": "773bf7e5-7773-4cbd-b3d1-5f9e2ee35a41",
+    "websiteId": "c3dc962f-0a73-47e4-ba12-592cd882378f",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "d7a1b2e1-c42e-4de7-9f06-f4cd39df9f5d",
+    "publisherId": "9fab7ff3-6178-49ea-9541-3ac1e15b26c8",
+    "websiteId": "3eaa8b7e-c365-4315-b8d6-d8e2a05712cd",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "d7aa1511-6f03-4393-af30-7ab5e663c53e",
+    "publisherId": "374be57b-1260-48e2-af41-a0ac3be9b478",
+    "websiteId": "8bf1dd9b-2ce0-4ba6-bb9c-659270e9149f",
+    "width": 320,
+    "height": 480,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "d7d317c5-1d77-4990-82b8-6459fc48d6c2",
+    "publisherId": "71f843f6-fe69-4572-9dce-2e59ea1739dd",
+    "websiteId": "1ba299c3-673d-4950-981b-3e48e081b7ca",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "d82dbe14-1edd-40b7-b004-3bb43473b0f5",
+    "publisherId": "7845749d-c7a0-4d96-a025-50f8e4a6ed11",
+    "websiteId": "fa93433b-404e-494d-a063-ce3fca404506",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "d8802cae-75e3-45ec-a399-2ee0eaf821c1",
+    "publisherId": "718dbc9c-6238-4273-b6aa-ec5e523cbbb0",
+    "websiteId": "28b9999c-4583-4d4d-8fbd-8af703781d31",
+    "width": 800,
+    "height": 600,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "d8d46101-4905-452e-827f-85ef54739c85",
+    "publisherId": "dcc77ee3-e037-4d0f-a159-67d7742e863a",
+    "websiteId": "60161099-d074-4de8-bc7a-7f4e39fa19e8",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "d904844b-b655-44e7-ad49-da568ee45723",
+    "publisherId": "2eca4fdc-7f29-476c-9b1b-484617b80747",
+    "websiteId": "9188208b-6937-4b35-bb36-6bb47890eab6",
+    "width": 320,
+    "height": 50,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "dbffd848-e84a-4001-b7c1-b20e44bbfa6a",
+    "publisherId": "a45dd3be-43bd-4856-a946-06d69ed60a45",
+    "websiteId": "bb7869bd-c222-45d2-8db8-e341c31dc82e",
+    "width": 800,
+    "height": 600,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "dc3f6054-90b2-47e4-85e1-eec1229e35a6",
+    "publisherId": "2e24cb4f-6316-4a3b-9aff-310752ddd335",
+    "websiteId": "deba58ee-1a3d-4eee-93da-0ad29dfac3a8",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "dc4a9d73-4282-4282-b34b-8a81b70b1c27",
+    "publisherId": "b3f961eb-6711-4bd8-ad7b-e9a885427f8b",
+    "websiteId": "e0307756-c0cb-480f-a4b6-29ef3ad98ebd",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "de39afc7-d4f0-46c5-ab01-ffd794af77dd",
+    "publisherId": "9f616f82-d3f7-432b-bb75-6be2e1cc5a1c",
+    "websiteId": "9a6f199f-1e7f-4fa3-ae15-60006dea6688",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "dfd60c0e-c452-4e8f-8a4b-5b5cd52e201a",
+    "publisherId": "c893e3bf-258e-4425-bc08-6b4a37d91897",
+    "websiteId": "64a65786-25fa-4e4a-84d3-384c401b6dfe",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "e074e203-fae0-476c-bd0f-c90e4f7b14f1",
+    "publisherId": "ddc1267c-81ed-48fa-8fe5-6452e5971cbd",
+    "websiteId": "93050229-5197-4d8f-b3f4-0209e9901405",
+    "width": 970,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "e0dc81cb-c437-4ae9-bd49-d94ecda0f690",
+    "publisherId": "ffdfac48-34da-48bf-88bd-41b814538274",
+    "websiteId": "99277780-f087-4431-9479-903228fadf6e",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "e124ea5a-75e2-46f8-9257-57efeca4aeeb",
+    "publisherId": "465d7d4f-df73-49f5-838f-72f538371013",
+    "websiteId": "db47f723-2b12-43d9-ac7a-e8a18cb796a5",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "e190fa8d-2f3f-4e76-85dd-9b4bbfac907c",
+    "publisherId": "9fab7ff3-6178-49ea-9541-3ac1e15b26c8",
+    "websiteId": "0182011f-4e7f-4402-b6cc-22688f416bfe",
+    "width": 300,
+    "height": 250,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "e1f520dc-637c-4cc1-9c76-e1840bcdcd02",
+    "publisherId": "0fecc69c-6842-4afb-a1e3-d3abdd439ff0",
+    "websiteId": "2cb27e07-de19-442d-b7b9-256b7322b864",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "e2999420-0e18-4a9a-b762-1d94708ef9f7",
+    "publisherId": "219115e0-18e1-4e3b-ad54-1790767ad88c",
+    "websiteId": "5f33aabf-0079-47ad-a70f-f9a03174588a",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "e29c0f24-dacf-4d68-a2b1-e4ff6499b58d",
+    "publisherId": "dac494f5-3144-4219-9f7f-41c7ac1af9be",
+    "websiteId": "2e728120-97df-4442-9651-86bc48bc15b0",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "e37c4558-f82a-4537-8e18-deb2185717c6",
+    "publisherId": "f55048d3-7281-4c42-988b-4caa5eb15f3c",
+    "websiteId": "ba1eceb7-1676-429d-a0e3-d475c6cd8566",
+    "width": 320,
+    "height": 50,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "e3c364fb-bb64-4861-ac09-b4cd12938ff4",
+    "publisherId": "d316d9f1-d5db-414e-80ad-453ab4392a27",
+    "websiteId": "1213fd04-583b-4f4d-a1fe-b1a605909d68",
+    "width": 320,
+    "height": 180,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "e3c675e0-7052-4d57-9859-7fa00d023a07",
+    "publisherId": "4f858441-12b2-423f-9952-34aaaf921659",
+    "websiteId": "46d6edb4-912a-425e-a4d4-c587a540ae21",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "e57e6a94-8138-4fec-9064-3d1ec1a5dfb0",
+    "publisherId": "8f280fb5-9b37-4579-be1d-f201202ee557",
+    "websiteId": "b24cbbac-45e6-470c-b8eb-aef0469cf98c",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "e6092c01-086b-4c30-961c-81c9943134ab",
+    "publisherId": "b92e05d1-bf1a-40ef-8aa1-6541f77fe5e9",
+    "websiteId": "e7dfe5c9-644c-42b6-91bd-a9bda12e3993",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "e8a5919f-905b-4e31-98b2-058b4e344bf0",
+    "publisherId": "0e16bcc9-2b4b-411a-af8e-5db05200467f",
+    "websiteId": "0d7fbf2d-4566-4924-95a6-4df8a3423d50",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "e9469d2a-9540-4d75-9a95-a9a852f3a528",
+    "publisherId": "a0cb35e6-3c9a-453a-bcde-790fffc29d83",
+    "websiteId": "5ed1be81-446f-4102-b2de-76398bb1e5aa",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "e990ff98-9c36-40bf-9cbd-6c3b3db17113",
+    "publisherId": "f7b2dda0-9670-443b-a380-c6b915690f19",
+    "websiteId": "9e725817-b1b6-403f-956b-2221f6c4c609",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "ebbfb2d9-583c-4217-84d2-0a364c62f9ea",
+    "publisherId": "dac53344-e329-484f-b274-9d40df492df5",
+    "websiteId": "62874fbb-099d-428d-9b2a-5ce77fc89060",
+    "width": 970,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "ed198813-4115-404b-8ddc-7dbf5d000cc5",
+    "publisherId": "fe6fcead-d735-4aa5-a671-5b5bd79590dc",
+    "websiteId": "b6cfcbb1-1a39-4576-b511-9b1b2a2c5647",
+    "width": 800,
+    "height": 600,
+    "format": "INTERSTITIAL",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "edfdcd05-c180-4655-bbe3-9419a4952daf",
+    "publisherId": "de79606f-29a0-4949-8d5a-243b7acd5e8f",
+    "websiteId": "e4d0737e-fe60-44dd-abf5-ba15b1c83383",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "ee33d2fb-8e15-47ba-a4f3-5578265ef671",
+    "publisherId": "f427a7d0-f735-4718-801d-f54530488a22",
+    "websiteId": "26d6d5a5-9e57-49fa-bc77-491fd686e123",
+    "width": 970,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "ee92a86a-14ef-4cb7-9053-9e456ffc57e1",
+    "publisherId": "d4364d14-4b9a-44c4-86bd-f54ec2a98289",
+    "websiteId": "eb87884f-322a-4f58-a908-14064ae2709b",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "ef410245-32d7-4e9e-90ce-62cf4e3046dd",
+    "publisherId": "cab41d03-7b46-479f-8fe9-cda6db77b464",
+    "websiteId": "26f61dcd-ddcc-4935-b589-dce927be0fd3",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "ef4c2837-2c61-42d6-94de-a8f3c92c8e66",
+    "publisherId": "cab41d03-7b46-479f-8fe9-cda6db77b464",
+    "websiteId": "eb108074-39f6-46fa-9d95-25a3c34cd701",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "ef542d56-0c25-4840-9a35-be9a7fcdcd39",
+    "publisherId": "6539a6d5-04ee-44a3-b954-0d9f9fd86f12",
+    "websiteId": "a0f838c9-8603-4679-8865-a4de5eb65292",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "ef5f5184-8f13-4c81-93a3-a57925eccc99",
+    "publisherId": "8d7db90b-467c-452d-a20d-43cca8b3d2d4",
+    "websiteId": "48c5d022-585a-47d2-ba21-e8cc33e7d11e",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "ef9625ea-4879-4e67-b518-8d1833a765a1",
+    "publisherId": "6539a6d5-04ee-44a3-b954-0d9f9fd86f12",
+    "websiteId": "c7054fbb-500f-44cd-8cdf-7919e79d2bef",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "f3aefe13-24d0-45f9-9816-1f9b45c26fd8",
+    "publisherId": "71f843f6-fe69-4572-9dce-2e59ea1739dd",
+    "websiteId": "732b627b-2c93-4cf6-ba2c-9a1d8b8da448",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "f441ec65-7630-4ac0-a20d-6f651fb397f3",
+    "publisherId": "f55048d3-7281-4c42-988b-4caa5eb15f3c",
+    "websiteId": "ba1eceb7-1676-429d-a0e3-d475c6cd8566",
+    "width": 320,
+    "height": 50,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "f4a517b2-4d80-4349-826c-d1af298fa1a1",
+    "publisherId": "8a48ee72-e9d6-4b5a-b668-ccf55b6bd6cb",
+    "websiteId": "298dd2ec-ab18-4cef-ad8e-7dec5b057b53",
+    "width": 640,
+    "height": 360,
+    "format": "VIDEO",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "f537999c-a08f-4321-aeaa-00c8ad1158a3",
+    "publisherId": "0fecc69c-6842-4afb-a1e3-d3abdd439ff0",
+    "websiteId": "93d8e4f9-0975-4645-9687-910b1a9e2d48",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "f5ac1290-a005-4238-b42a-0f62c565abce",
+    "publisherId": "c42f7a43-88f1-4371-81ae-802a2de35d16",
+    "websiteId": "97ed4132-1801-4c46-a7a7-762a1d44eb2f",
+    "width": 320,
+    "height": 480,
+    "format": "REWARDED",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "f6beaaba-3c95-4e79-bd2d-63d6581eb21c",
+    "publisherId": "ddc1267c-81ed-48fa-8fe5-6452e5971cbd",
+    "websiteId": "23ec6f1a-dee0-483e-8519-f3df5f55bee8",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "f6eb6c8b-1906-4c86-8f65-a94136d0d65b",
+    "publisherId": "0e16bcc9-2b4b-411a-af8e-5db05200467f",
+    "websiteId": "0d7fbf2d-4566-4924-95a6-4df8a3423d50",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "f6fc59b5-503f-4ea8-aefd-55d42b179b6e",
+    "publisherId": "dac53344-e329-484f-b274-9d40df492df5",
+    "websiteId": "399c21d0-867f-4eb7-93b1-cff1dbcb1285",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "f75fa876-13af-462f-bafd-7e1cd252eff2",
+    "publisherId": "6539a6d5-04ee-44a3-b954-0d9f9fd86f12",
+    "websiteId": "81e6caee-6a54-4c3c-a26f-c6d6f51f8c32",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "f7752a0f-fab0-43f7-adfc-02db9033ea15",
+    "publisherId": "2e24cb4f-6316-4a3b-9aff-310752ddd335",
+    "websiteId": "e7f178f7-7bbe-41cb-a0ab-6156e9e20469",
+    "width": 336,
+    "height": 280,
+    "format": "BANNER",
+    "position": "ABOVE_FOLD"
+  },
+  {
+    "inventoryId": "f8ad2a8a-4ced-452e-8d1a-4e06046bb836",
+    "publisherId": "32eb50f3-a25c-4db8-a42c-f10c5e26d5b5",
+    "websiteId": "2d53ba69-b427-4662-910b-0a1086fcb062",
+    "width": 400,
+    "height": 300,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "fa9bc51b-beed-4bca-8038-402723aa5517",
+    "publisherId": "714dba20-63b2-48a1-ac46-7f9c978ecf58",
+    "websiteId": "3665d7bd-c851-47f1-a4aa-dd837c86ddf1",
+    "width": 320,
+    "height": 50,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "fad80df9-9c46-4f07-a880-023ef5ed9138",
+    "publisherId": "ae98dba5-ccd5-4f01-89ba-2c0eac0b7995",
+    "websiteId": "e46fdcda-b6c6-4e78-b642-9ba22c2c4aff",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "fb5774e8-de52-49c2-bd61-240a59f90e40",
+    "publisherId": "9c436dab-c015-42a1-9cac-650c26b3d31e",
+    "websiteId": "92ef1503-2df4-4d28-af2f-e51fa9752940",
+    "width": 300,
+    "height": 250,
+    "format": "NATIVE",
+    "position": "IN_CONTENT"
+  },
+  {
+    "inventoryId": "fc348454-a52e-4b8e-9c17-0e57f6a6b144",
+    "publisherId": "410d3797-6bab-4bac-8449-fabd9f083ecf",
+    "websiteId": "358ae45d-4d71-4113-ae2b-7b173bcdb513",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "fe3f1984-4ad4-4f6e-b46d-8051bbab2b65",
+    "publisherId": "286b0407-02ee-438e-93ea-e2e3acf4ae0a",
+    "websiteId": "b7f39008-19ca-4e08-bbbd-2f01bdb0499c",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "fed58232-2407-4f90-9712-aca87fb73e15",
+    "publisherId": "21515e17-14cd-4a69-b5d1-812f855aec4d",
+    "websiteId": "a3c7fa69-a9fb-460b-b4d0-78b21ba455d3",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "ff4539f5-9caf-49b7-8a92-2cf3e8d12371",
+    "publisherId": "c980e59b-7056-4527-a91e-4644cce1a5b1",
+    "websiteId": "23829cfa-e04e-425c-a544-18f7730d248c",
+    "width": 728,
+    "height": 90,
+    "format": "BANNER",
+    "position": "HEADER"
+  },
+  {
+    "inventoryId": "ffc7b763-c997-4bf7-83a8-ba2ba79af05a",
+    "publisherId": "beb4525f-af76-477c-8237-24b6745db471",
+    "websiteId": "b5613be8-b08c-4a9f-8a1f-2fe77e389be9",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  },
+  {
+    "inventoryId": "ffdbf7e9-325d-4259-84a1-3cba827e8856",
+    "publisherId": "38c1b123-cccd-4fc0-90fe-f6bfe239447f",
+    "websiteId": "070c1cfc-8570-4b49-a52a-8afa7f1c5ac4",
+    "width": 160,
+    "height": 600,
+    "format": "BANNER",
+    "position": "SIDEBAR"
+  }
+]

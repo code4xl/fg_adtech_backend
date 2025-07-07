@@ -1,4 +1,3 @@
-// src/rtb/jobs/daily/advertiser-spending.job.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { RedisService } from 'src/redis/redis.service';
@@ -44,7 +43,7 @@ export class AdvertiserSpendingJob {
 
       const processingTime = Date.now() - startTime;
 
-      this.logger.debug('✅ Advertiser spending processing completed', {
+      this.logger.debug(' Advertiser spending processing completed', {
         batchId,
         spendingRecordsProcessed: spendingCount,
         dailyRecordsProcessed: dailyCount,

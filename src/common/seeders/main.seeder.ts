@@ -54,7 +54,7 @@ export class MainSeederService {
       try {
         this.logger.debug(`Cleaning ${seeder.getModuleName()}...`);
         await seeder.clean();
-        this.logger.debug(`✅ ${seeder.getModuleName()} cleaned successfully`);
+        this.logger.debug(` ${seeder.getModuleName()} cleaned successfully`);
       } catch (error) {
         this.logger.warn(
           `⚠️  Failed to clean ${seeder.getModuleName()}: ${error.message}`,
@@ -63,7 +63,7 @@ export class MainSeederService {
       }
     }
 
-    this.logger.debug('✅ All modules cleaned successfully!');
+    this.logger.debug(' All modules cleaned successfully!');
   }
 
   async seedModule(moduleName: string, clean: boolean = false): Promise<void> {
@@ -110,7 +110,7 @@ export class MainSeederService {
           if (!isSeeded) {
             this.logger.debug(`Seeding ${name}...`);
             await seeder.seed();
-            this.logger.debug(`✅ ${name} seeded successfully`);
+            this.logger.debug(` ${name} seeded successfully`);
           } else {
             this.logger.debug(`⏭️  ${name} already seeded, skipping...`);
           }
@@ -122,7 +122,7 @@ export class MainSeederService {
     }
 
     this.logger.debug(
-      `✅ Module "${moduleName}" and dependencies processed successfully!`,
+      ` Module "${moduleName}" and dependencies processed successfully!`,
     );
   }
 
