@@ -226,11 +226,11 @@ export class RTBController {
         };
       }
 
-      // Return successful auction result
-      this.logger.debug('Bid response returned successfully', {
-        requestId,
-        hasWinner: !!bidResponse.winningBid,
-      });
+            // Return successful auction result
+            this.logger.debug('Bid response returned successfully', {
+                requestId,
+                hasWinner: !!bidResponse.winningBid,
+            });
 
       return bidResponse;
     } catch (error) {
@@ -293,7 +293,7 @@ export class RTBController {
 
       throw new BadRequestException('Failed to retrieve auction status');
     }
-
+  }
     
     /**
      * Validate bid request before processing

@@ -44,12 +44,23 @@ async function bootstrap() {
       'http://127.0.0.1:8080',
       /^http:\/\/localhost:\d+$/,
       /^http:\/\/127\.0\.0\.1:\d+$/,
+      '*', // Allow all origins for tracking endpoints
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+    allowedHeaders: [
+      'Content-Type', 
+      'Authorization', 
+      'Accept', 
+      'Origin', 
+      'X-Requested-With',
+      'Cache-Control',
+      'Pragma',
+      'Expires'
+    ],
     credentials: false, // Set to true if you need to send cookies
     preflightContinue: false,
     optionsSuccessStatus: 204,
+    exposedHeaders: ['Content-Length', 'Content-Type'],
   });
 
   // Use Helmet for security headers
@@ -85,6 +96,8 @@ async function bootstrap() {
             'http://127.0.0.1:*',
             'https://5x2p27zf-3000.inc1.devtunnels.ms',
             'https://programmatic.api.oceanadnetwork.com',
+            'http://localhost:3001/track',
+            'http://127.0.0.1:3001/track',
           ],
         },
       },

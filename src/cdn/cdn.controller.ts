@@ -245,35 +245,13 @@ export class GeneratePublisherCdnDto {
           {
             statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
             message: 'CDN generation failed',
-            error: result.error,
+            error: error.message,
           },
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
 
-      return {
-        cdnUrl: result.cdnUrl!,
-        integrity: result.integrity!,
-        version: result.version!,
-        publisherId,
-        websiteId,
-        buildId: result.buildId!,
-        environment: generateDto.environment || 'production',
-        createdAt: new Date().toISOString(),
-      } as CdnBuildResponseDto;
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
-      throw new HttpException(
-        {
-          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-          message: 'Failed to generate CDN',
-          error: error.message,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+       
     }
   
     /**
@@ -520,22 +498,22 @@ export class GeneratePublisherCdnDto {
       }
 
       // Set headers
-      Object.entries(content.headers).forEach(([key, value]) => {
-        res.setHeader(key, value);
-      });
+    //   Object.entries(content.headers).forEach(([key, value]) => {
+    //     res.setHeader(key, value);
+    //   });
 
-      // Additional security headers
-      res.setHeader('X-Content-Type-Options', 'nosniff');
-      res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    //   // Additional security headers
+    //   res.setHeader('X-Content-Type-Options', 'nosniff');
+    //   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
 
-      // Send content
-      res.status(200).send(content.content);
-    } catch (error) {
-      this.logger.error(`Failed to serve CDN: ${error.message}`);
-      res.status(500).json({
-        statusCode: 500,
-        message: 'Failed to serve CDN file',
-      });
+    //   // Send content
+    //   res.status(200).send(content.content);
+    // } catch (error) {
+    //   this.logger.error(`Failed to serve CDN: ${error.message}`);
+    //   res.status(500).json({
+    //     statusCode: 500,
+    //     message: 'Failed to serve CDN file',
+    //   });
     }
   
     /**

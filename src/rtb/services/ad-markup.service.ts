@@ -30,10 +30,10 @@ export class AdMarkupService {
 
     return {
       impression: [
-        `${baseUrl}/track/impression/${bidResponseId}?slotId=${slotId}&auctionId=${auctionId}&t=${Date.now()}`,
+        `${baseUrl}/api/pixel/${bidResponseId}?slotId=${slotId}&auctionId=${auctionId}&t=${Date.now()}`,
       ],
       click: [
-        `${baseUrl}/track/click/${bidResponseId}?slotId=${slotId}&auctionId=${auctionId}&t=${Date.now()}&url=`,
+        `${baseUrl}/api/redirect/${bidResponseId}?slotId=${slotId}&auctionId=${auctionId}&t=${Date.now()}&url=`,
       ],
     };
   }
@@ -66,7 +66,14 @@ export class AdMarkupService {
         );
 
       case 'NATIVE':
-        return this.generateNativeMarkup(creative, impressionUrl, clickUrl);
+        return this.generateBannerMarkup(
+          creative,
+          width,
+          height,
+          impressionUrl,
+          clickUrl,
+        );
+        // return this.generateNativeMarkup(creative, impressionUrl, clickUrl);
 
       case 'VIDEO':
         return this.generateVideoMarkup(

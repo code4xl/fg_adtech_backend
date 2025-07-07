@@ -492,11 +492,6 @@ export class BudgetManagerService {
    */
   async syncPublisherRevenueTiers(): Promise<void> {
     try {
-<<<<<<< HEAD
-      this.logger.debug('Syncing publisher revenue tiers to Redis...');
-
-=======
->>>>>>> 1aeb99e2866ac6f9caefe7507c43cc91689c53d3
       const publishers = await this.prisma.publisher.findMany({
         include: { tier: true },
         where: { status: 'ACTIVE' },
@@ -518,13 +513,7 @@ export class BudgetManagerService {
 
       await pipeline.exec();
 
-<<<<<<< HEAD
-      this.logger.debug(
-        `✅ Synced ${publishers.length} publisher revenue tiers to Redis`,
-      );
-=======
       this.logger.debug(`${publishers.length} Publisher revenue tiers synced`);
->>>>>>> 1aeb99e2866ac6f9caefe7507c43cc91689c53d3
     } catch (error) {
       this.logger.error('❌ Failed to sync publisher revenue tiers', {
         error: error.message,

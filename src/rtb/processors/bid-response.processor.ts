@@ -253,11 +253,7 @@ export class BidResponseProcessor {
 
       await Promise.all(storePromises);
 
-<<<<<<< HEAD
-      this.logger.debug('✅ Bid responses stored in cache', {
-=======
       this.logger.debug(' Bid responses stored in cache', {
->>>>>>> 1aeb99e2866ac6f9caefe7507c43cc91689c53d3
         count: bidResponses.length,
       });
     } catch (error) {

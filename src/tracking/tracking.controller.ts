@@ -9,6 +9,7 @@ import {
   Logger,
   HttpCode,
   HttpStatus,
+  Header,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { TrackingService } from './tracking.service';
@@ -20,7 +21,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 @ApiExcludeController()
 @ApiTags('Impression and Click Tracking')
-@Controller('track')
+@Controller('api')  // Changed from 'track' to 'api'
 export class TrackingController {
   private readonly logger = new Logger(TrackingController.name);
 
@@ -35,8 +36,12 @@ export class TrackingController {
    * High-performance impression tracking endpoint
    * Uses Redis-first approach for immediate budget control
    */
-  @Get('impression/:bidResponseId')
+  @Get('pixel/:bidResponseId')  // Changed from 'impression' to 'pixel'
   @HttpCode(HttpStatus.OK)
+  @Header('Access-Control-Allow-Origin', '*')
+  @Header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+  @Header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With')
+  @Header('Access-Control-Allow-Credentials', 'false')
   async trackImpression(
     @Param('bidResponseId') bidResponseId: string,
     @Query() query: any,
@@ -168,7 +173,11 @@ export class TrackingController {
   /**
    * High-performance click tracking endpoint
    */
-  @Get('click/:bidResponseId')
+  @Get('redirect/:bidResponseId')  // Changed from 'click' to 'redirect'
+  @Header('Access-Control-Allow-Origin', '*')
+  @Header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+  @Header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With')
+  @Header('Access-Control-Allow-Credentials', 'false')
   async trackClick(
     @Param('bidResponseId') bidResponseId: string,
     @Query() query: any,
@@ -440,8 +449,12 @@ export class TrackingController {
       'Content-Type': 'image/gif',
       'Content-Length': pixel.length.toString(),
       'Cache-Control': 'no-cache, no-store, must-revalidate',
-      Pragma: 'no-cache',
-      Expires: '0',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, Origin, X-Requested-With',
+      'Access-Control-Allow-Credentials': 'false',
     });
 
     return res.end(pixel);
