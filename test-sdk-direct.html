@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Direct SDK Test</title>
+</head>
+<body>
+    <h1>Testing SDK Directly (No CDN)</h1>
+    <div class="ocean-ad" data-size="800x600">Ad Slot 1</div>
+    
+    <!-- Load SDK directly from build output -->
+    <script src="file:///C:/DevProjects/ocean-ads-sdk-v2/dist/ocean-ads.min.js"></script>
+    
+    <script>
+        // Manual configuration
+        window.__OCEAN_CONFIG__ = {
+            "publisher": {
+                "id": "02912083-a026-4c61-8df7-0fd68ab4ad93",
+                "tier": "basic"
+            },
+            "website": {
+                "id": "87690135-4199-4b1f-a960-93beb240759e",
+                "domain": "healthhub601-378.net"
+            },
+            "inventory": [
+                {
+                    "selector": ".ocean-ad",
+                    "inventoryId": "15fb5073-c093-4595-b0bf-e4ec34e2e6c1",
+                    "size": "800x600"
+                }
+            ],
+            "settings": {
+                "apiUrl": "http://localhost:3001",
+                "sseTimeout": 5000,
+                "debug": true
+            }
+        };
+        
+        // Initialize SDK
+        setTimeout(() => {
+            if (window.OceanAds) {
+                console.log('SDK loaded, initializing...');
+                window.OceanAds.init();
+                
+                // Check internals
+                setTimeout(() => {
+                    console.log('Checking SDK internals...');
+                    // This will help us see what's happening
+                }, 2000);
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

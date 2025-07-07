@@ -5,12 +5,12 @@
   ],
   "websiteId": "87690135-4199-4b1f-a960-93beb240759e",
   "domains": [],
-  "version": "1.7.6",
-  "buildId": "02912083-1751834710525-xt3ct7",
-  "integrity": "sha384-+DFZikYW3aNSV9zEQErCSR1JdMXQmaHGs1XEKPR7218jLx1NHwM5R2i0brdBnor7",
-  "createdAt": "2025-07-06T20:45:10.526Z",
+  "version": "1.7.7",
+  "buildId": "02912083-1751879666672-x53blz",
+  "integrity": "sha384-YVSzcg2EJR55f46v5kIwtx8T8SPJVn/ZDB1/mvACJiabgcPGcHWFYwlN6Rq0DFnf",
+  "createdAt": "2025-07-07T09:14:26.673Z",
   "environment": "production",
-  "fileSize": 186669,
+  "fileSize": 186866,
   "inventoryCount": 2,
   "websiteCount": 1
 }

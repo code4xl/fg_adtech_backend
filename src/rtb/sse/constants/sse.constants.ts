@@ -25,8 +25,8 @@ export const SSE_EVENTS = {
   
   export const SSE_CONFIG = {
     // Timeouts and intervals (milliseconds)
-    INITIAL_TIMEOUT: 5000, // Initial response timeout (5 seconds)
-    MAX_PROCESSING_TIME: 10000, // Max time for RTB processing (10s for slow responses)
+    INITIAL_TIMEOUT: 15000, // Initial response timeout (15 seconds for slow RTB)
+    MAX_PROCESSING_TIME: 30000, // Max time for RTB processing (30s for very slow responses)
     HEARTBEAT_INTERVAL: 30000, // Keep-alive heartbeat
     CONNECTION_TTL: 300000, // 5 minutes max connection time
     REQUEST_TTL: 300, // 5 minutes in Redis (seconds)
@@ -39,8 +39,8 @@ export const SSE_EVENTS = {
     REDIS_CHANNEL_PREFIX: 'rtb:sse:channel:',
     
     // Performance thresholds
-    SLOW_RESPONSE_THRESHOLD: 3000, // Log warning if response > 3s
-    CRITICAL_RESPONSE_THRESHOLD: 7000, // Log error if response > 7s
+    SLOW_RESPONSE_THRESHOLD: 5000, // Log warning if response > 5s
+    CRITICAL_RESPONSE_THRESHOLD: 10000, // Log error if response > 10s
   } as const;
   
   // Redis key patterns for SSE

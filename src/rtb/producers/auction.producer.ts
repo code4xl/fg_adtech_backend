@@ -41,9 +41,9 @@ export default class AuctionProducer {
         key: bidRequest.auctionId,
         value: {
           ...auctionResult,
-          // auctionId: bidRequest.auctionId,
-          // originalBidRequest: bidRequest,
-          // auctionStatus: auctionResult.auctionStatus,
+          auctionId: bidRequest.auctionId,
+          originalBidRequest: bidRequest,
+          auctionStatus: auctionResult.auctionStatus,
           processedAt: new Date().toISOString(),
         },
       });

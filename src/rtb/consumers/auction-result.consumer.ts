@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { kafkaTopics } from '../constants/kafka-topics';
 import { KafkaService } from 'src/kafka/kafka.service';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { RedisService } from 'src/redis/redis.service';
 import { BidResponseProcessor } from '../processors/bid-response.processor';
 import AuctionProducer from '../producers/auction.producer';
 import {
@@ -12,6 +13,7 @@ import {
 import { ProcessAuctionResultPayload } from '../types/bid-request.types';
 import { WinningBidResponse } from '../types/bid-response.types';
 import { RtbHelper } from '../utils/helpers';
+import { SSE_EVENTS, SSE_REDIS_KEYS } from '../sse/constants/sse.constants';
 
 @Injectable()
 export class AuctionResultKafkaConsumer implements OnModuleInit {
@@ -20,6 +22,7 @@ export class AuctionResultKafkaConsumer implements OnModuleInit {
   constructor(
     private readonly kafka: KafkaService,
     private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
     // private readonly auctionProcessor: AuctionProcessor,
     private readonly bidResponseProcessor: BidResponseProcessor,
     private readonly auctionProducer: AuctionProducer,
@@ -135,6 +138,9 @@ export class AuctionResultKafkaConsumer implements OnModuleInit {
       // 3. Store responses in cache for SDK polling
       await this.bidResponseProcessor.storeBidResponses(bidResponses);
 
+      // 3.5. Publish to SSE Redis channel for real-time streaming
+      await this.publishToSSE(bidResponses, auctionResult);
+
       // 4. Publish auction completion for log storage and analytics
       await this.auctionProducer.publishAuctionCompletion(auctionResult);
 
@@ -193,6 +199,85 @@ export class AuctionResultKafkaConsumer implements OnModuleInit {
       return parsedData;
     } catch (error) {
       throw new Error(`Invalid auction result format: ${error.message}`);
+    }
+  }
+
+  /**
+   * Publish auction results to SSE Redis channel for real-time streaming
+   */
+  private async publishToSSE(
+    bidResponses: any[],
+    auctionResult: AuctionBidResult | HandleNoBidsResult | ErrorAuctionResult,
+  ): Promise<void> {
+    try {
+      this.logger.debug('PublishToSSE called', {
+        responseCount: bidResponses?.length || 0,
+        auctionId: auctionResult.auctionId,
+        hasOriginalBidRequest: !!auctionResult.originalBidRequest,
+        externalRequestId: auctionResult.originalBidRequest?.externalRequestId,
+      });
+      
+      if (!bidResponses || bidResponses.length === 0) {
+        this.logger.warn('No bid responses to publish to SSE');
+        return;
+      }
+
+      // Get the request ID from the first response
+      const firstResponse = bidResponses[0];
+      this.logger.debug('First response structure', {
+        hasRequestId: !!firstResponse.requestId,
+        requestId: firstResponse.requestId,
+        responseKeys: Object.keys(firstResponse),
+      });
+      
+      const requestId = firstResponse.requestId;
+
+      if (!requestId) {
+        this.logger.error('No requestId found in bid response');
+        return;
+      }
+
+      // Prepare the SSE event data (AdResponse format)
+      const adResponse = {
+        meta: {
+          requestId: requestId,
+          processingTime: Date.now() - firstResponse.timestamp || 0,
+          timestamp: Date.now(),
+        },
+        slots: bidResponses.map((response) => ({
+          inventoryId: response.inventoryId,
+          elementId: response.elementId || '',
+          status: response.status || 'filled',
+          bid: response.bid,
+          creative: response.creative,
+          fallback: response.fallback,
+          error: response.error,
+        })),
+      };
+
+      // Wrap in SSE event structure for the SSE service
+      const sseEvent = {
+        type: SSE_EVENTS.BID_COMPLETE,
+        requestId: requestId,
+        timestamp: new Date().toISOString(),
+        data: adResponse, // The SSE service will send this as event data
+      };
+
+      // Publish to Redis SSE channel
+      const channelKey = SSE_REDIS_KEYS.EVENT_CHANNEL(requestId);
+      await this.redis.publish(channelKey, JSON.stringify(sseEvent));
+
+      this.logger.log('Published auction result to SSE channel', {
+        requestId,
+        channelKey,
+        auctionStatus: auctionResult.auctionStatus,
+      });
+    } catch (error) {
+      this.logger.error('Failed to publish to SSE channel', {
+        error: error.message,
+        auctionId: auctionResult.auctionId,
+      });
+      // Don't throw - SSE failure shouldn't break the main flow
     }
   }
 }

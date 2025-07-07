@@ -108,7 +108,7 @@ export class SSEService {
               timeoutTimer = setTimeout(async () => {
                 if (!streamClosed) {
                   this.logger.error(`Extended timeout reached for ${requestId} after ${SSE_CONFIG.MAX_PROCESSING_TIME}ms`);
-                  await this.sendTimeoutEvent(requestId, res);
+                  await this.sendTimeoutEvent(requestId, res, SSE_CONFIG.MAX_PROCESSING_TIME);
                   this.closeStream(res);
                 }
               }, SSE_CONFIG.MAX_PROCESSING_TIME);
@@ -217,19 +217,28 @@ export class SSEService {
   /**
    * Send timeout event with partial results
    */
-  async sendTimeoutEvent(requestId: string, res: Response): Promise<void> {
+  async sendTimeoutEvent(requestId: string, res: Response, actualTimeout?: number): Promise<void> {
     const partialResults = await this.tracker.getPartialResults(requestId);
+    
+    // Format as AdResponse to match SDK expectations
+    const adResponse = {
+      meta: {
+        requestId: requestId,
+        processingTime: actualTimeout || SSE_CONFIG.INITIAL_TIMEOUT,
+        timestamp: Date.now(),
+      },
+      slots: partialResults?.slots || [],
+      error: {
+        code: 'TIMEOUT',
+        message: 'Request processing exceeded timeout',
+      },
+    };
     
     await this.sendEvent(res, {
       type: SSE_EVENTS.BID_COMPLETE,
       requestId,
       timestamp: new Date().toISOString(),
-      data: {
-        status: SSE_STATUS.TIMEOUT,
-        slots: partialResults?.slots || [],
-        processingTime: SSE_CONFIG.INITIAL_TIMEOUT,
-        error: 'Request processing exceeded timeout',
-      },
+      data: adResponse,
     });
   }
 

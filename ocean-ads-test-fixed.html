@@ -325,10 +325,23 @@
     </div>
 
     <!-- 🌊 OCEAN ADS CDN SCRIPT -->
-    <script
-      src="http://localhost:3001/cdn/p/02912083-a026-4c61-8df7-0fd68ab4ad93/init.js"
-      async
-    ></script>
+    <script>
+      // Add cache busting
+      var script = document.createElement('script');
+      script.src = 'http://localhost:3001/cdn/p/02912083-a026-4c61-8df7-0fd68ab4ad93/init.js?v=' + Date.now();
+      script.async = true;
+      
+      // Override config after load
+      script.onload = function() {
+        if (window.__OCEAN_CONFIG__ && window.__OCEAN_CONFIG__.settings) {
+          console.log('Original sseTimeout:', window.__OCEAN_CONFIG__.settings.sseTimeout);
+          window.__OCEAN_CONFIG__.settings.sseTimeout = 15000;
+          console.log('Updated sseTimeout to:', window.__OCEAN_CONFIG__.settings.sseTimeout);
+        }
+      };
+      
+      document.head.appendChild(script);
+    </script>
 
     <script>
       // Enhanced logging system with real-time updates

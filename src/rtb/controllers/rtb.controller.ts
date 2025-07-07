@@ -73,6 +73,9 @@ export class RTBController {
             inventoryId: bidRequestDto.inventoryId,
             publisherId: bidRequestDto.publisherId,
             enableSSE: bidRequestDto.enableSSE, // LOG SSE MODE
+            sseTimeout: bidRequestDto.sseTimeout, // LOG SSE TIMEOUT
+            requestFormat: requestBody.meta ? 'SDK' : 'Legacy',
+            originalSseTimeout: requestBody.sseTimeout, // Original from SDK
         });
 
         try {
@@ -102,20 +105,22 @@ export class RTBController {
                 
                 // If not configured, generate from request
                 if (!baseUrl) {
-                    const protocol = req.protocol || 'https';
-                    const host = req.get('host') || 'localhost:3000';
-                    baseUrl = `${protocol}://${host}`;
-                    
-                    this.logger.debug('Generated base URL from request', { 
-                        protocol, 
-                        host, 
-                        baseUrl 
-                    });
+                const protocol = req.protocol || 'https';
+                const host = req.get('host') || 'localhost:3000';
+                baseUrl = `${protocol}://${host}`;
+                
+                this.logger.debug('Generated base URL from request', { 
+                protocol, 
+                host, 
+                baseUrl 
+                });
                 }
                 
-                response.sseUrl = `${baseUrl}/rtb/stream/${result.requestId}`;
-                response.sseEnabled = true;
-                response.sseTimeout = bidRequestDto.sseTimeout || 5000;
+                // Include timeout in SSE URL
+                const sseTimeoutValue = bidRequestDto.sseTimeout || 15000;
+                response.sseUrl = `${baseUrl}/rtb/stream/${result.requestId}?timeout=${sseTimeoutValue}`;
+            response.sseEnabled = true;
+            response.sseTimeout = sseTimeoutValue;
 
                 // Track SSE request for the SSE service
                 await this.sseTracker.trackRequest({
@@ -346,8 +351,8 @@ export class RTBController {
 
         // Validate SSE timeout if provided
         if (bidRequest.sseTimeout !== undefined) {
-            if (bidRequest.sseTimeout < 250 || bidRequest.sseTimeout > 10000) {
-                throw new BadRequestException('SSE timeout must be between 250ms and 10000ms');
+            if (bidRequest.sseTimeout < 250 || bidRequest.sseTimeout > 30000) {
+                throw new BadRequestException('SSE timeout must be between 250ms and 30000ms');
             }
         }
 
@@ -422,8 +427,8 @@ export class RTBController {
             websiteId: meta.websiteId,
             userContext,
             adSlotContext,
-            enableSSE: true, // Default to SSE for SDK requests
-            sseTimeout: 5000
+            enableSSE: sdkRequest.enableSSE !== false, // Default to true for SDK requests
+            sseTimeout: sdkRequest.sseTimeout || 15000 // Use SDK timeout or default to 15 seconds
         };
     }
 }

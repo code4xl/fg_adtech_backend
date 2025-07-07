@@ -157,7 +157,7 @@ import {
           onTimeout: async () => {
             // Handle timeout - send partial results if available
             this.logger.warn(`SSE timeout for request: ${requestId} after ${timeout}ms`);
-            await this.sseService.sendTimeoutEvent(requestId, res);
+            await this.sseService.sendTimeoutEvent(requestId, res, timeout);
           },
           onError: async (error: Error) => {
             // Handle errors gracefully
