@@ -84,8 +84,37 @@ export class AuctionCompletionKafkaConsumer implements OnModuleInit {
 
     private async storeAuctionLog(auctionData: AuctionCompletionData): Promise<void> {
         try {
-            await this.prisma.auctionLog.create({
-                data: {
+            // Check if auction log already exists
+            const existingLog = await this.prisma.auctionLog.findUnique({
+                where: { bidRequestId: auctionData.bidRequest.id },
+            });
+
+            if (existingLog) {
+                this.logger.warn('Auction log already exists, updating...', {
+                    auctionId: auctionData.auctionId,
+                    bidRequestId: auctionData.bidRequest.id,
+                });
+            }
+
+            // Use upsert to handle duplicate messages gracefully
+            await this.prisma.auctionLog.upsert({
+                where: {
+                    bidRequestId: auctionData.bidRequest.id,
+                },
+                update: {
+                    // Update these fields if record already exists
+                    auctionType: auctionData.auctionType,
+                    floorPrice: auctionData.floorPrice,
+                    winningBidId: auctionData.winner?.id,
+                    finalPrice: auctionData.finalPrice,
+                    totalBids: auctionData.totalBids,
+                    validBids: auctionData.validBids,
+                    auctionDuration: auctionData.processingTime,
+                    status: auctionData.winner ? 'COMPLETED' : 'NO_BIDS',
+                    completedAt: new Date(),
+                },
+                create: {
+                    // Create new record if it doesn't exist
                     bidRequestId: auctionData.bidRequest.id,
                     auctionType: auctionData.auctionType,
                     floorPrice: auctionData.floorPrice,
@@ -100,9 +129,10 @@ export class AuctionCompletionKafkaConsumer implements OnModuleInit {
                 },
             });
 
-            this.logger.debug('Auction log stored in database successfully', {
+            this.logger.debug(existingLog ? 'Auction log updated successfully' : 'Auction log created successfully', {
                 auctionId: auctionData.auctionId,
                 status: auctionData.winner ? 'COMPLETED' : 'NO_BIDS',
+                bidRequestId: auctionData.bidRequest.id,
             });
         } catch (error) {
             this.logger.error('Failed to store auction log', {

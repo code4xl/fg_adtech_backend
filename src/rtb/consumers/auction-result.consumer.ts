@@ -130,9 +130,11 @@ export class AuctionResultKafkaConsumer implements OnModuleInit {
         );
       }
 
-      this.logger.debug('Bid responses generated', {
+      this.logger.log('✅ Bid responses generated', {
         responseCount: bidResponses.length,
         auctionType,
+        auctionId: auctionResult.auctionId,
+        requestId: auctionResult.originalBidRequest?.externalRequestId,
       });
 
       // 3. Store responses in cache for SDK polling
@@ -213,46 +215,108 @@ export class AuctionResultKafkaConsumer implements OnModuleInit {
       this.logger.debug('PublishToSSE called', {
         responseCount: bidResponses?.length || 0,
         auctionId: auctionResult.auctionId,
+        auctionStatus: auctionResult.auctionStatus,
         hasOriginalBidRequest: !!auctionResult.originalBidRequest,
         externalRequestId: auctionResult.originalBidRequest?.externalRequestId,
       });
       
-      if (!bidResponses || bidResponses.length === 0) {
-        this.logger.warn('No bid responses to publish to SSE');
+      if (!auctionResult.originalBidRequest) {
+        this.logger.error('No originalBidRequest in auction result');
         return;
       }
 
-      // Get the request ID from the first response
-      const firstResponse = bidResponses[0];
-      this.logger.debug('First response structure', {
-        hasRequestId: !!firstResponse.requestId,
-        requestId: firstResponse.requestId,
-        responseKeys: Object.keys(firstResponse),
-      });
+      // CRITICAL FIX: Use the internal request ID (bidRequest.id) for SSE channel
+      // The SDK connects to SSE using the requestId returned from /bid-request endpoint
+      // which is the internal ID, not the externalRequestId
+      const requestId = auctionResult.originalBidRequest.id;
       
-      const requestId = firstResponse.requestId;
-
       if (!requestId) {
-        this.logger.error('No requestId found in bid response');
+        this.logger.error('No internal request ID found in originalBidRequest', {
+          bidRequestKeys: Object.keys(auctionResult.originalBidRequest),
+          externalRequestId: auctionResult.originalBidRequest.externalRequestId,
+        });
         return;
+      }
+      
+      this.logger.debug('Using internal request ID for SSE channel', {
+        internalRequestId: requestId,
+        externalRequestId: auctionResult.originalBidRequest.externalRequestId,
+        auctionId: auctionResult.auctionId,
+      });
+
+      // Create slot responses for the SDK
+      const slots = [];
+      
+      if (bidResponses && bidResponses.length > 0) {
+        // Handle winning bid responses
+        for (const response of bidResponses) {
+          this.logger.debug('Processing bid response for SSE', {
+            responseType: response.constructor.name,
+            hasWinningBid: !!response.winningBid,
+            responseKeys: Object.keys(response),
+          });
+          
+          // Check if this is a WinningBidResponse
+          if (response.winningBid && response.requestId) {
+            const inventoryId = auctionResult.originalBidRequest.inventoryId;
+            
+            this.logger.debug('Creating filled slot response', {
+              inventoryId,
+              bidPrice: response.winningBid.price,
+              campaignId: response.winningBid.campaignId,
+              creativeId: response.winningBid.creativeId,
+              hasAdMarkup: !!response.winningBid.adMarkup,
+              adSlotWidth: auctionResult.originalBidRequest.adSlotContext?.width,
+              adSlotHeight: auctionResult.originalBidRequest.adSlotContext?.height,
+            });
+            
+            slots.push({
+              inventoryId: inventoryId,
+              elementId: '',
+              status: 'filled' as const,
+              bid: {
+                bidId: `bid_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                price: response.winningBid.price,
+                advertiser: 'Ocean Ads Network',
+                campaignId: response.winningBid.campaignId,
+              },
+              creative: {
+                type: 'banner' as const,
+                markup: response.winningBid.adMarkup || '<div style="width:100%;height:100%;background:#007bff;color:white;display:flex;align-items:center;justify-content:center;font-size:24px;">Ocean Ads</div>',
+                width: auctionResult.originalBidRequest.adSlotContext?.width || 300,
+                height: auctionResult.originalBidRequest.adSlotContext?.height || 250,
+                trackers: {
+                  impression: response.winningBid.impressionUrls?.[0] || '',
+                  click: response.winningBid.clickUrls?.[0] || '',
+                },
+              },
+            });
+          }
+        }
+      }
+      
+      // If no winning bids, send no_bid response
+      if (slots.length === 0) {
+        const inventoryId = auctionResult.originalBidRequest.inventoryId;
+        slots.push({
+          inventoryId: inventoryId,
+          elementId: '',
+          status: 'no_bid' as const,
+          fallback: {
+            type: 'blank' as const,
+            markup: '',
+          },
+        });
       }
 
       // Prepare the SSE event data (AdResponse format)
       const adResponse = {
         meta: {
           requestId: requestId,
-          processingTime: Date.now() - firstResponse.timestamp || 0,
+          processingTime: auctionResult.processingTime || 100,
           timestamp: Date.now(),
         },
-        slots: bidResponses.map((response) => ({
-          inventoryId: response.inventoryId,
-          elementId: response.elementId || '',
-          status: response.status || 'filled',
-          bid: response.bid,
-          creative: response.creative,
-          fallback: response.fallback,
-          error: response.error,
-        })),
+        slots: slots,
       };
 
       // Wrap in SSE event structure for the SSE service
@@ -265,12 +329,24 @@ export class AuctionResultKafkaConsumer implements OnModuleInit {
 
       // Publish to Redis SSE channel
       const channelKey = SSE_REDIS_KEYS.EVENT_CHANNEL(requestId);
-      await this.redis.publish(channelKey, JSON.stringify(sseEvent));
-
-      this.logger.log('Published auction result to SSE channel', {
+      
+      this.logger.log('🚀 Publishing auction result to SSE channel', {
         requestId,
         channelKey,
+        auctionId: auctionResult.auctionId,
         auctionStatus: auctionResult.auctionStatus,
+        slotCount: slots.length,
+        firstSlotStatus: slots[0]?.status,
+        hasWinningBid: slots.some(s => s.status === 'filled'),
+        eventType: SSE_EVENTS.BID_COMPLETE,
+      });
+      
+      await this.redis.publish(channelKey, JSON.stringify(sseEvent));
+      
+      this.logger.log('✅ Successfully published to SSE channel', {
+        requestId,
+        channelKey,
+        eventSent: true,
       });
     } catch (error) {
       this.logger.error('Failed to publish to SSE channel', {

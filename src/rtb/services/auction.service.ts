@@ -140,15 +140,15 @@ export class AuctionService {
       // 1. Check Redis cache first
       const cached = await this.redis.get<string>(cacheKey);
       if (cached) {
-        this.logger.debug('Campaign eligibility cache hit', {
-          inventoryId: bidRequest.inventoryId,
-        });
+        // this.logger.debug('Campaign eligibility cache hit', {
+        //   inventoryId: bidRequest.inventoryId,
+        // });
         return JSON.parse(cached);
       }
 
-      this.logger.debug('Campaign eligibility cache miss, querying database', {
-        inventoryId: bidRequest.inventoryId,
-      });
+      // this.logger.debug('Campaign eligibility cache miss, querying database', {
+      //   inventoryId: bidRequest.inventoryId,
+      // });
 
       // 2. Get eligible campaigns from database with targeting rules
       const eligibleCampaigns =
@@ -209,11 +209,11 @@ export class AuctionService {
           return null;
         }
 
-        this.logger.debug('Campaign passed precise budget validation', {
-          campaignId: campaign.id,
-          actualBidPriceCPM: actualBidPrice,
-          costPerImpression: costPerImpression,
-        });
+        // this.logger.debug('Campaign passed precise budget validation', {
+        //   campaignId: campaign.id,
+        //   actualBidPriceCPM: actualBidPrice,
+        //   costPerImpression: costPerImpression,
+        // });
 
         // 3. Apply floor price check
         if (bidRequest.floorPrice && actualBidPrice < bidRequest.floorPrice) {
@@ -284,9 +284,9 @@ export class AuctionService {
       },
     );
 
-    this.logger.debug('Creating bid response', {
-      id: bidResponseId,
-    });
+    // this.logger.debug('Creating bid response', {
+    //   id: bidResponseId,
+    // });
 
     // Ask mit about this, store the admarkup, impression and click urls in the bid response for the winner only.
     // Not for all the bids. (This is to avoid storing unnecessary data for lost bids)

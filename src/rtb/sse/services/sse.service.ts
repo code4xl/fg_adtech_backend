@@ -94,10 +94,27 @@ export class SSEService {
 
       // Subscribe to Redis channel for real-time updates
       const channelKey = SSE_REDIS_KEYS.EVENT_CHANNEL(requestId);
-      
+      this.logger.log('Subscribing to Redis channel', {
+        requestId,
+        channelKey,
+      });
       subscriber = await this.redis.subscribe(channelKey, async (message: string) => {
         try {
+          this.logger.log('📨 Received message on SSE channel', {
+            requestId,
+            channelKey,
+            messageLength: message.length,
+            messagePreview: message.substring(0, 100),
+          });
+          
           const event = JSON.parse(message) as SSEEventDto;
+          
+          this.logger.debug('Parsed SSE event', {
+            requestId,
+            eventType: event.type,
+            hasData: !!event.data,
+            dataKeys: event.data ? Object.keys(event.data) : [],
+          });
           
           // Mark that we've received initial response
           if (!hasReceivedInitialResponse) {

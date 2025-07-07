@@ -7,6 +7,12 @@ import {
 } from '../types/bid-request.types';
 import { RtbHelper } from '../utils/helpers';
 import { BidRequestProcessor } from '../processors/bid-request.processor';
+import AuctionProducer from '../producers/auction.producer';
+import {
+  AuctionBidResult,
+  HandleNoBidsResult,
+  ErrorAuctionResult,
+} from '../types/auction-result.types';
 
 @Injectable()
 export class BidRequestKafkaConsumer implements OnModuleInit {
@@ -15,7 +21,7 @@ export class BidRequestKafkaConsumer implements OnModuleInit {
   constructor(
     private readonly kafka: KafkaService,
     private readonly bidRequestProcessor: BidRequestProcessor,
-
+    private readonly rtbProducer: AuctionProducer,
     private readonly rtbHelper: RtbHelper,
   ) {
     this.logger.log('RTB Kafka Consumer initialized - Phase 4');
@@ -76,11 +82,20 @@ export class BidRequestKafkaConsumer implements OnModuleInit {
       //     // },
       //   );
 
-      // 4. Publish auction results for response generation
-      // await this.rtbProducer.publishAuctionResult(
-      //   auctionResult,
-      //   bidRequestData,
-      // );
+      // 4. Transform ProcessedAuctionResult to match expected types
+      const completeAuctionResult = {
+        ...auctionResult,
+        originalBidRequest: bidRequestData.bidRequest,
+        processedAt: new Date().toISOString(),
+        winnerId: auctionResult.winner?.id || null,
+        finalPrice: auctionResult.winner?.finalPrice || 0,
+      };
+
+      // 5. Publish auction results for response generation
+      await this.rtbProducer.publishAuctionResult(
+        completeAuctionResult as AuctionBidResult | HandleNoBidsResult | ErrorAuctionResult,
+        bidRequestData.bidRequest,
+      );
 
       // 5. Record processing metrics
       // const processingTime = Date.now() - startTime;

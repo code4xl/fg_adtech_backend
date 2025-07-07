@@ -72,13 +72,13 @@ export class CreativeSelectionService {
       // Calculate index using modulo
       const selectedIndex = (currentCount - 1) % creatives.length;
 
-      this.logger.debug('Round-robin creative selection', {
-        campaignId,
-        currentCount,
-        totalCreatives: creatives.length,
-        selectedIndex,
-        selectedCreativeId: creatives[selectedIndex].id,
-      });
+      // this.logger.debug('Round-robin creative selection', {
+      //   campaignId,
+      //   currentCount,
+      //   totalCreatives: creatives.length,
+      //   selectedIndex,
+      //   selectedCreativeId: creatives[selectedIndex].id,
+      // });
 
       return creatives[selectedIndex];
     } catch (error) {

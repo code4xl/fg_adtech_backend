@@ -39,12 +39,12 @@ export class BudgetManagerService {
     const costPerImpression = finalPrice / 1000; // Convert CPM to per-impression cost
     const reservationId = `${winningBid.id}-${today}`;
     try {
-      this.logger.debug('Reserving budget on win', {
-        campaignId: winningBid.campaignId,
-        finalPrice,
-        costPerImpression,
-        publisherId,
-      });
+      // this.logger.debug('Reserving budget on win', {
+      //   campaignId: winningBid.campaignId,
+      //   finalPrice,
+      //   costPerImpression,
+      //   publisherId,
+      // });
       // Reserve in redis
       // This is a real-time operation to ensure budget is reserved immediately
 
@@ -221,11 +221,11 @@ export class BudgetManagerService {
 
     await pipeline.exec();
 
-    this.logger.debug('Campaign budget deducted', {
-      campaignId,
-      costPerImpression,
-      today,
-    });
+    // this.logger.debug('Campaign budget deducted', {
+    //   campaignId,
+    //   costPerImpression,
+    //   today,
+    // });
   }
 
   /**
