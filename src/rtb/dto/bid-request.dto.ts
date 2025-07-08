@@ -21,21 +21,19 @@ import {
 } from '@prisma/client';
 
 export class UserContextDto {
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'User ID from cookie or device ID',
     example: 'user_12345_device_abc',
   })
-  @IsOptional()
   @IsString()
-  userId?: string;
+  userId: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Session ID for user session tracking',
     example: 'session_789xyz',
   })
-  @IsOptional()
   @IsString()
-  sessionId?: string;
+  sessionId: string;
 
   @ApiProperty({
     description: 'User agent string from browser',
@@ -100,13 +98,12 @@ export class UserContextDto {
   @IsString()
   city?: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Additional user data for targeting',
     example: { interests: ['tech', 'sports'], ageGroup: '25-34' },
   })
-  @IsOptional()
   @IsObject()
-  additionalData?: Record<string, any>;
+  additionalData: Record<string, any>;
 }
 
 export class AdSlotContextDto {
@@ -152,13 +149,12 @@ export class AdSlotContextDto {
   @IsString()
   pageUrl?: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Page category for contextual targeting',
     example: 'technology',
   })
-  @IsOptional()
   @IsString()
-  pageCategory?: string;
+  pageCategory: string;
 
   @ApiPropertyOptional({
     description: 'Referrer URL',
@@ -168,14 +164,13 @@ export class AdSlotContextDto {
   @IsString()
   referrerUrl?: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Page keywords for contextual targeting',
     example: ['technology', 'innovation', 'AI'],
   })
-  @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  pageKeywords?: string[];
+  pageKeywords: string[];
 }
 
 /**
@@ -229,37 +224,34 @@ export class CreateBidRequestDto {
   @Type(() => AdSlotContextDto)
   adSlotContext: AdSlotContextDto;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Floor price for the auction (minimum bid)',
     example: 0.5,
     minimum: 0,
   })
-  @IsOptional()
   @IsNumber()
   @Min(0)
-  floorPrice?: number;
+  floorPrice: number;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Auction type preference',
     example: AuctionType.SECOND_PRICE,
     enum: AuctionType,
     default: AuctionType.SECOND_PRICE,
   })
-  @IsOptional()
   @IsEnum(AuctionType)
-  auctionType?: AuctionType;
+  auctionType: AuctionType;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Timeout for auction in milliseconds',
     example: 200,
     minimum: 50,
     maximum: 1000,
   })
-  @IsOptional()
   @IsNumber()
   @Min(50)
   @Max(1000)
-  timeout?: number;
+  timeout: number;
 
   @ApiPropertyOptional({
     description: 'Enable Server-Sent Events (SSE) for real-time updates',
