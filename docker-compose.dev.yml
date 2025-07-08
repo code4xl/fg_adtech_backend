@@ -136,7 +136,7 @@ services:
       - .:/usr/src/app
       - /usr/src/app/node_modules
       # Mount SDK project for local development
-      - ../ocean-ads-sdk-v2:/usr/src/sdk-project:ro
+      - ../OceanAdTechSDK:/usr/src/sdk-project:ro
     ports:
       - '3001:3001'
     environment:
