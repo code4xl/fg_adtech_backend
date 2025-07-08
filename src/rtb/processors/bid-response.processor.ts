@@ -82,13 +82,13 @@ export class BidResponseProcessor {
       throw new Error(`Creative ${creativeId} not found`);
     }
 
-    this.logger.debug('Creative fetched for winning bid', {
-      creativeId: creative.id,
-      creativeName: creative.name,
-      fileUrl: creative.fileUrl,
-      landingUrl: creative.landingUrl,
-      type: creative.type,
-    });
+    // this.logger.debug('Creative fetched for winning bid', {
+    //   creativeId: creative.id,
+    //   creativeName: creative.name,
+    //   fileUrl: creative.fileUrl,
+    //   landingUrl: creative.landingUrl,
+    //   type: creative.type,
+    // });
 
     // Use auction service for tracking URLs
     const trackingUrls = this.adMarkupService.generateTrackingUrls(
@@ -105,9 +105,14 @@ export class BidResponseProcessor {
       landingUrl: creative.landingUrl,
       type: creative.type,
       // Format is determined by type - map CreativeType to InventoryFormat
-      format: creative.type === 'IMAGE' || creative.type === 'HTML5' ? 'BANNER' : 
-              creative.type === 'VIDEO' ? 'VIDEO' : 
-              creative.type === 'HTML' ? 'NATIVE' : 'BANNER',
+      format:
+        creative.type === 'IMAGE' || creative.type === 'HTML5'
+          ? 'BANNER'
+          : creative.type === 'VIDEO'
+            ? 'VIDEO'
+            : creative.type === 'HTML'
+              ? 'NATIVE'
+              : 'BANNER',
     };
 
     // Use auction service for ad markup with full creative data
@@ -121,11 +126,11 @@ export class BidResponseProcessor {
       },
     );
 
-    this.logger.debug('Ad markup generated', {
-      hasMarkup: !!adMarkup,
-      markupLength: adMarkup?.length,
-      imageUrl: creative.fileUrl,
-    });
+    // this.logger.debug('Ad markup generated', {
+    //   hasMarkup: !!adMarkup,
+    //   markupLength: adMarkup?.length,
+    //   imageUrl: creative.fileUrl,
+    // });
 
     return {
       requestId: auctionResult.originalBidRequest.externalRequestId,

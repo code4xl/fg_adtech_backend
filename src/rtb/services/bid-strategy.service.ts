@@ -48,13 +48,13 @@ export class bidStrategyService {
     const minBidCPM = floorPriceCPM * 1.01;
     const finalBidCPM = Math.max(baseBidCPM, minBidCPM);
 
-    this.logger.debug('Lowest cost bid calculation (CPM)', {
-      baseBidCPM,
-      floorPriceCPM,
-      minBidCPM,
-      finalBidCPM,
-      strategy: 'LOWEST_COST',
-    });
+    // this.logger.debug('Lowest cost bid calculation (CPM)', {
+    //   baseBidCPM,
+    //   floorPriceCPM,
+    //   minBidCPM,
+    //   finalBidCPM,
+    //   strategy: 'LOWEST_COST',
+    // });
 
     return finalBidCPM;
   }
@@ -72,13 +72,13 @@ export class bidStrategyService {
     // Ensure we meet floor price minimum
     const finalBidCPM = Math.max(targetBidCPM, floorPriceCPM);
 
-    this.logger.debug('Target CPM bid calculation', {
-      baseBidCPM,
-      targetBidCPM,
-      floorPriceCPM,
-      finalBidCPM,
-      strategy: 'TARGET_CPM',
-    });
+    // this.logger.debug('Target CPM bid calculation', {
+    //   baseBidCPM,
+    //   targetBidCPM,
+    //   floorPriceCPM,
+    //   finalBidCPM,
+    //   strategy: 'TARGET_CPM',
+    // });
 
     return finalBidCPM;
   }
@@ -101,15 +101,15 @@ export class bidStrategyService {
 
     const finalBidCPM = Math.max(smartBidCPM, floorPriceCPM);
 
-    this.logger.debug('Smart bid calculation (CPM)', {
-      baseBidCPM,
-      targetBidCPM,
-      floorPriceCPM,
-      performanceFactor,
-      smartBidCPM,
-      finalBidCPM,
-      strategy: 'SMART_BID',
-    });
+    // this.logger.debug('Smart bid calculation (CPM)', {
+    //   baseBidCPM,
+    //   targetBidCPM,
+    //   floorPriceCPM,
+    //   performanceFactor,
+    //   smartBidCPM,
+    //   finalBidCPM,
+    //   strategy: 'SMART_BID',
+    // });
 
     return finalBidCPM;
   }
@@ -128,15 +128,15 @@ export class bidStrategyService {
 
     const finalBidCPM = Math.max(competitiveBidCPM, floorPriceCPM);
 
-    this.logger.debug('Competitive bid calculation (CPM)', {
-      baseBidCPM,
-      targetBidCPM,
-      floorPriceCPM,
-      randomFactor,
-      competitiveBidCPM,
-      finalBidCPM,
-      strategy: 'COMPETITIVE',
-    });
+    // this.logger.debug('Competitive bid calculation (CPM)', {
+    //   baseBidCPM,
+    //   targetBidCPM,
+    //   floorPriceCPM,
+    //   randomFactor,
+    //   competitiveBidCPM,
+    //   finalBidCPM,
+    //   strategy: 'COMPETITIVE',
+    // });
 
     return finalBidCPM;
   }

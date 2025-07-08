@@ -57,7 +57,7 @@ export class LocalPublisherStrategy extends PassportStrategy(
     );
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials from bhosda');
+      throw new UnauthorizedException('Invalid credentials ');
     }
 
     return user;

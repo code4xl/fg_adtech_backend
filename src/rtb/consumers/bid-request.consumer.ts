@@ -90,10 +90,10 @@ export class BidRequestKafkaConsumer implements OnModuleInit {
       };
 
       // 5. Publish auction results for response generation
-      await this.rtbProducer.publishAuctionResult(
-        completeAuctionResult as AuctionBidResult | HandleNoBidsResult | ErrorAuctionResult,
-        bidRequestData.bidRequest,
-      );
+      // await this.rtbProducer.publishAuctionResult(
+      //   completeAuctionResult as AuctionBidResult | HandleNoBidsResult | ErrorAuctionResult,
+      //   bidRequestData.bidRequest,
+      // );
 
       // 5. Record processing metrics
       // const processingTime = Date.now() - startTime;

@@ -194,12 +194,12 @@ export class BidAdjustmentService {
         },
       };
 
-      this.logger.debug('Bid adjustment calculation completed', {
-        campaignId,
-        baseBidCPM,
-        finalBidCPM,
-        breakdown,
-      });
+      // this.logger.debug('Bid adjustment calculation completed', {
+      //   campaignId,
+      //   baseBidCPM,
+      //   finalBidCPM,
+      //   breakdown,
+      // });
 
       return { finalBidCPM, breakdown };
     } catch (error) {

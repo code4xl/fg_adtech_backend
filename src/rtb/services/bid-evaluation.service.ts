@@ -82,10 +82,10 @@ export class BidEvaluationService {
     try {
       // 1. Get base bid amount (CPM) from campaign
       const baseBidCPM = await this.getBaseBidCPMAmount(campaign);
-      this.logger.debug('Base bid CPM amount retrieved', {
-        campaignId: campaign.id,
-        baseBidCPM,
-      });
+      // this.logger.debug('Base bid CPM amount retrieved', {
+      //   campaignId: campaign.id,
+      //   baseBidCPM,
+      // });
 
       // 2. Apply bid strategy logic (CPM in, CPM out)
       const strategicBidCPM = await this.applyBidStrategy(
@@ -136,15 +136,15 @@ export class BidEvaluationService {
       //   floorPriceCPM: context.floorPrice,
       // });
 
-      this.logger.debug(' Bid calculation completed (CPM)', {
-        campaignId: campaign.id,
-        baseBidCPM,
-        strategicBidCPM,
-        adjustedBidCPM: adjustedBid.finalBidCPM,
-        pacedBidCPM,
+      // this.logger.debug(' Bid calculation completed (CPM)', {
+      //   campaignId: campaign.id,
+      //   baseBidCPM,
+      //   strategicBidCPM,
+      //   adjustedBidCPM: adjustedBid.finalBidCPM,
+      //   pacedBidCPM,
 
-        breakdown: adjustedBid.breakdown,
-      });
+      //   breakdown: adjustedBid.breakdown,
+      // });
 
       return pacedBidCPM; // Return CPM value
     } catch (error) {
@@ -176,11 +176,11 @@ export class BidEvaluationService {
       return cpmBid; // Already CPM
     }
 
-    // Ultimate fallback - Rs.1 CPM
-    this.logger.debug('Using fallback base bid CPM', {
-      campaignId: campaign.id,
-      fallbackCPM: 1.0,
-    });
+    // // Ultimate fallback - Rs.1 CPM
+    // this.logger.debug('Using fallback base bid CPM', {
+    //   campaignId: campaign.id,
+    //   fallbackCPM: 1.0,
+    // });
 
     return 1.0;
   }
