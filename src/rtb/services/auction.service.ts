@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuctionStatusDto } from '../dto';
 import { BidRequestWithAuction } from '../types/bid-request.types';
-import { REDIS_KEYS, RTB_CACHE_TTL } from '../constants/cache-keys';
+import { REDIS_KEYS, RTB_CACHE_TTL, RTB_KEYS } from '../constants/cache-keys';
 import { RedisService } from 'src/redis/redis.service';
 import { CampaignEligibilityService } from './campaign-eligibility.service';
 import { CampaignWithTargeting } from '../types/campaign.types';
@@ -284,28 +284,79 @@ export class AuctionService {
       },
     );
 
-    // this.logger.debug('Creating bid response', {
-    //   id: bidResponseId,
-    // });
+     // ✅ CREATE the bid response object with tracking data
+    const bidResponseData = {
+      id: bidResponseId,
+      bidRequestId: bidRequest.id,
+      campaignId: campaign.id,
+      creativeId: creative.id,
+      advertiserId: campaign.advertiserId,
+      bidPrice: bidPrice, // Convert to CPM
+      finalPrice: bidPrice,
+      landingUrl: creative.landingUrl,
+      adMarkup: adMarkup,
+      impressionUrls: trackingUrls.impression,
+      clickUrls: trackingUrls.click,
+      winNotificationSent: false,
+      responseLatency: null,
+      createdAt: new Date(),
+      processedAt: new Date(),
+    };
 
-    // Ask mit about this, store the admarkup, impression and click urls in the bid response for the winner only.
-    // Not for all the bids. (This is to avoid storing unnecessary data for lost bids)
-    return await this.prisma.bidResponse.create({
-      data: {
-        id: bidResponseId,
-        bidRequestId: bidRequest.id,
-        campaignId: campaign.id,
-        creativeId: creative.id,
-        advertiserId: campaign.advertiserId,
-        bidPrice,
-        currency: 'INR',
-        status: 'PENDING',
-        adMarkup,
-        impressionUrls: trackingUrls.impression,
-        clickUrls: trackingUrls.click,
-        landingUrl: creative.landingUrl,
-      },
+    // ✅ STORE the bid response in database AND cache for later retrieval
+    await this.storeBidResponse(bidResponseData);
+
+    this.logger.debug('Bid response storeddd', {
+      bidResponseId
     });
+
+
+    return {
+      id: bidResponseId,
+      campaignId: campaign.id,
+      creativeId: creative.id,
+      advertiserId: campaign.advertiserId,
+      bidPrice: bidPrice,
+      status: 'SUBMITTED',
+      landingUrl: creative.landingUrl,
+    };
+  }
+
+  private async storeBidResponse(bidResponseData: any): Promise<void> {
+    try {
+      // Store in database
+      await this.prisma.bidResponse.create({
+        data: bidResponseData,
+      });
+
+      // ✅ Store in Redis cache for fast retrieval (TTL: 10 minutes)
+      await this.redis.setex(
+        RTB_KEYS.BID_RESPONSE(bidResponseData.id),
+        RTB_CACHE_TTL.BID_RESPONSE, // 10 minutes TTL
+        JSON.stringify({
+          id: bidResponseData.id,
+          adMarkup: bidResponseData.adMarkup,
+          impressionUrls: bidResponseData.impressionUrls,
+          clickUrls: bidResponseData.clickUrls,
+          landingUrl: bidResponseData.landingUrl,
+        })
+      );
+
+      this.logger.debug('✅ Bid response stored successfully Successss!!!', {
+        bidResponseId: bidResponseData.id,
+        campaignId: bidResponseData.campaignId,
+        hasAdMarkup: !!bidResponseData.adMarkup,
+        impressionUrlCount: bidResponseData.impressionUrls?.length || 0,
+        clickUrlCount: bidResponseData.clickUrls?.length || 0,
+      });
+
+    } catch (error) {
+      this.logger.error('❌ Failed to store bid response', {
+        bidResponseId: bidResponseData.id,
+        error: error.message,
+      });
+      
+    }
   }
 
   async runAuction(

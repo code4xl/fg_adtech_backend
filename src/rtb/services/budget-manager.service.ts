@@ -34,6 +34,8 @@ export class BudgetManagerService {
     const costPerImpression = finalPriceCPM / 1000;
 
     try {
+      this.logger.debug("In Budget Reservation Won");
+
       // 1. Create reservation metadata
       const reservationData = {
         reservationId,
@@ -55,8 +57,14 @@ export class BudgetManagerService {
       await this.redis.set(
         REDIS_KEYS.BUDGET_RESERVATION(reservationId),
         JSON.stringify(reservationData),
-        RTB_CACHE_TTL.BUDGET_RESERVATION, // 300 seconds = 5 minutes
+        // RTB_CACHE_TTL.BUDGET_RESERVATION, // 300 seconds = 5 minutes
+        3600,
       );
+
+      var data = await this.redis.get(REDIS_KEYS.BUDGET_RESERVATION(reservationId));
+      this.logger.debug("Plss yaar", {
+        data
+      })
 
       // 3. Store metadata separately for cleanup job
       await this.redis.set(

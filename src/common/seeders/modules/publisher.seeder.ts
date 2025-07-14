@@ -54,9 +54,9 @@ export class PublisherSeeder implements ISeeder {
           lastName: faker.person.lastName(),
           email: faker.internet.email().toLowerCase(),
           password: hashedPassword,
-          emailVerifiedAt: verificationStatus ? faker.date.past() : null,
+          emailVerifiedAt: faker.date.past(),
           status: PublisherStatus.ACTIVE,
-          mfaEnabled: faker.datatype.boolean(0.25), // 25% chance of MFA enabled
+          mfaEnabled: false, // 25% chance of MFA enabled
           tierId: selectedTier.id, // Assign the tier
           paymentThreshold: faker.number.float({
             min: 50.0,

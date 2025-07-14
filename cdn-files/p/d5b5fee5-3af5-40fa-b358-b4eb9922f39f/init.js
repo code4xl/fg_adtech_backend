@@ -1,24 +1,24 @@
 /*!
  * Ocean Ads SDK
  * Copyright (c) 2025 Ocean Ads Network
- * Publisher: 012ca309-86e5-4800-a4a0-9a1fcc02dcd6
+ * Publisher: d5b5fee5-3af5-40fa-b358-b4eb9922f39f
  * Build: production
- * Generated: 2025-07-07T19:30:32.135Z
+ * Generated: 2025-07-14T14:02:23.897Z
  */
 
 /*!
  * Ocean Ads SDK Configuration
- * Publisher: 012ca309-86e5-4800-a4a0-9a1fcc02dcd6
- * Website: lifestylemag353-157.io
- * Generated: 2025-07-07T19:30:32.135Z
- * Version: 1.7.7
+ * Publisher: d5b5fee5-3af5-40fa-b358-b4eb9922f39f
+ * Website: fashiontrends717-351.com
+ * Generated: 2025-07-14T14:02:23.896Z
+ * Version: 1.7.14
  * Environment: production
  */
 (function() {
   'use strict';
   
   // Embed configuration
-  window.__OCEAN_CONFIG__ = {"publisher":{"id":"012ca309-86e5-4800-a4a0-9a1fcc02dcd6","tier":"basic"},"website":{"id":"135f8938-9af1-4734-9896-6c08f969d58f","domain":"lifestylemag353-157.io"},"inventory":[{"selector":".ocean-ad","inventoryId":"c651149b-0278-4053-bf35-93c95082b401","size":"400x300","position":"ABOVE_FOLD","refresh":{"enabled":true,"interval":60000}},{"selector":".ocean-ad-2","inventoryId":"dcb1d557-5b48-4b32-b638-cb039154ae17","size":"800x600","position":"ABOVE_FOLD","refresh":{"enabled":true,"interval":60000}},{"selector":".ocean-ad-3","inventoryId":"51f07c46-c256-46de-84b8-a9f70e65705e","size":"320x480","position":"ABOVE_FOLD","refresh":{"enabled":true,"interval":60000}},{"selector":".ocean-ad-4","inventoryId":"240f71d6-d1b4-4ae0-adc0-88c1e4590ec2","size":"336x280","position":"ABOVE_FOLD","refresh":{"enabled":true,"interval":60000}}],"settings":{"apiUrl":"http://localhost:3001","endpoints":{"bid":"http://localhost:3001/rtb/bid-request","track":"http://localhost:3001/rtb/track","sse":"http://localhost:3001/rtb/stream"},"sseTimeout":15000,"debug":true,"batchDelay":50,"maxRetries":1,"fallbackTimeout":500}};
+  window.__OCEAN_CONFIG__ = {"publisher":{"id":"d5b5fee5-3af5-40fa-b358-b4eb9922f39f","tier":"basic"},"website":{"id":"5a991cd8-2639-4227-b014-2ca15a4c2b44","domain":"fashiontrends717-351.com"},"inventory":[{"selector":".ocean-ad","inventoryId":"00365a72-baee-492c-8583-9dd00198ad56","size":"640x360","position":"ABOVE_FOLD","refresh":{"enabled":true,"interval":60000}}],"settings":{"apiUrl":"http://localhost:3001","endpoints":{"bid":"http://localhost:3001/rtb/bid-request","track":"http://localhost:3001/rtb/track","sse":"http://localhost:3001/rtb/stream"},"sseTimeout":15000,"debug":true,"batchDelay":50,"maxRetries":1,"fallbackTimeout":500}};
   
   // Configuration validation
   if (typeof window.__OCEAN_CONFIG__ !== 'object' || !window.__OCEAN_CONFIG__) {
@@ -44,7 +44,7 @@
  * Ocean Ads SDK v2.0.0
  * (c) 2024 Ocean Ads Network
  * Released under the MIT License
- * Built: 2025-07-07T08:56:58.699Z
+ * Built: 2025-07-14T11:06:16.679Z
  */
 (function(){'use strict';
         if (!window.Promise) {
@@ -879,7 +879,7 @@ function createMetric(metric, value, unit) {
     ConfigManager.prototype.getRefreshConfig = function (inventoryId) {
         var inventory = this.getInventoryById(inventoryId);
         if (!inventory || !inventory.refresh) {
-            return { enabled: true };
+            return { enabled: false };
         }
         return inventory.refresh;
     };
@@ -1252,7 +1252,7 @@ function addEventListener(element, event, handler, options) {
             state: 'discovered',
             websiteId: websiteId || configManager.getCurrentWebsiteId() || undefined,
             refresh: {
-                enabled: ((_a = config.refresh) === null || _a === void 0 ? void 0 : _a.enabled) !== false,
+                enabled: ((_a = config.refresh) === null || _a === void 0 ? void 0 : _a.enabled) === true,
                 count: 0,
                 interval: (_b = config.refresh) === null || _b === void 0 ? void 0 : _b.interval
             }
@@ -2860,12 +2860,12 @@ var contextCollector = ContextCollector.getInstance();var SSEClient = /** @class
         eventBus.on('slot:discovered', function () {
             self.scheduleBatchRequest();
         });
-        eventBus.on('slot:refresh', function (event) {
-            var slot = slotManager.getSlotById(event.data.slotId);
-            if (slot) {
-                self.requestAdsForSlots([slot]);
-            }
-        });
+        // eventBus.on('slot:refresh', function(event) {
+        //   var slot = slotManager.getSlotById(event.data.slotId);
+        //   if (slot) {
+        //     self.requestAdsForSlots([slot]);
+        //   }
+        // });
     };
     RequestManager.prototype.requestAdsForSlots = function (slots) {
         var validSlots = this.validateSlots(slots);
@@ -3180,22 +3180,21 @@ var contextCollector = ContextCollector.getInstance();var SSEClient = /** @class
             }
         }
     };
-    RequestManager.prototype.scheduleRefresh = function (slot, delay) {
-        if (!slot.refresh.enabled)
-            return;
-        if (slot.refresh.timer) {
-            clearTimeout(slot.refresh.timer);
-        }
-        slot.refresh.timer = window.setTimeout(function () {
-            slot.refresh.count++;
-            slotManager.updateSlotState(slot.id, 'refreshing');
-            eventBus.emit('slot:refresh', {
-                slotId: slot.id,
-                inventoryId: slot.inventoryId,
-                refreshCount: slot.refresh.count
-            });
-        }, delay);
-    };
+    // scheduleRefresh(slot: AdSlot, delay: number): void {
+    //   if (!slot.refresh.enabled) return;
+    //   if (slot.refresh.timer) {
+    //     clearTimeout(slot.refresh.timer);
+    //   }
+    //   slot.refresh.timer = window.setTimeout(function() {
+    //     slot.refresh.count++;
+    //     slotManager.updateSlotState(slot.id, 'refreshing');
+    //     eventBus.emit('slot:refresh', {
+    //       slotId: slot.id,
+    //       inventoryId: slot.inventoryId,
+    //       refreshCount: slot.refresh.count
+    //     });
+    //   }, delay);
+    // }
     RequestManager.prototype.requestAds = function (slots, _context) {
         return this.requestAdsForSlots(slots);
     };
@@ -4018,7 +4017,6 @@ var requestManager = RequestManager.getInstance();var SlotRenderer = /** @class 
                             creativeType: response.creative.type,
                             usedSafeFrame: useSafeFrame
                         });
-                        this.scheduleRefresh(slot);
                         return [2 /*return*/];
                 }
             });
@@ -4076,24 +4074,24 @@ var requestManager = RequestManager.getInstance();var SlotRenderer = /** @class 
         });
         this.renderBlank(slot);
     };
-    RenderEngine.prototype.scheduleRefresh = function (slot) {
-        var refreshConfig = configManager.getRefreshConfig(slot.inventoryId);
-        if (!(refreshConfig === null || refreshConfig === void 0 ? void 0 : refreshConfig.enabled) || !slot.refresh.enabled) {
-            return;
-        }
-        var interval = slot.refresh.interval || refreshConfig.interval || 30000;
-        if (slot.refresh.timer) {
-            clearTimeout(slot.refresh.timer);
-        }
-        slot.refresh.timer = window.setTimeout(function () {
-            slot.refresh.count++;
-            eventBus.emit('slot:refresh', {
-                slotId: slot.id,
-                inventoryId: slot.inventoryId,
-                refreshCount: slot.refresh.count
-            });
-        }, interval);
-    };
+    // private scheduleRefresh(slot: AdSlot): void {
+    //   var refreshConfig = configManager.getRefreshConfig(slot.inventoryId);
+    //   if (!refreshConfig?.enabled || !slot.refresh.enabled) {
+    //     return;
+    //   }
+    //   var interval = slot.refresh.interval || refreshConfig.interval || 30000;
+    //   if (slot.refresh.timer) {
+    //     clearTimeout(slot.refresh.timer);
+    //   }
+    //   slot.refresh.timer = window.setTimeout(function() {
+    //     slot.refresh.count++;
+    //     eventBus.emit('slot:refresh', {
+    //       slotId: slot.id,
+    //       inventoryId: slot.inventoryId,
+    //       refreshCount: slot.refresh.count
+    //     });
+    //   }, interval);
+    // }
     RenderEngine.prototype.clearSlot = function (slotId) {
         var _this = this;
         var slot = slotManager.getSlotById(slotId);

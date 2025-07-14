@@ -10,7 +10,7 @@ import {
   HandleNoBidsResult,
 } from '../types/auction-result.types';
 import { WinningBidResponse } from '../types/bid-response.types';
-import { RTB_CACHE_TTL, REDIS_KEYS } from '../constants/cache-keys';
+import { RTB_CACHE_TTL, REDIS_KEYS, RTB_KEYS } from '../constants/cache-keys';
 import { AdMarkupService } from '../services/ad-markup.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -72,6 +72,167 @@ export class BidResponseProcessor {
       adSlotContext: auctionResult.originalBidRequest.adSlotContext,
     });
 
+     // ✅ STEP 1: Try to get existing bid response that already has tracking URLs
+    const existingBidResponse = await this.getExistingBidResponse(winner.id);
+
+    if (existingBidResponse && this.isValidBidResponse(existingBidResponse)) {
+      this.logger.debug('✅ Reusing existing bid response tracking URLs', {
+        bidResponseId: winner.id,
+        hasAdMarkup: !!existingBidResponse.adMarkup,
+        hasImpressionUrls: !!existingBidResponse.impressionUrls?.length,
+        hasClickUrls: !!existingBidResponse.clickUrls?.length,
+      });
+
+      // ✅ Reuse existing tracking URLs and ad markup - NO REGENERATION
+      return {
+        requestId: auctionResult.originalBidRequest.externalRequestId,
+        auctionId: auctionId,
+        status: 'COMPLETED',
+        winningBid: {
+          price: auctionResult.finalPrice,
+          currency: winner.currency || 'INR',
+          campaignId: winner.campaignId,
+          creativeId: winner.creativeId,
+          adMarkup: existingBidResponse.adMarkup,           // ✅ Reuse existing
+          impressionUrls: existingBidResponse.impressionUrls, // ✅ Reuse existing  
+          clickUrls: existingBidResponse.clickUrls,         // ✅ Reuse existing
+          landingUrl: existingBidResponse.landingUrl,       // ✅ Reuse existing
+        },
+        auctionData: {
+          totalBids: auctionResult.totalBids || 1,
+          validBids: auctionResult.validBids || 1,
+          auctionDuration: `${auctionResult.processingTime || 0}ms`,
+          timestamp: new Date().toISOString(),
+          floorPrice: auctionResult.floorPrice,
+        },
+      };
+    }
+
+    // ⚠️ FALLBACK: Generate new tracking URLs only if existing bid response not found
+    this.logger.warn('⚠️ Existing bid response not found, generating new tracking URLs', {
+      bidResponseId: winner.id,
+      auctionId,
+    });
+
+    return await this.generateFallbackWinningResponse(auctionResult);
+  }
+
+  private async getExistingBidResponse(bidResponseId: string): Promise<any | null> {
+    try {
+      // First try Redis cache
+      const cachedResponse = await this.redis.get(RTB_KEYS.BID_RESPONSE(bidResponseId));
+      if (cachedResponse) {
+        try {
+          const parsed = typeof cachedResponse === 'string' 
+            ? JSON.parse(cachedResponse) 
+            : cachedResponse;
+          
+          this.logger.debug('Found bid response in Redis cache', {
+            bidResponseId,
+            hasAdMarkup: !!parsed.adMarkup,
+          });
+          return parsed;
+        } catch (parseError) {
+          this.logger.warn('Failed to parse cached bid response', { 
+            bidResponseId, 
+            error: parseError.message 
+          });
+        }
+      }
+
+      // Fallback to database
+      const bidResponse = await this.prisma.bidResponse.findUnique({
+        where: { id: bidResponseId },
+        select: {
+          id: true,
+          adMarkup: true,
+          impressionUrls: true,
+          clickUrls: true,
+          landingUrl: true,
+          campaign: {
+            select: {
+              id: true,
+            }
+          },
+          creative: {
+            select: {
+              id: true,
+              landingUrl: true,
+            }
+          }
+        },
+      });
+
+      if (bidResponse) {
+        this.logger.debug('Found bid response in database', {
+          bidResponseId,
+          hasAdMarkup: !!bidResponse.adMarkup,
+          hasImpressionUrls: !!bidResponse.impressionUrls?.length,
+          hasClickUrls: !!bidResponse.clickUrls?.length,
+        });
+
+        // Cache it for future use
+        await this.redis.setex(
+          RTB_KEYS.BID_RESPONSE(bidResponseId),
+          RTB_CACHE_TTL.BID_RESPONSE, // 5 minutes TTL
+          JSON.stringify({
+            id: bidResponse.id,
+            adMarkup: bidResponse.adMarkup,
+            impressionUrls: bidResponse.impressionUrls,
+            clickUrls: bidResponse.clickUrls,
+            landingUrl: bidResponse.landingUrl || bidResponse.creative?.landingUrl,
+          })
+        );
+
+        return {
+          id: bidResponse.id,
+          adMarkup: bidResponse.adMarkup,
+          impressionUrls: bidResponse.impressionUrls,
+          clickUrls: bidResponse.clickUrls,
+          landingUrl: bidResponse.landingUrl || bidResponse.creative?.landingUrl,
+        };
+      }
+
+      this.logger.debug('No existing bid response found', { bidResponseId });
+      return null;
+
+    } catch (error) {
+      this.logger.error('Failed to get existing bid response', {
+        bidResponseId,
+        error: error.message,
+      });
+      return null;
+    }
+  }
+
+   private isValidBidResponse(bidResponse: any): boolean {
+    const isValid = !!(
+      bidResponse?.adMarkup &&
+      bidResponse?.impressionUrls?.length > 0 &&
+      bidResponse?.clickUrls?.length > 0 &&
+      bidResponse?.landingUrl
+    );
+
+    if (!isValid) {
+      this.logger.debug('Invalid bid response - missing required fields', {
+        bidResponseId: bidResponse?.id,
+        hasAdMarkup: !!bidResponse?.adMarkup,
+        hasImpressionUrls: !!bidResponse?.impressionUrls?.length,
+        hasClickUrls: !!bidResponse?.clickUrls?.length,
+        hasLandingUrl: !!bidResponse?.landingUrl,
+      });
+    }
+
+    return isValid;
+  }
+
+  private async generateFallbackWinningResponse(
+    auctionResult: AuctionBidResult,
+  ): Promise<WinningBidResponse> {
+    const winner = auctionResult.winner;
+    const creativeId = winner.creativeId;
+    const auctionId = auctionResult.auctionId;
+
     // Fetch creative details from database
     const creative = await this.prisma.creative.findUnique({
       where: { id: creativeId },
@@ -82,19 +243,12 @@ export class BidResponseProcessor {
       throw new Error(`Creative ${creativeId} not found`);
     }
 
-    // this.logger.debug('Creative fetched for winning bid', {
-    //   creativeId: creative.id,
-    //   creativeName: creative.name,
-    //   fileUrl: creative.fileUrl,
-    //   landingUrl: creative.landingUrl,
-    //   type: creative.type,
-    // });
-
-    // Use auction service for tracking URLs
+    // ⚠️ Generate NEW tracking URLs (should be rare)
     const trackingUrls = this.adMarkupService.generateTrackingUrls(
       auctionId,
       winner.id,
     );
+    
     const adSlotContextData = auctionResult.originalBidRequest.adSlotContext;
 
     // Prepare creative object with all required properties
@@ -104,7 +258,6 @@ export class BidResponseProcessor {
       fileUrl: creative.fileUrl,
       landingUrl: creative.landingUrl,
       type: creative.type,
-      // Format is determined by type - map CreativeType to InventoryFormat
       format:
         creative.type === 'IMAGE' || creative.type === 'HTML5'
           ? 'BANNER'
@@ -115,7 +268,7 @@ export class BidResponseProcessor {
               : 'BANNER',
     };
 
-    // Use auction service for ad markup with full creative data
+    // Generate new ad markup
     const adMarkup = this.adMarkupService.generateAdMarkup(
       creativeData,
       trackingUrls,
@@ -126,18 +279,12 @@ export class BidResponseProcessor {
       },
     );
 
-    // this.logger.debug('Ad markup generated', {
-    //   hasMarkup: !!adMarkup,
-    //   markupLength: adMarkup?.length,
-    //   imageUrl: creative.fileUrl,
-    // });
-
     return {
       requestId: auctionResult.originalBidRequest.externalRequestId,
       auctionId: auctionId,
       status: 'COMPLETED',
       winningBid: {
-        price: auctionResult.finalPrice, // Type-safe access to finalPrice
+        price: auctionResult.finalPrice,
         currency: winner.currency || 'INR',
         campaignId: winner.campaignId,
         creativeId: winner.creativeId,
@@ -155,6 +302,7 @@ export class BidResponseProcessor {
       },
     };
   }
+
 
   async generateNoBidsResponse(
     auctionResult: HandleNoBidsResult,

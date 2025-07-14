@@ -18,6 +18,8 @@ import { FraudDetectionService } from './fraud-detection.service';
 import { ApiExcludeController, ApiTags } from '@nestjs/swagger';
 import { ImpressionClickLinkingService } from './services/impression-click-linking.service';
 import { v4 as uuidv4 } from 'uuid';
+import { RedisService } from 'src/redis/redis.service';
+import { RTB_CACHE_TTL, RTB_KEYS } from 'src/rtb/constants/cache-keys';
 
 @ApiExcludeController()
 @ApiTags('Impression and Click Tracking')
@@ -30,7 +32,8 @@ export class TrackingController {
     private readonly budgetValidation: BudgetValidationService,
     private readonly fraudDetection: FraudDetectionService,
     private readonly impressionClickLinking: ImpressionClickLinkingService,
-  ) {}
+    private readonly redis: RedisService,
+  ) { }
 
   /**
    * High-performance impression tracking endpoint
@@ -55,7 +58,30 @@ export class TrackingController {
       const userFingerprint =
         this.impressionClickLinking.generateUserFingerprint(req, userData);
 
+
+
       const slotId = query.slotId;
+
+      // this.logger.debug("Impressionss LOgsss", {
+      //   bidResponseId,
+      //   slotId,
+      //   userFingerprint,
+      // })
+
+      // // ✅ ADD DEDUPLICATION CHECK
+      // const dedupeKey = RTB_KEYS.IMP_DEDUPLICATION(
+      //   bidResponseId,
+      //   slotId,
+      //   userFingerprint,);
+      // const alreadyTracked = await this.redis.get(dedupeKey);
+
+      // if (alreadyTracked) {
+      //   this.logger.debug(`Duplicate impression blocked: ${bidResponseId}`);
+      //   return this.return1x1Pixel(res);
+      // }
+
+      // // ✅ SET DEDUPE FLAG (expires in 10 minutes)
+      // await this.redis.setex(dedupeKey, RTB_CACHE_TTL.IMP_DEDUPLICATION, '1');
 
       this.logger.debug('Prep for impression tracking', {
         startTime,

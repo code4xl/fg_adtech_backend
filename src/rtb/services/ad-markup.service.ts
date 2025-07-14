@@ -28,12 +28,14 @@ export class AdMarkupService {
     const slotId =
       this.impressionClickLinking.generateImpressionSlot(bidResponseId);
 
+      const timestamp = Date.now();
+
     return {
       impression: [
-        `${baseUrl}/api/pixel/${bidResponseId}?slotId=${slotId}&auctionId=${auctionId}&t=${Date.now()}`,
+        `${baseUrl}/api/pixel/${bidResponseId}?slotId=${slotId}&auctionId=${auctionId}&t=${timestamp}`,
       ],
       click: [
-        `${baseUrl}/api/redirect/${bidResponseId}?slotId=${slotId}&auctionId=${auctionId}&t=${Date.now()}&url=`,
+        `${baseUrl}/api/redirect/${bidResponseId}?slotId=${slotId}&auctionId=${auctionId}&t=${timestamp}&url=`,
       ],
     };
   }

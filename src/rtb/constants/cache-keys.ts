@@ -4,6 +4,8 @@
 
 export const RTB_KEYS = {
   BID_REQUEST: (requestId: string) => `rtb:bid-request:${requestId}`,
+  BID_RESPONSE: (bidResponseId: string) => `bid_response:${bidResponseId}`,
+  IMP_DEDUPLICATION: (bidResponseId: string, slotId: string, userFingerprint: string) => `imp:${bidResponseId}:${slotId}:${userFingerprint}`,
   BID_REQUEST_LOCK: (requestId: string) => `lock:bid-request:${requestId}`,
   AUCTION_RESULT: (requestId: string) => `rtb:auction:${requestId}`,
   HOURLY_BID_REQUEST_METRICS: (hour: number) => `metrics:requests:${hour}`,
@@ -212,9 +214,11 @@ export const REDIS_KEYS = {
 export const RTB_CACHE_TTL = {
   // Core RTB
   BID_REQUEST: 3600, // 1 hr
+  BID_RESPONSE: 300, // 5 min
   BID_REQUEST_LOCK: 30, // 30 sec
   AUCTION_RESULT: 3600, // 1 hr
   AUCTION_STATE: 300, // 5 min
+  IMP_DEDUPLICATION: 600, // 10 min
 
   // Campaign
   CAMPAIGN_ELIGIBILITY: 1800, // 30 min
