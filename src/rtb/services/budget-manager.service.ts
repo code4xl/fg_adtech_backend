@@ -11,7 +11,7 @@ export class BudgetManagerService {
   constructor(
     private readonly redis: RedisService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   /**
    * 🎯 FIXED: Reserve budget when auction is won
@@ -57,14 +57,8 @@ export class BudgetManagerService {
       await this.redis.set(
         REDIS_KEYS.BUDGET_RESERVATION(reservationId),
         JSON.stringify(reservationData),
-        // RTB_CACHE_TTL.BUDGET_RESERVATION, // 300 seconds = 5 minutes
-        3600,
+        RTB_CACHE_TTL.BUDGET_RESERVATION, // 300 seconds = 5 minutes
       );
-
-      var data = await this.redis.get(REDIS_KEYS.BUDGET_RESERVATION(reservationId));
-      this.logger.debug("Plss yaar", {
-        data
-      })
 
       // 3. Store metadata separately for cleanup job
       await this.redis.set(
@@ -427,6 +421,61 @@ export class BudgetManagerService {
   /**
    * Update daily aggregations in Redis
    */
+  // private async updateDailyAggregations(
+  //   publisherId: string,
+  //   advertiserId: string,
+  //   campaignId: string,
+  //   grossRevenue: number,
+  //   publisherShare: number,
+  //   systemEarning: number,
+  //   today: string,
+  // ): Promise<void> {
+  //   const pipeline = this.redis.pipeline();
+
+  //   // Publisher daily aggregation
+  //   const publisherDailyKey = REDIS_KEYS.PUBLISHER_REVENUE_DAILY(
+  //     publisherId,
+  //     today,
+  //   );
+  //   pipeline.hincrby(publisherDailyKey, 'totalImpressions', 1);
+  //   pipeline.hincrbyfloat(publisherDailyKey, 'grossRevenue', grossRevenue);
+  //   pipeline.hincrbyfloat(publisherDailyKey, 'netRevenue', publisherShare);
+  //   pipeline.hincrbyfloat(
+  //     publisherDailyKey,
+  //     'commissionPaid',
+  //     grossRevenue - publisherShare,
+  //   );
+  //   pipeline.expire(publisherDailyKey, 86400 * 32); // 32 days
+
+  //   // Advertiser daily aggregation
+  //   const advertiserDailyKey = REDIS_KEYS.ADVERTISER_SPENDING_DAILY(
+  //     advertiserId,
+  //     campaignId,
+  //     today,
+  //   );
+  //   pipeline.hincrby(advertiserDailyKey, 'totalImpressions', 1);
+  //   pipeline.hincrbyfloat(advertiserDailyKey, 'totalSpend', grossRevenue);
+  //   pipeline.expire(advertiserDailyKey, 86400 * 32); // 32 days
+
+  //   // System daily aggregation
+  //   const systemDailyKey = REDIS_KEYS.SYSTEM_REVENUE_DAILY(today);
+  //   pipeline.hincrby(systemDailyKey, 'totalImpressions', 1);
+  //   pipeline.hincrbyfloat(systemDailyKey, 'totalGrossRevenue', grossRevenue);
+  //   pipeline.hincrbyfloat(
+  //     systemDailyKey,
+  //     'totalCommissionEarned',
+  //     systemEarning,
+  //   );
+  //   pipeline.hincrbyfloat(
+  //     systemDailyKey,
+  //     'totalPublisherPayout',
+  //     publisherShare,
+  //   );
+  //   pipeline.expire(systemDailyKey, 86400 * 32); // 32 days
+
+  //   await pipeline.exec();
+  // }
+
   private async updateDailyAggregations(
     publisherId: string,
     advertiserId: string,
@@ -436,50 +485,127 @@ export class BudgetManagerService {
     systemEarning: number,
     today: string,
   ): Promise<void> {
-    const pipeline = this.redis.pipeline();
+    // 🔧 CRITICAL: Use Redis transactions with proper locking
+    const lockKey = `lock:daily:aggregation:${today}`;
+    const lockTimeout = 5000; // 5 seconds
 
-    // Publisher daily aggregation
-    const publisherDailyKey = REDIS_KEYS.PUBLISHER_REVENUE_DAILY(
-      publisherId,
-      today,
-    );
-    pipeline.hincrby(publisherDailyKey, 'totalImpressions', 1);
-    pipeline.hincrbyfloat(publisherDailyKey, 'grossRevenue', grossRevenue);
-    pipeline.hincrbyfloat(publisherDailyKey, 'netRevenue', publisherShare);
-    pipeline.hincrbyfloat(
-      publisherDailyKey,
-      'commissionPaid',
-      grossRevenue - publisherShare,
-    );
-    pipeline.expire(publisherDailyKey, 86400 * 32); // 32 days
+    try {
+      // 🔧 FIX: Acquire distributed lock to prevent race conditions
+      const lockAcquired = await this.redis.getClient().set(
+        lockKey,
+        'locked',
+        'PX',
+        lockTimeout,
+        'NX'
+      );
 
-    // Advertiser daily aggregation
-    const advertiserDailyKey = REDIS_KEYS.ADVERTISER_SPENDING_DAILY(
-      advertiserId,
-      campaignId,
-      today,
-    );
-    pipeline.hincrby(advertiserDailyKey, 'totalImpressions', 1);
-    pipeline.hincrbyfloat(advertiserDailyKey, 'totalSpend', grossRevenue);
-    pipeline.expire(advertiserDailyKey, 86400 * 32); // 32 days
+      if (!lockAcquired) {
+        // Wait and retry if lock not acquired
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return this.updateDailyAggregations(
+          publisherId, advertiserId, campaignId,
+          grossRevenue, publisherShare, systemEarning, today
+        );
+      }
 
-    // System daily aggregation
-    const systemDailyKey = REDIS_KEYS.SYSTEM_REVENUE_DAILY(today);
-    pipeline.hincrby(systemDailyKey, 'totalImpressions', 1);
-    pipeline.hincrbyfloat(systemDailyKey, 'totalGrossRevenue', grossRevenue);
-    pipeline.hincrbyfloat(
-      systemDailyKey,
-      'totalCommissionEarned',
-      systemEarning,
-    );
-    pipeline.hincrbyfloat(
-      systemDailyKey,
-      'totalPublisherPayout',
-      publisherShare,
-    );
-    pipeline.expire(systemDailyKey, 86400 * 32); // 32 days
+      // 🔧 ATOMIC: Single pipeline with proper initialization
+      const pipeline = this.redis.pipeline();
 
-    await pipeline.exec();
+      // ===== PUBLISHER DAILY AGGREGATION =====
+      const publisherDailyKey = REDIS_KEYS.PUBLISHER_REVENUE_DAILY(publisherId, today);
+
+      // Initialize all fields if they don't exist
+      pipeline.hsetnx(publisherDailyKey, 'totalImpressions', '0');
+      pipeline.hsetnx(publisherDailyKey, 'totalClicks', '0');
+      pipeline.hsetnx(publisherDailyKey, 'grossRevenue', '0');
+      pipeline.hsetnx(publisherDailyKey, 'netRevenue', '0');
+      pipeline.hsetnx(publisherDailyKey, 'commissionPaid', '0');
+
+      // Now increment atomically
+      pipeline.hincrby(publisherDailyKey, 'totalImpressions', 1);
+      pipeline.hincrbyfloat(publisherDailyKey, 'grossRevenue', grossRevenue);
+      pipeline.hincrbyfloat(publisherDailyKey, 'netRevenue', publisherShare);
+      pipeline.hincrbyfloat(publisherDailyKey, 'commissionPaid', grossRevenue - publisherShare);
+      pipeline.expire(publisherDailyKey, 86400 * 32);
+
+      // ===== ADVERTISER DAILY AGGREGATION =====
+      const advertiserDailyKey = REDIS_KEYS.ADVERTISER_SPENDING_DAILY(advertiserId, campaignId, today);
+
+      pipeline.hsetnx(advertiserDailyKey, 'totalImpressions', '0');
+      pipeline.hsetnx(advertiserDailyKey, 'totalClicks', '0');
+      pipeline.hsetnx(advertiserDailyKey, 'totalSpend', '0');
+
+      pipeline.hincrby(advertiserDailyKey, 'totalImpressions', 1);
+      pipeline.hincrbyfloat(advertiserDailyKey, 'totalSpend', grossRevenue);
+      pipeline.expire(advertiserDailyKey, 86400 * 32);
+
+      // ===== SYSTEM DAILY AGGREGATION =====
+      const systemDailyKey = REDIS_KEYS.SYSTEM_REVENUE_DAILY(today);
+
+      pipeline.hsetnx(systemDailyKey, 'totalImpressions', '0');
+      pipeline.hsetnx(systemDailyKey, 'totalClicks', '0');
+      pipeline.hsetnx(systemDailyKey, 'totalGrossRevenue', '0');
+      pipeline.hsetnx(systemDailyKey, 'totalCommissionEarned', '0');
+      pipeline.hsetnx(systemDailyKey, 'totalPublisherPayout', '0');
+
+      pipeline.hincrby(systemDailyKey, 'totalImpressions', 1);
+      pipeline.hincrbyfloat(systemDailyKey, 'totalGrossRevenue', grossRevenue);
+      pipeline.hincrbyfloat(systemDailyKey, 'totalCommissionEarned', systemEarning);
+      pipeline.hincrbyfloat(systemDailyKey, 'totalPublisherPayout', publisherShare);
+      pipeline.expire(systemDailyKey, 86400 * 32);
+
+      // 🔧 CRITICAL: Execute with proper error handling
+      const results = await pipeline.exec();
+
+      if (!results) {
+        throw new Error('Pipeline execution returned null');
+      }
+
+      // 🔧 VALIDATE: Check for any failed operations
+      const failedOps = results.filter(([err]) => err !== null);
+      if (failedOps.length > 0) {
+        this.logger.error('❌ Daily aggregation pipeline failed', {
+          publisherId,
+          advertiserId,
+          campaignId,
+          totalOps: results.length,
+          failedOps: failedOps.length,
+          errors: failedOps.map(([err]) => err?.message),
+        });
+        throw new Error(`${failedOps.length} pipeline operations failed`);
+      }
+
+      // 🔧 SUCCESS LOGGING
+      this.logger.debug('✅ Daily aggregations updated atomically', {
+        publisherId,
+        advertiserId,
+        campaignId,
+        grossRevenue,
+        publisherShare,
+        systemEarning,
+        totalOperations: results.length,
+      });
+
+    } catch (error) {
+      this.logger.error('❌ CRITICAL: Daily aggregation failed', {
+        error: error.message,
+        publisherId,
+        advertiserId,
+        campaignId,
+        stack: error.stack,
+      });
+      throw error;
+    } finally {
+      // 🔧 ALWAYS: Release the lock
+      try {
+        await this.redis.del(lockKey);
+      } catch (lockError) {
+        this.logger.warn('Failed to release aggregation lock', {
+          lockKey,
+          error: lockError.message,
+        });
+      }
+    }
   }
 
   /**

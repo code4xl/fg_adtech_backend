@@ -46,10 +46,10 @@ export class BudgetRedisSyncService {
         campaignBudget.dailyBudget.toString(),
       );
 
-      // Daily spend - TTL: 24 hours
+      // Daily spend - TTL: 48 hours
       pipeline.setex(
         REDIS_KEYS.DAILY_BUDGET_SPEND(campaignId, today),
-        24 * 60 * 60,
+        48 * 60 * 60,
         (dailyBudget?.spentToday || 0).toString(),
       );
 

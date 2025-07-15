@@ -10,7 +10,7 @@ export class BudgetInitializationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
-  ) {}
+  ) { }
 
   /**
    * Initialize daily budgets for all active campaigns
@@ -118,60 +118,65 @@ export class BudgetInitializationService {
       return;
     }
 
-    // Check if daily budget record already exists for today
-    const existingDailyBudget =
-      await this.prisma.campaignDailyBudget.findUnique({
-        where: {
-          campaignId_date: {
-            campaignId: campaign.id,
-            date: date,
-          },
-        },
-      });
+    // Get rollover data from Redis upfront (faster than DB calls)
+    const yesterday = new Date(date);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayDateStr = yesterday.toISOString().split('T')[0];
 
-    if (existingDailyBudget) {
-      // Record exists - check if it needs reset
-      const isNewDay =
-        existingDailyBudget.lastUpdated.toDateString() !== date.toDateString();
+    const [yesterdaySpent, dailyBudgetLimit] = await Promise.all([
+      this.redis.get(REDIS_KEYS.DAILY_BUDGET_SPEND(campaign.id, yesterdayDateStr)),
+      this.redis.get(REDIS_KEYS.DAILY_BUDGET_LIMIT(campaign.id))
+    ]);
 
-      if (isNewDay) {
-        // Reset for new day
-        await this.prisma.campaignDailyBudget.update({
-          where: {
-            campaignId_date: {
-              campaignId: campaign.id,
-              date: date,
-            },
-          },
-          data: {
-            spentToday: 0,
-            remainingToday: dailyBudgetAmount,
-            isExhausted: false,
-            lastUpdated: new Date(),
-          },
-        });
+    // Calculate rollover amount from Redis data
+    let rolloverAmount = 0;
+    if (yesterdaySpent !== null && dailyBudgetLimit !== null) {
+      const spent = parseFloat(yesterdaySpent as string) || 0;
+      const limit = parseFloat(dailyBudgetLimit as string) || 0;
+      const remaining = Math.max(0, limit - spent);
 
-        this.logger.debug(`Reset daily budget for campaign ${campaign.id}`, {
-          dailyBudget: dailyBudgetAmount,
+      if (remaining > 0) {
+        rolloverAmount = remaining;
+        this.logger.debug(`Campaign ${campaign.id} has rollover budget from Redis`, {
+          yesterdaySpent: spent,
+          yesterdayLimit: limit,
+          rolloverAmount: rolloverAmount,
         });
       }
-    } else {
-      // Create new daily budget record
-      await this.prisma.campaignDailyBudget.create({
-        data: {
+    }
+
+    const totalBudgetForToday = dailyBudgetAmount + rolloverAmount;
+
+    // Use upsert since this mainly runs at 2:00 AM for new day
+    // This handles both create and update cases in one operation
+    await this.prisma.campaignDailyBudget.upsert({
+      where: {
+        campaignId_date: {
           campaignId: campaign.id,
           date: date,
-          spentToday: 0,
-          remainingToday: dailyBudgetAmount,
-          isExhausted: false,
-          lastUpdated: new Date(),
         },
-      });
+      },
+      create: {
+        campaignId: campaign.id,
+        date: date,
+        spentToday: 0,
+        remainingToday: totalBudgetForToday,
+        isExhausted: false,
+        lastUpdated: new Date(),
+      },
+      update: {
+        spentToday: 0,
+        remainingToday: totalBudgetForToday, // Reset with rollover
+        isExhausted: false,
+        lastUpdated: new Date(),
+      },
+    });
 
-      this.logger.debug(`Created daily budget for campaign ${campaign.id}`, {
-        dailyBudget: dailyBudgetAmount,
-      });
-    }
+    this.logger.debug(`Initialized daily budget for campaign ${campaign.id} with rollover`, {
+      originalDailyBudget: dailyBudgetAmount,
+      rolloverAmount: rolloverAmount,
+      totalBudgetForToday: totalBudgetForToday,
+    });
   }
 
   /**
