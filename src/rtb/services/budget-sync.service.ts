@@ -11,6 +11,7 @@ export class BudgetSyncService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
   ) { }
+  ) { }
 
   /**
    * Sync daily budget spends from Redis to PostgreSQL
@@ -293,7 +294,25 @@ export class BudgetSyncService {
                 lastUpdated: new Date(),
               },
             });
+            // 🚀 EFFICIENT: Update PostgreSQL with Redis data (no reduce() needed!)
+            await this.prisma.campaignBudget.update({
+              where: { campaignId },
+              data: {
+                spentAmount: totalSpent, // 🆕 UPDATE: Set spent amount from Redis
+                isExhausted,
+                lastUpdated: new Date(),
+              },
+            });
 
+            // Update campaign status if total budget exhausted
+            if (isExhausted) {
+              await this.prisma.campaign.update({
+                where: { id: campaignId },
+                data: {
+                  status: 'BUDGET_EXHAUSTED',
+                  updatedAt: new Date(),
+                },
+              });
             // Update campaign status if total budget exhausted
             if (isExhausted) {
               await this.prisma.campaign.update({
@@ -310,9 +329,32 @@ export class BudgetSyncService {
                 'BUDGET_EXHAUSTED',
               );
             }
+              // Also update Redis status
+              await this.redis.set(
+                REDIS_KEYS.CAMPAIGN_STATUS(campaignId),
+                'BUDGET_EXHAUSTED',
+              );
+            }
 
             campaignsSynced++;
+            campaignsSynced++;
 
+            this.logger.debug('✅ Campaign total budget synced', {
+              campaignId,
+              totalSpent,
+              totalBudget,
+              remainingBudget,
+              isExhausted,
+            });
+          } catch (error) {
+            const errorMsg = `Failed to sync total budget for campaign from key ${spendKey}: ${error.message}`;
+            this.logger.error(errorMsg);
+            errors.push(errorMsg);
+          }
+        }
+
+        // Small delay between batches
+        await new Promise((resolve) => setTimeout(resolve, 100));
             this.logger.debug('✅ Campaign total budget synced', {
               campaignId,
               totalSpent,
@@ -333,6 +375,7 @@ export class BudgetSyncService {
 
       const processingTime = Date.now() - startTime;
 
+      this.logger.debug('✅ Total campaign budget sync completed', {
       this.logger.debug('✅ Total campaign budget sync completed', {
         campaignsSynced,
         errors: errors.length,
@@ -496,8 +539,11 @@ export class BudgetSyncService {
   }
   
 
+  
+
   /**
    * Compare campaign budget data between Redis and PostgreSQL
+   * 🚀 UPDATED: Include total budget comparison
    * 🚀 UPDATED: Include total budget comparison
    */
   async compareCampaignBudgetData(campaignId: string): Promise<{
@@ -512,16 +558,22 @@ export class BudgetSyncService {
 
       // Get Redis data (both daily and total)
       const [redisSpend, redisLimit, status, totalSpend, totalLimit] = await Promise.all([
+      // Get Redis data (both daily and total)
+      const [redisSpend, redisLimit, status, totalSpend, totalLimit] = await Promise.all([
         this.redis.get(REDIS_KEYS.DAILY_BUDGET_SPEND(campaignId, today)),
         this.redis.get(REDIS_KEYS.DAILY_BUDGET_LIMIT(campaignId)),
         this.redis.get(REDIS_KEYS.CAMPAIGN_STATUS(campaignId)),
         this.redis.get(REDIS_KEYS.TOTAL_BUDGET_SPEND(campaignId)), // 🆕 ADD: Total spend
         this.redis.get(REDIS_KEYS.TOTAL_BUDGET_LIMIT(campaignId)), // 🆕 ADD: Total limit
+        this.redis.get(REDIS_KEYS.TOTAL_BUDGET_SPEND(campaignId)), // 🆕 ADD: Total spend
+        this.redis.get(REDIS_KEYS.TOTAL_BUDGET_LIMIT(campaignId)), // 🆕 ADD: Total limit
       ]);
+
 
       const campaignStatus = status
         ? JSON.parse(status as string).status
         : null;
+
 
       // Get PostgreSQL data
       const [campaignData, dailyBudgetData] = await Promise.all([
@@ -544,6 +596,8 @@ export class BudgetSyncService {
         dailyLimit: redisLimit ? parseFloat(redisLimit as string) : 0,
         totalSpend: totalSpend ? parseFloat(totalSpend as string) : 0, // 🆕 ADD
         totalLimit: totalLimit ? parseFloat(totalLimit as string) : 0, // 🆕 ADD
+        totalSpend: totalSpend ? parseFloat(totalSpend as string) : 0, // 🆕 ADD
+        totalLimit: totalLimit ? parseFloat(totalLimit as string) : 0, // 🆕 ADD
         status: campaignStatus || 'UNKNOWN',
         source: 'Redis',
       };
@@ -554,6 +608,12 @@ export class BudgetSyncService {
           : 0,
         dailyLimit: campaignData?.campaignBudget
           ? parseFloat(campaignData.campaignBudget.dailyBudget.toString())
+          : 0,
+        totalSpend: campaignData?.campaignBudget // 🆕 ADD
+          ? parseFloat(campaignData.campaignBudget.spentAmount.toString())
+          : 0,
+        totalLimit: campaignData?.campaignBudget // 🆕 ADD
+          ? parseFloat(campaignData.campaignBudget.totalBudget.toString())
           : 0,
         totalSpend: campaignData?.campaignBudget // 🆕 ADD
           ? parseFloat(campaignData.campaignBudget.spentAmount.toString())
@@ -573,14 +633,19 @@ export class BudgetSyncService {
 
       // Daily budget comparisons
       const dailySpendDiff = Math.abs(
+      // Daily budget comparisons
+      const dailySpendDiff = Math.abs(
         redisData.dailySpend - postgresData.dailySpend,
       );
       if (dailySpendDiff > 0.01) {
+      if (dailySpendDiff > 0.01) {
         differences.push(
+          `Daily spend differs: Redis=${redisData.dailySpend}, PG=${postgresData.dailySpend} (diff: ${dailySpendDiff})`,
           `Daily spend differs: Redis=${redisData.dailySpend}, PG=${postgresData.dailySpend} (diff: ${dailySpendDiff})`,
         );
       }
 
+      const dailyLimitDiff = Math.abs(
       const dailyLimitDiff = Math.abs(
         redisData.dailyLimit - postgresData.dailyLimit,
       );
@@ -604,7 +669,28 @@ export class BudgetSyncService {
         redisData.totalLimit - postgresData.totalLimit,
       );
       if (totalLimitDiff > 0.01) {
+      if (dailyLimitDiff > 0.01) {
         differences.push(
+          `Daily limit differs: Redis=${redisData.dailyLimit}, PG=${postgresData.dailyLimit} (diff: ${dailyLimitDiff})`,
+        );
+      }
+
+      // 🆕 ADD: Total budget comparisons
+      const totalSpendDiff = Math.abs(
+        redisData.totalSpend - postgresData.totalSpend,
+      );
+      if (totalSpendDiff > 0.01) {
+        differences.push(
+          `Total spend differs: Redis=${redisData.totalSpend}, PG=${postgresData.totalSpend} (diff: ${totalSpendDiff})`,
+        );
+      }
+
+      const totalLimitDiff = Math.abs(
+        redisData.totalLimit - postgresData.totalLimit,
+      );
+      if (totalLimitDiff > 0.01) {
+        differences.push(
+          `Total limit differs: Redis=${redisData.totalLimit}, PG=${postgresData.totalLimit} (diff: ${totalLimitDiff})`,
           `Total limit differs: Redis=${redisData.totalLimit}, PG=${postgresData.totalLimit} (diff: ${totalLimitDiff})`,
         );
       }
@@ -617,6 +703,7 @@ export class BudgetSyncService {
 
       // Provide recommendations
       if (differences.length > 0) {
+        if (dailySpendDiff > 1 || dailyLimitDiff > 1 || totalSpendDiff > 1 || totalLimitDiff > 1) {
         if (dailySpendDiff > 1 || dailyLimitDiff > 1 || totalSpendDiff > 1 || totalLimitDiff > 1) {
           recommendation =
             'URGENT: Significant differences detected. Run emergency sync immediately.';
