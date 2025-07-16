@@ -12,6 +12,8 @@ import { CreateClientDto } from './dto/client/create-client.dto';
 import { UpdateClientDto } from './dto/client/update-client.dto';
 import { AssignCampaignsDto } from './dto/client/assign-campaign.dto';
 import * as bcrypt from 'bcryptjs';
+import { UserType } from 'src/notification/dto/create-notification.dto';
+import { CampaignNotificationService } from 'src/notification/services/campaign.notification.service';
 
 @Injectable()
 export class AdvertiserClientService {
@@ -20,7 +22,8 @@ export class AdvertiserClientService {
   constructor(
     private prisma: PrismaService,
     private mailService: MailService,
-  ) {}
+    private readonly campaignNotificationService: CampaignNotificationService
+  ) { }
 
   /**
    * Generate a random password
@@ -399,5 +402,78 @@ export class AdvertiserClientService {
       message: 'Campaigns assigned successfully.',
       assignedCount: assignCampaignsDto.campaignIds.length,
     };
+  }
+
+  async notifyCampaignAssignment(
+    clientId: string,
+    campaignIds: string[],
+    advertiserId: string
+  ) {
+    try {
+      // Get client and campaign details
+      const client = await this.prisma.client.findUnique({
+        where: { id: clientId },
+        select: {
+          id: true,
+          name: true,
+          email: true
+        }
+      });
+
+      const campaigns = await this.prisma.campaign.findMany({
+        where: {
+          id: { in: campaignIds },
+          advertiserId: advertiserId
+        },
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          startDate: true,
+          endDate: true
+        }
+      });
+
+      if (!client || campaigns.length === 0) {
+        return;
+      }
+
+      const campaignNames = campaigns.map(c => c.name).join(', ');
+      const isMultiple = campaigns.length > 1;
+
+      // Create notification for client
+      await this.campaignNotificationService.notificationService.createNotification({
+        userId: clientId,
+        userType: UserType.CLIENT,
+        title: `Campaign${isMultiple ? 's' : ''} Assigned to You`,
+        message: `You have been assigned to manage the following campaign${isMultiple ? 's' : ''}: ${campaignNames}. You can now monitor their performance and access detailed analytics.`,
+        data: {
+          campaignIds,
+          campaignNames: campaigns.map(c => ({ id: c.id, name: c.name })),
+          advertiserId,
+          action: 'campaigns_assigned',
+          assignedAt: new Date().toISOString()
+        }
+      });
+
+      // Create notification for advertiser
+      await this.campaignNotificationService.notificationService.createNotification({
+        userId: advertiserId,
+        userType: UserType.ADVERTISER,
+        title: `Campaign${isMultiple ? 's' : ''} Assigned to Client`,
+        message: `Your campaign${isMultiple ? 's' : ''} ${campaignNames} ${isMultiple ? 'have' : 'has'} been successfully assigned to ${client.name}.`,
+        data: {
+          campaignIds,
+          campaignNames: campaigns.map(c => ({ id: c.id, name: c.name })),
+          clientId,
+          clientName: client.name,
+          action: 'campaigns_assigned_to_client',
+          assignedAt: new Date().toISOString()
+        }
+      });
+
+    } catch (error) {
+      console.error('Error sending campaign assignment notification:', error);
+    }
   }
 }

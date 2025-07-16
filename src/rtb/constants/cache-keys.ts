@@ -34,10 +34,13 @@ export const CAMPAIGN_KEYS = {
 
   // Daily budget spend tracking
   DAILY_BUDGET_SPEND: (campaignId: string, date: string) =>
-    `campaign:budget:daily:${campaignId}:${date}`,
-
+    `campaign:budget:daily:spend:${campaignId}:${date}`,
   DAILY_BUDGET_LIMIT: (campaignId: string) =>
-    `campaign:budget:limit:${campaignId}`,
+    `campaign:budget:daily:limit:${campaignId}`,
+
+  // Total budget spend tracking
+  TOTAL_BUDGET_LIMIT: (campaignId: string) => `campaign:budget:total:limit:${campaignId}`,
+  TOTAL_BUDGET_SPEND: (campaignId: string) => `campaign:budget:total:spend:${campaignId}`,
   USER_CAMPAIGN_FREQUENCY: (userId: string, campaignId: string) =>
     `user:campaign:frequency:${userId}:${campaignId}`,
 } as const;

@@ -13,9 +13,15 @@ import { BudgetInitializationService } from './services/budget-initialization.se
 import { ImpressionClickLinkingService } from './services/impression-click-linking.service';
 import { BudgetRedisSyncService } from './services/budget-redis-sync.service';
 import { BudgetManagerService } from 'src/rtb/services/budget-manager.service';
+import { NotificationModule } from 'src/notification/notification.module';
 
 @Module({
-  imports: [ScheduleModule.forRoot(), PrismaModule, RedisModule],
+  imports: [
+    ScheduleModule.forRoot(),
+    PrismaModule,
+   RedisModule,
+   NotificationModule,
+  ],
   controllers: [TrackingController],
   providers: [
     RedisPostgresSyncService,

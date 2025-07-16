@@ -44,7 +44,7 @@ class RedisMonitor {
   async checkRedisConnection() {
     try {
       await redis.ping();
-      this.log(' Connected to Redis', 'green');
+      this.log('✅ Connected to Redis', 'green');
       return true;
     } catch (error) {
       this.log(`❌ Redis connection failed: ${error.message}`, 'red');
@@ -59,14 +59,28 @@ class RedisMonitor {
     this.log(`💰 Campaign IDs: ${campaignIds.join(', ')}`, 'blue');
     console.log('='.repeat(80));
 
+    // 🔧 FIXED: Updated to use new Redis key patterns
     const keys = {
       reservations: reservationIds.map((id) => `budget:reservation:${id}`),
       metadata: reservationIds.map((id) => `revenue:metadata:${id}`),
-      budgets: campaignIds.map((id) => `campaign:budget:daily:${id}:${date}`),
+      // 🔧 FIXED: Updated budget key patterns to match new structure
+      dailyBudgets: campaignIds.map((id) => `campaign:budget:daily:spend:${id}:${date}`),
+      dailyLimits: campaignIds.map((id) => `campaign:budget:daily:limit:${id}`),
+      totalBudgets: campaignIds.map((id) => `campaign:budget:total:spend:${id}`),
+      totalLimits: campaignIds.map((id) => `campaign:budget:total:limit:${id}`),
+      campaignStatus: campaignIds.map((id) => `campaign:status:${id}`),
     };
 
     // Store keys for continuous monitoring
-    [...keys.reservations, ...keys.metadata, ...keys.budgets].forEach((key) => {
+    [
+      ...keys.reservations,
+      ...keys.metadata,
+      ...keys.dailyBudgets,
+      ...keys.dailyLimits,
+      ...keys.totalBudgets,
+      ...keys.totalLimits,
+      ...keys.campaignStatus,
+    ].forEach((key) => {
       this.watchedKeys.add(key);
     });
 
@@ -132,18 +146,23 @@ class RedisMonitor {
         // Special formatting for metadata
         return (
           `${colors.cyan}Campaign:${colors.reset} ${value.campaignId || 'N/A'}\n` +
-          `    ${colors.cyan}Amount:${colors.reset} $${value.costPerImpression || value.finalPriceCPM || 'N/A'}\n` +
+          `    ${colors.cyan}Amount:${colors.reset} ₹${value.costPerImpression || value.finalPriceCPM || 'N/A'}\n` +
           `    ${colors.cyan}Confirmed:${colors.reset} ${value.confirmed ? colors.green + 'Yes' + colors.reset : colors.red + 'No' + colors.reset}\n` +
-          `    ${colors.cyan}Processed:${colors.reset} ${value.processed ? colors.green + 'Yes' + colors.reset : colors.red + 'No' + colors.reset}`
+          `    ${colors.cyan}Processed:${colors.reset} ${value.processed ? colors.green + 'Yes' + colors.reset : colors.red + 'No' + colors.reset}\n` +
+          `    ${colors.cyan}Reserved At:${colors.reset} ${value.reservedAt || 'N/A'}\n` +
+          `    ${colors.cyan}Publisher:${colors.reset} ${value.publisherId || 'N/A'}`
         );
       }
       return JSON.stringify(value, null, 2);
     }
 
-    if (key.includes('budget:daily:')) {
-      // Format budget amounts
+    // 🔧 ENHANCED: Better formatting for budget amounts
+    if (key.includes('budget:daily:spend:') || 
+        key.includes('budget:total:spend:') ||
+        key.includes('budget:daily:limit:') || 
+        key.includes('budget:total:limit:')) {
       const amount = parseFloat(value) || 0;
-      return `${colors.green}$${amount.toFixed(6)}${colors.reset}`;
+      return `${colors.green}₹${amount.toFixed(4)}${colors.reset}`;
     }
 
     return String(value);
@@ -151,37 +170,60 @@ class RedisMonitor {
 
   async displaySnapshot() {
     console.clear();
-    this.log('📊 REDIS REAL-TIME MONITOR', 'bright');
+    this.log('📊 REDIS REAL-TIME MONITOR - RTB BUDGET TRACKING', 'bright');
     console.log('='.repeat(80));
 
-    const sortedKeys = Array.from(this.watchedKeys).sort();
+    // 🔧 ENHANCED: Group keys by type for better organization
+    const keyGroups = {
+      reservations: [],
+      metadata: [],
+      dailyBudget: [],
+      totalBudget: [],
+      status: []
+    };
 
-    for (const key of sortedKeys) {
-      const details = await this.getKeyDetails(key);
-      const keyType = key.split(':')[0];
-
-      let icon, color;
-      switch (keyType) {
-        case 'budget':
-          if (key.includes('reservation:')) {
-            icon = '🎯';
-            color = 'magenta';
-          } else {
-            icon = '💰';
-            color = 'green';
-          }
-          break;
-        case 'revenue':
-          icon = '📋';
-          color = 'cyan';
-          break;
-        default:
-          icon = '🔑';
-          color = 'white';
+    // Categorize keys
+    Array.from(this.watchedKeys).forEach(key => {
+      if (key.includes('budget:reservation:')) {
+        keyGroups.reservations.push(key);
+      } else if (key.includes('revenue:metadata:')) {
+        keyGroups.metadata.push(key);
+      } else if (key.includes('budget:daily:')) {
+        keyGroups.dailyBudget.push(key);
+      } else if (key.includes('budget:total:')) {
+        keyGroups.totalBudget.push(key);
+      } else if (key.includes('campaign:status:')) {
+        keyGroups.status.push(key);
       }
+    });
 
-      const keyName = key.length > 60 ? '...' + key.slice(-57) : key;
-      console.log(`\n${icon} ${colors[color]}${keyName}${colors.reset}`);
+    // Display each group
+    await this.displayKeyGroup('🎯 BUDGET RESERVATIONS', keyGroups.reservations, 'magenta');
+    await this.displayKeyGroup('📋 REVENUE METADATA', keyGroups.metadata, 'cyan');
+    await this.displayKeyGroup('💰 DAILY BUDGET TRACKING', keyGroups.dailyBudget, 'green');
+    await this.displayKeyGroup('🏦 TOTAL BUDGET TRACKING', keyGroups.totalBudget, 'blue');
+    await this.displayKeyGroup('📊 CAMPAIGN STATUS', keyGroups.status, 'yellow');
+
+    console.log('\n' + '='.repeat(80));
+    this.log(
+      `Monitoring ${this.watchedKeys.size} keys | Commands: 'q'=quit, 'r'=restart, 'h'=help`,
+      'yellow',
+    );
+  }
+
+  async displayKeyGroup(title, keys, color) {
+    if (keys.length === 0) return;
+
+    console.log(`\n${colors[color]}${title}${colors.reset}`);
+    console.log('-'.repeat(50));
+
+    for (const key of keys.sort()) {
+      const details = await this.getKeyDetails(key);
+      
+      // Shorten key name for display
+      const keyName = this.shortenKeyName(key);
+      
+      console.log(`\n🔑 ${colors[color]}${keyName}${colors.reset}`);
 
       if (details.exists) {
         console.log(
@@ -205,12 +247,35 @@ class RedisMonitor {
         );
       }
     }
+  }
 
-    console.log('\n' + '='.repeat(80));
-    this.log(
-      `Monitoring ${this.watchedKeys.size} keys | Press 'q' to quit, 'r' to restart`,
-      'yellow',
-    );
+  shortenKeyName(key) {
+    // 🔧 ENHANCED: Better key name shortening for new patterns
+    if (key.length <= 60) return key;
+    
+    // For budget keys, show the important parts
+    if (key.includes('campaign:budget:daily:spend:')) {
+      const parts = key.split(':');
+      const campaignId = parts[4].substring(0, 8) + '...';
+      const date = parts[5];
+      return `daily:spend:${campaignId}:${date}`;
+    }
+    
+    if (key.includes('campaign:budget:daily:limit:')) {
+      const parts = key.split(':');
+      const campaignId = parts[4].substring(0, 8) + '...';
+      return `daily:limit:${campaignId}`;
+    }
+    
+    if (key.includes('campaign:budget:total:')) {
+      const parts = key.split(':');
+      const type = parts[3]; // spend or limit
+      const campaignId = parts[4].substring(0, 8) + '...';
+      return `total:${type}:${campaignId}`;
+    }
+    
+    // Default shortening
+    return '...' + key.slice(-57);
   }
 
   async startMonitoring(interval = 2000) {
@@ -236,8 +301,52 @@ class RedisMonitor {
         this.restart();
       } else if (command === 'h' || command === 'help') {
         this.showHelp();
+      } else if (command === 's' || command === 'summary') {
+        this.showSummary();
       }
     });
+  }
+
+  async showSummary() {
+    console.log('\n' + '='.repeat(60));
+    console.log(`${colors.bright}📊 MONITORING SUMMARY${colors.reset}`);
+    console.log('='.repeat(60));
+    
+    let existingKeys = 0;
+    let expiredKeys = 0;
+    let totalBudgetSpend = 0;
+    let totalBudgetLimit = 0;
+    
+    for (const key of this.watchedKeys) {
+      const details = await this.getKeyDetails(key);
+      if (details.exists) {
+        existingKeys++;
+        
+        // Calculate budget totals
+        if ((key.includes('budget:total:spend:') || key.includes('budget:daily:spend:')) && 
+            !isNaN(parseFloat(details.value))) {
+          totalBudgetSpend += parseFloat(details.value);
+        }
+        if ((key.includes('budget:total:limit:') || key.includes('budget:daily:limit:')) && 
+            !isNaN(parseFloat(details.value))) {
+          totalBudgetLimit += parseFloat(details.value);
+        }
+      } else {
+        expiredKeys++;
+      }
+    }
+    
+    console.log(`${colors.green}Existing Keys:${colors.reset} ${existingKeys}`);
+    console.log(`${colors.red}Missing/Expired Keys:${colors.reset} ${expiredKeys}`);
+    console.log(`${colors.cyan}Total Budget Spend:${colors.reset} ₹${totalBudgetSpend.toFixed(4)}`);
+    console.log(`${colors.blue}Total Budget Limit:${colors.reset} ₹${totalBudgetLimit.toFixed(4)}`);
+    
+    if (totalBudgetLimit > 0) {
+      const spendPercentage = (totalBudgetSpend / totalBudgetLimit * 100).toFixed(2);
+      console.log(`${colors.yellow}Spend Percentage:${colors.reset} ${spendPercentage}%`);
+    }
+    
+    console.log('='.repeat(60) + '\n');
   }
 
   stopMonitoring() {
@@ -253,16 +362,18 @@ class RedisMonitor {
 
   restart() {
     this.log('🔄 Restarting monitor...', 'yellow');
+    this.watchedKeys.clear();
     main();
   }
 
   showHelp() {
-    console.log('\n' + '='.repeat(40));
-    console.log('📖 COMMANDS:');
-    console.log('  q, quit  - Stop monitoring');
+    console.log('\n' + '='.repeat(50));
+    console.log(`${colors.bright}📖 COMMANDS:${colors.reset}`);
+    console.log('  q, quit    - Stop monitoring');
     console.log('  r, restart - Restart and enter new IDs');
-    console.log('  h, help  - Show this help');
-    console.log('='.repeat(40) + '\n');
+    console.log('  s, summary - Show monitoring summary');
+    console.log('  h, help    - Show this help');
+    console.log('='.repeat(50) + '\n');
   }
 
   async promptForInput() {
@@ -275,8 +386,8 @@ class RedisMonitor {
 async function main() {
   const monitor = new RedisMonitor();
 
-  console.log(`${colors.bright}🔍 REDIS REAL-TIME MONITOR${colors.reset}`);
-  console.log('='.repeat(50));
+  console.log(`${colors.bright}🔍 REDIS REAL-TIME MONITOR - RTB BUDGET TRACKING${colors.reset}`);
+  console.log('='.repeat(60));
 
   // Check Redis connection
   const connected = await monitor.checkRedisConnection();
@@ -340,7 +451,7 @@ async function main() {
   const intervalInput = await monitor.promptForInput();
   const interval = (parseInt(intervalInput) || 2) * 1000;
 
-  console.log(`\n${colors.green} Starting monitor...${colors.reset}`);
+  console.log(`\n${colors.green}✅ Starting monitor...${colors.reset}`);
 
   // Set up monitoring
   await monitor.monitorSpecificKeys(reservationIds, campaignIds, date);

@@ -1,8 +1,8 @@
-// src/rtb/services/budget-manager.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from 'src/redis/redis.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { REDIS_KEYS, RTB_CACHE_TTL } from '../constants/cache-keys';
+import { BudgetNotificationService } from 'src/notification/services/budget.notification.service';
 
 @Injectable()
 export class BudgetManagerService {
@@ -11,6 +11,7 @@ export class BudgetManagerService {
   constructor(
     private readonly redis: RedisService,
     private readonly prisma: PrismaService,
+    private readonly budgetNotificationService: BudgetNotificationService,
   ) { }
 
   /**
@@ -182,7 +183,13 @@ export class BudgetManagerService {
         costPerImpression,
       );
 
-      // 6. Clean up reservation (it's now confirmed)
+      // 6. Check budget thresholds AFTER confirmed spending
+      await this.checkBudgetThresholdsAfterConfirmedSpending(
+        campaignId,
+        costPerImpression
+      );
+
+      // 7. Clean up reservation (it's now confirmed)
       await this.redis.del(REDIS_KEYS.BUDGET_RESERVATION(reservationId));
 
       this.logger.debug(' Budget confirmed successfully', {
@@ -261,6 +268,16 @@ export class BudgetManagerService {
     const today = new Date().toISOString().split('T')[0];
 
     try {
+      await this.redis.incrbyfloat(
+        REDIS_KEYS.TOTAL_BUDGET_SPEND(campaignId),
+        costPerImpression
+      );
+
+      await this.redis.expire(
+        REDIS_KEYS.TOTAL_BUDGET_SPEND(campaignId),
+        30 * 24 * 60 * 60 // 30 days TTL
+      );
+
       // Get publisher commission rate
       const commissionRate = await this.getPublisherCommissionRate(publisherId);
 
@@ -651,6 +668,81 @@ export class BudgetManagerService {
     } catch (error) {
       this.logger.error('❌ Failed to sync publisher revenue tiers', {
         error: error.message,
+      });
+    }
+  }
+
+  private async checkBudgetThresholdsAfterConfirmedSpending(
+    campaignId: string,
+    costPerImpression: number,
+  ): Promise<void> {
+    const today = new Date().toISOString().split('T')[0];
+
+    try {
+      // 1. Check DAILY budget threshold (90%)
+      const [dailyLimit, dailySpend] = await Promise.all([
+        this.redis.get(REDIS_KEYS.DAILY_BUDGET_LIMIT(campaignId)),
+        this.redis.get(REDIS_KEYS.DAILY_BUDGET_SPEND(campaignId, today)),
+      ]);
+
+      if (dailyLimit && dailySpend) {
+        const limit = parseFloat(dailyLimit as string);
+        const spend = parseFloat(dailySpend as string);
+        const spentPercentage = (spend / limit) * 100;
+
+        // Check 90% threshold for daily budget
+        if (spentPercentage >= 90 && spentPercentage < 100) {
+          const notificationKey = `notification:daily_budget_90:${campaignId}:${today}`;
+          const alreadySent = await this.redis.exists(notificationKey);
+
+          if (!alreadySent) {
+            await this.budgetNotificationService.notifyDailyBudget90Exhausted(
+              campaignId,
+              limit,
+              spend,
+              spentPercentage
+            );
+
+            await this.redis.set(notificationKey, '1', 86400); // 24 hours TTL
+            this.logger.debug(`📢 Daily budget 90% notification sent for campaign ${campaignId}`);
+          }
+        }
+      }
+
+      // 2. Check TOTAL budget threshold (90%)
+      const [totalLimit, totalSpend] = await Promise.all([
+        this.redis.get(REDIS_KEYS.TOTAL_BUDGET_LIMIT(campaignId)),
+        this.redis.get(REDIS_KEYS.TOTAL_BUDGET_SPEND(campaignId)),
+      ]);
+
+      if (totalLimit && totalSpend) {
+        const limit = parseFloat(totalLimit as string);
+        const spend = parseFloat(totalSpend as string);
+        const spentPercentage = (spend / limit) * 100;
+
+        // Check 90% threshold for total budget
+        if (spentPercentage >= 90 && spentPercentage < 100) {
+          const notificationKey = `notification:total_budget_90:${campaignId}`;
+          const alreadySent = await this.redis.exists(notificationKey);
+
+          if (!alreadySent) {
+            await this.budgetNotificationService.notifyTotalBudget90Exhausted(
+              campaignId,
+              limit,
+              spend,
+              spentPercentage
+            );
+
+            await this.redis.set(notificationKey, '1', 604800); // 7 days TTL
+            this.logger.debug(`📢 Total budget 90% notification sent for campaign ${campaignId}`);
+          }
+        }
+      }
+
+    } catch (error) {
+      this.logger.error('Error checking budget thresholds after confirmed spending:', {
+        error: error.message,
+        campaignId,
       });
     }
   }

@@ -8,6 +8,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CampaignNotificationService } from './services/campaign.notification.service';
 import { InventoryNotificationService } from './services/inventory.notification.service';
+import { BudgetNotificationService } from './services/budget.notification.service';
+import { BudgetNotificationJob } from 'src/rtb/jobs/daily/budget-notification.job';
 
 @Module({
   imports: [RedisModule, PrismaModule,
@@ -22,8 +24,20 @@ import { InventoryNotificationService } from './services/inventory.notification.
       }),
     }),
   ],
-  providers: [NotificationService, NotificationGateway, CampaignNotificationService, InventoryNotificationService],
+  providers: [
+    NotificationService,
+    NotificationGateway,
+    CampaignNotificationService,
+    InventoryNotificationService,
+    BudgetNotificationService,
+    BudgetNotificationJob,
+  ],
   controllers: [NotificationController],
-  exports: [NotificationService, CampaignNotificationService, InventoryNotificationService],
+  exports: [
+    NotificationService,
+    CampaignNotificationService,
+    InventoryNotificationService,
+    BudgetNotificationService
+  ],
 })
 export class NotificationModule { }

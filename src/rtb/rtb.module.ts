@@ -46,6 +46,8 @@ import { BudgetCleanupJob } from './jobs/every-5-minutes/budget-cleanup.job';
 import { BudgetSyncService } from './services/budget-sync.service';
 import { BudgetSyncToPostgresJob } from './jobs/every-15-minutes/budget-sync-to-postgres.job';
 import { BudgetSyncController } from './controllers/budget-sync-monitoring.controller';
+import { BudgetNotificationService } from 'src/notification/services/budget.notification.service';
+import { NotificationService } from 'src/notification/notification.service';
 
 @Module({
   imports: [
@@ -98,6 +100,8 @@ import { BudgetSyncController } from './controllers/budget-sync-monitoring.contr
     BudgetCleanupJob,
     BudgetSyncService,
     BudgetSyncToPostgresJob,
+    BudgetNotificationService,
+    NotificationService,
   ],
   exports: [
     RtbService,

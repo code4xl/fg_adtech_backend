@@ -7,7 +7,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class CampaignNotificationService {
-    constructor(private readonly notificationService: NotificationService,
+    constructor(public readonly notificationService: NotificationService,
         private readonly prisma: PrismaService,
     ) { }
 

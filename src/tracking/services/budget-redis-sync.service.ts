@@ -10,7 +10,7 @@ export class BudgetRedisSyncService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
-  ) {}
+  ) { }
 
   /**
    * Sync single campaign budget from PostgreSQL to Redis
@@ -23,7 +23,11 @@ export class BudgetRedisSyncService {
       const [campaignBudget, dailyBudget] = await Promise.all([
         this.prisma.campaignBudget.findUnique({
           where: { campaignId },
-          select: { dailyBudget: true },
+          select: {
+            dailyBudget: true,
+            totalBudget: true,
+            spentAmount: true,
+          },
         }),
         this.prisma.campaignDailyBudget.findUnique({
           where: { campaignId_date: { campaignId, date: new Date(today) } },
@@ -51,6 +55,18 @@ export class BudgetRedisSyncService {
         REDIS_KEYS.DAILY_BUDGET_SPEND(campaignId, today),
         48 * 60 * 60,
         (dailyBudget?.spentToday || 0).toString(),
+      );
+
+      pipeline.setex(
+        REDIS_KEYS.TOTAL_BUDGET_LIMIT(campaignId),
+        30 * 24 * 60 * 60,
+        campaignBudget.totalBudget.toString(),
+      );
+
+      pipeline.setex(
+        REDIS_KEYS.TOTAL_BUDGET_SPEND(campaignId),
+        30 * 24 * 60 * 60,
+        (campaignBudget.spentAmount || 0).toString(),
       );
 
       // Campaign status - TTL: 24 hours
