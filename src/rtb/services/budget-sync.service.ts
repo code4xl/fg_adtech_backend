@@ -10,13 +10,11 @@ export class BudgetSyncService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
-  ) { }
-  ) { }
+  ) {}
 
   /**
    * Sync daily budget spends from Redis to PostgreSQL
    * This should run frequently (every 10-15 minutes) to keep data fresh
-   * 🔧 FIXED: Updated to use new Redis key patterns
    */
   async syncDailyBudgetSpends(): Promise<{
     success: boolean;
@@ -35,7 +33,7 @@ export class BudgetSyncService {
     });
 
     try {
-      // 🔧 FIXED: Updated Redis key pattern to match your new format
+      // 1. Get all campaign daily spend keys from Redis using updated pattern
       const spendKeys = await this.redis.keys(
         `campaign:budget:daily:spend:*:${today}`,
       );
@@ -59,15 +57,15 @@ export class BudgetSyncService {
 
         for (const spendKey of batch) {
           try {
-            // 🔧 FIXED: Extract campaign ID from new key pattern: campaign:budget:daily:spend:{campaignId}:{date}
+            // Extract campaign ID from key pattern: campaign:budget:daily:spend:{campaignId}:{date}
             const keyParts = spendKey.split(':');
             if (keyParts.length !== 6) {
               this.logger.warn('Invalid spend key format', { spendKey });
               continue;
             }
 
-            const campaignId = keyParts[4]; // Position 4 in the new pattern
-            const dateFromKey = keyParts[5]; // Position 5 in the new pattern
+            const campaignId = keyParts[4];
+            const dateFromKey = keyParts[5];
 
             // Verify date matches (safety check)
             if (dateFromKey !== today) {
@@ -145,7 +143,7 @@ export class BudgetSyncService {
     currentSpend: number,
   ): Promise<void> {
     try {
-      // Get daily budget limit (should exist if campaign is active)
+      // Get daily budget limit using updated key pattern
       const dailyLimitStr: string = await this.redis.get(
         REDIS_KEYS.DAILY_BUDGET_LIMIT(campaignId),
       );
@@ -196,7 +194,7 @@ export class BudgetSyncService {
         });
       }
 
-      this.logger.debug(' Campaign daily budget synced', {
+      this.logger.debug('✅ Campaign daily budget synced', {
         campaignId,
         date,
         spentToday: currentSpend,
@@ -216,7 +214,7 @@ export class BudgetSyncService {
 
   /**
    * Sync total campaign budget consumption (for overall budget tracking)
-   * 🔧 FIXED: Updated to use new Redis key patterns
+   * 🚀 UPDATED: Use Redis data with new key patterns
    */
   async syncTotalCampaignBudgets(): Promise<{
     success: boolean;
@@ -230,7 +228,7 @@ export class BudgetSyncService {
     this.logger.debug('🔄 Starting total campaign budget sync');
 
     try {
-      // 🔧 FIXED: Updated Redis key pattern to match your new format
+      // 🚀 EFFICIENT: Get all total budget spend keys from Redis using updated pattern
       const totalSpendKeys = await this.redis.keys('campaign:budget:total:spend:*');
 
       if (totalSpendKeys.length === 0) {
@@ -251,16 +249,16 @@ export class BudgetSyncService {
 
         for (const spendKey of batch) {
           try {
-            // 🔧 FIXED: Extract campaign ID from new key pattern: campaign:budget:total:spend:{campaignId}
+            // Extract campaign ID from key pattern: campaign:budget:total:spend:{campaignId}
             const keyParts = spendKey.split(':');
             if (keyParts.length !== 5) {
               this.logger.warn('Invalid total spend key format', { spendKey });
               continue;
             }
 
-            const campaignId = keyParts[4]; // Position 4 in the new pattern
+            const campaignId = keyParts[4];
 
-            // 🚀 EFFICIENT: Get current total spend from Redis (no DB query needed!)
+            // 🚀 EFFICIENT: Get current total spend from Redis using updated keys
             const [totalSpendStr, totalLimitStr] = await Promise.all([
               this.redis.get(spendKey), // TOTAL_BUDGET_SPEND
               this.redis.get(REDIS_KEYS.TOTAL_BUDGET_LIMIT(campaignId)), // TOTAL_BUDGET_LIMIT
@@ -294,25 +292,7 @@ export class BudgetSyncService {
                 lastUpdated: new Date(),
               },
             });
-            // 🚀 EFFICIENT: Update PostgreSQL with Redis data (no reduce() needed!)
-            await this.prisma.campaignBudget.update({
-              where: { campaignId },
-              data: {
-                spentAmount: totalSpent, // 🆕 UPDATE: Set spent amount from Redis
-                isExhausted,
-                lastUpdated: new Date(),
-              },
-            });
 
-            // Update campaign status if total budget exhausted
-            if (isExhausted) {
-              await this.prisma.campaign.update({
-                where: { id: campaignId },
-                data: {
-                  status: 'BUDGET_EXHAUSTED',
-                  updatedAt: new Date(),
-                },
-              });
             // Update campaign status if total budget exhausted
             if (isExhausted) {
               await this.prisma.campaign.update({
@@ -329,32 +309,9 @@ export class BudgetSyncService {
                 'BUDGET_EXHAUSTED',
               );
             }
-              // Also update Redis status
-              await this.redis.set(
-                REDIS_KEYS.CAMPAIGN_STATUS(campaignId),
-                'BUDGET_EXHAUSTED',
-              );
-            }
 
             campaignsSynced++;
-            campaignsSynced++;
 
-            this.logger.debug('✅ Campaign total budget synced', {
-              campaignId,
-              totalSpent,
-              totalBudget,
-              remainingBudget,
-              isExhausted,
-            });
-          } catch (error) {
-            const errorMsg = `Failed to sync total budget for campaign from key ${spendKey}: ${error.message}`;
-            this.logger.error(errorMsg);
-            errors.push(errorMsg);
-          }
-        }
-
-        // Small delay between batches
-        await new Promise((resolve) => setTimeout(resolve, 100));
             this.logger.debug('✅ Campaign total budget synced', {
               campaignId,
               totalSpent,
@@ -375,7 +332,6 @@ export class BudgetSyncService {
 
       const processingTime = Date.now() - startTime;
 
-      this.logger.debug('✅ Total campaign budget sync completed', {
       this.logger.debug('✅ Total campaign budget sync completed', {
         campaignsSynced,
         errors: errors.length,
@@ -411,7 +367,7 @@ export class BudgetSyncService {
     try {
       const today = new Date().toISOString().split('T')[0];
 
-      // Get current spend from Redis
+      // Get current spend from Redis using updated key pattern
       const currentSpendStr: string = await this.redis.get(
         REDIS_KEYS.DAILY_BUDGET_SPEND(campaignId, today),
       );
@@ -454,7 +410,6 @@ export class BudgetSyncService {
 
   /**
    * Get budget sync status for monitoring
-   * 🔧 FIXED: Updated to use new Redis key patterns
    */
   async getBudgetSyncStatus(): Promise<{
     redisCampaigns: number;
@@ -465,7 +420,7 @@ export class BudgetSyncService {
     try {
       const today = new Date().toISOString().split('T')[0];
 
-      // 🔧 FIXED: Updated Redis key pattern to match your new format
+      // Count campaigns in Redis with spend data using updated pattern
       const redisSpendKeys = await this.redis.keys(
         `campaign:budget:daily:spend:*:${today}`,
       );
@@ -483,8 +438,8 @@ export class BudgetSyncService {
 
       for (const key of redisSpendKeys.slice(0, 10)) {
         // Check first 10
-        // 🔧 FIXED: Extract campaign ID from new key pattern
-        const campaignId = key.split(':')[4]; // Position 4 in new pattern
+        // Extract campaign ID from updated key pattern: campaign:budget:daily:spend:{campaignId}:{date}
+        const campaignId = key.split(':')[4];
 
         const [redisSpend, postgresRecord] = await Promise.all([
           this.redis.get(key),
@@ -537,14 +492,10 @@ export class BudgetSyncService {
       };
     }
   }
-  
-
-  
 
   /**
    * Compare campaign budget data between Redis and PostgreSQL
-   * 🚀 UPDATED: Include total budget comparison
-   * 🚀 UPDATED: Include total budget comparison
+   * 🚀 UPDATED: Include total budget comparison with new key patterns
    */
   async compareCampaignBudgetData(campaignId: string): Promise<{
     campaignId: string;
@@ -556,24 +507,18 @@ export class BudgetSyncService {
     try {
       const today = new Date().toISOString().split('T')[0];
 
-      // Get Redis data (both daily and total)
-      const [redisSpend, redisLimit, status, totalSpend, totalLimit] = await Promise.all([
-      // Get Redis data (both daily and total)
+      // Get Redis data (both daily and total) using updated key patterns
       const [redisSpend, redisLimit, status, totalSpend, totalLimit] = await Promise.all([
         this.redis.get(REDIS_KEYS.DAILY_BUDGET_SPEND(campaignId, today)),
         this.redis.get(REDIS_KEYS.DAILY_BUDGET_LIMIT(campaignId)),
         this.redis.get(REDIS_KEYS.CAMPAIGN_STATUS(campaignId)),
-        this.redis.get(REDIS_KEYS.TOTAL_BUDGET_SPEND(campaignId)), // 🆕 ADD: Total spend
-        this.redis.get(REDIS_KEYS.TOTAL_BUDGET_LIMIT(campaignId)), // 🆕 ADD: Total limit
-        this.redis.get(REDIS_KEYS.TOTAL_BUDGET_SPEND(campaignId)), // 🆕 ADD: Total spend
-        this.redis.get(REDIS_KEYS.TOTAL_BUDGET_LIMIT(campaignId)), // 🆕 ADD: Total limit
+        this.redis.get(REDIS_KEYS.TOTAL_BUDGET_SPEND(campaignId)), // Updated key pattern
+        this.redis.get(REDIS_KEYS.TOTAL_BUDGET_LIMIT(campaignId)), // Updated key pattern
       ]);
-
 
       const campaignStatus = status
         ? JSON.parse(status as string).status
         : null;
-
 
       // Get PostgreSQL data
       const [campaignData, dailyBudgetData] = await Promise.all([
@@ -594,10 +539,8 @@ export class BudgetSyncService {
       const redisData = {
         dailySpend: redisSpend ? parseFloat(redisSpend as string) : 0,
         dailyLimit: redisLimit ? parseFloat(redisLimit as string) : 0,
-        totalSpend: totalSpend ? parseFloat(totalSpend as string) : 0, // 🆕 ADD
-        totalLimit: totalLimit ? parseFloat(totalLimit as string) : 0, // 🆕 ADD
-        totalSpend: totalSpend ? parseFloat(totalSpend as string) : 0, // 🆕 ADD
-        totalLimit: totalLimit ? parseFloat(totalLimit as string) : 0, // 🆕 ADD
+        totalSpend: totalSpend ? parseFloat(totalSpend as string) : 0,
+        totalLimit: totalLimit ? parseFloat(totalLimit as string) : 0,
         status: campaignStatus || 'UNKNOWN',
         source: 'Redis',
       };
@@ -609,16 +552,10 @@ export class BudgetSyncService {
         dailyLimit: campaignData?.campaignBudget
           ? parseFloat(campaignData.campaignBudget.dailyBudget.toString())
           : 0,
-        totalSpend: campaignData?.campaignBudget // 🆕 ADD
+        totalSpend: campaignData?.campaignBudget
           ? parseFloat(campaignData.campaignBudget.spentAmount.toString())
           : 0,
-        totalLimit: campaignData?.campaignBudget // 🆕 ADD
-          ? parseFloat(campaignData.campaignBudget.totalBudget.toString())
-          : 0,
-        totalSpend: campaignData?.campaignBudget // 🆕 ADD
-          ? parseFloat(campaignData.campaignBudget.spentAmount.toString())
-          : 0,
-        totalLimit: campaignData?.campaignBudget // 🆕 ADD
+        totalLimit: campaignData?.campaignBudget
           ? parseFloat(campaignData.campaignBudget.totalBudget.toString())
           : 0,
         status: campaignData?.status || 'UNKNOWN',
@@ -633,19 +570,14 @@ export class BudgetSyncService {
 
       // Daily budget comparisons
       const dailySpendDiff = Math.abs(
-      // Daily budget comparisons
-      const dailySpendDiff = Math.abs(
         redisData.dailySpend - postgresData.dailySpend,
       );
       if (dailySpendDiff > 0.01) {
-      if (dailySpendDiff > 0.01) {
         differences.push(
-          `Daily spend differs: Redis=${redisData.dailySpend}, PG=${postgresData.dailySpend} (diff: ${dailySpendDiff})`,
           `Daily spend differs: Redis=${redisData.dailySpend}, PG=${postgresData.dailySpend} (diff: ${dailySpendDiff})`,
         );
       }
 
-      const dailyLimitDiff = Math.abs(
       const dailyLimitDiff = Math.abs(
         redisData.dailyLimit - postgresData.dailyLimit,
       );
@@ -655,27 +587,7 @@ export class BudgetSyncService {
         );
       }
 
-      // 🆕 ADD: Total budget comparisons
-      const totalSpendDiff = Math.abs(
-        redisData.totalSpend - postgresData.totalSpend,
-      );
-      if (totalSpendDiff > 0.01) {
-        differences.push(
-          `Total spend differs: Redis=${redisData.totalSpend}, PG=${postgresData.totalSpend} (diff: ${totalSpendDiff})`,
-        );
-      }
-
-      const totalLimitDiff = Math.abs(
-        redisData.totalLimit - postgresData.totalLimit,
-      );
-      if (totalLimitDiff > 0.01) {
-      if (dailyLimitDiff > 0.01) {
-        differences.push(
-          `Daily limit differs: Redis=${redisData.dailyLimit}, PG=${postgresData.dailyLimit} (diff: ${dailyLimitDiff})`,
-        );
-      }
-
-      // 🆕 ADD: Total budget comparisons
+      // Total budget comparisons
       const totalSpendDiff = Math.abs(
         redisData.totalSpend - postgresData.totalSpend,
       );
@@ -690,7 +602,6 @@ export class BudgetSyncService {
       );
       if (totalLimitDiff > 0.01) {
         differences.push(
-          `Total limit differs: Redis=${redisData.totalLimit}, PG=${postgresData.totalLimit} (diff: ${totalLimitDiff})`,
           `Total limit differs: Redis=${redisData.totalLimit}, PG=${postgresData.totalLimit} (diff: ${totalLimitDiff})`,
         );
       }
@@ -703,7 +614,6 @@ export class BudgetSyncService {
 
       // Provide recommendations
       if (differences.length > 0) {
-        if (dailySpendDiff > 1 || dailyLimitDiff > 1 || totalSpendDiff > 1 || totalLimitDiff > 1) {
         if (dailySpendDiff > 1 || dailyLimitDiff > 1 || totalSpendDiff > 1 || totalLimitDiff > 1) {
           recommendation =
             'URGENT: Significant differences detected. Run emergency sync immediately.';
