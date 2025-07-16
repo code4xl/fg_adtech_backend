@@ -1,13 +1,12 @@
 model FloorPrice {
-  id          String    @id @default(uuid()) @db.Uuid
-  inventoryId String    @db.Uuid
-  basePrice   Decimal   @db.Decimal(10, 4)
-  currency    Currency  @default(INR)
+  id          String       @id @default(uuid()) @db.Uuid
+  inventoryId String       @unique @db.Uuid     
+  basePrice   Decimal      @db.Decimal(10, 4)
+  currency    Currency     @default(INR)
   startDate   DateTime
   endDate     DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
-  // Relations
-  inventory AdInventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  adInventory AdInventory  @relation(fields: [inventoryId], references: [id])
 }
