@@ -32,7 +32,7 @@ import {
   CampaignStatisticsQueryDto,
 } from './dto/campaign/campaign-budget.dto';
 
-@ApiTags('Advertiser Campaign Budget')
+@ApiTags('Advertiser - Campaign Budget')
 @ApiBearerAuth()
 @UseGuards(AdvertiserGuard)
 @Controller('advertiser/:advertiserId/campaign/:campaignId/budget')

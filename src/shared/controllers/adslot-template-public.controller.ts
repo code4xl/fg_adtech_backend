@@ -13,6 +13,7 @@ import {
     ApiResponse,
     ApiParam,
     ApiBearerAuth,
+    ApiExcludeController,
   } from '@nestjs/swagger';
   import { PublisherGuard, AdvertiserGuard } from '../../common/guards/authorization.guard';
   import { PrismaService } from '../../prisma/prisma.service';
@@ -71,6 +72,7 @@ import {
     position?: string;
   }
   
+  @ApiExcludeController()
   @ApiTags('Public - Ad Slot Templates')
   @Controller('api/adslot-templates')
   export class AdSlotTemplatePublicController {
@@ -179,6 +181,7 @@ import {
   }
   
   // Protected endpoints for authenticated publishers
+  @ApiExcludeController()
   @ApiTags('Publishers - Ad Slot Templates')
   @ApiBearerAuth()
   @Controller('api/publisher/adslot-templates')
@@ -212,6 +215,7 @@ import {
   }
 
   // Protected endpoints for authenticated advertisers
+  @ApiExcludeController()
   @ApiTags('Advertisers - Ad Slot Templates')
   @ApiBearerAuth()
   @Controller('api/advertiser/adslot-templates')

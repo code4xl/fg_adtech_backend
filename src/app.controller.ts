@@ -1,12 +1,11 @@
 import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor() {}
 
   @Get('/health')
   getHello(): any {
-    return 'Health 100%';
+    return 'Ocean Adtech Backend is running';
   }
 }

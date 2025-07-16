@@ -31,6 +31,7 @@ import { TrackingModule } from 'src/tracking/tracking.module';
 import { AdvertiserCampaignBudgetController } from './advertiser.campaign-budget.controller';
 import { AdvertiserCampaignBudgetService } from './advertiser.campaign-budget.service';
 import { CampaignNotificationService } from 'src/notification/services/campaign.notification.service';
+import { PublisherSignupTierService } from 'src/admin/publisher/admin.publisher-signup-tier.service';
 
 @Module({
   imports: [
@@ -74,6 +75,7 @@ import { CampaignNotificationService } from 'src/notification/services/campaign.
     AuthService,
     JwtService,
     CampaignNotificationService,
+    PublisherSignupTierService,
   ],
   exports: [AdvertiserService],
 })

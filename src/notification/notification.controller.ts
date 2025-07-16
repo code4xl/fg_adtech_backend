@@ -10,9 +10,10 @@ import {
 } from '@nestjs/common';
 import { NotificationService } from './notification.service';
 import { UserType } from './dto/create-notification.dto';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiExcludeController, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AdvertiserGuard, AdminGuard, ClientGuard, PublisherGuard } from '../common/guards/authorization.guard';
 
+@ApiExcludeController()
 @ApiTags('notifications')
 @Controller('notifications')
 export class NotificationController {

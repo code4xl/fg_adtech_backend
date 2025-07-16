@@ -23,10 +23,8 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { PublisherGuard } from 'src/common/guards/authorization.guard';
-import {
-  UpdatePublisherTierDto,
-  PublisherTierResponseDto,
-} from './dto/create-publisher.dto';
+import { PublisherTierResponseDto, UpdatePublisherTierDto } from 'src/admin/dto/create-publisher-tier.dto';
+
 
 @ApiTags('Publishers')
 @Controller('publishers')
@@ -92,29 +90,5 @@ export class PublisherController {
       tier: publisher.tier,
       paymentThreshold: publisher.paymentThreshold,
     };
-  }
-
-  // Admin-only endpoint (you might want to move this to an admin controller)
-  @Patch(':id/tier')
-  @ApiOperation({ summary: 'Update publisher tier (Admin only)' })
-  @ApiResponse({
-    status: 200,
-    description: 'Publisher tier updated successfully',
-  })
-  async updatePublisherTier(
-    @Param('id') publisherId: string,
-    @Body() updateTierDto: UpdatePublisherTierDto,
-    @Request() req,
-  ) {
-    // Add admin role check here if needed
-    // This is a placeholder - you should implement proper admin authorization
-    if (req.user.role !== 'admin') {
-      throw new ForbiddenException('Only admins can update publisher tiers');
-    }
-
-    return this.publisherService.updatePublisherTier(
-      publisherId,
-      updateTierDto.tierId,
-    );
   }
 }

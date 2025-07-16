@@ -37,7 +37,7 @@ import { memoryStorage } from 'multer';
 import { AdvertiserCreativeService } from './advertiser.creative.service';
 import { CreativeType } from '@prisma/client';
 
-@ApiTags('Advertiser Creative')
+@ApiTags('Advertiser - Creative')
 @ApiBearerAuth()
 @UseGuards(AdvertiserGuard)
 @Controller('advertiser/:advertiserId/campaign/:campaignId/creative')

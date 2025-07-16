@@ -15,13 +15,16 @@ import {
   ApiBearerAuth,
   ApiParam,
   ApiQuery,
+  ApiExcludeController,
 } from '@nestjs/swagger';
-import { EmailQueueService } from './email-queue.service';
-import { EmailProcessorService } from './email-processor.service';
-import { AdminGuard } from '../common/guards/authorization.guard';
-import { CreateEmailJobDto, QueueStatsDto } from './dto/email-job.dto';
+import { AdminGuard } from 'src/common/guards/authorization.guard';
+import { QueueStatsDto, CreateEmailJobDto } from 'src/mail/dto/email-job.dto';
+import { EmailProcessorService } from 'src/mail/email-processor.service';
+import { EmailQueueService } from 'src/mail/email-queue.service';
 
-@ApiTags('Admin - Email Queue Management')
+
+@ApiExcludeController()
+@ApiTags('Admin - Email Management')
 @Controller('admin/email-queue')
 @UseGuards(AdminGuard)
 @ApiBearerAuth()

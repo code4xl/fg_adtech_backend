@@ -50,7 +50,7 @@ import {
   UpdateCampaignFrequencyTargetingDto,
 } from './dto/targeting/frequency-targeting.dto';
 
-@ApiTags('Advertiser Targeting Rules')
+@ApiTags('Advertiser - Targeting Rules')
 @ApiBearerAuth()
 @UseGuards(AdvertiserGuard)
 @Controller('campaign/:campaignId/targeting-rules')

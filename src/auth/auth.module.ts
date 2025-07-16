@@ -11,6 +11,7 @@ import { JwtStrategy } from './strategies/authorization.strategy';
 import { MailModule } from 'src/mail/mail.module';
 import { LoginValidationMiddleware } from './middlewares/login.middleware';
 import { RoleGuard } from 'src/common/guards/role.guard';
+import { PublisherSignupTierService } from 'src/admin/publisher/admin.publisher-signup-tier.service';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { RoleGuard } from 'src/common/guards/role.guard';
   controllers: [AuthController],
   providers: [
     AuthService,
+    PublisherSignupTierService,
     LocalAdvertiserStrategy,
     LocalPublisherStrategy,
     LocalClientStrategy,

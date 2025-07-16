@@ -13,6 +13,7 @@ import {
     ApiResponse,
     ApiParam,
     ApiBearerAuth,
+    ApiExcludeController,
   } from '@nestjs/swagger';
   import { PublisherGuard, AdvertiserGuard } from '../../common/guards/authorization.guard';
   import { PrismaService } from '../../prisma/prisma.service';
@@ -55,6 +56,7 @@ import {
     search?: string;
   }
   
+  @ApiExcludeController()
   @ApiTags('Public - Content Categories')
   @Controller('api/content-categories')
   export class ContentCategoryPublicController {
@@ -160,6 +162,7 @@ import {
   }
   
   // Protected endpoints for authenticated publishers
+  @ApiExcludeController()
   @ApiTags('Publishers - Content Categories')
   @ApiBearerAuth()
   @Controller('api/publisher/content-categories')
@@ -193,6 +196,7 @@ import {
   }
 
   // Protected endpoints for authenticated advertisers
+  @ApiExcludeController()
   @ApiTags('Advertisers - Content Categories')
   @ApiBearerAuth()
   @Controller('api/advertiser/content-categories')

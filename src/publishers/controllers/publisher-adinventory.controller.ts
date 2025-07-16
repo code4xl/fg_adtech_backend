@@ -26,7 +26,7 @@ import {
   import { AdInventoryResponseDto } from '../dto/adinventory-response.dto';
   import { AdInventoryQueryDto } from '../dto/adinventory-query.dto';
   
-  @ApiTags('Publisher Ad Inventory')
+  @ApiTags('Publisher - Ad Inventory')
   @ApiBearerAuth()
   @Controller('publishers')
   @UseGuards(PublisherGuard)

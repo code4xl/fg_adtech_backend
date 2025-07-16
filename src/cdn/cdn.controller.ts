@@ -31,6 +31,7 @@ import {
     BuildEnvironment,
   } from './dto';
   import { CDN_HEADERS } from './constants/cdn.constants';
+import { ApiTags } from '@nestjs/swagger';
 
 /**
  * V2 Publisher CDN DTO for multi-website requests
@@ -46,6 +47,7 @@ export class GeneratePublisherCdnDto {
    * Preview SDK configuration for a publisher website
    * GET /api/publishers/:publisherId/websites/:websiteId/sdk-config
    */
+  @ApiTags("CDN")
   @Controller()
   export class CdnController {
     private readonly logger = new Logger(CdnController.name);

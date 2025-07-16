@@ -16,6 +16,7 @@ import {
 } from 'class-validator';
 import { PublisherStatus, Language } from '@prisma/client';
 import { Type } from 'class-transformer';
+import { PublisherTierResponseDto } from 'src/admin/dto/create-publisher-tier.dto';
 
 export class CreatePublisherDto {
   @ApiProperty({
@@ -113,34 +114,6 @@ export class CreatePublisherDto {
   @IsArray()
   @IsEnum(Language, { each: true })
   languages?: string[];
-}
-
-// New DTO for updating publisher tier
-export class UpdatePublisherTierDto {
-  @ApiProperty({
-    description: 'New tier ID for the publisher',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  @IsUUID(4)
-  tierId: string;
-}
-
-// New DTO for publisher tier response
-export class PublisherTierResponseDto {
-  @ApiProperty()
-  id: string;
-
-  @ApiProperty()
-  name: string;
-
-  @ApiProperty({
-    description: 'Commission rate as decimal (0.4 = 40%)',
-    example: 0.4,
-  })
-  commissionRate: number;
-
-  @ApiProperty()
-  createdAt: Date;
 }
 
 // Updated publisher response DTO

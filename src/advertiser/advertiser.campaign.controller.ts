@@ -28,7 +28,7 @@ import {
 } from '../common/decorators/swagger.decorator';
 import { AdvertiserCampaignService } from './advertiser.campaign.service';
 
-@ApiTags('Advertiser Campaign')
+@ApiTags('Advertiser - Campaign')
 @ApiBearerAuth()
 @UseGuards(AdvertiserGuard)
 @Controller('advertiser/:advertiserId/campaign')

@@ -30,7 +30,7 @@ import { CreateClientDto } from './dto/client/create-client.dto';
 import { UpdateClientDto } from './dto/client/update-client.dto';
 
 
-@ApiTags('Advertiser Client')
+@ApiTags('Advertiser - Client')
 @ApiBearerAuth()
 @UseGuards(AdvertiserGuard)
 @Controller('advertiser/client')

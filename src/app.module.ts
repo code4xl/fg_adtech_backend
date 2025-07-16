@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import configuration from './config/configuration';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
@@ -78,17 +77,15 @@ import { TimescaleModule } from './timescale/timescale.module';
     KafkaModule,
     ResilienceModule,
     NotificationModule,
+    CdnModule,
     RTBModule,
     SSEModule,
-    // TimescaleModule,
     TrackingModule,
     TimescaleModule,
-    CdnModule,
     SharedModule,
   ],
   controllers: [AppController],
   providers: [
-    AppService,
     PrismaService,
     {
       provide: APP_GUARD,

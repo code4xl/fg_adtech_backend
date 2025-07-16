@@ -16,6 +16,7 @@ import {
 } from 'src/common/exceptions/custom.exception';
 import { ConfigService } from '@nestjs/config';
 import { CreatePublisherSignupDto } from 'src/publishers/dto/create-publisher-signup.dto';
+import { PublisherSignupTierService } from 'src/admin/publisher/admin.publisher-signup-tier.service';
 
 @Injectable()
 export class AuthService {
@@ -26,6 +27,7 @@ export class AuthService {
     private jwtService: JwtService,
     private emailQueueService: EmailQueueService,
     private config: ConfigService,
+    private publisherSignupTierService: PublisherSignupTierService,
   ) {}
 
   // This function is used to register a new advertiser.
@@ -608,28 +610,6 @@ export class AuthService {
     return { message: 'Password has been reset successfully' };
   }
 
-  // src/auth/auth.service.ts - Updated sections for Publisher
-
-  // Add this method to handle publisher tier assignment during signup  -- Need to be changed
-  async getDefaultPublisherTier() {
-    // Get the default tier or create one if it doesn't exist
-    let defaultTier = await this.prisma.publisherTier.findFirst({
-      where: { name: 'Basic' },
-    });
-
-    if (!defaultTier) {
-      // Create a default tier if none exists
-      defaultTier = await this.prisma.publisherTier.create({
-        data: {
-          name: 'Basic',
-          commissionRate: 0.4, // 40% commission rate
-        },
-      });
-    }
-
-    return defaultTier;
-  }
-
   // Updated publisherSignup method
   async publisherSignup(createPublisherSignupDto: CreatePublisherSignupDto) {
     const startTime = Date.now();
@@ -665,7 +645,7 @@ export class AuthService {
       );
 
       // Get default publisher tier
-      const defaultTier = await this.getDefaultPublisherTier();
+      const defaultTier = await this.publisherSignupTierService.getBasicTierForSignup();
 
       // Create user without verifying email yet
       const user = await this.prisma.publisher.create({

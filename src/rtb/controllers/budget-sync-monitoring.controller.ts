@@ -11,7 +11,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { BudgetSyncService } from '../services/budget-sync.service';
 import { BudgetSyncToPostgresJob } from '../jobs/every-15-minutes/budget-sync-to-postgres.job';
 
-@ApiTags('Budget Sync')
+@ApiTags('Budget Syncing')
 @Controller('budget-sync')
 export class BudgetSyncController {
   constructor(

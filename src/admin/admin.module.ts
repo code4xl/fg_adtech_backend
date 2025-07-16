@@ -10,6 +10,9 @@ import { AdminAdSlotTemplateController } from './controllers/admin-adslot-templa
 import { AdminContentCategoryController } from './controllers/admin-content-category.controller';
 import { AdminAdSlotTemplateService } from './services/admin-adslot-template.service';
 import { AdminContentCategoryService } from './services/admin-content-category.service';
+import { PublisherSignupTierService } from './publisher/admin.publisher-signup-tier.service';
+import { AdminPublisherTierService } from './publisher/admin.publisher-tier.service';
+import { AdminPublisherTierController } from './publisher/admin.publisher-tier.controller';
 
 @Module({
   imports: [PrismaModule],
@@ -19,14 +22,21 @@ import { AdminContentCategoryService } from './services/admin-content-category.s
     AdminClientController,
     AdminAdSlotTemplateController,
     AdminContentCategoryController,
+    AdminPublisherTierController,
   ],
   providers: [
-    // AdminService,
+    AdminPublisherTierService, 
+    PublisherSignupTierService,
     AdminAdvertiserService,
     AdminClientService,
     AdminAdSlotTemplateService,
     AdminContentCategoryService,
   ],
-  exports: [AdminAdSlotTemplateService, AdminContentCategoryService],
+  exports: [
+    AdminAdSlotTemplateService,
+    AdminContentCategoryService,
+    AdminPublisherTierService, 
+    PublisherSignupTierService
+  ],
 })
 export class AdminModule {}

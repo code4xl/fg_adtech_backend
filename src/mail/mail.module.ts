@@ -14,7 +14,7 @@ import { EmailProcessorService } from './email-processor.service';
 
 // Modules
 import { RedisModule } from '../redis/redis.module';
-import { EmailQueueController } from './email-queue.controller';
+import { EmailQueueController } from 'src/admin/email/email-queue.controller';
 
 @Module({
   imports: [

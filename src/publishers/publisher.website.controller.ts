@@ -13,7 +13,7 @@ import { PublisherGuard } from 'src/common/guards/authorization.guard';
 import { PublisherService } from './publisher.service';
 import { CreateWebsiteDto } from './dto/create-website.dto';
 
-@ApiTags('Publisher Websites')
+@ApiTags('Publisher - Websites')
 @Controller('publishers/websites')
 @UseGuards(PublisherGuard)
 @ApiBearerAuth()

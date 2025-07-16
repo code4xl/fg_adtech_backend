@@ -34,7 +34,7 @@ import { RtbService } from '../services/rtb.service';
 import { AuctionService } from '../services/auction.service';
 import { BidRequestResponseDto } from '../dto/bid-request-response.dto';
 
-@ApiTags('RTB')
+@ApiTags('Real Time Bidding (RTB)')
 @Controller('rtb')
 export class RTBController {
   private readonly logger = new Logger(RTBController.name);

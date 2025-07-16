@@ -52,7 +52,7 @@ import {
   UpdateBehavioralTargetingDto,
 } from './dto/targeting/behavourial-targeting.dto';
 
-@ApiTags('Publisher Targeting Rules')
+@ApiTags('Publisher - Targeting Rules')
 @ApiBearerAuth()
 @UseGuards(PublisherGuard)
 @Controller('publishers/:publisherId/inventory/:inventoryId/targeting-rules')

@@ -18,6 +18,7 @@ import {
     ApiResponse,
     ApiHeader,
     ApiQuery,
+    ApiExcludeController,
   } from '@nestjs/swagger';
   import { Response } from 'express';
   import { SSEService } from '../services/sse.service';
@@ -31,6 +32,7 @@ import {
    * Handles Server-Sent Events streaming for real-time RTB updates.
    * Designed to handle slow RTB responses (5-6 seconds) gracefully.
    */
+  @ApiExcludeController()
   @ApiTags('RTB SSE')
   @Controller('rtb/stream')
   export class SSEController {

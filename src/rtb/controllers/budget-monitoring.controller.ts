@@ -6,7 +6,9 @@ import { ActiveCampaignsJob } from 'src/rtb/jobs/daily/active-campaigns.job';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { RedisService } from 'src/redis/redis.service';
 import { REDIS_KEYS } from '../constants/cache-keys';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Budget Monitoring')
 @Controller('test/budget')
 export class BudgetMonitoringController {
   constructor(
