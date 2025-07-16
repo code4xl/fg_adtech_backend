@@ -13,7 +13,7 @@ model AdInventory {
   adSlotScript         String?
   containerHTML        String?
   publisher            Publisher              @relation(fields: [publisherId], references: [id])
-  floorPrice           FloorPrice?
+  floorPrices          FloorPrice[]
   bidRequests          BidRequest[]
   demographicTargeting DemographicTargeting[]
   geographicTargeting  GeographicTargeting[]
@@ -25,10 +25,11 @@ model AdInventory {
   hourlyMetrics        HourlyMetrics[]
   website              Website                @relation(fields: [websiteId], references: [id])
 
-  ImpressionEvent      ImpressionEvent[]
-  ClickEvent           ClickEvent[]
-  SystemRevenue        SystemRevenue[]
-  PublisherRevenue     PublisherRevenue[]
+  ImpressionEvent ImpressionEvent[]
+
+  ClickEvent       ClickEvent[]
+  SystemRevenue    SystemRevenue[]
+  PublisherRevenue PublisherRevenue[]
 
   @@index([id, publisherId], name: "inventory_publisher_idx")
   @@index([adSlotTemplateId, isActive], name: "inventory_template_active_idx")
