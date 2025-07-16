@@ -2,10 +2,11 @@ import {
   Injectable,
   BadRequestException,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
-import { MailService } from '../mail/mail.service';
+import { EmailQueueService } from '../mail/email-queue.service';
 import * as bcrypt from 'bcryptjs';
 import { CreateAdvertiserDto } from 'src/advertiser/dto/create-advertiser.dto';
 import {
@@ -18,79 +19,90 @@ import { CreatePublisherSignupDto } from 'src/publishers/dto/create-publisher-si
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private mailService: MailService,
+    private emailQueueService: EmailQueueService,
     private config: ConfigService,
   ) {}
 
-  //hello there are you saved?? 
-
   // This function is used to register a new advertiser.
   async signup(createAdvertiserDto: CreateAdvertiserDto) {
-    const existingUser = await this.prisma.advertiser.findUnique({
-      where: { email: createAdvertiserDto.email },
-    });
+    const startTime = Date.now();
+    
+    try {
+      const existingUser = await this.prisma.advertiser.findUnique({
+        where: { email: createAdvertiserDto.email },
+      });
 
-    if (existingUser) {
-      throw new DuplicateResourceException(
-        'Advertiser',
-        'email',
-        createAdvertiserDto.email,
+      if (existingUser) {
+        throw new DuplicateResourceException(
+          'Advertiser',
+          'email',
+          createAdvertiserDto.email,
+        );
+      }
+
+      // Check if mobile already exists
+      const existingMobile = await this.prisma.advertiser.findUnique({
+        where: { mobile: createAdvertiserDto.mobile },
+      });
+
+      if (existingMobile) {
+        throw new DuplicateResourceException(
+          'Advertiser',
+          'mobile',
+          createAdvertiserDto.mobile,
+        );
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(createAdvertiserDto.password, 10);
+
+      // Generate verification token using jwt
+      const verificationToken = this.jwtService.sign(
+        {
+          email: createAdvertiserDto.email,
+          purpose: 'email_verification',
+        },
+        {
+          expiresIn: this.config.get('auth.verificationTokenExpiry'),
+        },
       );
-    }
 
-    // Check if mobile already exists
-    const existingMobile = await this.prisma.advertiser.findUnique({
-      where: { mobile: createAdvertiserDto.mobile },
-    });
+      // Create user without verifying email yet
+      const user = await this.prisma.advertiser.create({
+        data: {
+          ...createAdvertiserDto,
+          password: hashedPassword,
+          emailVerifiedAt: null, // Will be set when email is verified
+          verificationToken, // Add this field to your Prisma schema
+        },
+      });
 
-    if (existingMobile) {
-      throw new DuplicateResourceException(
-        'Advertiser',
-        'mobile',
-        createAdvertiserDto.mobile,
+      // Queue verification email instead of sending immediately
+      const emailJobId = await this.emailQueueService.queueVerificationEmail(
+        user.email,
+        user.name,
+        'advertiser',
+        verificationToken,
+        3 // High priority for verification emails
       );
+
+      const processingTime = Date.now() - startTime;
+      this.logger.log(`Advertiser signup completed in ${processingTime}ms (email queued: ${emailJobId})`);
+
+      return {
+        message: 'Registration successful. Please check your email to verify your account.',
+        advertiser: user,
+      };
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      this.logger.error(`Advertiser signup failed after ${processingTime}ms: ${error.message}`);
+      throw error;
     }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(createAdvertiserDto.password, 10);
-
-    // Generate verification token using jwt
-    const verificationToken = this.jwtService.sign(
-      {
-        email: createAdvertiserDto.email,
-        purpose: 'email_verification',
-      },
-      {
-        expiresIn: this.config.get('auth.verificationTokenExpiry'),
-      },
-    );
-
-    // Create user without verifying email yet
-    const user = await this.prisma.advertiser.create({
-      data: {
-        ...createAdvertiserDto,
-        password: hashedPassword,
-        emailVerifiedAt: null, // Will be set when email is verified
-        verificationToken, // Add this field to your Prisma schema
-      },
-    });
-
-    // Send verification email
-    await this.mailService.sendVerificationEmail(
-      user.email,
-      user.name,
-      'advertiser',
-      verificationToken,
-    );
-
-    return {
-      message:
-        'Registration successful. Please check your email to verify your account.',
-      advertiser: user,
-    };
   }
 
   async verifyEmail(token: string) {
@@ -196,85 +208,113 @@ export class AuthService {
   }
 
   async resendVerificationEmail(email: string) {
-    const user = await this.prisma.advertiser.findUnique({
-      where: { email },
-    });
+    const startTime = Date.now();
+    
+    try {
+      const user = await this.prisma.advertiser.findUnique({
+        where: { email },
+      });
 
-    if (!user) {
-      throw new ResourceNotFoundException('User');
+      if (!user) {
+        throw new ResourceNotFoundException('User');
+      }
+
+      if (user.emailVerifiedAt) {
+        throw new EmailAlreadyVerifiedException();
+      }
+
+      // Generate verification token using jwt
+      const verificationToken = this.jwtService.sign(
+        {
+          email,
+          purpose: 'email_verification',
+        },
+        {
+          expiresIn: this.config.get('auth.verificationTokenExpiry'),
+        },
+      );
+
+      // Update user with new verification token
+      await this.prisma.advertiser.update({
+        where: { id: user.id },
+        data: { verificationToken },
+      });
+
+      // Queue verification email
+      const emailJobId = await this.emailQueueService.queueVerificationEmail(
+        user.email,
+        user.name,
+        'advertiser',
+        verificationToken,
+        3 // High priority
+      );
+
+      const processingTime = Date.now() - startTime;
+      this.logger.log(`Verification email resend completed in ${processingTime}ms (email queued: ${emailJobId})`);
+
+      return { 
+        message: 'Verification email has been sent.',
+      };
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      this.logger.error(`Verification email resend failed after ${processingTime}ms: ${error.message}`);
+      throw error;
     }
-
-    if (user.emailVerifiedAt) {
-      throw new EmailAlreadyVerifiedException();
-    }
-
-    // Generate verification token using jwt
-    const verificationToken = this.jwtService.sign(
-      {
-        email,
-        purpose: 'email_verification',
-      },
-      {
-        expiresIn: this.config.get('auth.verificationTokenExpiry'),
-      },
-    );
-
-    // Update user with new verification token
-    await this.prisma.advertiser.update({
-      where: { id: user.id },
-      data: { verificationToken },
-    });
-
-    // Send verification email
-    await this.mailService.sendVerificationEmail(
-      user.email,
-      user.name,
-      'advertiser',
-      verificationToken,
-    );
-
-    return { message: 'Verification email has been sent.' };
   }
 
   async resendPublisherVerificationEmail(email: string) {
-    const user = await this.prisma.publisher.findUnique({
-      where: { email },
-    });
+    const startTime = Date.now();
+    
+    try {
+      const user = await this.prisma.publisher.findUnique({
+        where: { email },
+      });
 
-    if (!user) {
-      throw new ResourceNotFoundException('User');
+      if (!user) {
+        throw new ResourceNotFoundException('User');
+      }
+
+      if (user.emailVerifiedAt) {
+        throw new EmailAlreadyVerifiedException();
+      }
+
+      // Generate verification token using jwt
+      const verificationToken = this.jwtService.sign(
+        {
+          email,
+          purpose: 'email_verification',
+        },
+        {
+          expiresIn: this.config.get('auth.verificationTokenExpiry'),
+        },
+      );
+
+      // Update user with new verification token
+      await this.prisma.publisher.update({
+        where: { id: user.id },
+        data: { verificationToken },
+      });
+
+      // Queue verification email
+      const emailJobId = await this.emailQueueService.queueVerificationEmail(
+        user.email,
+        `${user.firstName} ${user.lastName}`,
+        'publisher',
+        verificationToken,
+        3 // High priority
+      );
+
+      const processingTime = Date.now() - startTime;
+      this.logger.log(`Publisher verification email resend completed in ${processingTime}ms (email queued: ${emailJobId})`);
+
+      return { 
+        message: 'Verification email has been sent.',
+      };
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      this.logger.error(`Publisher verification email resend failed after ${processingTime}ms: ${error.message}`);
+      throw error;
     }
-
-    if (user.emailVerifiedAt) {
-      throw new EmailAlreadyVerifiedException();
-    }
-
-    // Generate verification token using jwt
-    const verificationToken = this.jwtService.sign(
-      {
-        email,
-        purpose: 'email_verification',
-      },
-      {
-        expiresIn: this.config.get('auth.verificationTokenExpiry'),
-      },
-    );
-
-    // Update user with new verification token
-    await this.prisma.publisher.update({
-      where: { id: user.id },
-      data: { verificationToken },
-    });
-
-    // Send verification email
-    await this.mailService.sendVerificationEmail(
-      user.email,
-      `${user.firstName} ${user.lastName}`,
-      'publisher',
-      verificationToken,
-    );
-
-    return { message: 'Verification email has been sent.' };
   }
 
   // MFA Implementation
@@ -433,55 +473,73 @@ export class AuthService {
   }
 
   async requestPasswordReset(email: string, role: string) {
-    // Find user
-    const user = await this.findUserByEmail(email, role);
-    if (!user) {
-      throw new ResourceNotFoundException('User');
+    const startTime = Date.now();
+    
+    try {
+      // Find user
+      const user = await this.findUserByEmail(email, role);
+      if (!user) {
+        throw new ResourceNotFoundException('User');
+      }
+
+      // Generate reset token
+      const resetToken = this.jwtService.sign(
+        { email, purpose: 'password_reset' },
+        { expiresIn: '1h' },
+      );
+
+      // Build reset URL
+      const resetLink = `${this.config.get('APP_URL')}/auth/reset-password/${role}?token=${resetToken}&email=${email}`;
+
+      // Update user with reset token and expiry
+      const resetTokenExpiry = new Date();
+      resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1);
+
+      if (role === 'advertiser') {
+        await this.prisma.advertiser.update({
+          where: { email },
+          data: {
+            resetPasswordToken: resetToken,
+            resetPasswordExpires: resetTokenExpiry,
+          },
+        });
+      } else if (role === 'publisher') {
+        await this.prisma.publisher.update({
+          where: { email },
+          data: {
+            resetPasswordToken: resetToken,
+            resetPasswordExpires: resetTokenExpiry,
+          },
+        });
+      } else if (role == 'client') {
+        await this.prisma.client.update({
+          where: { email },
+          data: {
+            resetPasswordToken: resetToken,
+            resetPasswordExpires: resetTokenExpiry,
+          },
+        });
+      }
+
+      // Queue password reset email
+      const emailJobId = await this.emailQueueService.queuePasswordResetEmail(
+        email,
+        role,
+        resetLink,
+        2 // Medium priority
+      );
+
+      const processingTime = Date.now() - startTime;
+      this.logger.log(`Password reset request completed in ${processingTime}ms (email queued: ${emailJobId})`);
+
+      return { 
+        message: 'Password reset email sent',
+      };
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      this.logger.error(`Password reset request failed after ${processingTime}ms: ${error.message}`);
+      throw error;
     }
-
-    // Generate reset token
-    const resetToken = this.jwtService.sign(
-      { email, purpose: 'password_reset' },
-      { expiresIn: '1h' },
-    );
-
-    // Build reset URL
-    const resetLink = `${this.config.get('APP_URL')}/auth/reset-password/${role}?token=${resetToken}&email=${email}`;
-
-    // Update user with reset token and expiry
-    const resetTokenExpiry = new Date();
-    resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1);
-
-    if (role === 'advertiser') {
-      await this.prisma.advertiser.update({
-        where: { email },
-        data: {
-          resetPasswordToken: resetToken,
-          resetPasswordExpires: resetTokenExpiry,
-        },
-      });
-    } else if (role === 'publisher') {
-      await this.prisma.publisher.update({
-        where: { email },
-        data: {
-          resetPasswordToken: resetToken,
-          resetPasswordExpires: resetTokenExpiry,
-        },
-      });
-    } else if (role == 'client') {
-      await this.prisma.client.update({
-        where: { email },
-        data: {
-          resetPasswordToken: resetToken,
-          resetPasswordExpires: resetTokenExpiry,
-        },
-      });
-    }
-
-    // Send email
-    await this.mailService.sendPasswordResetEmail(email, role, resetLink);
-
-    return { message: 'Password reset email sent' };
   }
 
   async verifyResetToken(email: string, token: string): Promise<boolean> {
@@ -552,7 +610,7 @@ export class AuthService {
 
   // src/auth/auth.service.ts - Updated sections for Publisher
 
-  // Add this method to handle publisher tier assignment during signup
+  // Add this method to handle publisher tier assignment during signup  -- Need to be changed
   async getDefaultPublisherTier() {
     // Get the default tier or create one if it doesn't exist
     let defaultTier = await this.prisma.publisherTier.findFirst({
@@ -574,71 +632,82 @@ export class AuthService {
 
   // Updated publisherSignup method
   async publisherSignup(createPublisherSignupDto: CreatePublisherSignupDto) {
-    const existingUser = await this.prisma.publisher.findUnique({
-      where: { email: createPublisherSignupDto.email },
-    });
+    const startTime = Date.now();
+    
+    try {
+      const existingUser = await this.prisma.publisher.findUnique({
+        where: { email: createPublisherSignupDto.email },
+      });
 
-    if (existingUser) {
-      throw new DuplicateResourceException(
-        'Publisher',
-        'email',
-        createPublisherSignupDto.email,
+      if (existingUser) {
+        throw new DuplicateResourceException(
+          'Publisher',
+          'email',
+          createPublisherSignupDto.email,
+        );
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(
+        createPublisherSignupDto.password,
+        10,
       );
-    }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(
-      createPublisherSignupDto.password,
-      10,
-    );
+      // Generate verification token using jwt
+      const verificationToken = this.jwtService.sign(
+        {
+          email: createPublisherSignupDto.email,
+          purpose: 'email_verification',
+        },
+        {
+          expiresIn: this.config.get('auth.verificationTokenExpiry'),
+        },
+      );
 
-    // Generate verification token using jwt
-    const verificationToken = this.jwtService.sign(
-      {
-        email: createPublisherSignupDto.email,
-        purpose: 'email_verification',
-      },
-      {
-        expiresIn: this.config.get('auth.verificationTokenExpiry'),
-      },
-    );
+      // Get default publisher tier
+      const defaultTier = await this.getDefaultPublisherTier();
 
-    // Get default publisher tier
-    const defaultTier = await this.getDefaultPublisherTier();
+      // Create user without verifying email yet
+      const user = await this.prisma.publisher.create({
+        data: {
+          firstName: createPublisherSignupDto.firstName,
+          lastName: createPublisherSignupDto.lastName,
+          email: createPublisherSignupDto.email,
+          password: hashedPassword,
+          emailVerifiedAt: null,
+          verificationToken,
+          tierId: defaultTier.id, // Assign default tier
+          paymentThreshold: 100.0, // Default payment threshold
+        },
+        include: {
+          tier: true, // Include tier information in response
+        },
+      });
 
-    // Create user without verifying email yet
-    const user = await this.prisma.publisher.create({
-      data: {
-        firstName: createPublisherSignupDto.firstName,
-        lastName: createPublisherSignupDto.lastName,
-        email: createPublisherSignupDto.email,
-        password: hashedPassword,
-        emailVerifiedAt: null,
+      // Queue verification email
+      const emailJobId = await this.emailQueueService.queueVerificationEmail(
+        user.email,
+        `${user.firstName} ${user.lastName}`,
+        'publisher',
         verificationToken,
-        tierId: defaultTier.id, // Assign default tier
-        paymentThreshold: 100.0, // Default payment threshold
-      },
-      include: {
-        tier: true, // Include tier information in response
-      },
-    });
+        3 // High priority
+      );
 
-    // Send verification email
-    await this.mailService.sendVerificationEmail(
-      user.email,
-      `${user.firstName} ${user.lastName}`,
-      'publisher',
-      verificationToken,
-    );
+      // Remove sensitive data before returning
+      const { password, mfaVerificationCode, mfaCodeExpiry, ...result } = user;
 
-    // Remove sensitive data before returning
-    const { password, mfaVerificationCode, mfaCodeExpiry, ...result } = user;
+      const processingTime = Date.now() - startTime;
+      this.logger.log(`Publisher signup completed in ${processingTime}ms (email queued: ${emailJobId})`);
 
-    return {
-      message:
-        'Registration successful. Please check your email to verify your account.',
-      publisher: result,
-    };
+      return {
+        message: 'Registration successful. Please check your email to verify your account.',
+        publisher: result,
+      };
+    } catch (error) {
+      const processingTime = Date.now() - startTime;
+      this.logger.error(`Publisher signup failed after ${processingTime}ms: ${error.message}`);
+      throw error;
+    }
   }
 
   // Updated validateUser method - Publisher section
@@ -660,14 +729,12 @@ export class AuthService {
         throw new UnauthorizedException('Please verify your email first');
       }
     } else if (role === 'publisher') {
-      // console.log('Validating publisher:' + email + ' ' + password);
       user = await this.prisma.publisher.findUnique({
         where: { email },
         include: {
           tier: true, // Include tier information for publishers
         },
       });
-      // console.log(user);
 
       // Check if email is verified for publishers
       if (user && !user.emailVerifiedAt) {
@@ -732,13 +799,15 @@ export class AuthService {
         });
       }
 
-      // Send verification code via email
-      const maskedEmail = this.maskEmail(result.email);
-      await this.mailService.sendMfaCodeEmail(
+      // Queue MFA code email
+      const emailJobId = await this.emailQueueService.queueMfaCodeEmail(
         result.email,
         verificationCode,
         10,
+        3 // High priority for MFA
       );
+
+      this.logger.log(`MFA code email queued: ${emailJobId}`);
 
       // Generate temporary token for MFA verification
       const tempToken = this.jwtService.sign(
@@ -757,7 +826,7 @@ export class AuthService {
       return {
         requiresMfa: true,
         tempToken,
-        maskedEmail,
+        maskedEmail: this.maskEmail(result.email),
         role, // Include role for later use
       };
     }

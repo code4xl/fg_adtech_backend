@@ -28,6 +28,8 @@ import { CampaignTargetingService } from 'src/rtb/services/campaign-targeting.se
 import { BudgetValidationService } from 'src/tracking/services/budget-validation.service';
 import { BudgetInitializationService } from 'src/tracking/services/budget-initialization.service';
 import { TrackingModule } from 'src/tracking/tracking.module';
+import { AdvertiserCampaignBudgetController } from './advertiser.campaign-budget.controller';
+import { AdvertiserCampaignBudgetService } from './advertiser.campaign-budget.service';
 
 @Module({
   imports: [
@@ -46,11 +48,11 @@ import { TrackingModule } from 'src/tracking/tracking.module';
   ],
   controllers: [
     AdvertiserController,
-    AdvertiserTargetingController,
     AdvertiserCampaignController,
-    AdvertiserCreativeController,
-    // CampaignBudgetTrackerController,
+    AdvertiserCampaignBudgetController,
     AdvertiserClientController,
+    AdvertiserTargetingController,
+    AdvertiserCreativeController,
   ],
   providers: [
     AdvertiserService,
@@ -60,7 +62,7 @@ import { TrackingModule } from 'src/tracking/tracking.module';
     AdvertiserCreativeService,
     AdvertiserClientService,
     CreativeNotificationService,
-
+    AdvertiserCampaignBudgetService,
     CampaignEligibilityService,
     CampaignTargetingService,
     BudgetValidationService,

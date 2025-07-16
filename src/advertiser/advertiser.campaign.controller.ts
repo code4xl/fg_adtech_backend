@@ -68,9 +68,9 @@ export class AdvertiserCampaignController {
         return this.advertiserCampaignService.update(id, req.user.id, updateCampaignDto);
     }
 
-    // Get all campaigns for specific advertiser
+    // Get all advertiser campaigns
     @Get()
-    @ApiOperation({ summary: 'Get all campaigns for current advertiser' })
+    @ApiOperation({ summary: 'Get all advertiser campaigns' })
     @ApiStandardResponse({
         isPaginated: true,
         type: CampaignResponseDto,

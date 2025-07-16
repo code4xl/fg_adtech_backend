@@ -34,7 +34,7 @@ import {
   ClientGuard,
   PublisherGuard,
 } from 'src/common/guards/authorization.guard';
-import { CreateAdvertiserDto } from 'src/advertiser/dto/create-advertiser.dto';
+import { CreateAdvertiserDto, ResendVerificationDto } from 'src/advertiser/dto/create-advertiser.dto';
 import { LoginDto } from './dto/login.dto';
 import {
   RequestPasswordResetDto,
@@ -79,15 +79,46 @@ export class AuthController {
 
   @Post('advertiser/login')
   @UseGuards(AdvertiserAuthenticationGuard)
-  @ApiOperation({ summary: 'Login as an advertiser' })
+  @ApiOperation({ summary: 'Advertiser login' })
   @ApiResponse({ status: 200, description: 'Authentication successful.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   async advertiserLogin(@Body() LoginDto: LoginDto, @Request() req) {
     return this.authService.login(req.user);
   }
 
+  @Post('publisher/login')
+  @UseGuards(PublisherAuthenticationGuard)
+  @ApiOperation({ summary: 'Publisher login' })
+  @ApiResponse({ status: 200, description: 'Authentication successful.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  async publisherLogin(@Body() LoginDto: LoginDto, @Request() req) {
+    return this.authService.login(req.user);
+  }
+
+  @Post('client/login')
+  @UseGuards(ClientAuthenticationGuard)
+  @ApiOperation({ summary: 'Client login' })
+  @ApiResponse({ status: 200, description: 'Authentication successful.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  async clientLogin(@Body() LoginDto: LoginDto, @Request() req) {
+    return this.authService.login(req.user);
+  }
+
+  @Post('admin/login')
+  @UseGuards(AdminAuthenticationGuard)
+  @ApiOperation({ summary: 'Admin login' })
+  @ApiResponse({ status: 200, description: 'Authentication successful.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Bad Request - Missing required fields.',
+  })
+  async adminLogin(@Body() LoginDto: LoginDto, @Request() req) {
+    return this.authService.login(req.user);
+  }
+
   @Get('advertiser/verify/:token')
-  @ApiOperation({ summary: 'Verify email address' })
+  @ApiOperation({ summary: 'Verify advertiser email address' })
   @ApiResponse({ status: 200, description: 'Email verified successfully.' })
   @ApiResponse({ status: 400, description: 'Invalid or expired token.' })
   @ApiBody({ required: false })
@@ -105,14 +136,14 @@ export class AuthController {
   }
 
   @Post('advertiser/resendVerification')
-  @ApiOperation({ summary: 'Resend verification email' })
+  @ApiOperation({ summary: 'Resend verification email to advertiser' })
   @ApiResponse({ status: 200, description: 'Verification email sent.' })
   @ApiResponse({
     status: 400,
     description: 'Email not found or already verified.',
   })
-  async resendVerification(@Body() { email }: { email: string }) {
-    return this.authService.resendVerificationEmail(email);
+  async resendVerification(@Body() advertiser : ResendVerificationDto ) {
+    return this.authService.resendVerificationEmail(advertiser.email);
   }
 
   @Post('publisher/resendVerification')
@@ -122,41 +153,10 @@ export class AuthController {
     status: 400,
     description: 'Email not found or already verified.',
   })
-  async resendPublisherVerification(@Body() { email }: { email: string }) {
-    return this.authService.resendPublisherVerificationEmail(email);
+  async resendPublisherVerification(@Body() publisher: ResendVerificationDto) {
+    return this.authService.resendPublisherVerificationEmail(publisher.email);
   }
-
-  @Post('publisher/login')
-  @UseGuards(PublisherAuthenticationGuard)
-  @ApiOperation({ summary: 'Login as a publisher' })
-  @ApiResponse({ status: 200, description: 'Authentication successful.' })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  async publisherLogin(@Body() LoginDto: LoginDto, @Request() req) {
-    return this.authService.login(req.user);
-  }
-
-  @Post('client/login')
-  @UseGuards(ClientAuthenticationGuard)
-  @ApiOperation({ summary: 'Login as a client' })
-  @ApiResponse({ status: 200, description: 'Authentication successful.' })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  async clientLogin(@Body() LoginDto: LoginDto, @Request() req) {
-    return this.authService.login(req.user);
-  }
-
-
-  @Post('admin/login')
-  @UseGuards(AdminAuthenticationGuard)
-  @ApiOperation({ summary: 'Login as a admin' })
-  @ApiResponse({ status: 200, description: 'Authentication successful.' })
-  @ApiResponse({ status: 401, description: 'Unauthorized.' })
-  @ApiResponse({
-    status: 400,
-    description: 'Bad Request - Missing required fields.',
-  })
-  async adminLogin(@Body() LoginDto: LoginDto, @Request() req) {
-    return this.authService.login(req.user);
-  }
+  
 
   // MFA Endpoints
   @Post(':role/verify-mfa')
@@ -222,8 +222,8 @@ export class AuthController {
   // Update your password reset endpoint with proper documentation
   @Post(':role/forgot-password')
   @ApiOperation({
-    summary: 'Request password reset',
-    description: 'Send a password reset email to the user. Supports advertiser, publisher, client, and admin roles.'
+    summary: 'Request password reset link',
+    description: 'Send a password reset email to the user. Supports all user roles.'
   })
   @ApiParam({
     name: 'role',
@@ -270,13 +270,12 @@ export class AuthController {
     @Param('role') role: string,
     @Body() dto: RequestPasswordResetDto,
   ) {
-    let isValidRole = await this.validateRole(role);
-
+    const isValidRole = await this.validateRole(role);
     if (!isValidRole) {
-      throw new BadRequestException(`Invalid url.`);
+      throw new BadRequestException('Invalid url.');
     }
 
-    // Check email also
+    // Verify user exists with this email
     const user = await this.authService.findUserByEmail(dto.email, role);
     if (!user) {
       throw new ValidationFailedException(['Email not found']);
@@ -285,7 +284,18 @@ export class AuthController {
     return this.authService.requestPasswordReset(dto.email, role);
   }
 
-  @Get('reset-password/:role')
+  @Get(':role/reset-password/validate')
+  @ApiOperation({
+    summary: 'Validate password reset token',
+    description: 'Check if a password reset token is valid. This is typically called when user clicks the reset link.'
+  })
+  @ApiParam({
+    name: 'role',
+    description: 'User role (advertiser, publisher, client, admin)',
+    enum: ['advertiser', 'publisher', 'client', 'admin']
+  })
+  @ApiResponse({ status: 200, description: 'Token is valid and user can proceed to reset password.' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired token.' })
   async validateResetToken(
     @Param('role') role: string,
     @Query('token') token: string,
@@ -293,27 +303,38 @@ export class AuthController {
     @Res() res,
   ) {
     try {
-      // Verify token
+      // Verify token is valid
       await this.authService.verifyResetToken(email, token);
-
-      // Redirect to frontend reset password page with params
-      return res.json({ message: 'Done' });
+      return res.json({ 
+        success: true,
+        message: 'Token is valid. You can now reset your password.',
+        data: { email, role }
+      });
     } catch (error) {
       // Redirect to error page if token is invalid
       return res.redirect(`${process.env.FRONTEND_URL}/reset-password-error`);
     }
   }
 
-  @Post('reset-password/:role')
-  @ApiOperation({ summary: 'Reset password' })
+  @Post(':role/reset-password')
+  @ApiOperation({ 
+    summary: 'Reset password using valid token',
+    description: 'Reset user password after token validation. This actually changes the password.'
+  })
+  @ApiParam({
+    name: 'role',
+    description: 'User role (advertiser, publisher, client, admin)',
+    enum: ['advertiser', 'publisher', 'client', 'admin']
+  })
   @ApiResponse({ status: 200, description: 'Password reset successfully.' })
+  @ApiResponse({ status: 400, description: 'Invalid token or passwords do not match.' })
   async resetPassword(
     @Param('role') role: string,
     @Query('token') token: string,
     @Query('email') email: string,
     @Body() dto: ResetPasswordDto,
   ) {
-    // Make sure passwords match
+    // Ensure passwords match
     if (dto.password !== dto.confirmPassword) {
       throw new ValidationFailedException(['Passwords do not match']);
     }
@@ -321,7 +342,6 @@ export class AuthController {
     return this.authService.resetPassword(role, email, token, dto.password);
   }
 
-  // Test Routes for advertiser
   @Get('advertiser/profile')
   @UseGuards(AdvertiserGuard)
   @ApiBearerAuth()
@@ -335,7 +355,6 @@ export class AuthController {
     return req.user;
   }
 
-  // Test Routes for publisher
   @Get('publisher/profile')
   @UseGuards(PublisherGuard)
   @ApiBearerAuth()
@@ -349,7 +368,6 @@ export class AuthController {
     return req.user;
   }
 
-  // Test Routes for publisher
   @Get('client/profile')
   @UseGuards(ClientGuard)
   @ApiBearerAuth()
@@ -363,7 +381,6 @@ export class AuthController {
     return req.user;
   }
 
-  // Test Routes for Admin
   @Get('admin/profile')
   @UseGuards(AdminGuard)
   @ApiBearerAuth()

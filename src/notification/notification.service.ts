@@ -12,9 +12,7 @@ export class NotificationService {
     private readonly redisService: RedisService,
   ) { }
 
-  /**
-   * Create and save a notification, then publish it to Redis
-   */
+  // Done -> TODO: Clean up notification of last 30 days
   async createNotification(
     createNotificationDto: CreateNotificationDto,
     shouldPublish = true,

@@ -1,23 +1,19 @@
-// src/campaign/dto/create-campaign.dto.ts
-
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsString,
   IsNotEmpty,
   IsUUID,
-  IsNumber,
   IsEnum,
   IsOptional,
   IsDateString,
-  Min,
   ValidateIf,
-  ValidateNested,
-  IsObject,
   IsUrl,
   IsArray,
-  IsDecimal,
+  IsNumber,
+  Min,
+  Max,
 } from 'class-validator';
-import { Type, Transform } from 'class-transformer';
+import { Type } from 'class-transformer';
 import {
   CampaignObjective,
   BidStrategy,
@@ -77,15 +73,16 @@ export class CreateCampaignDto {
   bidStrategy?: BidStrategy;
 
   @ApiPropertyOptional({
-    description: 'Bid amount (required for BID_CAP and COST_CAP strategies)',
-    example: 2.5,
+    description: 'Bid amount in INR (required for TARGET_CPM, optional for others as minimum bid)',
+    example: 25,
     type: 'number',
+    minimum: 1,
+    maximum: 5000,
   })
-  @ValidateIf((o) =>
-    ['BID_CAP', 'COST_CAP', 'TARGET_COST'].includes(o.bidStrategy),
-  )
+  @ValidateIf((o) => o.bidStrategy === BidStrategy.TARGET_CPM)
   @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0.01)
+  @Min(1)
+  @Max(5000)
   @Type(() => Number)
   bidAmount?: number;
 
@@ -126,24 +123,6 @@ export class CreateCampaignDto {
   @IsArray()
   @IsEnum(CampaignInterest, { each: true })
   interests: CampaignInterest[];
-
-  @ApiProperty({
-    description: 'Total budget for the campaign',
-    example: 1000.0,
-  })
-  @IsNotEmpty()
-  @IsDecimal({ decimal_digits: '2,2' })
-  @Transform(({ value }) => parseFloat(value))
-  totalBudget: number;
-
-  @ApiProperty({
-    description: 'daily budget for the campaign',
-    example: 100.0,
-  })
-  @IsNotEmpty()
-  @IsDecimal({ decimal_digits: '2,2' })
-  @Transform(({ value }) => parseFloat(value))
-  dailyBudget: number;
 }
 
 export class UpdateCampaignDto {
@@ -157,23 +136,7 @@ export class UpdateCampaignDto {
   name?: string;
 
   @ApiPropertyOptional({
-    description: 'Client ID for the campaign',
-    example: '550e8400-e29b-41d4-a716-446655440000',
-  })
-  @IsOptional()
-  @IsUUID('4')
-  clientId?: string;
-
-  @ApiPropertyOptional({
-    description: 'Campaign start date (ISO format)',
-    example: '2025-05-01T00:00:00Z',
-  })
-  @IsOptional()
-  @IsDateString()
-  startDate?: string;
-
-  @ApiPropertyOptional({
-    description: 'Campaign end date (ISO format)',
+    description: 'Campaign end date (ISO format) - only if campaign is not active',
     example: '2025-05-31T23:59:59Z',
   })
   @IsOptional()
@@ -181,7 +144,7 @@ export class UpdateCampaignDto {
   endDate?: string;
 
   @ApiPropertyOptional({
-    description: 'Campaign objective',
+    description: 'Campaign objective - only if campaign is not active',
     enum: CampaignObjective,
     example: CampaignObjective.CONVERSION,
   })
@@ -190,7 +153,7 @@ export class UpdateCampaignDto {
   objective?: CampaignObjective;
 
   @ApiPropertyOptional({
-    description: 'Bid strategy',
+    description: 'Bid strategy - only if campaign is not active',
     enum: BidStrategy,
     example: BidStrategy.LOWEST_COST,
   })
@@ -199,7 +162,7 @@ export class UpdateCampaignDto {
   bidStrategy?: BidStrategy;
 
   @ApiPropertyOptional({
-    description: 'Bid amount (required for BID_CAP and COST_CAP strategies)',
+    description: 'Bid amount - only if campaign is not active',
     example: 3.0,
     type: 'number',
   })
@@ -207,13 +170,11 @@ export class UpdateCampaignDto {
   @ValidateIf((o) =>
     ['BID_CAP', 'COST_CAP', 'TARGET_COST'].includes(o.bidStrategy),
   )
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0.01)
   @Type(() => Number)
   bidAmount?: number;
 
   @ApiPropertyOptional({
-    description: 'Campaign pacing',
+    description: 'Campaign pacing - only if campaign is not active',
     enum: CampaignPacing,
     example: CampaignPacing.ACCELERATED,
   })
@@ -301,18 +262,28 @@ export class CampaignResponseDto {
   })
   objective: CampaignObjective;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Bid strategy',
     enum: BidStrategy,
     example: BidStrategy.LOWEST_COST,
+    default: BidStrategy.LOWEST_COST,
   })
-  bidStrategy: BidStrategy;
+  @IsOptional()
+  @IsEnum(BidStrategy)
+  bidStrategy?: BidStrategy;
 
   @ApiPropertyOptional({
-    description: 'Bid amount',
-    example: 2.5,
+    description: 'Bid amount in INR (required for TARGET_CPM, optional for others as minimum bid)',
+    example: 25,
     type: 'number',
+    minimum: 1,
+    maximum: 5000,
   })
+  @ValidateIf((o) => o.bidStrategy === BidStrategy.TARGET_CPM)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(1)
+  @Max(5000)
+  @Type(() => Number)
   bidAmount?: number;
 
   @ApiProperty({
@@ -370,4 +341,10 @@ export class CampaignResponseDto {
   _count?: {
     creatives: number;
   };
+
+  @ApiProperty({
+    description: 'Has budget allocated',
+    example: false,
+  })
+  hasBudget: boolean;
 }

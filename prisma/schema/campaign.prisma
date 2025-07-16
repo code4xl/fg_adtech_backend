@@ -2,7 +2,7 @@ model Campaign {
     id               String             @id @default(uuid()) @db.Uuid
     name             String
     advertiserId     String             @db.Uuid
-    clientId         String             @db.Uuid
+    clientId         String?            @db.Uuid
     startDate        DateTime
     endDate          DateTime
     status           CampaignStatus     @default(DRAFT)
@@ -18,7 +18,7 @@ model Campaign {
 
     // Relations
     advertiser              Advertiser                @relation(fields: [advertiserId], references: [id]) // for which advertiser
-    client                  Client                    @relation(fields: [clientId], references: [id]) // for which client
+    client                  Client?                   @relation(fields: [clientId], references: [id]) // for which client
     creatives               Creative[]
     statistics              CampaignStatistics[]
     demographicTargeting    DemographicTargeting[]

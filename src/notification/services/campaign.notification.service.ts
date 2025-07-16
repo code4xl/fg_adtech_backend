@@ -11,9 +11,7 @@ export class CampaignNotificationService {
         private readonly prisma: PrismaService,
     ) { }
 
-    /**
-     * Notify when a campaign is created
-     */
+    // Done
     async notifyCampaignCreated(
         campaign: any,
         advertiserId: string,
@@ -51,9 +49,7 @@ export class CampaignNotificationService {
         }
     }
 
-    /**
-     * Notify when a campaign is updated
-     */
+    // Done
     async notifyCampaignUpdated(
         campaign: any,
         advertiserId: string,
@@ -123,9 +119,7 @@ export class CampaignNotificationService {
         }
     }
 
-    /**
-     * Notify when a campaign is deleted
-     */
+    // Done
     async notifyCampaignDeleted(
         campaignName: string,
         advertiserId: string,

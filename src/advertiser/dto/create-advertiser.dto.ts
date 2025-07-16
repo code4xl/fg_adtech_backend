@@ -44,7 +44,12 @@ export class CreateAdvertiserDto {
     companySize: CompanySize;
 }
 
-
+export class ResendVerificationDto {
+    @ApiProperty({ description: 'Email address to resend verification' })
+    @IsNotEmpty()
+    @IsEmail()
+    email: string;
+}
 
 export class AdvertiserResponseDto {
     @ApiProperty()

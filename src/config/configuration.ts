@@ -32,6 +32,7 @@ export default () => ({
   },
   template: {
     url: process.env.APP_URL,
+    name: process.env.APP_NAME,
   },
   redis: {
     host: process.env.REDIS_HOST,

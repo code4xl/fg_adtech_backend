@@ -2,15 +2,13 @@ import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/com
 import { PrismaService } from 'src/prisma/prisma.service';
 import sharp from 'sharp';
 import { ResourceNotFoundException } from 'src/common/exceptions/custom.exception';
-import { CreativeType, InventoryFormat } from '@prisma/client';
+import { BidStrategy, CreativeType, InventoryFormat } from '@prisma/client';
 
 @Injectable()
 export class AdvertiserHelper {
     constructor(private readonly prisma: PrismaService) { }
 
-    /**
-     * Validates campaign dates to ensure they are logical and not in the past
-     */
+    // Done
     async validateCampaignDates(startDate: Date | string, endDate: Date | string) {
         // Convert to Date objects if strings are provided
         const start = new Date(startDate);
@@ -42,9 +40,7 @@ export class AdvertiserHelper {
         }
     }
 
-    /**
-     * Validates that a client belongs to the specified advertiser
-     */
+    // Done
     async validateClient(clientId: string, advertiserId: string) {
         const client = await this.prisma.client.findUnique({
             where: { id: clientId },
@@ -67,23 +63,68 @@ export class AdvertiserHelper {
         return client;
     }
 
-    /**
-     * Validates bid strategy and ensures bid amount is provided when required
-     */
+    // Done
     async validateBidStrategy(bidStrategy: string, bidAmount: number | undefined) {
-        // If using BID_CAP, COST_CAP, or TARGET_COST, bid amount is required
-        if (['BID_CAP', 'COST_CAP', 'TARGET_COST'].includes(bidStrategy) && bidAmount === undefined) {
-            throw new BadRequestException(`Bid amount is required for ${bidStrategy} strategy`);
+        // Validate that the bid strategy is one of the allowed values
+        if (!Object.values(BidStrategy).includes(bidStrategy as BidStrategy)) {
+            throw new BadRequestException(`Invalid bid strategy. Allowed values: ${Object.values(BidStrategy).join(', ')}`);
         }
 
+        // If using TARGET_CPM, bid amount is required (target CPM value)
+        if (bidStrategy === BidStrategy.TARGET_CPM && bidAmount === undefined) {
+            throw new BadRequestException(`Bid amount (target CPM) is required for ${bidStrategy} strategy`);
+        }
+        
         // Validate bid amount is positive if provided
         if (bidAmount !== undefined && bidAmount <= 0) {
             throw new BadRequestException('Bid amount must be greater than 0');
         }
 
-        // Validate reasonable bid amount limits
-        if (bidAmount !== undefined && bidAmount > 1000) {
-            throw new BadRequestException('Bid amount cannot exceed $1000');
+        // Validate reasonable bid amount limits in INR (CPM typically ranges from ₹1 to ₹5000)
+        if (bidAmount !== undefined && bidAmount > 5000) {
+            throw new BadRequestException('Bid amount cannot exceed ₹5000 CPM');
+        }
+
+        // Validate minimum bid amount in INR
+        if (bidAmount !== undefined && bidAmount < 1) {
+            throw new BadRequestException('Bid amount must be at least ₹1');
+        }
+
+        // Strategy-specific validations
+        switch (bidStrategy) {
+            case BidStrategy.LOWEST_COST:
+                // For LOWEST_COST, bid amount is optional and serves as minimum bid amount
+                if (bidAmount !== undefined && bidAmount < 5) {
+                    throw new BadRequestException('For LOWEST_COST strategy, minimum bid amount should be ₹5');
+                }
+                break;
+
+            case BidStrategy.TARGET_CPM:
+                // For TARGET_CPM, bid amount is required and represents the target CPM
+                if (bidAmount === undefined) {
+                    throw new BadRequestException('TARGET_CPM strategy requires a target CPM value');
+                }
+                if (bidAmount < 2) {
+                    throw new BadRequestException('Target CPM must be at least ₹2');
+                }
+                break;
+
+            case BidStrategy.SMART_BID:
+                // For SMART_BID, bid amount is optional and serves as minimum bid amount
+                if (bidAmount !== undefined && bidAmount < 3) {
+                    throw new BadRequestException('For SMART_BID strategy, minimum bid amount should be ₹3');
+                }
+                break;
+
+            case BidStrategy.COMPETITIVE:
+                // For COMPETITIVE, bid amount is optional and serves as minimum bid amount
+                if (bidAmount !== undefined && bidAmount < 5) {
+                    throw new BadRequestException('For COMPETITIVE strategy, minimum bid amount should be ₹5');
+                }
+                break;
+
+            default:
+                throw new BadRequestException(`Unsupported bid strategy: ${bidStrategy}`);
         }
     }
 
@@ -117,9 +158,7 @@ export class AdvertiserHelper {
         }
     }
 
-    /**
-     * Verifies campaign ownership by advertiser
-     */
+    // Done
     async verifyCampaignOwnership(campaignId: string, advertiserId: string) {
         const campaign = await this.prisma.campaign.findUnique({
             where: { id: campaignId },

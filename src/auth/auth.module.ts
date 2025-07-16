@@ -1,3 +1,4 @@
+// src/auth/auth.module.ts
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
@@ -10,6 +11,7 @@ import { JwtStrategy } from './strategies/authorization.strategy';
 import { MailModule } from 'src/mail/mail.module';
 import { LoginValidationMiddleware } from './middlewares/login.middleware';
 import { RoleGuard } from 'src/common/guards/role.guard';
+
 @Module({
   imports: [
     PrismaModule,
@@ -39,14 +41,4 @@ import { RoleGuard } from 'src/common/guards/role.guard';
   exports: [AuthService],
 })
 
-export class AuthModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(LoginValidationMiddleware)
-      .forRoutes(
-        { path: 'auth/admin/login', method: RequestMethod.POST },
-        { path: 'auth/advertiser/login', method: RequestMethod.POST },
-        { path: 'auth/publisher/login', method: RequestMethod.POST }
-      );
-  }
-}
+export class AuthModule {}
