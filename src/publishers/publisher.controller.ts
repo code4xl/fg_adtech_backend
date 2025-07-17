@@ -26,7 +26,7 @@ import { PublisherGuard } from 'src/common/guards/authorization.guard';
 import { PublisherTierResponseDto, UpdatePublisherTierDto } from 'src/admin/dto/create-publisher-tier.dto';
 
 
-@ApiTags('Publishers')
+@ApiTags('Publisher')
 @Controller('publishers')
 @UseGuards(PublisherGuard)
 @ApiBearerAuth()
@@ -42,30 +42,7 @@ export class PublisherController {
   async getProfile(@Request() req) {
     return this.publisherService.findOne(req.user.id);
   }
-
-  @Patch('profile')
-  @ApiOperation({ summary: 'Update publisher profile' })
-  @ApiResponse({
-    status: 200,
-    description: 'Publisher profile updated successfully',
-  })
-  async updateProfile(
-    @Request() req,
-    @Body() updatePublisherDto: UpdatePublisherDto,
-  ) {
-    return this.publisherService.update(req.user.id, updatePublisherDto);
-  }
-
-  @Delete('deactivate')
-  @ApiOperation({ summary: 'Deactivate publisher account' })
-  @ApiResponse({
-    status: 200,
-    description: 'Publisher account deactivate successfully',
-  })
-  async deleteAccount(@Request() req) {
-    return this.publisherService.deactivatePublisherAccount(req.user.id);
-  }
-
+s
   // New tier-related endpoints
   @Get('tiers')
   @ApiOperation({ summary: 'Get all available publisher tiers' })

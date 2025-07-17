@@ -57,7 +57,7 @@ export class MailService {
     try {
       const startTime = Date.now();
       const appUrl = this.configService.get<string>('template.url');
-      const loginUrl = `${appUrl}/client/login`;
+      const loginUrl = `${appUrl}/auth/client/login`;
 
       await this.mailerService.sendMail({
         to: clientEmail,

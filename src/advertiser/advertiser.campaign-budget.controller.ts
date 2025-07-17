@@ -57,10 +57,7 @@ export class AdvertiserCampaignBudgetController {
     @Request() req,
     @Body() createBudgetDto: CreateCampaignBudgetDto,
   ) {
-    // Ensure campaignId matches the route parameter
-    createBudgetDto.campaignId = campaignId;
-    
-    return this.budgetService.assignBudget(req.user.id, createBudgetDto);
+    return this.budgetService.assignBudget(req.user.id, campaignId, createBudgetDto);
   }
 
   @Patch('update')

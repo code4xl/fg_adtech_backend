@@ -491,7 +491,7 @@ export class AuthService {
       );
 
       // Build reset URL
-      const resetLink = `${this.config.get('APP_URL')}/auth/reset-password/${role}?token=${resetToken}&email=${email}`;
+      const resetLink = `${this.config.get('template.url')}/auth/${role}/reset-password/validate?token=${resetToken}&email=${email}`;
 
       // Update user with reset token and expiry
       const resetTokenExpiry = new Date();

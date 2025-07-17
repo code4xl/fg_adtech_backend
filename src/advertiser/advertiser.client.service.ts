@@ -1,5 +1,5 @@
 // src/advertiser/client/advertiser-client.service.ts
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { MailService } from 'src/mail/mail.service';
 import { ConfigService } from '@nestjs/config';
@@ -14,6 +14,7 @@ import { AssignCampaignsDto } from './dto/client/assign-campaign.dto';
 import * as bcrypt from 'bcryptjs';
 import { UserType } from 'src/notification/dto/create-notification.dto';
 import { CampaignNotificationService } from 'src/notification/services/campaign.notification.service';
+import { CampaignStatus } from '@prisma/client';
 
 @Injectable()
 export class AdvertiserClientService {
@@ -166,6 +167,8 @@ export class AdvertiserClientService {
         advertiser.email,
         advertiser.companyName || advertiser.name,
       );
+
+
       this.logger.debug(`Welcome email sent to client: ${result.email}`);
     } catch (error) {
       this.logger.error(`Failed to send welcome email: ${error.message}`);
@@ -397,6 +400,13 @@ export class AdvertiserClientService {
         })),
       });
     });
+
+    // Send notification after successful assignment
+    await this.notifyCampaignAssignment(
+      clientId,
+      assignCampaignsDto.campaignIds,
+      advertiserId
+    );
 
     return {
       message: 'Campaigns assigned successfully.',

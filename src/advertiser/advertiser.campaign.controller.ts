@@ -53,7 +53,7 @@ export class AdvertiserCampaignController {
     }
 
     // Update a Campaign
-    @Patch(':id')
+    @Patch(':campaignId')
     @ApiOperation({ summary: 'Update a campaign' })
     @ApiStandardResponse({
         type: CampaignResponseDto,
@@ -61,7 +61,7 @@ export class AdvertiserCampaignController {
     })
     @ApiStandardErrors()
     async update(
-        @Param('id', ParseUUIDPipe) id: string,
+        @Param('campaignId', ParseUUIDPipe) id: string,
         @Body() updateCampaignDto: UpdateCampaignDto,
         @Request() req,
     ) {
@@ -82,27 +82,27 @@ export class AdvertiserCampaignController {
     }
 
     // Get a campaign details by id
-    @Get(':id')
+    @Get(':campaignId')
     @ApiOperation({ summary: 'Get campaign details' })
-    @ApiParam({ name: 'id', description: 'Campaign ID', type: String })
+    @ApiParam({ name: 'campaignId', description: 'Campaign ID', type: String })
     @ApiStandardResponse({
         type: CampaignResponseDto,
         description: 'Campaign retrieved successfully'
     })
     @ApiStandardErrors()
-    findOne(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
+    findOne(@Param('campaignId', ParseUUIDPipe) id: string, @Request() req) {
         return this.advertiserCampaignService.findOne(id, req.user.id);
     }
 
     // Delete a campaign
-    @Delete(':id')
+    @Delete(':campaignId')
     @ApiOperation({ summary: 'Delete a campaign' })
-    @ApiParam({ name: 'id', description: 'Campaign ID', type: String })
+    @ApiParam({ name: 'campaignId', description: 'Campaign ID', type: String })
     @ApiStandardResponse({
         description: 'Campaign deleted successfully'
     })
     @ApiStandardErrors()
-    remove(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
+    remove(@Param('campaignId', ParseUUIDPipe) id: string, @Request() req) {
         return this.advertiserCampaignService.remove(id, req.user.id);
     }
 }

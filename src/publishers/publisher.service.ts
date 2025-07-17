@@ -99,49 +99,6 @@ export class PublisherService {
     return result;
   }
 
-  async update(id: string, updatePublisherDto: UpdatePublisherDto) {
-    // Check if publisher exists
-    await this.findOne(id);
-
-    // Check if email is being updated and already exists
-    if (updatePublisherDto.email) {
-      const existingPublisher = await this.prisma.publisher.findFirst({
-        where: {
-          email: updatePublisherDto.email,
-          id: { not: id },
-        },
-      });
-
-      if (existingPublisher) {
-        throw new DuplicateResourceException(
-          'Publisher',
-          'email',
-          updatePublisherDto.email,
-        );
-      }
-    }
-
-    // Hash the password if it's being updated
-    let data: any = { ...updatePublisherDto };
-    if (updatePublisherDto.password) {
-      throw new BadRequestException(
-        'Password update is not allowed via this endpoint.',
-      );
-    }
-
-    // Remove categoryIds and languages from data as they're handled separately
-    const { categoryIds, languages, ...publisherData } = data;
-
-    // Update publisher basic info
-    await this.prisma.publisher.update({
-      where: { id },
-      data: publisherData,
-    });
-
-    // Return updated publisher
-    return this.findOne(id);
-  }
-
   // Add method to update publisher tier (for admin use)
   async updatePublisherTier(publisherId: string, tierId: string) {
     // Check if publisher exists

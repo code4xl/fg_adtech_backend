@@ -216,36 +216,4 @@ export class AdvertiserCreativeController {
             req.user.id,
         );
     }
-
-    @Get(':creativeId/presigned-url')
-    @ApiOperation({ summary: 'Get a pre-signed URL for accessing a creative' })
-    @ApiParam({ name: 'campaignId', description: 'Campaign ID', type: String })
-    @ApiParam({ name: 'creativeId', description: 'Creative ID', type: String })
-    @ApiResponse({
-        status: 200,
-        description: 'Pre-signed URL generated successfully',
-        schema: {
-            type: 'object',
-            properties: {
-                url: {
-                    type: 'string',
-                    description: 'Pre-signed URL for accessing the creative',
-                },
-            },
-        },
-    })
-    @ApiStandardErrors()
-    async getCreativePresignedUrl(
-        @Param('campaignId', ParseUUIDPipe) campaignId: string,
-        @Param('creativeId', ParseUUIDPipe) creativeId: string,
-        @Request() req,
-        @Query('expiresIn') expiresIn: number = 3600,
-    ) {
-        return this.advertiserCreativeService.getCreativePresignedUrl(
-            creativeId,
-            campaignId,
-            req.user.id,
-            expiresIn,
-        );
-    }
 }

@@ -1,4 +1,3 @@
-// src/advertiser/client/advertiser-client.controller.ts
 import {
     Controller,
     Get,
@@ -11,12 +10,14 @@ import {
     ParseUUIDPipe,
     HttpCode,
     HttpStatus,
+    Query,
 } from '@nestjs/common';
 import {
     ApiTags,
     ApiOperation,
     ApiBearerAuth,
     ApiParam,
+    ApiQuery,
 } from '@nestjs/swagger';
 import { AdvertiserGuard } from 'src/common/guards/authorization.guard';
 import {
@@ -79,7 +80,6 @@ export class AdvertiserClientController {
         name: 'clientId',
         description: 'Client ID',
         type: String,
-        example: 'uuid-example'
     })
     @ApiStandardResponse({
         type: AdvertiserClientResponseDto,
@@ -102,7 +102,6 @@ export class AdvertiserClientController {
         name: 'clientId',
         description: 'Client ID',
         type: String,
-        example: 'uuid-example'
     })
     @ApiStandardResponse({
         type: AdvertiserClientResponseDto,
@@ -126,7 +125,6 @@ export class AdvertiserClientController {
         name: 'clientId',
         description: 'Client ID',
         type: String,
-        example: 'uuid-example'
     })
     @ApiStandardResponse({
         description: 'Campaigns assigned successfully',

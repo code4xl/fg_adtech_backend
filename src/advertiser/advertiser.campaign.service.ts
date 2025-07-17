@@ -39,10 +39,12 @@ export class AdvertiserCampaignService {
     );
 
     // Validate client belongs to advertiser
-    await this.advertiserHelper.validateClient(
-      createCampaignDto.clientId,
-      advertiserId,
-    );
+    if(createCampaignDto.clientId != null){
+      await this.advertiserHelper.validateClient(
+        createCampaignDto.clientId,
+        advertiserId,
+      );
+    }
 
     // Validate bid strategy and bid amount
     await this.advertiserHelper.validateBidStrategy(

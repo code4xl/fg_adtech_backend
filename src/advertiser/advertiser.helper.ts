@@ -3,6 +3,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import sharp from 'sharp';
 import { ResourceNotFoundException } from 'src/common/exceptions/custom.exception';
 import { BidStrategy, CreativeType, InventoryFormat } from '@prisma/client';
+import { CampaignWithTargeting } from 'src/rtb/types/campaign.types';
 
 @Injectable()
 export class AdvertiserHelper {
@@ -159,17 +160,69 @@ export class AdvertiserHelper {
     }
 
     // Done
-    async verifyCampaignOwnership(campaignId: string, advertiserId: string) {
+    async verifyCampaignOwnership(campaignId: string, advertiserId: string): Promise<CampaignWithTargeting> {
         const campaign = await this.prisma.campaign.findUnique({
             where: { id: campaignId },
             select: {
                 id: true,
                 name: true,
                 advertiserId: true,
-                status: true,
+                clientId: true,
                 startDate: true,
-                endDate: true
-            }
+                endDate: true,
+                status: true,
+                objective: true,
+                bidStrategy: true,
+                bidAmount: true,
+                pacing: true,
+                businessCategory: true,
+                websiteUrl: true,
+                interests: true,
+                createdAt: true,
+                updatedAt: true,
+                creatives: {
+                    select: {
+                        id: true,
+                        campaignId: true,
+                        name: true,
+                        type: true,
+                        templateId: true,
+                        fileUrl: true,
+                        s3Key: true,
+                        landingUrl: true,
+                        status: true,
+                        contentSafetyThreshold: true,
+                        reviewNotes: true,
+                        createdAt: true,
+                        updatedAt: true,
+                        adSlotTemplate: {
+                            select: {
+                                id: true,
+                                name: true,
+                                width: true,
+                                height: true,
+                                format: true,
+                                position: true,
+                                createdAt: true,
+                                updatedAt: true,
+                            }
+                        }
+                    }
+                },
+                advertiser: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                demographicTargeting: true,
+                geographicTargeting: true,
+                deviceTargeting: true,
+                contextualTargeting: true,
+                behavioralTargeting: true,
+                timeTargeting: true,
+                frequencyTargeting: true,
+            },
         });
 
         if (!campaign) {

@@ -21,7 +21,6 @@ interface AuthenticatedSocket extends Socket {
     email: string;
     role: string;
   };
-  // channelSubscriptions: Set<string>; // Track subscriptions per socket
 }
 
 @WebSocketGateway({
@@ -37,6 +36,7 @@ export class NotificationGateway
   private readonly logger = new Logger(NotificationGateway.name);
   private readonly userSockets = new Map<string, AuthenticatedSocket[]>(); // userId -> Socket[]
   private readonly subscribedChannels = new Set<string>(); // Track all subscribed channels
+  private readonly heartbeatIntervals = new Map<string, NodeJS.Timeout>(); // userId -> interval
 
   constructor(
     private readonly redisService: RedisService,
@@ -96,7 +96,6 @@ export class NotificationGateway
         email: payload.email,
         role: payload.role,
       };
-      // authClient.channelSubscriptions = new Set(); // Initialize empty subscriptions set
 
       // Save socket in users map
       const userId = payload.sub;
@@ -104,6 +103,9 @@ export class NotificationGateway
         this.userSockets.set(userId, []);
       }
       this.userSockets.get(userId)!.push(authClient);
+
+      // Mark user as online in Redis
+      await this.markUserOnline(userId);
 
       this.logger.debug(
         `Client connected: ${client.id} (User: ${userId}, Role: ${payload.role})`,
@@ -121,6 +123,10 @@ export class NotificationGateway
 
       // Send historical broadcasts
       await this.sendHistoricalBroadcasts(client, payload.role);
+
+      // Set up heartbeat to keep user online status fresh
+      this.setupHeartbeat(userId);
+
     } catch (error) {
       this.logger.error(`Error during client connection: ${error.message}`);
       client.disconnect();
@@ -130,7 +136,7 @@ export class NotificationGateway
   /**
    * Handle client disconnection
    */
-  handleDisconnect(client: Socket) {
+  async handleDisconnect(client: Socket) {
     try {
       const authClient = client as AuthenticatedSocket;
       const user = authClient.user;
@@ -146,6 +152,13 @@ export class NotificationGateway
         if (updatedSockets.length === 0) {
           // User has no more active connections
           this.userSockets.delete(userId);
+          
+          // Mark user as offline in Redis
+          await this.markUserOffline(userId);
+          
+          // Clear heartbeat
+          this.clearHeartbeat(userId);
+          
           this.logger.debug(`User ${userId} is now completely offline`);
         } else {
           this.userSockets.set(userId, updatedSockets);
@@ -155,6 +168,69 @@ export class NotificationGateway
       this.logger.debug(`Client disconnected: ${client.id}`);
     } catch (error) {
       this.logger.error(`Error during client disconnection: ${error.message}`);
+    }
+  }
+
+  /**
+   * Mark user as online in Redis
+   */
+  private async markUserOnline(userId: string) {
+    try {
+      // Set user online status with 5 minute expiry (will be refreshed by heartbeat)
+      await this.redisService.getClient().set(`user:online:${userId}`, 'true', 'EX', 300);
+      this.logger.debug(`Marked user ${userId} as online`);
+    } catch (error) {
+      this.logger.error(`Failed to mark user ${userId} as online: ${error.message}`);
+    }
+  }
+
+  /**
+   * Mark user as offline in Redis
+   */
+  private async markUserOffline(userId: string) {
+    try {
+      await this.redisService.del(`user:online:${userId}`);
+      this.logger.debug(`Marked user ${userId} as offline`);
+    } catch (error) {
+      this.logger.error(`Failed to mark user ${userId} as offline: ${error.message}`);
+    }
+  }
+
+  /**
+   * Set up heartbeat to refresh user online status
+   */
+  private setupHeartbeat(userId: string) {
+    // Clear existing heartbeat if any
+    this.clearHeartbeat(userId);
+    
+    const heartbeatInterval = setInterval(async () => {
+      const userSockets = this.userSockets.get(userId);
+      if (userSockets && userSockets.length > 0) {
+        // User still has active connections, refresh online status
+        try {
+          await this.redisService.getClient().set(`user:online:${userId}`, 'true', 'EX', 300);
+        } catch (error) {
+          this.logger.error(`Failed to refresh online status for user ${userId}: ${error.message}`);
+        }
+      } else {
+        // No active connections, clear heartbeat
+        this.clearHeartbeat(userId);
+      }
+    }, 60000); // Refresh every minute
+
+    this.heartbeatIntervals.set(userId, heartbeatInterval);
+    this.logger.debug(`Set up heartbeat for user ${userId}`);
+  }
+
+  /**
+   * Clear heartbeat for a user
+   */
+  private clearHeartbeat(userId: string) {
+    const interval = this.heartbeatIntervals.get(userId);
+    if (interval) {
+      clearInterval(interval);
+      this.heartbeatIntervals.delete(userId);
+      this.logger.debug(`Cleared heartbeat for user ${userId}`);
     }
   }
 

@@ -35,18 +35,63 @@ export class NotificationService {
 
     // If we should publish (triggering real-time notification)
     if (shouldPublish) {
-      // Create a channel based on user type and ID
-      const channel = `notification:${createNotificationDto.userType.toLowerCase()}:${createNotificationDto.userId}`;
-
-      await this.redisService.publish(channel, {
-        ...notification,
-        timestamp: new Date().toISOString(),
-      });
-
-      this.logger.debug(`Published notification to channel: ${channel}`);
+      await this.publishNotificationSmart(
+        {
+          ...notification,
+          timestamp: new Date().toISOString(),
+        },
+        createNotificationDto.userType,
+        createNotificationDto.userId
+      );
     }
 
     return notification;
+  }
+
+  /**
+   * Smart notification publishing - checks if user is online before publishing
+   */
+  private async publishNotificationSmart(notification: any, userType: UserType, userId: string) {
+    try {
+      // Check if user is currently online
+      const isUserOnline = await this.isUserOnline(userId);
+      
+      if (!isUserOnline) {
+        // User is offline - directly enqueue the notification
+        this.logger.debug(`User ${userId} is offline, enqueuing notification directly`);
+        await this.enqueueNotification(userId, notification);
+        return;
+      }
+      
+      // User is online - publish to Redis channel
+      const channel = `notification:${userType.toLowerCase()}:${userId}`;
+      await this.redisService.publish(channel, notification);
+      this.logger.debug(`Published notification to channel: ${channel}`);
+      
+    } catch (error) {
+      this.logger.error(`Error in smart notification publishing: ${error.message}`);
+      // Fallback: enqueue notification if publishing fails
+      try {
+        await this.enqueueNotification(userId, notification);
+        this.logger.debug(`Fallback: Enqueued notification for user ${userId}`);
+      } catch (enqueueError) {
+        this.logger.error(`Failed to enqueue notification as fallback: ${enqueueError.message}`);
+      }
+    }
+  }
+
+  /**
+   * Check if user is currently online (has active WebSocket connections)
+   */
+  private async isUserOnline(userId: string): Promise<boolean> {
+    try {
+      // Check if user has any active WebSocket connections
+      const onlineStatus = await this.redisService.get(`user:online:${userId}`);
+      return onlineStatus === 'true';
+    } catch (error) {
+      this.logger.error(`Error checking user online status: ${error.message}`);
+      return false; // Assume offline if we can't determine
+    }
   }
 
   /**

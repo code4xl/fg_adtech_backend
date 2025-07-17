@@ -32,6 +32,8 @@ import { AdvertiserCampaignBudgetController } from './advertiser.campaign-budget
 import { AdvertiserCampaignBudgetService } from './advertiser.campaign-budget.service';
 import { CampaignNotificationService } from 'src/notification/services/campaign.notification.service';
 import { PublisherSignupTierService } from 'src/admin/publisher/admin.publisher-signup-tier.service';
+import { ClientCampaignController } from './advertiser.client-campaign.controller';
+import { ClientCampaignService } from './advertiser.client-campaign.service';
 
 @Module({
   imports: [
@@ -55,6 +57,7 @@ import { PublisherSignupTierService } from 'src/admin/publisher/admin.publisher-
     AdvertiserClientController,
     AdvertiserTargetingController,
     AdvertiserCreativeController,
+    ClientCampaignController,
   ],
   providers: [
     AdvertiserService,
@@ -76,6 +79,7 @@ import { PublisherSignupTierService } from 'src/admin/publisher/admin.publisher-
     JwtService,
     CampaignNotificationService,
     PublisherSignupTierService,
+    ClientCampaignService,
   ],
   exports: [AdvertiserService],
 })

@@ -162,15 +162,15 @@ export class PublisherSeeder implements ISeeder {
     // Create default publisher tiers
     const defaultTiers = [
       {
-        name: 'Silver',
+        name: 'Premium',
         commissionRate: 0.5, // 50% commission rate
       },
       {
-        name: 'Gold',
+        name: 'Standard',
         commissionRate: 0.4, // 40% commission rate
       },
       {
-        name: 'Platinum',
+        name: 'Basic',
         commissionRate: 0.3, // 30% commission rate
       },
     ];

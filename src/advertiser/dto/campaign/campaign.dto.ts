@@ -12,6 +12,7 @@ import {
   IsNumber,
   Min,
   Max,
+  isEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import {
@@ -37,8 +38,8 @@ export class CreateCampaignDto {
     example: '550e8400-e29b-41d4-a716-446655440000',
   })
   @IsUUID('4')
-  @IsNotEmpty()
-  clientId: string;
+  @IsOptional()
+  clientId?: string;
 
   @ApiProperty({
     description: 'Campaign start date (ISO format)',

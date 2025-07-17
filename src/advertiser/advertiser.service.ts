@@ -82,7 +82,7 @@ export class AdvertiserService {
   // Get campaigns by status
   async getCampaignsByStatus(advertiserId: string, status: CampaignStatus) {
     // Validate status
-    const validStatuses = ['SCHEDULED', 'ACTIVE', 'DAILY_PAUSED', 'COMPLETED', 'BUDGET_EXHAUSTED', 'REJECTED'];
+    const validStatuses = ['SCHEDULED', 'ACTIVE', 'DAILY_PAUSED', 'COMPLETED', 'BUDGET_EXHAUSTED', 'REJECTED', 'DRAFT', 'PAUSED', 'CANCELED'];
     if (!validStatuses.includes(status)) {
       throw new BadRequestException(`Invalid status. Valid statuses are: ${validStatuses.join(', ')}`);
     }

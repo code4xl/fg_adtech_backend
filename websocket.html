@@ -36,7 +36,7 @@
             log('Connecting...');
             
             // THIS IS THE CORRECT CONNECTION METHOD FOR YOUR SERVER
-            socket = io('http://localhost:3000/notifications', {
+            socket = io('http://localhost:3001/notifications', {
                 auth: { token: token },
                 transports: ['websocket']
             });

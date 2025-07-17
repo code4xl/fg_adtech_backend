@@ -12,14 +12,6 @@ import { Type, Transform } from 'class-transformer';
 
 export class CreateCampaignBudgetDto {
     @ApiProperty({
-        description: 'Campaign ID to assign budget to',
-        example: 'b169383a-2369-4422-9094-bf0752ceed65',
-    })
-    @IsNotEmpty()
-    @IsUUID('4')
-    campaignId: string;
-
-    @ApiProperty({
         description: 'Total budget for the campaign',
         example: 500000.00, // Change from 10000.00 to a realistic INR amount
         minimum: 1,

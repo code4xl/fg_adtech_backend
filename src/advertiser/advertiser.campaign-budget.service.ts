@@ -15,6 +15,7 @@ import {
 } from './dto/campaign/campaign-budget.dto';
 import { AdvertiserHelper } from './advertiser.helper';
 import { BudgetInitializationService } from 'src/tracking/services/budget-initialization.service';
+import { CampaignWithTargeting } from 'src/rtb/types/campaign.types';
 
 @Injectable()
 export class AdvertiserCampaignBudgetService {
@@ -31,13 +32,14 @@ export class AdvertiserCampaignBudgetService {
      */
     async assignBudget(
         advertiserId: string,
+        campaignId: string,
         createBudgetDto: CreateCampaignBudgetDto,
     ): Promise<CampaignBudgetResponseDto> {
-        this.logger.debug(`Assigning budget to campaign: ${createBudgetDto.campaignId}`);
+        this.logger.debug(`Assigning budget to campaign: ${campaignId}`);
 
         // Verify campaign ownership
-        const campaign = await this.advertiserHelper.verifyCampaignOwnership(
-            createBudgetDto.campaignId,
+        const campaign: CampaignWithTargeting = await this.advertiserHelper.verifyCampaignOwnership(
+            campaignId,
             advertiserId,
         );
 
@@ -49,7 +51,7 @@ export class AdvertiserCampaignBudgetService {
 
         // Check if budget already exists
         const existingBudget = await this.prisma.campaignBudget.findFirst({
-            where: { campaignId: createBudgetDto.campaignId },
+            where: { campaignId: campaignId },
         });
 
         if (existingBudget) {
@@ -61,7 +63,7 @@ export class AdvertiserCampaignBudgetService {
             // Create campaign budget (Not daily budget yet)
             const budget = await tx.campaignBudget.create({
                 data: {
-                    campaignId: createBudgetDto.campaignId,
+                    campaignId: campaignId,
                     totalBudget: createBudgetDto.totalBudget,
                     dailyBudget: createBudgetDto.dailyBudget,
                     isExhausted: false,
@@ -81,7 +83,7 @@ export class AdvertiserCampaignBudgetService {
 
             // Update campaign status and budget ID
             const updatedCampaign = await tx.campaign.update({
-                where: { id: createBudgetDto.campaignId },
+                where: { id: campaignId },
                 data: {
                     status: newStatus,
                     campaignBudgetId: budget.id,
@@ -94,7 +96,7 @@ export class AdvertiserCampaignBudgetService {
             // Initialize daily budget
             await tx.campaignDailyBudget.create({
                 data: {
-                    campaignId: createBudgetDto.campaignId,
+                    campaignId: campaignId,
                     date: startDate, // Critical Edge Case
                     spentToday: 0,
                     remainingToday: createBudgetDto.dailyBudget,
@@ -105,7 +107,7 @@ export class AdvertiserCampaignBudgetService {
             return { budget, campaign: updatedCampaign };
         });
 
-        this.logger.debug(`Budget assigned successfully to campaign: ${createBudgetDto.campaignId}`);
+        this.logger.debug(`Budget assigned successfully to campaign: ${campaignId}`);
 
         return this.formatBudgetResponse(result.budget, result.campaign);
     }
@@ -322,7 +324,7 @@ export class AdvertiserCampaignBudgetService {
     // }
 
     // Done
-    private validateBudgetAssignment(campaign: any) {
+    private validateBudgetAssignment(campaign: CampaignWithTargeting) {
         // Only DRAFT campaigns can have budget assigned
         if (campaign.status !== CampaignStatus.DRAFT) {
             throw new BadRequestException(
@@ -330,8 +332,12 @@ export class AdvertiserCampaignBudgetService {
             );
         }
 
+        this.logger.debug("Creative count", {
+            count: campaign.creatives.length,
+        })
+
         // Campaign must have at least one creative
-        if (!campaign._count?.creatives || campaign._count.creatives === 0) {
+        if (campaign.creatives.length === 0) {
             throw new BadRequestException(
                 'Cannot assign budget to campaign without creatives. Please add at least one approved creative first.'
             );
