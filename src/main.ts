@@ -32,11 +32,11 @@ async function bootstrap() {
 
   // Enable CORS with comprehensive configuration
   app.enableCors({
-    
+
 
     origin: [
       'http://localhost:3000',
-      'http://localhost:3001', 
+      'http://localhost:3001',
       'http://127.0.0.1:3000',
       'http://127.0.0.1:3001',
       'http://localhost:5500',
@@ -45,7 +45,8 @@ async function bootstrap() {
       'http://localhost:8080',
       'http://127.0.0.1:8080',
       'http://13.202.24.106',           // Add your EC2 IP
-      'http://13.202.24.106:3001', 
+      'http://13.202.24.106:3001',
+      'https://programmatic-adtech-backend.atharvajadhav.dev',
       /^http:\/\/localhost:\d+$/,
       /^http:\/\/127\.0\.0\.1:\d+$/,
       '*', // Allow all origins for tracking endpoints
@@ -53,10 +54,10 @@ async function bootstrap() {
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: [
-      'Content-Type', 
-      'Authorization', 
-      'Accept', 
-      'Origin', 
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'Origin',
       'X-Requested-With',
       'Cache-Control',
       'Pragma',
@@ -68,26 +69,66 @@ async function bootstrap() {
     exposedHeaders: ['Content-Length', 'Content-Type'],
   });
 
-  // Use Helmet for security headers
+  // Use Helmet for security headers (Development)
+  // app.use(
+  //   helmet({
+  //     contentSecurityPolicy: {
+  //       directives: {
+  //         defaultSrc: ["'self'"], // Note the quotes around 'self'
+  //         scriptSrc: [
+  //           "'self'",
+  //           "'unsafe-inline'",
+  //           'cdn.jsdelivr.net',
+  //           'http://localhost:3001',
+  //           'http://127.0.0.1:3001',
+  //           'http://13.202.24.106',
+  //           'http://localhost:*',
+  //           'http://127.0.0.1:*'
+  //         ],
+  //         styleSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
+  //         imgSrc: [
+  //           "'self'",
+  //           'data:',
+  //           'cdn.jsdelivr.net',
+  //           'https://s3.ap-south-1.amazonaws.com',
+  //           'https://bucket.programmatic.oceanadnetwork.s3.ap-south-1.amazonaws.com',
+  //           'https://*.s3.amazonaws.com',
+  //           'https://*.s3.ap-south-1.amazonaws.com'
+  //         ],
+  //         connectSrc: [
+  //           "'self'",
+  //           'http://localhost:3001',
+  //           'http://127.0.0.1:3001',
+  //           'http://13.202.24.106',        // Add this
+  //           'http://13.202.24.106:3001',   // Add this
+  //           'http://localhost:*',
+  //           'http://127.0.0.1:*',
+  //           'https://5x2p27zf-3000.inc1.devtunnels.ms',
+  //           'https://programmatic.api.oceanadnetwork.com',
+  //           'http://localhost:3001/track',
+  //           'http://127.0.0.1:3001/track',
+  //         ],
+  //       },
+  //     },
+  //     crossOriginResourcePolicy: { policy: "cross-origin" },
+  //   }),
+  // );
+
+  // Production (Atharva)
   app.use(
     helmet({
       contentSecurityPolicy: {
         directives: {
-          defaultSrc: ["'self'"], // Note the quotes around 'self'
+          defaultSrc: ["'self'"],
           scriptSrc: [
-            "'self'", 
-            "'unsafe-inline'", 
+            "'self'",
+            "'unsafe-inline'",
             'cdn.jsdelivr.net',
-            'http://localhost:3001',
-            'http://127.0.0.1:3001',
-            'http://13.202.24.106',
-            'http://localhost:*',
-            'http://127.0.0.1:*'
           ],
           styleSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
           imgSrc: [
-            "'self'", 
-            'data:', 
+            "'self'",
+            'data:',
             'cdn.jsdelivr.net',
             'https://s3.ap-south-1.amazonaws.com',
             'https://bucket.programmatic.oceanadnetwork.s3.ap-south-1.amazonaws.com',
@@ -96,16 +137,7 @@ async function bootstrap() {
           ],
           connectSrc: [
             "'self'",
-            'http://localhost:3001',
-            'http://127.0.0.1:3001',
-            'http://13.202.24.106',        // Add this
-            'http://13.202.24.106:3001',   // Add this
-            'http://localhost:*',
-            'http://127.0.0.1:*',
-            'https://5x2p27zf-3000.inc1.devtunnels.ms',
-            'https://programmatic.api.oceanadnetwork.com',
-            'http://localhost:3001/track',
-            'http://127.0.0.1:3001/track',
+            'https://programmatic-adtech-backend.atharvajadhav.dev'
           ],
         },
       },
@@ -148,53 +180,53 @@ async function bootstrap() {
 
   // Swagger API documentation
   // if (process.env.NODE_ENV !== 'production') {
-    app.use(morgan('dev'));
-    app.useGlobalInterceptors(new LoggingInterceptor());
+  app.use(morgan('dev'));
+  app.useGlobalInterceptors(new LoggingInterceptor());
 
-    const config = new DocumentBuilder()
-      .setTitle('OceanAdTech API Documentation')
-      .setDescription('Documentation for OceanAdTech API')
-      .setVersion('1.0')
-      .setOpenAPIVersion('3.0.0')
-      // .addServer(
-      //   'https://5x2p27zf-3000.inc1.devtunnels.ms/',
-      //   'Development Tunnel',
-      // )
-      .addServer('http://localhost:3001', 'Development Server')
-      // .addServer(
-       // 'https://programmatic.api.oceanadnetwork.com',
-        //'Production Server',
-      //)
-      .addServer(
-        'http://13.202.24.106', 'Production Server',
-      )
-      .addBearerAuth()
-      .build();
+  const config = new DocumentBuilder()
+    .setTitle('OceanAdTech API Documentation')
+    .setDescription('Documentation for OceanAdTech API')
+    .setVersion('1.0')
+    .setOpenAPIVersion('3.0.0')
+    // .addServer(
+    //   'https://5x2p27zf-3000.inc1.devtunnels.ms/',
+    //   'Development Tunnel',
+    // )
+    // .addServer('http://localhost:3001', 'Development Server')
+    // .addServer(
+    // 'https://programmatic.api.oceanadnetwork.com',
+    //'Production Server',
+    //)
+    .addServer(
+      'https://programmatic-adtech-backend.atharvajadhav.dev', 'Production Server',
+    )
+    .addBearerAuth()
+    .build();
 
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('swagger', app, document, {
-      swaggerUiEnabled: true,
-      customSiteTitle: 'OceanAdTech API Docs',
-      explorer: true,
-      jsonDocumentUrl: '/api-json',
-      useGlobalPrefix: true,
-    });
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('swagger', app, document, {
+    swaggerUiEnabled: true,
+    customSiteTitle: 'OceanAdTech API Docs',
+    explorer: true,
+    jsonDocumentUrl: '/api-json',
+    useGlobalPrefix: false,
+  });
 
-    // app.use(
-    //   '/api',
-    //   apiReference({
-    //     content: document,
-    //     theme: 'bluePlanet',
-    //   }),
-    // );
+  // app.use(
+  //   '/api',
+  //   apiReference({
+  //     content: document,
+  //     theme: 'bluePlanet',
+  //   }),
+  // );
 
-    app.use(
-      '/api-swagger',
-      apiReference({
-        content: document,
-        theme: 'bluePlanet',
-      }),
-    );
+  app.use(
+    '/api-swagger',
+    apiReference({
+      content: document,
+      theme: 'bluePlanet',
+    }),
+  );
   // }
 
   const port = configService.get<number>('port') || 3001;
