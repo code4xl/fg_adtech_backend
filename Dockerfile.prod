@@ -1,6 +1,68 @@
-FROM node:23 AS builder
+# FROM node:23 AS builder
 
+# WORKDIR /usr/src/app
+
+# # Install pnpm
+# RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# # Copy dependency files
+# COPY pnpm-lock.yaml package.json ./
+
+# # Install ALL dependencies (including dev dependencies for build)
+# RUN pnpm install --frozen-lockfile
+
+# # Copy source code
+# COPY . .
+
+# # Generate Prisma client
+# RUN npx prisma generate
+
+# # Build the application
+# RUN pnpm run build
+
+# # Production stage
+# FROM node:23-slim AS production
+
+# ARG NODE_ENV=production
+# ENV NODE_ENV=${NODE_ENV}
+
+# WORKDIR /usr/src/app
+
+# # Install pnpm
+# RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# # Copy dependency files
+# COPY pnpm-lock.yaml package.json ./
+
+# # Install only production dependencies
+# RUN pnpm install --prod --frozen-lockfile
+
+# # Copy built application from builder
+# COPY --from=builder /usr/src/app/dist ./dist
+# COPY --from=builder /usr/src/app/prisma ./prisma
+
+# # Generate Prisma client in production stage
+# # RUN npx prisma generate
+
+# # Fix ownership - IMPORTANT: Do this BEFORE switching to node user
+# RUN chown -R node:node /usr/src/app
+
+# # Use non-root user for security
+# USER node
+
+# # Expose port
+# EXPOSE 3001
+
+# # Start application
+# CMD ["node", "dist/src/main.js"]
+
+
+
+FROM node:23 AS builder
 WORKDIR /usr/src/app
+
+# Install OpenSSL
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
@@ -8,25 +70,28 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 # Copy dependency files
 COPY pnpm-lock.yaml package.json ./
 
-# Install ALL dependencies (including dev dependencies for build)
+# Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
+# Copy source code and prisma schema
 COPY . .
 
 # Generate Prisma client
-RUN npx prisma generate
+RUN pnpm prisma generate
 
-# Build the application
+# Build
 RUN pnpm run build
 
 # Production stage
 FROM node:23-slim AS production
-
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
-
 WORKDIR /usr/src/app
+
+# Install OpenSSL
+RUN apt-get update -y && \
+    apt-get install -y openssl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
@@ -34,26 +99,26 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 # Copy dependency files
 COPY pnpm-lock.yaml package.json ./
 
-# Install only production dependencies
-RUN pnpm install --prod --frozen-lockfile
-
-# Copy built application from builder
-COPY --from=builder /usr/src/app/dist ./dist
+# Copy prisma schema BEFORE installing dependencies
 COPY --from=builder /usr/src/app/prisma ./prisma
 
-# Generate Prisma client in production stage
-# RUN npx prisma generate
+# Install ALL dependencies
+RUN pnpm install --frozen-lockfile
 
-# Fix ownership - IMPORTANT: Do this BEFORE switching to node user
+# Generate Prisma client in production
+RUN pnpm prisma generate
+
+# Verify .prisma folder exists
+RUN ls -la node_modules/.prisma/client/ || echo "Prisma client not found!"
+
+# Copy built app from builder
+COPY --from=builder /usr/src/app/dist ./dist
+
+# Fix ownership
 RUN chown -R node:node /usr/src/app
 
-# Use non-root user for security
+# Use non-root user
 USER node
 
-# Expose port
 EXPOSE 3001
-
-# Start application
 CMD ["node", "dist/src/main.js"]
-
-
