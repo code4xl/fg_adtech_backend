@@ -1,6 +1,8 @@
 FROM node:23 AS builder
-
 WORKDIR /usr/src/app
+
+# Install OpenSSL for Prisma
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
@@ -22,11 +24,14 @@ RUN pnpm run build
 
 # Production stage
 FROM node:23-slim AS production
-
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
-
 WORKDIR /usr/src/app
+
+# ⚠️ CRITICAL: Install OpenSSL for Prisma in production stage
+RUN apt-get update -y && \
+    apt-get install -y openssl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
@@ -40,6 +45,10 @@ RUN pnpm install --prod --frozen-lockfile
 # Copy built application from builder
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/prisma ./prisma
+
+# Copy Prisma client from builder (important!)
+COPY --from=builder /usr/src/app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /usr/src/app/node_modules/@prisma ./node_modules/@prisma
 
 # Generate Prisma client in production stage
 RUN npx prisma generate
