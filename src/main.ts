@@ -1,4 +1,4 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import {
@@ -18,6 +18,7 @@ import { apiReference } from '@scalar/nestjs-api-reference';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { RedisIoAdapter } from './redis/adapters/redis-io.adapter';
+import { ApiKeyGuard } from './common/guards/api-key.guard';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -29,6 +30,10 @@ async function bootstrap() {
     }),
   });
   const configService = app.get(ConfigService);
+  const reflector = app.get(Reflector);
+
+  // Apply API Key Guard globally to ALL routes
+  app.useGlobalGuards(new ApiKeyGuard(configService, reflector));
 
   // Enable CORS with comprehensive configuration
   app.enableCors({
@@ -199,6 +204,14 @@ async function bootstrap() {
     //)
     .addServer(
       'https://programmatic-adtech-backend.atharvajadhav.dev', 'Production Server',
+    ).addApiKey(
+      {
+        type: 'apiKey',
+        name: 'X-API-Key',
+        in: 'header',
+        description: 'Enter your API Key',
+      },
+      'X-API-Key',
     )
     .addBearerAuth()
     .build();
