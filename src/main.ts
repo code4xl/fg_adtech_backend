@@ -78,6 +78,7 @@ async function bootstrap() {
             'cdn.jsdelivr.net',
             'http://localhost:3001',
             'http://127.0.0.1:3001',
+            'http://13.202.24.106',
             'http://localhost:*',
             'http://127.0.0.1:*'
           ],
@@ -95,6 +96,8 @@ async function bootstrap() {
             "'self'",
             'http://localhost:3001',
             'http://127.0.0.1:3001',
+            'http://13.202.24.106',        // Add this
+            'http://13.202.24.106:3001',   // Add this
             'http://localhost:*',
             'http://127.0.0.1:*',
             'https://5x2p27zf-3000.inc1.devtunnels.ms',
@@ -142,7 +145,7 @@ async function bootstrap() {
   });
 
   // Swagger API documentation
-  if (process.env.NODE_ENV !== 'production') {
+  // if (process.env.NODE_ENV !== 'production') {
     app.use(morgan('dev'));
     app.useGlobalInterceptors(new LoggingInterceptor());
 
@@ -156,9 +159,12 @@ async function bootstrap() {
       //   'Development Tunnel',
       // )
       .addServer('http://localhost:3001', 'Development Server')
+      // .addServer(
+       // 'https://programmatic.api.oceanadnetwork.com',
+        //'Production Server',
+      //)
       .addServer(
-        'https://programmatic.api.oceanadnetwork.com',
-        'Production Server',
+        'http://13.202.24.106', 'Production Server',
       )
       .addBearerAuth()
       .build();
@@ -187,9 +193,9 @@ async function bootstrap() {
         theme: 'bluePlanet',
       }),
     );
-  }
+  // }
 
-  const port = configService.get<number>('port') || 3000;
+  const port = configService.get<number>('port') || 3001;
   await app.listen(port);
 }
 bootstrap();
