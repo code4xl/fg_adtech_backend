@@ -44,6 +44,8 @@ async function bootstrap() {
       'http://127.0.0.1:5501',
       'http://localhost:8080',
       'http://127.0.0.1:8080',
+      'http://13.202.24.106',           // Add your EC2 IP
+      'http://13.202.24.106:3001', 
       /^http:\/\/localhost:\d+$/,
       /^http:\/\/127\.0\.0\.1:\d+$/,
       '*', // Allow all origins for tracking endpoints
