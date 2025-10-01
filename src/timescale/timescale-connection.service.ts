@@ -65,7 +65,10 @@ export class TimescaleDBConnection implements OnModuleInit, OnModuleDestroy {
 
         // SSL configuration for production
         ssl:
-          false,
+          // this.configService.get('nodeEnv') === 'production'
+          //   ? { rejectUnauthorized: false }
+          //   : false,
+          false
       });
 
       // Test connection

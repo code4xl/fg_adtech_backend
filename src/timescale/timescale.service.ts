@@ -579,9 +579,7 @@ export class TimescaleService implements OnModuleInit {
 
         // SSL configuration for production
         ssl:
-          this.configService.get('NODE_ENV') === 'production'
-            ? { rejectUnauthorized: false }
-            : false,
+          false,
       });
 
       // Test connection

@@ -98,9 +98,10 @@ export default () => ({
       ? parseInt(process.env.TIMESCALEDB_POOL_TIMEOUT, 10)
       : 5000,
     // SSL settings
-    ssl:
-      process.env.NODE_ENV === 'production' ||
-      process.env.TIMESCALE_DATABASE_URL?.includes('sslmode=require'),
+    // ssl:
+    //   process.env.NODE_ENV === 'production' ||
+    //   process.env.TIMESCALE_DATABASE_URL?.includes('sslmode=require'),
+    ssl: false,
   },
   tracking: {
     baseUrl: process.env.TRACKING_URL || 'http://localhost:3000/',
