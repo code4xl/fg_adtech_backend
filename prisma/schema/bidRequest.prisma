@@ -1,31 +1,21 @@
 model BidRequest {
-  id                String @id @default(uuid()) @db.Uuid
-  externalRequestId String @unique // From SDK
-  inventoryId       String @db.Uuid
-  publisherId       String @db.Uuid
-  websiteId         String @db.Uuid
-
-  // Enhanced context
-  userContext   Json // Device, geo, behavioral data
-  adSlotContext Json // Size, position, format requirements
-  floorPrice    Decimal? @db.Decimal(10, 4)
-
-  // Auction settings
-  auctionType AuctionType @default(SECOND_PRICE)
-  timeout     Int         @default(200)
-
-  // Timestamps
-  requestTimestamp DateTime  @default(now())
-  processedAt      DateTime?
-
-  // Relations
-  inventory AdInventory @relation(fields: [inventoryId], references: [id])
-  publisher Publisher   @relation(fields: [publisherId], references: [id])
-  website   Website     @relation(fields: [websiteId], references: [id])
-
-  // One-to-many relations
-  bidResponses BidResponse[]
-  auctionLog   AuctionLog?
+  id                String        @id @default(uuid()) @db.Uuid
+  inventoryId       String        @db.Uuid
+  publisherId       String        @db.Uuid
+  requestTimestamp  DateTime      @default(now())
+  auctionType       AuctionType   @default(SECOND_PRICE)
+  timeout           Int           @default(200)
+  websiteId         String        @db.Uuid
+  adSlotContext     Json
+  externalRequestId String        @unique
+  floorPrice        Decimal?      @db.Decimal(10, 4)
+  processedAt       DateTime?
+  userContext       Json
+  auctionLog        AuctionLog?
+  inventory         AdInventory   @relation(fields: [inventoryId], references: [id])
+  publisher         Publisher     @relation(fields: [publisherId], references: [id])
+  website           Website       @relation(fields: [websiteId], references: [id])
+  bidResponses      BidResponse[]
 
   @@index([requestTimestamp])
   @@index([inventoryId, requestTimestamp])

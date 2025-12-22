@@ -5,7 +5,7 @@ model Notification {
   title     String
   message   String
   isRead    Boolean  @default(false)
-  data      Json? // Additional structured data
+  data      Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

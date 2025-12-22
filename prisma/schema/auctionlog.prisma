@@ -1,29 +1,19 @@
 model AuctionLog {
-  id           String @id @default(uuid()) @db.Uuid
-  bidRequestId String @unique @db.Uuid
-
-  // Auction details
-  auctionType  AuctionType
-  floorPrice   Decimal?    @db.Decimal(10, 4)
-  winningBidId String?     @db.Uuid
-  finalPrice   Decimal?    @db.Decimal(10, 4)
-
-  // Performance metrics
-  totalBids       Int  @default(0)
-  validBids       Int  @default(0)
-  auctionDuration Int? // Milliseconds
-
-  // Status and timestamps
-  status      AuctionStatus @default(PROCESSING)
-  startedAt   DateTime      @default(now())
-  completedAt DateTime?
-
-  // Debug information
-  errorMessage String?
-  debugData    Json?
-
-  // Relations
-  bidRequest BidRequest @relation(fields: [bidRequestId], references: [id], onDelete: Cascade)
+  id              String        @id @default(uuid()) @db.Uuid
+  bidRequestId    String        @unique @db.Uuid
+  winningBidId    String?       @db.Uuid
+  floorPrice      Decimal?      @db.Decimal(10, 4)
+  finalPrice      Decimal?      @db.Decimal(10, 4)
+  totalBids       Int           @default(0)
+  auctionDuration Int?
+  errorMessage    String?
+  debugData       Json?
+  auctionType     AuctionType
+  completedAt     DateTime?
+  startedAt       DateTime      @default(now())
+  validBids       Int           @default(0)
+  status          AuctionStatus @default(PROCESSING)
+  bidRequest      BidRequest    @relation(fields: [bidRequestId], references: [id], onDelete: Cascade)
 
   @@index([status, startedAt])
   @@index([completedAt])

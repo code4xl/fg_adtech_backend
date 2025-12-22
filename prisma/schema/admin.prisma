@@ -3,7 +3,6 @@ model Admin {
   name                String
   email               String    @unique
   password            String
-  // MFA fields
   mfaEnabled          Boolean   @default(false)
   mfaVerificationCode String?
   mfaCodeExpiry       DateTime?

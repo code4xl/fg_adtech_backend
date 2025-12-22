@@ -3,35 +3,33 @@ model AdInventory {
   publisherId          String                 @db.Uuid
   name                 String
   isActive             Boolean                @default(true)
-  adSlotTemplateId     String                 @db.Uuid
-  adSlotTemplate       AdSlotTemplate         @relation(fields: [adSlotTemplateId], references: [id])
   viewabilityScore     Float?
   approvalStatus       ApprovalStatus         @default(PENDING)
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
   websiteId            String                 @db.Uuid
+  adSlotTemplateId     String                 @db.Uuid
   adSlotScript         String?
   containerHTML        String?
+  adSlotTemplate       AdSlotTemplate         @relation(fields: [adSlotTemplateId], references: [id])
   publisher            Publisher              @relation(fields: [publisherId], references: [id])
-  floorPrices          FloorPrice[]
-  bidRequests          BidRequest[]
-  demographicTargeting DemographicTargeting[]
-  geographicTargeting  GeographicTargeting[]
-  deviceTargeting      DeviceTargeting[]
-  contextualTargeting  ContextualTargeting[]
-  behavioralTargeting  BehavioralTargeting[]
-  timeTargeting        TimeTargeting[]
-  frequencyTargeting   FrequencyTargeting[]
-  hourlyMetrics        HourlyMetrics[]
   website              Website                @relation(fields: [websiteId], references: [id])
+  behavioralTargeting  BehavioralTargeting[]
+  bidRequests          BidRequest[]
+  ClickEvent           ClickEvent[]
+  contextualTargeting  ContextualTargeting[]
+  demographicTargeting DemographicTargeting[]
+  deviceTargeting      DeviceTargeting[]
+  floorPrices          FloorPrice[]
+  frequencyTargeting   FrequencyTargeting[]
+  geographicTargeting  GeographicTargeting[]
+  hourlyMetrics        HourlyMetrics[]
+  ImpressionEvent      ImpressionEvent[]
+  PublisherRevenue     PublisherRevenue[]
+  SystemRevenue        SystemRevenue[]
+  timeTargeting        TimeTargeting[]
 
-  ImpressionEvent ImpressionEvent[]
-
-  ClickEvent       ClickEvent[]
-  SystemRevenue    SystemRevenue[]
-  PublisherRevenue PublisherRevenue[]
-
-  @@index([id, publisherId], name: "inventory_publisher_idx")
-  @@index([adSlotTemplateId, isActive], name: "inventory_template_active_idx")
-  @@index([publisherId, isActive, approvalStatus], name: "inventory_eligible_idx")
+  @@index([id, publisherId], map: "inventory_publisher_idx")
+  @@index([adSlotTemplateId, isActive], map: "inventory_template_active_idx")
+  @@index([publisherId, isActive, approvalStatus], map: "inventory_eligible_idx")
 }

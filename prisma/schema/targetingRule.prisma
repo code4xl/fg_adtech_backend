@@ -1,23 +1,17 @@
-// DEMOGRAPHIC TARGETING
 model DemographicTargeting {
-  id          String  @id @default(uuid()) @db.Uuid
-  campaignId  String? @db.Uuid
-  inventoryId String? @db.Uuid
-
-  // Demographic fields with proper enums
+  id          String        @id @default(uuid()) @db.Uuid
+  campaignId  String?       @db.Uuid
+  inventoryId String?       @db.Uuid
   ageMin      Int?
   ageMax      Int?
-  genders     Gender[]
   languages   Language[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  incomeRange IncomeRange[]
+  genders     Gender[]
   education   Education[]
-  incomeRange IncomeRange[] // Using enum instead of min/max integers
-
-  // Relationship
-  campaign  Campaign?    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  inventory AdInventory? @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  campaign    Campaign?     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  inventory   AdInventory?  @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
 
   @@index([campaignId])
   @@index([inventoryId])
@@ -25,30 +19,22 @@ model DemographicTargeting {
   @@index([ageMin, ageMax, campaignId])
 }
 
-// GEOGRAPHIC TARGETING
 model GeographicTargeting {
-  id          String  @id @default(uuid()) @db.Uuid
-  campaignId  String? @db.Uuid
-  inventoryId String? @db.Uuid
-
-  // Geographic fields with proper enums
-  countries   String[] // Using ISO 3166-1 alpha-2 codes for countries
-  states      String[] // For Indian states, could be extended for other countries
-  cities      String[] // Keep as string since city names vary widely
+  id          String       @id @default(uuid()) @db.Uuid
+  campaignId  String?      @db.Uuid
+  inventoryId String?      @db.Uuid
+  countries   String[]
+  states      String[]
+  cities      String[]
   postalCodes String[]
-  radius      Int? // Radius in KM for location targeting
+  radius      Int?
   latitude    Float?
   longitude   Float?
-
-  // Include/Exclude logic
-  isInclude Boolean @default(true) // true = include, false = exclude
-
-  // Relationships
-  campaign  Campaign?    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  inventory AdInventory? @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isInclude   Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  campaign    Campaign?    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  inventory   AdInventory? @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
 
   @@index([campaignId])
   @@index([inventoryId])
@@ -56,32 +42,22 @@ model GeographicTargeting {
   @@index([countries, campaignId])
 }
 
-// DEVICE TARGETING
 model DeviceTargeting {
-  id          String  @id @default(uuid()) @db.Uuid
-  campaignId  String? @db.Uuid
-  inventoryId String? @db.Uuid
-
-  // Device fields with proper enums
+  id               String            @id @default(uuid()) @db.Uuid
+  campaignId       String?           @db.Uuid
+  inventoryId      String?           @db.Uuid
+  minOSVersion     String?
+  maxOSVersion     String?
+  deviceModels     String[]
+  isInclude        Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
   deviceTypes      DeviceType[]
   operatingSystems OperatingSystem[]
   browsers         BrowserType[]
   connectionTypes  ConnectionType[]
-
-  // Mobile specific
-  minOSVersion String?
-  maxOSVersion String?
-  deviceModels String[] // Keep as string since device models vary widely
-
-  // Include/Exclude logic
-  isInclude Boolean @default(true)
-
-  // Relationships
-  campaign  Campaign?    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  inventory AdInventory? @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  campaign         Campaign?         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  inventory        AdInventory?      @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
 
   @@index([campaignId])
   @@index([inventoryId])
@@ -89,102 +65,70 @@ model DeviceTargeting {
   @@index([deviceTypes, campaignId])
 }
 
-// CONTEXTUAL TARGETING
 model ContextualTargeting {
-  id          String  @id @default(uuid()) @db.Uuid
-  campaignId  String? @db.Uuid
-  inventoryId String? @db.Uuid
-
-  // Context fields with proper enums
+  id                String             @id @default(uuid()) @db.Uuid
+  campaignId        String?            @db.Uuid
+  inventoryId       String?            @db.Uuid
   contentCategories BusinessCategory[]
-  keywords          String[] // Keywords to match in page content
-  urlPatterns       String[] // URL patterns to match
+  keywords          String[]
+  urlPatterns       String[]
+  blockedKeywords   String[]
+  isInclude         Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
   pageTypes         PageType[]
   brandSafety       BrandSafety[]
-
-  // Content safety
-  blockedKeywords String[] // Keywords to avoid
-
-  // Include/Exclude logic
-  isInclude Boolean @default(true)
-
-  // Relationships
-  campaign  Campaign?    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  inventory AdInventory? @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  campaign          Campaign?          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  inventory         AdInventory?       @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
 
   @@index([campaignId])
   @@index([inventoryId])
   @@index([contentCategories])
 }
 
-// BEHAVIORAL TARGETING
 model BehavioralTargeting {
-  id          String  @id @default(uuid()) @db.Uuid
-  campaignId  String? @db.Uuid
-  inventoryId String? @db.Uuid
-
-  // Behavioral fields with proper enums
+  id                String              @id @default(uuid()) @db.Uuid
+  campaignId        String?             @db.Uuid
+  inventoryId       String?             @db.Uuid
   interests         CampaignInterest[]
+  avgOrderValue     Decimal?            @db.Decimal(10, 2)
+  sessionDuration   Int?
+  pageViews         Int?
+  isInclude         Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  audienceTypes     AudienceType[]
+  sessionEngagement SessionEngagement[]
+  userSegments      UserSegment[]
   purchaseIntent    PurchaseIntent[]
   lifestyleSegments LifestyleSegment[]
-  audienceTypes     AudienceType[]
-  userSegments      UserSegment[]
-
-  // Shopping behavior with enums
   purchaseFrequency PurchaseFrequency[]
-  sessionEngagement SessionEngagement[]
-
-  // Numeric thresholds
-  avgOrderValue   Decimal? @db.Decimal(10, 2)
-  sessionDuration Int? // Minutes
-  pageViews       Int? // Average page views per session
-
-  // Include/Exclude logic
-  isInclude Boolean @default(true)
-
-  // Relationships
-  campaign  Campaign?    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  inventory AdInventory? @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  campaign          Campaign?           @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  inventory         AdInventory?        @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
 
   @@index([campaignId])
   @@index([inventoryId])
   @@index([interests])
 }
 
-// TIME TARGETING
 model TimeTargeting {
-  id          String  @id @default(uuid()) @db.Uuid
-  campaignId  String? @db.Uuid
-  inventoryId String? @db.Uuid
-
-  // Time fields with proper enums
-  timezone     String        @default("Asia/Kolkata")
-  timeSlots    TimeSlot[] // Predefined time slots
-  daysOfWeek   DayOfWeek[] // Using enum instead of integers
-  holidayTypes HolidayType[]
-
-  // Fine-grained control (optional)
-  startHour Int? // 0-23
-  endHour   Int? // 0-23
-  startDate DateTime?
-  endDate   DateTime?
-
-  // Special time periods
-  includeHolidays Boolean @default(true)
-  workingDaysOnly Boolean @default(false)
-
-  // Relationships
-  campaign  Campaign?    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  inventory AdInventory? @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String        @id @default(uuid()) @db.Uuid
+  campaignId      String?       @db.Uuid
+  inventoryId     String?       @db.Uuid
+  timezone        String        @default("Asia/Kolkata")
+  startHour       Int?
+  endHour         Int?
+  startDate       DateTime?
+  endDate         DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  holidayTypes    HolidayType[]
+  includeHolidays Boolean       @default(true)
+  timeSlots       TimeSlot[]
+  workingDaysOnly Boolean       @default(false)
+  daysOfWeek      DayOfWeek[]
+  campaign        Campaign?     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  inventory       AdInventory?  @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
 
   @@index([campaignId])
   @@index([inventoryId])
@@ -192,30 +136,20 @@ model TimeTargeting {
   @@index([daysOfWeek, campaignId])
 }
 
-// FREQUENCY TARGETING
 model FrequencyTargeting {
-  id          String  @id @default(uuid()) @db.Uuid
-  campaignId  String? @db.Uuid
-  inventoryId String? @db.Uuid
-
-  // Frequency fields with proper enums
-  maxImpressions  Int
-  frequencyWindow FrequencyWindow // Using enum instead of hours
-  frequencyScope  FrequencyScope // Using enum for scope
-
-  // Advanced frequency
-  maxClicksPerUser Int?
-  minTimeBetween   Int? // Minimum minutes between impressions
-
-  // Custom time window (if needed beyond enum)
-  customTimeWindowHours Int? // For flexibility
-
-  // Relationships
-  campaign  Campaign?    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  inventory AdInventory? @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                    String          @id @default(uuid()) @db.Uuid
+  campaignId            String?         @db.Uuid
+  inventoryId           String?         @db.Uuid
+  maxImpressions        Int
+  maxClicksPerUser      Int?
+  minTimeBetween        Int?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  customTimeWindowHours Int?
+  frequencyScope        FrequencyScope
+  frequencyWindow       FrequencyWindow
+  campaign              Campaign?       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  inventory             AdInventory?    @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
 
   @@index([campaignId])
   @@index([inventoryId])

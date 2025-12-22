@@ -1,0 +1,138 @@
+model AdvertiserBalance {
+  id              String     @id @db.Uuid
+  advertiserId    String     @unique @db.Uuid
+  availableCredit Decimal    @default(0) @db.Decimal(15, 2)
+  totalRefunded   Decimal    @default(0) @db.Decimal(15, 2)
+  autoUseCredit   Boolean    @default(true)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime
+  Advertiser      Advertiser @relation(fields: [advertiserId], references: [id])
+
+  @@index([advertiserId])
+}
+
+model CampaignPayment {
+  id             String          @id @db.Uuid
+  campaignId     String          @unique @db.Uuid
+  totalBudget    Decimal         @db.Decimal(15, 2)
+  totalPaid      Decimal         @db.Decimal(15, 2)
+  creditUsed     Decimal         @default(0) @db.Decimal(15, 2)
+  razorpayAmount Decimal         @db.Decimal(15, 2)
+  amountUsed     Decimal         @default(0) @db.Decimal(15, 2)
+  refundAmount   Decimal         @default(0) @db.Decimal(15, 2)
+  refundStatus   String          @default("PENDING")
+  refundMethod   String          @default("CREDIT")
+  paymentStatus  String          @default("PENDING")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime
+  Campaign       Campaign        @relation(fields: [campaignId], references: [id])
+  RazorpayOrder  RazorpayOrder[]
+
+  @@index([campaignId])
+  @@index([paymentStatus])
+}
+
+model PaymentTransaction {
+  id            String     @id @db.Uuid
+  advertiserId  String     @db.Uuid
+  type          String
+  amount        Decimal    @db.Decimal(15, 2)
+  currency      String     @default("INR")
+  campaignId    String?    @db.Uuid
+  orderId       String?    @db.Uuid
+  balanceBefore Decimal    @db.Decimal(15, 2)
+  balanceAfter  Decimal    @db.Decimal(15, 2)
+  description   String
+  metadata      Json?
+  createdAt     DateTime   @default(now())
+  Advertiser    Advertiser @relation(fields: [advertiserId], references: [id])
+
+  @@index([advertiserId, createdAt])
+  @@index([campaignId])
+  @@index([type, createdAt])
+}
+
+model PublisherBalance {
+  id                    String    @id
+  availableBalance      Decimal   @default(0) @db.Decimal(15, 2)
+  pendingBalance        Decimal   @default(0) @db.Decimal(15, 2)
+  totalEarnings         Decimal   @default(0) @db.Decimal(15, 2)
+  totalWithdrawn        Decimal   @default(0) @db.Decimal(15, 2)
+  lastWithdrawalAt      DateTime?
+  autoWithdrawEnabled   Boolean   @default(false)
+  autoWithdrawThreshold Decimal   @default(1000) @db.Decimal(15, 2)
+  autoWithdrawSchedule  String    @default("WEEKLY")
+  nextAutoWithdrawAt    DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime
+  publisherId           String    @unique @db.Uuid
+  Publisher             Publisher @relation(fields: [publisherId], references: [id], onDelete: Cascade)
+
+  @@index([autoWithdrawEnabled, nextAutoWithdrawAt])
+  @@index([publisherId])
+}
+
+model PublisherPayoutAccount {
+  id                    String                @id
+  accountType           String
+  accountHolderName     String
+  accountNumber         String?
+  ifscCode              String?
+  upiId                 String?
+  razorpayContactId     String?
+  razorpayFundAccountId String?
+  isVerified            Boolean               @default(false)
+  isActive              Boolean               @default(true)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime
+  publisherId           String                @db.Uuid
+  Publisher             Publisher             @relation(fields: [publisherId], references: [id], onDelete: Cascade)
+  PublisherWithdrawal   PublisherWithdrawal[]
+}
+
+model PublisherWithdrawal {
+  id                     String                 @id
+  payoutAccountId        String
+  amount                 Decimal                @db.Decimal(15, 2)
+  currency               String                 @default("INR")
+  status                 String                 @default("PENDING")
+  requestType            String                 @default("MANUAL")
+  razorpayPayoutId       String?
+  razorpayContactId      String?
+  razorpayFundAccountId  String?
+  failureReason          String?
+  requestedAt            DateTime               @default(now())
+  processedAt            DateTime?
+  completedAt            DateTime?
+  metadata               Json?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime
+  publisherId            String                 @db.Uuid
+  PublisherPayoutAccount PublisherPayoutAccount @relation(fields: [payoutAccountId], references: [id])
+  Publisher              Publisher              @relation(fields: [publisherId], references: [id])
+
+  @@index([publisherId, status])
+  @@index([status, requestedAt])
+}
+
+model RazorpayOrder {
+  id                String          @id @db.Uuid
+  campaignPaymentId String          @db.Uuid
+  razorpayOrderId   String          @unique
+  razorpayPaymentId String?
+  amount            Decimal         @db.Decimal(15, 2)
+  currency          String          @default("INR")
+  status            String          @default("PENDING")
+  paymentMethod     String          @default("UPI")
+  razorpaySignature String?
+  isVerified        Boolean         @default(false)
+  receipt           String
+  description       String?
+  createdAt         DateTime        @default(now())
+  paidAt            DateTime?
+  CampaignPayment   CampaignPayment @relation(fields: [campaignPaymentId], references: [id])
+
+  @@index([campaignPaymentId])
+  @@index([razorpayOrderId])
+  @@index([status])
+}

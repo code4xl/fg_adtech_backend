@@ -18,7 +18,7 @@ import { apiReference } from '@scalar/nestjs-api-reference';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { RedisIoAdapter } from './redis/adapters/redis-io.adapter';
-import { ApiKeyGuard } from './common/guards/api-key.guard';
+// import { ApiKeyGuard } from './common/guards/api-key.guard';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -32,8 +32,9 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const reflector = app.get(Reflector);
 
+
   // Apply API Key Guard globally to ALL routes
-  app.useGlobalGuards(new ApiKeyGuard(configService, reflector));
+  // app.useGlobalGuards(new ApiKeyGuard(configService, reflector));
 
   // Enable CORS with comprehensive configuration
   app.enableCors({
@@ -75,60 +76,20 @@ async function bootstrap() {
   });
 
   // Use Helmet for security headers (Development)
-  // app.use(
-  //   helmet({
-  //     contentSecurityPolicy: {
-  //       directives: {
-  //         defaultSrc: ["'self'"], // Note the quotes around 'self'
-  //         scriptSrc: [
-  //           "'self'",
-  //           "'unsafe-inline'",
-  //           'cdn.jsdelivr.net',
-  //           'http://localhost:3001',
-  //           'http://127.0.0.1:3001',
-  //           'http://13.202.24.106',
-  //           'http://localhost:*',
-  //           'http://127.0.0.1:*'
-  //         ],
-  //         styleSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
-  //         imgSrc: [
-  //           "'self'",
-  //           'data:',
-  //           'cdn.jsdelivr.net',
-  //           'https://s3.ap-south-1.amazonaws.com',
-  //           'https://bucket.programmatic.oceanadnetwork.s3.ap-south-1.amazonaws.com',
-  //           'https://*.s3.amazonaws.com',
-  //           'https://*.s3.ap-south-1.amazonaws.com'
-  //         ],
-  //         connectSrc: [
-  //           "'self'",
-  //           'http://localhost:3001',
-  //           'http://127.0.0.1:3001',
-  //           'http://13.202.24.106',        // Add this
-  //           'http://13.202.24.106:3001',   // Add this
-  //           'http://localhost:*',
-  //           'http://127.0.0.1:*',
-  //           'https://5x2p27zf-3000.inc1.devtunnels.ms',
-  //           'https://programmatic.api.oceanadnetwork.com',
-  //           'http://localhost:3001/track',
-  //           'http://127.0.0.1:3001/track',
-  //         ],
-  //       },
-  //     },
-  //     crossOriginResourcePolicy: { policy: "cross-origin" },
-  //   }),
-  // );
-
-  // Production (Atharva)
   app.use(
     helmet({
       contentSecurityPolicy: {
         directives: {
-          defaultSrc: ["'self'"],
+          defaultSrc: ["'self'"], // Note the quotes around 'self'
           scriptSrc: [
             "'self'",
             "'unsafe-inline'",
             'cdn.jsdelivr.net',
+            'http://localhost:3001',
+            'http://127.0.0.1:3001',
+            'http://13.202.24.106',
+            'http://localhost:*',
+            'http://127.0.0.1:*'
           ],
           styleSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
           imgSrc: [
@@ -142,13 +103,53 @@ async function bootstrap() {
           ],
           connectSrc: [
             "'self'",
-            'https://programmatic-adtech-backend.atharvajadhav.dev'
+            'http://localhost:3001',
+            'http://127.0.0.1:3001',
+            'http://13.202.24.106',        // Add this
+            'http://13.202.24.106:3001',   // Add this
+            'http://localhost:*',
+            'http://127.0.0.1:*',
+            'https://5x2p27zf-3000.inc1.devtunnels.ms',
+            'https://programmatic.api.oceanadnetwork.com',
+            'http://localhost:3001/track',
+            'http://127.0.0.1:3001/track',
           ],
         },
       },
       crossOriginResourcePolicy: { policy: "cross-origin" },
     }),
   );
+
+  // Production (Atharva)
+  // app.use(
+  //   helmet({
+  //     contentSecurityPolicy: {
+  //       directives: {
+  //         defaultSrc: ["'self'"],
+  //         scriptSrc: [
+  //           "'self'",
+  //           "'unsafe-inline'",
+  //           'cdn.jsdelivr.net',
+  //         ],
+  //         styleSrc: ["'self'", "'unsafe-inline'", 'cdn.jsdelivr.net'],
+  //         imgSrc: [
+  //           "'self'",
+  //           'data:',
+  //           'cdn.jsdelivr.net',
+  //           'https://s3.ap-south-1.amazonaws.com',
+  //           'https://bucket.programmatic.oceanadnetwork.s3.ap-south-1.amazonaws.com',
+  //           'https://*.s3.amazonaws.com',
+  //           'https://*.s3.ap-south-1.amazonaws.com'
+  //         ],
+  //         connectSrc: [
+  //           "'self'",
+  //           'https://programmatic-adtech-backend.atharvajadhav.dev'
+  //         ],
+  //       },
+  //     },
+  //     crossOriginResourcePolicy: { policy: "cross-origin" },
+  //   }),
+  // );
 
   // Use compression
   app.use(compression());
@@ -169,6 +170,10 @@ async function bootstrap() {
 
   app.useStaticAssets(join(process.cwd(), 'uploads'), {
     prefix: '/uploads/',
+  });
+
+  app.useStaticAssets(join(process.cwd(), 'cdn-files', 'p'), {
+    prefix: '/p/',
   });
 
   // Create and configure the Redis IO adapter
@@ -193,26 +198,26 @@ async function bootstrap() {
     .setDescription('Documentation for OceanAdTech API')
     .setVersion('1.0')
     .setOpenAPIVersion('3.0.0')
-    // .addServer(
-    //   'https://5x2p27zf-3000.inc1.devtunnels.ms/',
-    //   'Development Tunnel',
-    // )
-    // .addServer('http://localhost:3001', 'Development Server')
+    .addServer(
+      'https://5x2p27zf-3000.inc1.devtunnels.ms/',
+      'Development Tunnel',
+    )
+    .addServer('http://localhost:3001', 'Development Server')
     // .addServer(
     // 'https://programmatic.api.oceanadnetwork.com',
-    //'Production Server',
-    //)
-    .addServer(
-      'https://programmatic-adtech-backend.atharvajadhav.dev', 'Production Server',
-    ).addApiKey(
-      {
-        type: 'apiKey',
-        name: 'X-API-Key',
-        in: 'header',
-        description: 'Enter your API Key',
-      },
-      'X-API-Key',
-    )
+    // 'Production Server',
+    // )
+    // .addServer(
+    //   'https://programmatic-adtech-backend.atharvajadhav.dev', 'Production Server',
+    // ).addApiKey(
+    //   {
+    //     type: 'apiKey',
+    //     name: 'X-API-Key',
+    //     in: 'header',
+    //     description: 'Enter your API Key',
+    //   },
+    //   'X-API-Key',
+    // )
     .addBearerAuth()
     .build();
 

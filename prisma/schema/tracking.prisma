@@ -1,136 +1,95 @@
-// Models for Timescale sync metadata
 model TimescaleSyncLog {
-    id           String   @id @default(uuid()) @db.Uuid
-    tableName    String // impressions, clicks, bids
-    lastSyncTime DateTime
-    recordCount  Int
-    status       String // SUCCESS, FAILED, PARTIAL
-    errorMessage String?
-    createdAt    DateTime @default(now())
+  id           String   @id @default(uuid()) @db.Uuid
+  tableName    String
+  lastSyncTime DateTime
+  recordCount  Int
+  status       String
+  errorMessage String?
+  createdAt    DateTime @default(now())
 
-    @@index([tableName, lastSyncTime])
+  @@index([tableName, lastSyncTime])
 }
 
 model ImpressionEvent {
-    id String @id @default(uuid()) @db.Uuid
+  id                String       @id @default(uuid()) @db.Uuid
+  creativeId        String       @db.Uuid
+  bidResponseId     String       @db.Uuid
+  campaignId        String       @db.Uuid
+  advertiserId      String       @db.Uuid
+  inventoryId       String       @db.Uuid
+  publisherId       String       @db.Uuid
+  websiteId         String       @db.Uuid
+  timestamp         DateTime     @default(now())
+  userAgent         String?
+  ipAddress         String?
+  deviceType        String?
+  viewable          Boolean?
+  viewTime          BigInt?
+  isBot             Boolean?     @default(false)
+  fraudScore        Float?
+  syncedAt          DateTime?
+  syncedToTimescale Boolean      @default(false)
+  createdAt         DateTime     @default(now())
+  city              String?
+  country           String?
+  region            String?
+  bidPrice          Float?
+  slotId            String?      @db.VarChar(100)
+  userFingerprint   String?      @db.VarChar(50)
+  templateId        String?      @db.Uuid
+  finalPrice        Float?
+  ClickEvent        ClickEvent[]
+  campaign          Campaign     @relation(fields: [campaignId], references: [id])
+  creative          Creative     @relation(fields: [creativeId], references: [id])
+  inventory         AdInventory  @relation(fields: [inventoryId], references: [id])
+  publisher         Publisher    @relation(fields: [publisherId], references: [id])
 
-    // PRIMARY: Creative that was displayed
-    creativeId    String @db.Uuid
-    bidResponseId String @db.Uuid
-
-    // HIERARCHY: All related entities for multi-dimensional analytics
-    campaignId   String  @db.Uuid
-    advertiserId String  @db.Uuid
-    inventoryId  String  @db.Uuid
-    publisherId  String  @db.Uuid
-    websiteId    String  @db.Uuid
-    templateId   String? @db.Uuid // Specific slot on the website
-
-    // Financial
-    bidPrice   Float? // Price paid for the impression
-    finalPrice Float? // Final price after any adjustments
-
-    // TECHNICAL DETAILS
-    timestamp  DateTime @default(now())
-    userAgent  String?
-    ipAddress  String?
-    deviceType String?
-
-    // Geo LOCATION
-    country String? // Country of the user
-    region  String? // Region or state of the user
-    city    String? // City of the user
-
-    // VIEWABILITY METRICS (IAB standards)
-    viewable Boolean? // Was it viewable per IAB standards
-    viewTime BigInt? // Milliseconds in view
-
-    // FRAUD DETECTION
-    isBot      Boolean? @default(false)
-    fraudScore Float? // 0.0 to 1.0
-
-    slotId          String? @db.VarChar(100) // Impression slot for linking
-    userFingerprint String? @db.VarChar(50) // User fingerprint for fallback linking
-
-    // SYNC STATUS
-    syncedToTimescale Boolean   @default(false)
-    syncedAt          DateTime?
-
-    createdAt DateTime @default(now()) // Record creation time
-
-    // RELATIONS
-    creative   Creative     @relation(fields: [creativeId], references: [id])
-    campaign   Campaign     @relation(fields: [campaignId], references: [id])
-    inventory  AdInventory  @relation(fields: [inventoryId], references: [id])
-    publisher  Publisher    @relation(fields: [publisherId], references: [id])
-    ClickEvent ClickEvent[]
-
-    @@index([creativeId, timestamp]) // Primary: Creative performance
-    @@index([campaignId, timestamp]) // Campaign analytics
-    @@index([inventoryId, timestamp]) // Inventory performance
-    @@index([publisherId, timestamp]) // Publisher earnings
-    @@index([timestamp]) // Time-based queries
-    @@index([syncedToTimescale]) // Sync management
+  @@index([creativeId, timestamp])
+  @@index([campaignId, timestamp])
+  @@index([inventoryId, timestamp])
+  @@index([publisherId, timestamp])
+  @@index([timestamp])
+  @@index([syncedToTimescale])
 }
 
 model ClickEvent {
-    id String @id @default(uuid()) @db.Uuid
+  id                 String           @id @default(uuid()) @db.Uuid
+  impressionId       String?          @db.Uuid
+  creativeId         String           @db.Uuid
+  bidResponseId      String           @db.Uuid
+  campaignId         String           @db.Uuid
+  advertiserId       String           @db.Uuid
+  inventoryId        String           @db.Uuid
+  publisherId        String           @db.Uuid
+  websiteId          String           @db.Uuid
+  timestamp          DateTime         @default(now())
+  userAgent          String?
+  ipAddress          String?
+  deviceType         String?
+  landingUrl         String?
+  isBot              Boolean?         @default(false)
+  fraudScore         Float?
+  timeFromImpression Int?
+  syncedAt           DateTime?
+  syncedToTimescale  Boolean          @default(false)
+  createdAt          DateTime         @default(now())
+  city               String?
+  country            String?
+  region             String?
+  slotId             String?          @db.VarChar(100)
+  userFingerprint    String?          @db.VarChar(50)
+  templateId         String?          @db.Uuid
+  campaign           Campaign         @relation(fields: [campaignId], references: [id])
+  creative           Creative         @relation(fields: [creativeId], references: [id])
+  impression         ImpressionEvent? @relation(fields: [impressionId], references: [id])
+  inventory          AdInventory      @relation(fields: [inventoryId], references: [id])
+  publisher          Publisher        @relation(fields: [publisherId], references: [id])
 
-    // LINK TO IMPRESSION
-    impressionId String? @db.Uuid // Link back to impression if available
-
-    // PRIMARY: Creative that was clicked
-    creativeId    String @db.Uuid
-    bidResponseId String @db.Uuid
-
-    // HIERARCHY: All related entities
-    campaignId   String  @db.Uuid
-    advertiserId String  @db.Uuid
-    inventoryId  String  @db.Uuid
-    publisherId  String  @db.Uuid
-    websiteId    String  @db.Uuid
-    templateId   String? @db.Uuid
-
-    // TECHNICAL DETAILS
-    timestamp  DateTime @default(now())
-    userAgent  String?
-    ipAddress  String?
-    deviceType String?
-
-    // LANDING PAGE
-    landingUrl String? // Where user was redirected
-
-    // FRAUD DETECTION
-    isBot              Boolean? @default(false)
-    fraudScore         Float?
-    timeFromImpression Int? // Milliseconds from impression to click
-
-    // GEO LOCATION
-    country String? // Country of the user
-    region  String? // Region or state of the user
-    city    String? // City of the user
-
-    slotId          String? @db.VarChar(100) // Impression slot for linking
-    userFingerprint String? @db.VarChar(50) // User fingerprint for fallback linking
-
-    // SYNC STATUS
-    syncedToTimescale Boolean   @default(false)
-    syncedAt          DateTime?
-
-    createdAt DateTime @default(now()) // Record creation time
-
-    // RELATIONS
-    impression ImpressionEvent? @relation(fields: [impressionId], references: [id])
-    creative   Creative         @relation(fields: [creativeId], references: [id])
-    campaign   Campaign         @relation(fields: [campaignId], references: [id])
-    inventory  AdInventory      @relation(fields: [inventoryId], references: [id])
-    publisher  Publisher        @relation(fields: [publisherId], references: [id])
-
-    @@index([creativeId, timestamp]) // Primary: Creative performance
-    @@index([campaignId, timestamp]) // Campaign analytics
-    @@index([inventoryId, timestamp]) // Inventory performance
-    @@index([publisherId, timestamp]) // Publisher earnings
-    @@index([impressionId]) // Link to impression
-    @@index([timestamp]) // Time-based queries
-    @@index([syncedToTimescale]) // Sync management
+  @@index([creativeId, timestamp])
+  @@index([campaignId, timestamp])
+  @@index([inventoryId, timestamp])
+  @@index([publisherId, timestamp])
+  @@index([impressionId])
+  @@index([timestamp])
+  @@index([syncedToTimescale])
 }

@@ -1,31 +1,30 @@
 model Advertiser {
-  id                   String           @id @default(uuid()) @db.Uuid
-  name                 String
-  email                String           @unique
-  emailVerifiedAt      DateTime? // Changed to nullable for verification workflow
-  password             String
-  rememberToken        String? // Nullable
-  mobile               String           @unique
-  companyName          String
-  hqLocation           String
-  companySize          CompanySize
-  createdAt            DateTime         @default(now())
-  updatedAt            DateTime         @updatedAt
-  // Added fields for authentication
-  status               AdvertiserStatus @default(ACTIVE) // Status of the advertiser     
-  verificationToken    String?          @unique // For email verification
-  resetPasswordToken   String?          @unique // For password reset
-  resetPasswordExpires DateTime? // Password reset token expiration
-  // MFA fields
-  mfaEnabled           Boolean          @default(false)
-  mfaVerificationCode  String?
-  mfaCodeExpiry        DateTime?
-
-  clients                 Client[] // Relationship with Client
-  Campaign                Campaign[]
-  bidResponses            BidResponse[]
-  ClientCampaign          ClientCampaign[]
+  id                      String                    @id @default(uuid()) @db.Uuid
+  name                    String
+  email                   String                    @unique
+  emailVerifiedAt         DateTime?
+  password                String
+  rememberToken           String?
+  mobile                  String                    @unique
+  companyName             String
+  hqLocation              String
+  companySize             CompanySize
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  verificationToken       String?                   @unique
+  resetPasswordToken      String?                   @unique
+  resetPasswordExpires    DateTime?
+  mfaEnabled              Boolean                   @default(false)
+  mfaVerificationCode     String?
+  mfaCodeExpiry           DateTime?
+  status                  AdvertiserStatus          @default(ACTIVE)
+  AdvertiserBalance       AdvertiserBalance?
   AdvertiserDailySpending AdvertiserDailySpending[]
+  bidResponses            BidResponse[]
+  Campaign                Campaign[]
+  PaymentTransaction      PaymentTransaction[]
+  ClientCampaign          ClientCampaign[]
+  clients                 Client[]
 
   @@index([id, status])
   @@index([status])
