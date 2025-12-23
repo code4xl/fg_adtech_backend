@@ -6,10 +6,14 @@ services:
       dockerfile: Dockerfile.prod
       args:
         - NODE_ENV=production
+    volumes:
+      - ../OceanAdTechSDK/dist:/usr/src/sdk-project/dist:ro
     ports:
       - '3001:3001'
     env_file:
       - .env.production
+    environment:
+      - SDK_BUILD_PATH=/usr/src/sdk-project/dist/ocean-ads.min.js
     restart: always
     depends_on:
       kafka:
