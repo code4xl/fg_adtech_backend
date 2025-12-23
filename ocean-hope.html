@@ -259,7 +259,7 @@
       // Add cache busting
       var script = document.createElement('script');
       script.src =
-        'http://localhost:3001/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js?v=' +
+        'https://programmatic-adtech-backend.atharvajadhav.dev/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js?v=' +
         Date.now();
       script.async = true;
 
@@ -337,7 +337,7 @@
         updateStatus('backend-status', 'Testing...', 'info');
 
         try {
-          const response = await fetch('http://localhost:3001/health');
+          const response = await fetch('https://programmatic-adtech-backend.atharvajadhav.dev/health');
           if (response.ok) {
             testResults.backend = true;
             updateStatus('backend-status', 'Connected ✓', 'success');
@@ -359,7 +359,7 @@
 
         try {
           const response = await fetch(
-            'http://localhost:3001/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js',
+            'https://programmatic-adtech-backend.atharvajadhav.dev/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js',
           );
           if (response.ok) {
             testResults.cdn = true;
@@ -437,7 +437,7 @@
 
           try {
             const response = await fetch(
-              'http://localhost:3001/rtb/bid-request',
+              'https://programmatic-adtech-backend.atharvajadhav.dev/rtb/bid-request',
               {
                 method: 'POST',
                 headers: {

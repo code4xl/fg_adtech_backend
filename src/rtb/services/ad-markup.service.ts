@@ -13,7 +13,7 @@ export class AdMarkupService {
     this.trackingBaseUrl =
       this.configService.get<string>('APP_URL') ||
       this.configService.get<string>('tracking.baseUrl') ||
-      'http://localhost:3001';
+      'https://programmatic-adtech-backend.atharvajadhav.dev';
   }
 
   public generateTrackingUrls(

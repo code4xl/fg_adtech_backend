@@ -46,7 +46,7 @@ export class BidRequestResponseDto {
 
   @ApiPropertyOptional({
     description: 'SSE stream URL for real-time updates (when SSE is enabled)',
-    example: 'http://localhost:3001/rtb/stream/req_abc123_def456',
+    example: 'https://programmatic-adtech-backend.atharvajadhav.dev/rtb/stream/req_abc123_def456',
     required: false
   })
   @IsOptional()

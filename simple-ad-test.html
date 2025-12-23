@@ -182,14 +182,14 @@
             <div id="debug-output">
                 <div class="info">[INIT] Simple Ocean Ads test page loaded</div>
                 <div class="info">[INIT] Testing single IMAGE banner with known working inventory</div>
-                <div class="info">[INIT] Using LATEST CDN: http://localhost:3001/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js</div>
+                <div class="info">[INIT] Using LATEST CDN: https://programmatic-adtech-backend.atharvajadhav.dev/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js</div>
                 <div class="info">[INIT] Build ID: 028e26dd-1751660271915-y91gel | Version: 1.7.4</div>
             </div>
         </div>
     </div>
 
     <!-- CRITICAL: Load Ocean Ads SDK from correct CDN -->
-    <script src="http://localhost:3001/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js" async></script>
+    <script src="https://programmatic-adtech-backend.atharvajadhav.dev/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js" async></script>
 
     <script>
         // Global debug state
@@ -370,7 +370,7 @@
             log(`Website: ${bidRequest.websiteId}`, 'info');
 
             try {
-                const response = await fetch('http://localhost:3001/rtb/bid-request', {
+                const response = await fetch('https://programmatic-adtech-backend.atharvajadhav.dev/rtb/bid-request', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(bidRequest),
@@ -498,7 +498,7 @@
             updateStatus('slot-status', 'Waiting...', 'warning');
             
             // Check CDN availability first
-            fetch('http://localhost:3001/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js')
+            fetch('https://programmatic-adtech-backend.atharvajadhav.dev/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js')
                 .then(response => {
                     if (response.ok) {
                         log('✅ CDN endpoint accessible', 'success');

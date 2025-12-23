@@ -153,7 +153,7 @@ const exampleOutputConfig: IOceanConfig = {
     },
   ],
   settings: {
-    apiUrl: 'http://localhost:3001',
+    apiUrl: 'https://programmatic-adtech-backend.atharvajadhav.dev',
     sseTimeout: 200, // Premium tier setting
     debug: false,
     batchDelay: 35,
@@ -197,7 +197,7 @@ const exampleEnterpriseConfig: Partial<IOceanConfig> = {
     tier: PublisherTier.ENTERPRISE,
   },
   settings: {
-    apiUrl: 'http://localhost:3001',
+    apiUrl: 'https://programmatic-adtech-backend.atharvajadhav.dev',
     sseTimeout: 150, // Fastest for enterprise
     debug: false,
     batchDelay: 25,

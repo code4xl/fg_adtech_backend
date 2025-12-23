@@ -46,11 +46,11 @@ export class ConfigBuilderService {
     
     if (isLocalDev) {
       // Use local development URLs - force localhost for development
-      this.defaultApiUrl = 'http://localhost:3001';
+      this.defaultApiUrl = 'https://programmatic-adtech-backend.atharvajadhav.dev';
       this.logger.debug('🔧 Using local development API URL: ' + this.defaultApiUrl);
     } else {
       // Use production URLs
-      this.defaultApiUrl = this.configService.get<string>('CDN_API_URL', 'http://localhost:3001');
+      this.defaultApiUrl = this.configService.get<string>('CDN_API_URL', 'https://programmatic-adtech-backend.atharvajadhav.dev');
       this.logger.debug('🚀 Using production API URL: ' + this.defaultApiUrl);
     }
     

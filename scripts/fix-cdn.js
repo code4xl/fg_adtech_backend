@@ -16,7 +16,7 @@ class CDNFixer {
     this.publisherId = '02912083-a026-4c61-8df7-0fd68ab4ad93';
     this.websiteId = '87690135-4199-4b1f-a960-93beb240759e';
     this.cdnPath = path.join(__dirname, '..', 'cdn-files', 'p', this.publisherId, 'init.js');
-    this.baseUrl = 'http://localhost:3001';
+    this.baseUrl = 'https://programmatic-adtech-backend.atharvajadhav.dev';
   }
 
   async run() {
@@ -46,9 +46,9 @@ class CDNFixer {
     } catch (error) {
       console.error(`\n❌ Fix failed: ${error.message}`);
       console.log('\n🔧 Manual fix commands:');
-      console.log('1. Clear cache: curl -X DELETE "http://localhost:3001/api/cdn/cache/clear"');
+      console.log('1. Clear cache: curl -X DELETE "https://programmatic-adtech-backend.atharvajadhav.dev/api/cdn/cache/clear"');
       console.log('2. Delete file: rm -f "' + this.cdnPath + '"');
-      console.log('3. Regenerate: curl -X POST "http://localhost:3001/api/publishers/.../generate-cdn"');
+      console.log('3. Regenerate: curl -X POST "https://programmatic-adtech-backend.atharvajadhav.dev/api/publishers/.../generate-cdn"');
       process.exit(1);
     }
   }

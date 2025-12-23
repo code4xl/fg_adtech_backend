@@ -301,7 +301,7 @@
           The SDK automatically detects ad slots using the
           <code>data-ocean-slot</code> attribute and initiates bid requests to
           our RTB engine at
-          <strong>http://localhost:3001/rtb/bid-request</strong>.
+          <strong>https://programmatic-adtech-backend.atharvajadhav.dev/rtb/bid-request</strong>.
         </p>
 
         <h3>How It Works</h3>
@@ -380,7 +380,7 @@
     </div>
 
     <!-- Ocean Ads SDK - This is the main CDN link -->
-    <script src="http://localhost:3001/cdn/p/869e6cdc-d689-401a-91b3-faa512e4fd8c/init.js"></script>
+    <script src="https://programmatic-adtech-backend.atharvajadhav.dev/cdn/p/869e6cdc-d689-401a-91b3-faa512e4fd8c/init.js"></script>
 
     <script>
       // Global tracking variables
@@ -455,7 +455,7 @@
 
         try {
           const response = await fetch(
-            'http://localhost:3001/rtb/bid-request',
+            'https://programmatic-adtech-backend.atharvajadhav.dev/rtb/bid-request',
             {
               method: 'POST',
               headers: {

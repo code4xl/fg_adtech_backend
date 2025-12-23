@@ -42,7 +42,7 @@ async function bootstrap() {
 
     origin: [
       'http://localhost:3000',
-      'http://localhost:3001',
+      'https://programmatic-adtech-backend.atharvajadhav.dev',
       'http://127.0.0.1:3000',
       'http://127.0.0.1:3001',
       'http://localhost:5500',
@@ -85,7 +85,7 @@ async function bootstrap() {
             "'self'",
             "'unsafe-inline'",
             'cdn.jsdelivr.net',
-            'http://localhost:3001',
+            'https://programmatic-adtech-backend.atharvajadhav.dev',
             'http://127.0.0.1:3001',
             'http://13.202.24.106',
             'http://localhost:*',
@@ -103,7 +103,7 @@ async function bootstrap() {
           ],
           connectSrc: [
             "'self'",
-            'http://localhost:3001',
+            'https://programmatic-adtech-backend.atharvajadhav.dev',
             'http://127.0.0.1:3001',
             'http://13.202.24.106',        // Add this
             'http://13.202.24.106:3001',   // Add this
@@ -111,7 +111,7 @@ async function bootstrap() {
             'http://127.0.0.1:*',
             'https://5x2p27zf-3000.inc1.devtunnels.ms',
             'https://programmatic.api.oceanadnetwork.com',
-            'http://localhost:3001/track',
+            'https://programmatic-adtech-backend.atharvajadhav.dev/track',
             'http://127.0.0.1:3001/track',
           ],
         },
@@ -202,7 +202,7 @@ async function bootstrap() {
       'https://5x2p27zf-3000.inc1.devtunnels.ms/',
       'Development Tunnel',
     )
-    .addServer('http://localhost:3001', 'Development Server')
+    .addServer('https://programmatic-adtech-backend.atharvajadhav.dev', 'Development Server')
     // .addServer(
     // 'https://programmatic.api.oceanadnetwork.com',
     // 'Production Server',

@@ -187,7 +187,7 @@ export class SelectorGeneratorService {
 ${snippets.join('\n')}
 
 <!-- Load Ocean Ads SDK -->
-<script src="http://localhost:3001/p/{publisherId}/init.js"></script>`;
+<script src="https://programmatic-adtech-backend.atharvajadhav.dev/p/{publisherId}/init.js"></script>`;
   }
 
   /**
