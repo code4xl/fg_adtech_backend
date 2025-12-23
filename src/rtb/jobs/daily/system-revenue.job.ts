@@ -19,7 +19,11 @@ export class SystemRevenueJob {
    * Process system revenue data from Redis to PostgreSQL
    * Runs daily at 1:10 AM IST (after publisher and advertiser jobs)
    */
-  @Cron('10 1 * * *', {
+  // @Cron('10 1 * * *', {
+  //   name: 'processSystemRevenue',
+  //   timeZone: 'Asia/Kolkata', // Set to Indian Standard Time
+  // })
+  @Cron('*/10 * * * *', {
     name: 'processSystemRevenue',
     timeZone: 'Asia/Kolkata', // Set to Indian Standard Time
   })

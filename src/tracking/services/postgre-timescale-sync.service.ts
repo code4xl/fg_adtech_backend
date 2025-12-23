@@ -63,7 +63,8 @@ export class PostgresTimescaleSyncService {
   /**
    * Main cron job - Sync data from PostgreSQL to TimescaleDB every 12 hours
    */
-  @Cron(CronExpression.EVERY_12_HOURS) // Every 12 hours
+  // @Cron(CronExpression.EVERY_12_HOURS) // Every 12 hours
+  @Cron('*/15 * * * *') // Every 15 minutes
   async syncPostgresToTimescale(): Promise<void> {
     if (this.syncStatus.isRunning) {
       this.logger.warn('⚠️ Sync already running, skipping this execution');

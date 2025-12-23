@@ -27,7 +27,11 @@ export class BudgetCleanupJob {
    * Clean up expired budget reservations every 5 minutes
    * This ensures that unredeemed reservations are properly credited back
    */
-  @Cron('*/5 * * * *', {
+  // @Cron('*/5 * * * *', {
+  //   name: 'cleanupExpiredReservations',
+  //   timeZone: 'Asia/Kolkata',
+  // })
+  @Cron('*/20 * * * *', {
     name: 'cleanupExpiredReservations',
     timeZone: 'Asia/Kolkata',
   })

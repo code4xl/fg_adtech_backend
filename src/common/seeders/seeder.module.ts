@@ -19,6 +19,7 @@ import { WebsiteSeeder } from './modules/website.seeder';
 import { DependencyResolver } from './tools/dependency.resolver';
 import { SeederRegistry } from './tools/seeders.registry';
 import { ClientSeeder } from './modules/client.seeder';
+import { CreativeCampaignSeeder } from './modules/one.seeder';
 
 @Module({
   imports: [PrismaModule],
@@ -42,6 +43,7 @@ import { ClientSeeder } from './modules/client.seeder';
     FloorPriceSeeder,
     TargetingRuleSeeder,
     NotificationSeeder,
+    CreativeCampaignSeeder,
   ],
   exports: [MainSeederService, SeederRegistry, DependencyResolver],
 })

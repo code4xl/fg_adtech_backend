@@ -18,7 +18,11 @@ export class AdvertiserSpendingJob {
    * Process advertiser spending data from Redis to PostgreSQL
    * Runs daily at 1:05 AM IST (5 minutes after publisher revenue job)
    */
-  @Cron('5 1 * * *', {
+  // @Cron('5 1 * * *', {
+  //   name: 'processAdvertiserSpending',
+  //   timeZone: 'Asia/Kolkata', // Set to Indian Standard Time
+  // })
+  @Cron('*/5 * * * *', {
     name: 'processAdvertiserSpending',
     timeZone: 'Asia/Kolkata', // Set to Indian Standard Time
   })

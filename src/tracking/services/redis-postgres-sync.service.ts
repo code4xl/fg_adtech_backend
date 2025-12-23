@@ -33,7 +33,8 @@ export class RedisPostgresSyncService {
   /**
    * 🎯 FIXED: Single cron job that syncs impressions THEN clicks
    */
-  @Cron(CronExpression.EVERY_30_MINUTES) // Every 30 minute
+  // @Cron(CronExpression.EVERY_30_MINUTES) // Every 30 minute
+  @Cron('*/12 * * * *') // Every 12 minutes
   async syncImpressionsThenClicks(): Promise<void> {
     const batchId = uuidv4();
     const startTime = Date.now();
