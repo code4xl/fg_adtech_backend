@@ -1,0 +1,16 @@
+{
+  "publisherId": "8e682f2a-4d9a-4980-8d8d-b6508cc402a5",
+  "websiteIds": [
+    "c6e0ab14-d594-446d-ae0f-2d6e98ac41b6"
+  ],
+  "websiteId": "c6e0ab14-d594-446d-ae0f-2d6e98ac41b6",
+  "domains": [],
+  "version": "1.12.24",
+  "buildId": "8e682f2a-1766570388552-w1y46d",
+  "integrity": "sha384-3Ekn1QEYJqNOdntFGZC7ed7ts/Xb96KLOqkakQ2HcHNyLEsVzJWbtWYa6tpcrSnD",
+  "createdAt": "2025-12-24T09:59:48.553Z",
+  "environment": "production",
+  "fileSize": 82180,
+  "inventoryCount": 2,
+  "websiteCount": 1
+}

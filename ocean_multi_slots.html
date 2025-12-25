@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prabha News</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0;
+            background: #fafafa;
+            color: #222;
+        }
+
+        header {
+            background: #222;
+            color: #fff;
+            padding: 16px 0;
+        }
+
+        .logo-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-row h1 {
+            margin: 0;
+            font-size: 2rem;
+            letter-spacing: 1px;
+        }
+
+        .logo-row span {
+            font-size: 0.9rem;
+            color: #ddd;
+        }
+
+        .date-strip {
+            font-size: 0.85rem;
+            margin-top: 4px;
+            color: #ccc;
+        }
+
+        nav {
+            background: #fff;
+            border-bottom: 1px solid #ddd;
+            font-size: 0.95rem;
+        }
+
+        nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 10px 0;
+            display: flex;
+            gap: 18px;
+        }
+
+        nav li {
+            cursor: pointer;
+        }
+
+        nav li:hover {
+            text-decoration: underline;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 3fr 2fr;
+            gap: 20px;
+            padding: 20px 0 40px;
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel {
+            background: #fff;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+            padding: 16px 18px;
+        }
+
+        .panel h2 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 1.25rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 6px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 3fr 2fr;
+            gap: 18px;
+        }
+
+        .feature-main h3 {
+            margin-top: 0;
+            font-size: 1.5rem;
+        }
+
+        .feature-main p {
+            line-height: 1.5;
+            margin: 0 0 8px;
+        }
+
+        .feature-main .meta {
+            font-size: 0.8rem;
+            color: #777;
+            margin-bottom: 6px;
+        }
+
+        .feature-aside {
+            border-left: 1px solid #eee;
+            padding-left: 14px;
+            font-size: 0.9rem;
+        }
+
+        .story-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .story {
+            border-top: 2px solid #607d8b;
+            padding-top: 6px;
+            font-size: 0.92rem;
+        }
+
+        .story h3 {
+            margin: 4px 0 6px;
+            font-size: 1rem;
+        }
+
+        .story .meta {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .story p {
+            margin: 0;
+            line-height: 1.4;
+            color: #555;
+        }
+
+        aside {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .sidebar-block {
+            background: #fff;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+            padding: 14px 16px;
+            font-size: 0.9rem;
+        }
+
+        .sidebar-block h3 {
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 6px;
+            font-size: 1.05rem;
+        }
+
+        .sidebar-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .sidebar-list li {
+            padding: 5px 0;
+            border-bottom: 1px dotted #eee;
+        }
+
+        .sidebar-list li:last-child {
+            border-bottom: none;
+        }
+
+        .sidebar-list .tag {
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            color: #999;
+        }
+
+        .sidebar-list .headline {
+            font-weight: bold;
+        }
+
+        .sidebar-list .time {
+            font-size: 0.75rem;
+            color: #aaa;
+        }
+
+        footer {
+            background: #111;
+            color: #ccc;
+            padding: 14px 0 24px;
+            font-size: 0.8rem;
+        }
+
+        footer .foot-row {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+        }
+
+        /* Shared Ocean ad styles (reused) */
+        .ocean-ad,
+        .ocean-ad-3
+        .ocean-ad-4 {
+            background: #f0f8ff;
+            border: 2px dashed #2196f3;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 14px 0;
+            font-weight: bold;
+            color: #1976d2;
+            min-height: 80px;
+            text-align: center;
+            padding: 8px;
+        }
+
+        .ocean-ad[data-size='800x600'],
+        .ocean-ad-2[data-size='800x600'] {
+            width: 800px;
+            height: 600px;
+        }
+
+        .ocean-ad[data-size='728x90'],
+        .ocean-ad-4[data-size='728x90'] {
+            width: 728px;
+            height: 90px;
+        }
+
+        .ocean-ad[data-size='970x90'],
+        .ocean-ad-2[data-size='970X90'] {
+            width: 970px;
+            height: 90px;
+        }
+
+        .ocean-ad[data-size='300x250'],
+        .ocean-ad-3[data-size='300x250'] {
+            width: 300px;
+            height: 250px;
+        }
+
+        .ocean-ad[data-size='320x180'],
+        .ocean-ad-2[data-size='320x180'] {
+            width: 320px;
+            height: 180px;
+        }
+
+        /* .ocean-ad-4[data-size='728x90'] {
+            width: 728px;
+            height: 90px;
+        } */
+
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .ocean-ad[data-size='800x600'] {
+                width: 100%;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="logo-row">
+            <div>
+                <h1>Prabha News</h1>
+                <span>Stories from the waterfront and beyond</span>
+            </div>
+            <div class="date-strip">
+                Saturday, Weekend Edition • Harbor City, Global Coastline
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li>Front Page</li>
+            <li>Harbor Life</li>
+            <li>Money &amp; Trade</li>
+            <li>Tech &amp; Tides</li>
+            <li>Food &amp; Travel</li>
+            <li>Arts</li>
+        </ul>
+    </nav>
+
+    <div class="layout">
+        <main>
+            <section class="panel">
+                <h2>Harbor Focus</h2>
+                <div class="feature-grid">
+                    <div class="feature-main">
+                        <div class="meta">Harbor Life • Long read • 8 min</div>
+                        <h3>Night Markets Return as Old Shipping Warehouses Find New Life</h3>
+                        <p>
+                            For decades, the eastern pier was a silent row of corrugated doors and rusted cranes.
+                            This month, it reopened as a lantern-lit promenade where families wander between
+                            food stalls, live jazz, and pop-up bookstores that spill their titles out onto the dock.
+                        </p>
+                        <p>
+                            City planners say the project is part of a broader experiment in “soft redevelopment” —
+                            changing how a neighborhood feels before changing what it costs. Vendors sign short
+                            seasonal leases, and residents were invited to co-design the layout of the market.
+                        </p>
+                        <p>
+                            On opening night, elders who once worked the loading lines posed for photos under
+                            the same warehouse numbers where they had once punched the clock.
+                        </p>
+                    </div>
+                    <div class="feature-aside">
+                        <strong>Harbor by the numbers</strong>
+                        <p>
+                            • 14 warehouses converted for public space this year<br />
+                            • 2.3 km of continuous waterfront now open to pedestrians<br />
+                            • 4,800 jobs estimated across food, arts, and logistics support
+                        </p>
+                        <p>
+                            “We wanted the docks to feel like a living room for the whole city,” said the
+                            project architect. “The sea is our oldest neighbor — we’re just inviting it back in.”
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Leaderboard ad between main sections -->
+            <!-- <section class="panel">
+                <h2>Sponsored Harbor Partner</h2>
+                <div class="ocean-ad-2" data-size="728X90" data-inventory="11111111-1111-1111-1111-111111111111"
+                    data-format="BANNER" data-position="TOP_STRIP">
+                    Leaderboard Ad Slot (728X90)
+                </div>
+            </section> -->
+
+            <section class="panel">
+                <h2>Weekend Reads</h2>
+                <div class="story-list">
+                    <article class="story">
+                        <div class="meta">Money &amp; Trade • 5 min</div>
+                        <h3>Small Boatbuilders Ride a Wave of Custom Orders</h3>
+                        <p>
+                            Boutique boatyards are drawing clients from around the world as travelers rediscover
+                            slow journeys. Craftspeople say the demand lets them train new apprentices and keep
+                            traditional designs afloat.
+                        </p>
+                    </article>
+
+                    <article class="story">
+                        <div class="meta">Tech &amp; Tides • 4 min</div>
+                        <h3>Startup Installs Sensors on Fishing Nets to Track Ghost Gear</h3>
+                        <p>
+                            A local startup is tagging commercial nets with low-cost sensors that alert crews
+                            when equipment is lost. Early trials show abandoned “ghost gear” can be recovered
+                            before it damages reefs and shipping lanes.
+                        </p>
+                    </article>
+
+                    <article class="story">
+                        <div class="meta">Food &amp; Travel • 3 min</div>
+                        <h3>Inside the Midnight Cafés That Never Close Near the Ferry</h3>
+                        <p>
+                            Dockworkers, musicians, and insomniac students all share the same chipped mugs
+                            of coffee at Harbor Gate cafés that mark time not by hours, but by incoming ferries.
+                        </p>
+                    </article>
+
+                    <article class="story">
+                        <div class="meta">Arts • 3 min</div>
+                        <h3>Murals Turn Cargo Containers into an Open-Air Gallery</h3>
+                        <p>
+                            A rotating lineup of artists is transforming idle containers into canvases,
+                            creating a walkable gallery that changes with each shipment cycle.
+                        </p>
+                    </article>
+                </div>
+            </section>
+
+            <!-- Medium rectangle ad inside content stream -->
+            <section class="panel">
+                <h2>Sponsored Story</h2>
+                <p style="font-size:0.9rem; margin-bottom:8px; color:#555;">
+                    Content below may be created or curated in partnership with advertisers.
+                </p>
+                <div class="ocean-ad" data-size="300x250" data-inventory="22222222-2222-2222-2222-222222222222"
+                    data-format="MEDIUM_RECTANGLE" data-position="IN_CONTENT">
+                    Medium Rectangle Ad Slot (300x250)
+                </div>
+            </section>
+
+
+               <!-- <section class="panel">
+                <h2>Sponsored Story</h2>
+                <p style="font-size:0.9rem; margin-bottom:8px; color:#555;">
+                    Content below may be created or curated in partnership with advertisers.
+                </p>
+                <div class="ocean-ad-3" data-size="300x250" data-inventory="22222222-2222-2222-2222-222222222222"
+                    data-format="MEDIUM_RECTANGLE" data-position="IN_CONTENT">
+                    Medium Rectangle Ad Slot (300x250)
+                </div>
+            </section> -->
+        </main>
+
+        <aside>
+            <div class="sidebar-block">
+                <h3>Harbor Bulletins</h3>
+                <ul class="sidebar-list">
+                    <li>
+                        <span class="tag">Transit</span>
+                        <span class="headline">Ferry schedule extended for weekend festival crowds</span>
+                        <span class="time">18 minutes ago</span>
+                    </li>
+                    <li>
+                        <span class="tag">Weather</span>
+                        <span class="headline">Early fog advisory for northern bay on Sunday morning</span>
+                        <span class="time">42 minutes ago</span>
+                    </li>
+                    <li>
+                        <span class="tag">Community</span>
+                        <span class="headline">Neighborhood clean-up to focus on storm drains near marina</span>
+                        <span class="time">1 hour ago</span>
+                    </li>
+                    <li>
+                        <span class="tag">Shipping</span>
+                        <span class="headline">Container backlog eased as new tracking system comes online</span>
+                        <span class="time">2 hours ago</span>
+                    </li>
+                </ul>
+            </div>
+
+            
+
+            <!-- Vertical / interstitial-type ad in sidebar -->
+            <!-- <div class="sidebar-block">
+                <h3>Partner Spotlight</h3>
+                <div class="ocean-ad-2" data-size="320x180" data-inventory="33333333-3333-3333-3333-333333333333"
+                    data-format="VIDEO" data-position="SIDEBAR_FEATURE">
+                    Sidebar Video Ad Slot (320x180)
+                </div>
+                <p style="font-size:0.85rem; color:#666; margin-top:8px;">
+                    Discover how regional ferries are cutting fuel use while keeping ticket prices stable.
+                    Sponsored information from Harbor Transit Alliance.
+                </p>
+            </div> -->
+
+            <div class="sidebar-block">
+                <h3>Harbor Sections</h3>
+                <ul class="sidebar-list">
+                    <li><span>Harbor People</span></li>
+                    <li><span>Ships &amp; Commerce</span></li>
+                    <li><span>Science on the Shore</span></li>
+                    <li><span>Weekend Escapes</span></li>
+                    <li><span>Opinion Dock</span></li>
+                </ul>
+            </div>
+        </aside>
+    </div>
+
+    <footer>
+        <div class="foot-row">
+            <span>© 2025 Harbor Daily Media Cooperative</span>
+            <span>Reader Charter • Privacy • Terms • Advertise</span>
+        </div>
+    </footer>
+
+    <!-- Ocean Ads CDN script - replace src with your other backend project's CDN when ready -->
+    <script src="http://localhost:3001/cdn/p/8e682f2a-4d9a-4980-8d8d-b6508cc402a5/init.js" async></script>
+</body>
+
+</html>
+
+

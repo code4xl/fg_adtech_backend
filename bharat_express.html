@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bharat Express</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Devanagari", sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #101010;
+            color: #f5f5f5;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        /* Header - Indian news channel flavor */
+        header {
+            background: linear-gradient(90deg, #b71c1c, #ff6f00);
+            padding: 8px 0;
+            color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand-lockup {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-box {
+            background: #ffffff;
+            color: #b71c1c;
+            padding: 6px 12px;
+            text-transform: uppercase;
+            font-weight: 800;
+            letter-spacing: 1px;
+            border-radius: 2px;
+        }
+
+        .brand-box span {
+            display: block;
+            line-height: 1.1;
+        }
+
+        .brand-sub {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .header-meta {
+            text-align: right;
+            font-size: 0.8rem;
+        }
+
+        .header-meta .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #ffeb3b;
+            font-weight: 600;
+        }
+
+        .header-meta .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ffeb3b;
+            box-shadow: 0 0 8px rgba(255, 235, 59, 0.9);
+        }
+
+        /* Ticker bar */
+        .ticker {
+            background: #b71c1c;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            font-size: 0.85rem;
+        }
+
+        .ticker-label {
+            flex: 0 0 auto;
+            padding: 6px 10px;
+            background: #ffffff;
+            color: #b71c1c;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .ticker-items {
+            padding: 6px 0;
+            white-space: nowrap;
+            animation: scroll-left 25s linear infinite;
+        }
+
+        .ticker-items span {
+            margin-right: 32px;
+        }
+
+        @keyframes scroll-left {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+
+        /* Navigation */
+        nav {
+            background: #181818;
+            border-bottom: 2px solid #b71c1c;
+            font-size: 0.9rem;
+        }
+
+        nav ul {
+            list-style: none;
+            margin: 0;
+            padding: 8px 0;
+            display: flex;
+            gap: 18px;
+        }
+
+        nav li {
+            text-transform: uppercase;
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        nav li:hover {
+            color: #ffcc80;
+        }
+
+        /* Layout */
+        .layout {
+            display: grid;
+            grid-template-columns: 3fr 2fr;
+            gap: 16px;
+            padding: 16px 0 32px;
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .panel {
+            background: #181818;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+            padding: 14px 16px;
+        }
+
+        .panel h2 {
+            margin: 0 0 8px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            border-left: 4px solid #ff6f00;
+            padding-left: 8px;
+        }
+
+        .headline-grid {
+            display: grid;
+            grid-template-columns: 3fr 2fr;
+            gap: 14px;
+        }
+
+        .prime-headline .tag {
+            font-size: 0.8rem;
+            color: #ffcc80;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .prime-headline h3 {
+            margin: 6px 0 8px;
+            font-size: 1.4rem;
+            line-height: 1.25;
+        }
+
+        .prime-headline p {
+            margin: 0 0 6px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: #e0e0e0;
+        }
+
+        .prime-headline .meta {
+            font-size: 0.8rem;
+            color: #9e9e9e;
+        }
+
+        .side-bullets {
+            font-size: 0.9rem;
+            border-left: 1px solid #333;
+            padding-left: 10px;
+        }
+
+        .side-bullets li {
+            margin-bottom: 6px;
+        }
+
+        .side-bullets strong {
+            color: #ffab40;
+        }
+
+        .bullet-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .story-strip {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 0.9rem;
+        }
+
+        .story-strip article {
+            border-top: 2px solid #424242;
+            padding-top: 6px;
+        }
+
+        .story-strip .meta {
+            font-size: 0.75rem;
+            color: #9e9e9e;
+            margin-bottom: 4px;
+        }
+
+        .story-strip h3 {
+            margin: 0 0 4px;
+            font-size: 0.98rem;
+        }
+
+        .story-strip p {
+            margin: 0;
+            color: #d0d0d0;
+            line-height: 1.4;
+        }
+
+        aside {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .sidebar-block {
+            background: #181818;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+            padding: 12px 14px;
+            font-size: 0.88rem;
+        }
+
+        .sidebar-block h3 {
+            margin: 0 0 6px;
+            font-size: 1rem;
+            text-transform: uppercase;
+            border-left: 4px solid #b71c1c;
+            padding-left: 8px;
+        }
+
+        .sidebar-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .sidebar-list li {
+            padding: 4px 0;
+            border-bottom: 1px dotted #333;
+        }
+
+        .sidebar-list li:last-child {
+            border-bottom: none;
+        }
+
+        .sidebar-list .tag {
+            font-size: 0.75rem;
+            color: #ffab91;
+            text-transform: uppercase;
+        }
+
+        .sidebar-list .headline {
+            font-weight: 600;
+        }
+
+        .sidebar-list .time {
+            font-size: 0.75rem;
+            color: #9e9e9e;
+        }
+
+        footer {
+            background: #000000;
+            color: #9e9e9e;
+            padding: 14px 0 20px;
+            font-size: 0.78rem;
+        }
+
+        footer .footer-row {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        /* Ocean ad styles reused */
+        .ocean-ad,
+        .ocean-ad-2 {
+            background: #0d1b2a;
+            border: 2px solid #1976d2;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px 0;
+            font-weight: 700;
+            color: #bbdefb;
+            min-height: 80px;
+            text-align: center;
+            padding: 8px;
+        }
+
+        .ocean-ad[data-size='728x90'],
+        .ocean-ad-2[data-size='728x90'] {
+            width: 728px;
+            height: 90px;
+        }
+
+        .ocean-ad[data-size='320x180'],
+        .ocean-ad-2[data-size='320x180'] {
+            width: 320px;
+            height: 180px;
+        }
+
+        .ocean-ad[data-size='300x250'],
+        .ocean-ad-2[data-size='300x250'] {
+            width: 300px;
+            height: 250px;
+        }
+
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .headline-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .ocean-ad[data-size='728x90'] {
+                width: 100%;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="header-top">
+            <div class="brand-lockup">
+                <div class="brand-box">
+                    <span>BHARAT</span>
+                    <span>EXPRESS</span>
+                </div>
+                <div class="brand-sub">
+                    भारत की हर धड़कन, सीधी आपकी स्क्रीन पर
+                </div>
+            </div>
+            <div class="header-meta">
+                <div>नई दिल्ली • बुधवार रात बुलेटिन</div>
+                <div class="live-indicator">
+                    <span class="dot"></span><span>LIVE • Breaking Bharat</span>
+                </div>
+            </div>
+        </div>
+        <div class="ticker">
+            <div class="ticker-label">Breaking</div>
+            <div class="ticker-items">
+                <span>दिल्ली में प्रदूषण नियंत्रण पर आपात बैठक जारी</span>
+                <span>शेयर बाज़ार में आईटी और बैंकिंग शेयरों में तेज़ उछाल</span>
+                <span>टीम इंडिया ने तीसरा टी20 मुकाबला 7 विकेट से जीता</span>
+                <span>दक्षिण भारत में भारी बारिश, कई ज़िलों में स्कूल बंद</span>
+                <span>मेट्रो विस्तार योजना को कैबिनेट से हरी झंडी</span>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li>देश</li>
+            <li>राज्य</li>
+            <li>राजनीति</li>
+            <li>बिज़नेस</li>
+            <li>क्रिकेट</li>
+            <li>मनोरंजन</li>
+            <li>टेक</li>
+        </ul>
+    </nav>
+
+    <div class="layout">
+        <main>
+            <section class="panel">
+                <h2>देश की बड़ी खबर</h2>
+                <div class="headline-grid">
+                    <div class="prime-headline">
+                        <div class="tag">सुपर प्राइम टाइम • ग्राउंड रिपोर्ट</div>
+                        <h3>दिल्ली से पटना तक: एक ही रेल कॉरिडोर पर रोज़ 40 लाख यात्रियों का सफ़र</h3>
+                        <p>
+                            उत्तर भारत के सबसे व्यस्त रेल कॉरिडोर पर सुबह चार बजे से ही प्लेटफॉर्म पर लंबी
+                            कतारें लग जाती हैं। दफ्तर जाने वाले कर्मचारी, प्रतियोगी परीक्षा की तैयारी कर रहे
+                            छात्र और छोटे व्यापारियों की भीड़ एक ही डिब्बे में सफ़र करती दिखती है।
+                        </p>
+                        <p>
+                            रेलवे ने इस रूट पर नई वंदे भारत और जनशताब्दी ट्रेनों की घोषणा की है, लेकिन
+                            प्लेटफॉर्म पर इंतज़ार कर रहे यात्रियों का कहना है कि भीड़ कम होने के आसार
+                            फिलहाल नज़र नहीं आ रहे।
+                        </p>
+                        <p class="meta">
+                            ब्यूरो रिपोर्ट • नई दिल्ली | स्टूडियो इनपुट: प्राइम टाइम डेस्क
+                        </p>
+                    </div>
+                    <div class="side-bullets">
+                        <ul class="bullet-list">
+                            <li><strong>01</strong> राजधानी, जनशताब्दी और लोकल मेमो सभी एक ही ट्रैक पर</li>
+                            <li><strong>02</strong> हर रोज़ औसतन 220 ट्रेनें इस कॉरिडोर से होकर गुजरती हैं</li>
+                            <li><strong>03</strong> भीड़ कम करने के लिए नए प्लेटफॉर्म और फास्ट ट्रैक की योजना</li>
+                            <li><strong>04</strong> सुरक्षा के लिए एआई बेस्ड कैमरा और ऑटोमैटिक गेट की तैयारी</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Leaderboard ad under main news -->
+            <!-- <section class="panel">
+                <h2>स्पॉन्सर्ड • Bharat Express Partner</h2>
+                <div class="ocean-ad" data-size="728x90" data-inventory="44444444-4444-4444-4444-444444444444"
+                    data-format="BANNER" data-position="TOP_STRIP">
+                    Bharat Express Leaderboard Ad Slot (728x90)
+                </div>
+            </section> -->
+
+            <section class="panel">
+                <h2>टॉप हेडलाइन्स</h2>
+                <div class="story-strip">
+                    <article>
+                        <div class="meta">राजनीति • 4 मिनट</div>
+                        <h3>तीन राज्यों में आज सीएम की शपथ, नई कैबिनेट पर सबकी नज़र</h3>
+                        <p>
+                            राजधानी दिल्ली से लेकर लखनऊ और जयपुर तक सियासी हलचल तेज़, गठबंधन की
+                            बैठकों का दौर जारी।
+                        </p>
+                    </article>
+                    <article>
+                        <div class="meta">बिज़नेस • 3 मिनट</div>
+                        <h3>मिड-कैप शेयरों में ज़बरदस्त बूम, छोटे निवेशकों की बड़ी कमाई</h3>
+                        <p>
+                            विशेषज्ञों का मानना है कि मुनाफ़ा वसूली से पहले पोर्टफोलियो बैलेंस करना ज़रूरी।
+                        </p>
+                    </article>
+                    <article>
+                        <div class="meta">क्रिकेट • 5 मिनट</div>
+                        <h3>युवा ओपनर की ताबड़तोड़ बल्लेबाज़ी, टी20 में बनाया नया भारतीय रिकॉर्ड</h3>
+                        <p>
+                            टीम मैनेजमेंट ने संकेत दिए कि वर्ल्ड कप स्क्वॉड में मिल सकती है पक्की जगह।
+                        </p>
+                    </article>
+                    <article>
+                        <div class="meta">मनोरंजन • 2 मिनट</div>
+                        <h3>बॉलीवुड के नए स्टार की पहली पैन-इंडिया फिल्म, ट्रेलर ने मचाई धूम</h3>
+                        <p>
+                            सोशल मीडिया पर फैंस ने कहा - "ये है असली मास एंटरटेनर"।
+                        </p>
+                    </article>
+                </div>
+            </section>
+        </main>
+
+        <aside>
+            <div class="sidebar-block">
+                <h3>फटाफट अपडेट</h3>
+                <ul class="sidebar-list">
+                    <li>
+                        <span class="tag">दिल्ली</span>
+                        <span class="headline">यमुना किनारे सफ़ाई अभियान, 500 से ज़्यादा वालंटियर्स जुटे</span>
+                        <span class="time">12 मिनट पहले</span>
+                    </li>
+                    <li>
+                        <span class="tag">मुंबई</span>
+                        <span class="headline">लोकल ट्रेन में भीड़ नियंत्रित करने के लिए नया ऐप लॉन्च</span>
+                        <span class="time">28 मिनट पहले</span>
+                    </li>
+                    <li>
+                        <span class="tag">बेंगलुरु</span>
+                        <span class="headline">आईटी पार्क में नाइट शटल बस सेवा शुरू</span>
+                        <span class="time">45 मिनट पहले</span>
+                    </li>
+                    <li>
+                        <span class="tag">कोलकाता</span>
+                        <span class="headline">हावड़ा ब्रिज पर लाइट शो से सजा शहर का आसमान</span>
+                        <span class="time">1 घंटा पहले</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Medium rectangle / sidebar ad -->
+            <div class="sidebar-block">
+                <h3>Sponsored • Bharat Deals</h3>
+                <div class="ocean-ad" data-size="300x250" data-inventory="55555555-5555-5555-5555-555555555555"
+                    data-format="MEDIUM_RECTANGLE" data-position="SIDEBAR_BOX">
+                    Bharat Express Sidebar Ad Slot (300x250)
+                </div>
+                <p style="font-size:0.8rem; color:#bdbdbd; margin-top:6px;">
+                    इस सेक्शन में दिखाए जा रहे ऑफ़र हमारे स्पॉन्सर्ड पार्टनर्स द्वारा उपलब्ध कराए जाते हैं।
+                </p>
+            </div>
+
+            <div class="sidebar-block">
+                <h3>स्पेशल शो</h3>
+                <ul class="sidebar-list">
+                    <li><span>Prime Debate 9 PM</span></li>
+                    <li><span>Desh Ki Baat 7 PM</span></li>
+                    <li><span>Cricket Express 6 PM</span></li>
+                    <li><span>City Live 5 PM</span></li>
+                </ul>
+            </div>
+        </aside>
+    </div>
+
+    <footer>
+        <div class="footer-row">
+            <span>© 2025 Bharat Express News Network</span>
+            <span>Contact • Privacy • Terms • Advertise with us</span>
+        </div>
+    </footer>
+
+    <!-- Ocean Ads CDN script - replace src with your other backend project's CDN when ready -->
+    <script src="http://localhost:3001/cdn/p/8e682f2a-4d9a-4980-8d8d-b6508cc402a5/init.js" async></script>
+</body>
+
+</html>
+
+
