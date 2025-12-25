@@ -86,7 +86,7 @@ If scripts don't work, try these manual commands:
 
 ### Clear Cache
 ```bash
-curl -X DELETE "https://programmatic-adtech-backend.atharvajadhav.dev/api/cdn/cache/clear"
+curl -X DELETE "https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com/api/cdn/cache/clear"
 ```
 
 ### Delete Corrupted File
@@ -96,7 +96,7 @@ rm -f "C:\DevProjects\programmatic_adtech_backend\cdn-files\p\02912083-a026-4c61
 
 ### Force Regenerate CDN
 ```bash
-curl -X POST "https://programmatic-adtech-backend.atharvajadhav.dev/api/publishers/02912083-a026-4c61-8df7-0fd68ab4ad93/websites/87690135-4199-4b1f-a960-93beb240759e/generate-cdn" \
+curl -X POST "https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com/api/publishers/02912083-a026-4c61-8df7-0fd68ab4ad93/websites/87690135-4199-4b1f-a960-93beb240759e/generate-cdn" \
   -H "Content-Type: application/json" \
   -d '{"forceRebuild": true, "includeDebug": true}'
 ```
@@ -110,7 +110,7 @@ ls -la "C:\DevProjects\programmatic_adtech_backend\cdn-files\p\02912083-a026-4c6
 node -c "C:\DevProjects\programmatic_adtech_backend\cdn-files\p\02912083-a026-4c61-8df7-0fd68ab4ad93\init.js"
 
 # Test HTTP serving
-curl -I "https://programmatic-adtech-backend.atharvajadhav.dev/cdn/p/02912083-a026-4c61-8df7-0fd68ab4ad93/init.js"
+curl -I "https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com/cdn/p/02912083-a026-4c61-8df7-0fd68ab4ad93/init.js"
 ```
 
 ## Troubleshooting
@@ -118,7 +118,7 @@ curl -I "https://programmatic-adtech-backend.atharvajadhav.dev/cdn/p/02912083-a0
 ### Backend Not Running
 ```bash
 # Check if backend is running
-curl https://programmatic-adtech-backend.atharvajadhav.dev/health
+curl https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com/health
 
 # Start backend if needed
 cd C:\DevProjects\programmatic_adtech_backend

@@ -24,7 +24,7 @@ class CDNDebugger {
       'init.js',
     );
     this.sdkPath = 'C:\\DevProjects\\ocean-ads-sdk-v2\\dist\\ocean-ads.min.js';
-    this.baseUrl = 'https://programmatic-adtech-backend.atharvajadhav.dev';
+    this.baseUrl = 'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com';
   }
 
   async run() {

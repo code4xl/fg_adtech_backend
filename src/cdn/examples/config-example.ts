@@ -153,7 +153,7 @@ const exampleOutputConfig: IOceanConfig = {
     },
   ],
   settings: {
-    apiUrl: 'https://programmatic-adtech-backend.atharvajadhav.dev',
+    apiUrl: 'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com',
     sseTimeout: 200, // Premium tier setting
     debug: false,
     batchDelay: 35,
@@ -197,7 +197,7 @@ const exampleEnterpriseConfig: Partial<IOceanConfig> = {
     tier: PublisherTier.ENTERPRISE,
   },
   settings: {
-    apiUrl: 'https://programmatic-adtech-backend.atharvajadhav.dev',
+    apiUrl: 'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com',
     sseTimeout: 150, // Fastest for enterprise
     debug: false,
     batchDelay: 25,

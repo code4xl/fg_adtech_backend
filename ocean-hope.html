@@ -259,7 +259,7 @@
       // Add cache busting
       var script = document.createElement('script');
       script.src =
-        'https://programmatic-adtech-backend.atharvajadhav.dev/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js?v=' +
+        'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js?v=' +
         Date.now();
       script.async = true;
 
@@ -337,7 +337,7 @@
         updateStatus('backend-status', 'Testing...', 'info');
 
         try {
-          const response = await fetch('https://programmatic-adtech-backend.atharvajadhav.dev/health');
+          const response = await fetch('https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com/health');
           if (response.ok) {
             testResults.backend = true;
             updateStatus('backend-status', 'Connected ✓', 'success');
@@ -359,7 +359,7 @@
 
         try {
           const response = await fetch(
-            'https://programmatic-adtech-backend.atharvajadhav.dev/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js',
+            'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js',
           );
           if (response.ok) {
             testResults.cdn = true;
@@ -437,7 +437,7 @@
 
           try {
             const response = await fetch(
-              'https://programmatic-adtech-backend.atharvajadhav.dev/rtb/bid-request',
+              'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com/rtb/bid-request',
               {
                 method: 'POST',
                 headers: {

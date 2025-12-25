@@ -262,7 +262,7 @@
       <p>
         <strong>CDN URL:</strong>
         <code
-          >https://programmatic-adtech-backend.atharvajadhav.dev/cdn/p/02912083-a026-4c61-8df7-0fd68ab4ad93/init.js</code
+          >https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com/cdn/p/02912083-a026-4c61-8df7-0fd68ab4ad93/init.js</code
         >
       </p>
       <p><strong>Publisher Email:</strong> rhea31@hotmail.com</p>
@@ -323,7 +323,7 @@
     <script>
       // Add cache busting
       var script = document.createElement('script');
-      script.src = 'https://programmatic-adtech-backend.atharvajadhav.dev/cdn/p/02912083-a026-4c61-8df7-0fd68ab4ad93/init.js?v=' + Date.now();
+      script.src = 'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com/cdn/p/02912083-a026-4c61-8df7-0fd68ab4ad93/init.js?v=' + Date.now();
       script.async = true;
       
       // Override config after load
@@ -523,7 +523,7 @@
 
         addLog('📤 Sending test RTB request...', 'rtb');
 
-        fetch('https://programmatic-adtech-backend.atharvajadhav.dev/rtb/bid-request', {
+        fetch('https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com/rtb/bid-request', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

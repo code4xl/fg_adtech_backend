@@ -22,7 +22,7 @@ const ENVIRONMENTS = {
   },
   production: {
     SDK_BUILD_PATH: './node_modules/@ocean-ads/sdk/dist/ocean-ads.min.js',
-    CDN_BASE_URL: 'https://programmatic-adtech-backend.atharvajadhav.dev',
+    CDN_BASE_URL: 'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com',
     CDN_INCLUDE_DEBUG: 'false',
     CDN_MINIFY: 'true',
     CDN_COMPRESSION: 'true',

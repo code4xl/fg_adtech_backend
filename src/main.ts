@@ -42,7 +42,7 @@ async function bootstrap() {
 
     origin: [
       'http://localhost:3000',
-      'https://programmatic-adtech-backend.atharvajadhav.dev',
+      'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com',
       'http://127.0.0.1:3000',
       'http://127.0.0.1:3001',
       'http://localhost:5500',
@@ -52,7 +52,7 @@ async function bootstrap() {
       'http://127.0.0.1:8080',
       'http://13.202.24.106',           // Add your EC2 IP
       'http://13.202.24.106:3001',
-      'https://programmatic-adtech-backend.atharvajadhav.dev',
+      'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com',
       /^http:\/\/localhost:\d+$/,
       /^http:\/\/127\.0\.0\.1:\d+$/,
       '*', // Allow all origins for tracking endpoints
@@ -85,7 +85,7 @@ async function bootstrap() {
   //           "'self'",
   //           "'unsafe-inline'",
   //           'cdn.jsdelivr.net',
-  //           'https://programmatic-adtech-backend.atharvajadhav.dev',
+  //           'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com',
   //           'http://127.0.0.1:3001',
   //           'http://13.202.24.106',
   //           'http://localhost:*',
@@ -103,7 +103,7 @@ async function bootstrap() {
   //         ],
   //         connectSrc: [
   //           "'self'",
-  //           'https://programmatic-adtech-backend.atharvajadhav.dev',
+  //           'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com',
   //           'http://127.0.0.1:3001',
   //           'http://13.202.24.106',        // Add this
   //           'http://13.202.24.106:3001',   // Add this
@@ -111,7 +111,7 @@ async function bootstrap() {
   //           'http://127.0.0.1:*',
   //           'https://5x2p27zf-3000.inc1.devtunnels.ms',
   //           'https://programmatic.api.oceanadnetwork.com',
-  //           'https://programmatic-adtech-backend.atharvajadhav.dev/track',
+  //           'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com/track',
   //           'http://127.0.0.1:3001/track',
   //         ],
   //       },
@@ -143,7 +143,7 @@ async function bootstrap() {
           ],
           connectSrc: [
             "'self'",
-            'https://programmatic-adtech-backend.atharvajadhav.dev'
+            'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com'
           ],
         },
       },
@@ -202,13 +202,13 @@ async function bootstrap() {
       'https://5x2p27zf-3000.inc1.devtunnels.ms/',
       'Development Tunnel',
     )
-    .addServer('https://programmatic-adtech-backend.atharvajadhav.dev', 'Development Server')
+    .addServer('https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com', 'Development Server')
     // .addServer(
     // 'https://programmatic.api.oceanadnetwork.com',
     // 'Production Server',
     // )
     // .addServer(
-    //   'https://programmatic-adtech-backend.atharvajadhav.dev', 'Production Server',
+    //   'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com', 'Production Server',
     // ).addApiKey(
     //   {
     //     type: 'apiKey',

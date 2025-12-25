@@ -46,11 +46,11 @@ export class ConfigBuilderService {
     
     if (isLocalDev) {
       // Use local development URLs - force localhost for development
-      this.defaultApiUrl = 'https://programmatic-adtech-backend.atharvajadhav.dev';
+      this.defaultApiUrl = 'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com';
       this.logger.debug('🔧 Using local development API URL: ' + this.defaultApiUrl);
     } else {
       // Use production URLs
-      this.defaultApiUrl = this.configService.get<string>('CDN_API_URL', 'https://programmatic-adtech-backend.atharvajadhav.dev');
+      this.defaultApiUrl = this.configService.get<string>('CDN_API_URL', 'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com');
       this.logger.debug('🚀 Using production API URL: ' + this.defaultApiUrl);
     }
     

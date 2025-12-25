@@ -67,7 +67,7 @@ export default () => ({
     // CDN Storage Path - where to store generated CDN files
     storagePath: process.env.CDN_STORAGE_PATH || './cdn-files',
     // CDN Base URL - for generating public CDN URLs
-    baseUrl: process.env.CDN_BASE_URL || 'https://programmatic-adtech-backend.atharvajadhav.dev',
+    baseUrl: process.env.CDN_BASE_URL || 'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com',
     // SDK Version for cache busting
     sdkVersion: process.env.SDK_VERSION || '1.0.0',
     // Development settings

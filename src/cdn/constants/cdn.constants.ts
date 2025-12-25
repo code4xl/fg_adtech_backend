@@ -35,13 +35,13 @@ export const SDK_CONFIG = {
 export const CDN_URL_CONFIG = {
   // Local development URLs
   LOCAL: {
-    BASE_URL: 'https://programmatic-adtech-backend.atharvajadhav.dev', // Your backend port (fixed from 3000)
+    BASE_URL: 'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com', // Your backend port (fixed from 3000)
     PATH_PREFIX: '/cdn',
   },
   
   // Production URLs
   PRODUCTION: {
-    BASE_URL: 'https://programmatic-adtech-backend.atharvajadhav.dev',
+    BASE_URL: 'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com',
     PATH_PREFIX: '/cdn', // FIXED: Added /cdn prefix for production
   },
 } as const;

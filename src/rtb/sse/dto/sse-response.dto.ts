@@ -16,7 +16,7 @@ export class SSEConnectionResponseDto {
 
   @ApiProperty({
     description: 'SSE stream URL for real-time updates',
-    example: 'https://programmatic-adtech-backend.atharvajadhav.dev/rtb/stream/b169383a-2369-4422-9094-bf0752ceed65'
+    example: 'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com/rtb/stream/b169383a-2369-4422-9094-bf0752ceed65'
   })
   @IsUrl()
   sseUrl: string;

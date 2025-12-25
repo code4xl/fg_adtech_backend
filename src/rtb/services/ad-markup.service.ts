@@ -13,7 +13,7 @@ export class AdMarkupService {
     this.trackingBaseUrl =
       this.configService.get<string>('APP_URL') ||
       this.configService.get<string>('tracking.baseUrl') ||
-      'https://programmatic-adtech-backend.atharvajadhav.dev';
+      'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com';
   }
 
   public generateTrackingUrls(
