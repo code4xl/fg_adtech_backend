@@ -18,7 +18,7 @@
   'use strict';
   
   // Embed configuration
-  window.__OCEAN_CONFIG__ = {"publisher":{"id":"00d9348a-9a8c-44b9-b2b2-c9f63189acde","tier":"basic"},"website":{"id":"4b35e18c-973f-43d6-9f21-d817768c3921","domain":"financewise756-477.io"},"inventory":[{"selector":".ocean-ad","inventoryId":"73a6c9e7-e4d9-4ba9-80af-da8c37b3f8d8","size":"320x50","position":"ABOVE_FOLD","refresh":{"enabled":true,"interval":60000}}],"settings":{"apiUrl":"http://localhost:3001","endpoints":{"bid":"http://localhost:3001/rtb/bid-request","track":"http://localhost:3001/rtb/track","sse":"http://localhost:3001/rtb/stream"},"sseTimeout":15000,"debug":true,"batchDelay":50,"maxRetries":1,"fallbackTimeout":500}};
+  window.__OCEAN_CONFIG__ = {"publisher":{"id":"00d9348a-9a8c-44b9-b2b2-c9f63189acde","tier":"basic"},"website":{"id":"4b35e18c-973f-43d6-9f21-d817768c3921","domain":"financewise756-477.io"},"inventory":[{"selector":".ocean-ad","inventoryId":"73a6c9e7-e4d9-4ba9-80af-da8c37b3f8d8","size":"320x50","position":"ABOVE_FOLD","refresh":{"enabled":true,"interval":60000}}],"settings":{"apiUrl":"https://programmatic-adtech-backend.atharvajadhav.dev","endpoints":{"bid":"https://programmatic-adtech-backend.atharvajadhav.dev/rtb/bid-request","track":"https://programmatic-adtech-backend.atharvajadhav.dev/rtb/track","sse":"https://programmatic-adtech-backend.atharvajadhav.dev/rtb/stream"},"sseTimeout":15000,"debug":true,"batchDelay":50,"maxRetries":1,"fallbackTimeout":500}};
   
   // Configuration validation
   if (typeof window.__OCEAN_CONFIG__ !== 'object' || !window.__OCEAN_CONFIG__) {

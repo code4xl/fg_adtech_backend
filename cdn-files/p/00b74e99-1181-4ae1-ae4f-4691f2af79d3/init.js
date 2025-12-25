@@ -18,7 +18,7 @@
   'use strict';
   
   // Embed configuration
-  window.__OCEAN_CONFIG__ = {"publisher":{"id":"00b74e99-1181-4ae1-ae4f-4691f2af79d3","tier":"basic"},"website":{"id":"9407eae4-5632-47c6-b291-7b6ccb8eb3cd","domain":"https://prabhanews.com/"},"inventory":[{"selector":".ocean-ad","inventoryId":"694f3c6c-6eb7-41c7-b4c5-ab89d994126d","size":"728x90","position":"ABOVE_FOLD","refresh":{"enabled":true,"interval":60000}}],"settings":{"apiUrl":"http://localhost:3001","endpoints":{"bid":"http://localhost:3001/rtb/bid-request","track":"http://localhost:3001/rtb/track","sse":"http://localhost:3001/rtb/stream"},"sseTimeout":15000,"debug":true,"batchDelay":50,"maxRetries":1,"fallbackTimeout":500}};
+  window.__OCEAN_CONFIG__ = {"publisher":{"id":"00b74e99-1181-4ae1-ae4f-4691f2af79d3","tier":"basic"},"website":{"id":"9407eae4-5632-47c6-b291-7b6ccb8eb3cd","domain":"https://prabhanews.com/"},"inventory":[{"selector":".ocean-ad","inventoryId":"694f3c6c-6eb7-41c7-b4c5-ab89d994126d","size":"728x90","position":"ABOVE_FOLD","refresh":{"enabled":true,"interval":60000}}],"settings":{"apiUrl":"https://programmatic-adtech-backend.atharvajadhav.dev","endpoints":{"bid":"https://programmatic-adtech-backend.atharvajadhav.dev/rtb/bid-request","track":"https://programmatic-adtech-backend.atharvajadhav.dev/rtb/track","sse":"https://programmatic-adtech-backend.atharvajadhav.dev/rtb/stream"},"sseTimeout":15000,"debug":true,"batchDelay":50,"maxRetries":1,"fallbackTimeout":500}};
   
   // Configuration validation
   if (typeof window.__OCEAN_CONFIG__ !== 'object' || !window.__OCEAN_CONFIG__) {

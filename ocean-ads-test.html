@@ -413,18 +413,18 @@
     <script>
       // Just log CDN status without auto-generation
       console.log('🔍 Checking CDN availability...');
-      fetch('http://localhost:3001/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js')
+      fetch('https://programmatic-adtech-backend.atharvajadhav.dev/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js')
         .then(response => {
           if (response.status === 404) {
             console.log('❌ CDN not found - please generate manually');
-            console.log('Use: curl -X POST "http://localhost:3001/api/publishers/028e26dd-f437-4442-b2ed-e1c59e187ec1/websites/09954aa5-2c99-4e95-9c6d-b270ac1e029e/generate-cdn" with Authorization header');
+            console.log('Use: curl -X POST "https://programmatic-adtech-backend.atharvajadhav.dev/api/publishers/028e26dd-f437-4442-b2ed-e1c59e187ec1/websites/09954aa5-2c99-4e95-9c6d-b270ac1e029e/generate-cdn" with Authorization header');
           } else {
             console.log('✅ CDN found and accessible');
           }
         })
         .catch(error => console.log('⚠️ CDN check failed:', error));
     </script>
-    <script src="http://localhost:3001/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js"></script>
+    <script src="https://programmatic-adtech-backend.atharvajadhav.dev/cdn/p/028e26dd-f437-4442-b2ed-e1c59e187ec1/init.js"></script>
 
     <!-- SDK readiness helper -->
     <script>
@@ -561,7 +561,7 @@
 
         try {
           const response = await fetch(
-            'http://localhost:3001/rtb/bid-request',
+            'https://programmatic-adtech-backend.atharvajadhav.dev/rtb/bid-request',
             {
               method: 'POST',
               headers: {

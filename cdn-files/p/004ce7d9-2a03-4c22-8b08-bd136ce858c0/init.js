@@ -18,7 +18,7 @@
   'use strict';
   
   // Embed configuration
-  window.__OCEAN_CONFIG__ = {"publisher":{"id":"004ce7d9-2a03-4c22-8b08-bd136ce858c0","tier":"basic"},"website":{"id":"1af9249d-1349-4d3a-a7c2-5270c50fbe53","domain":"sportsfan835-0.org"},"inventory":[{"selector":".ocean-ad","inventoryId":"21ad8b43-100b-4caf-b3e9-88392a53b6dd","size":"970x90","position":"ABOVE_FOLD","refresh":{"enabled":true,"interval":60000}}],"settings":{"apiUrl":"http://localhost:3001","endpoints":{"bid":"http://localhost:3001/rtb/bid-request","track":"http://localhost:3001/rtb/track","sse":"http://localhost:3001/rtb/stream"},"sseTimeout":15000,"debug":true,"batchDelay":50,"maxRetries":1,"fallbackTimeout":500}};
+  window.__OCEAN_CONFIG__ = {"publisher":{"id":"004ce7d9-2a03-4c22-8b08-bd136ce858c0","tier":"basic"},"website":{"id":"1af9249d-1349-4d3a-a7c2-5270c50fbe53","domain":"sportsfan835-0.org"},"inventory":[{"selector":".ocean-ad","inventoryId":"21ad8b43-100b-4caf-b3e9-88392a53b6dd","size":"970x90","position":"ABOVE_FOLD","refresh":{"enabled":true,"interval":60000}}],"settings":{"apiUrl":"https://programmatic-adtech-backend.atharvajadhav.dev","endpoints":{"bid":"https://programmatic-adtech-backend.atharvajadhav.dev/rtb/bid-request","track":"https://programmatic-adtech-backend.atharvajadhav.dev/rtb/track","sse":"https://programmatic-adtech-backend.atharvajadhav.dev/rtb/stream"},"sseTimeout":15000,"debug":true,"batchDelay":50,"maxRetries":1,"fallbackTimeout":500}};
   
   // Configuration validation
   if (typeof window.__OCEAN_CONFIG__ !== 'object' || !window.__OCEAN_CONFIG__) {
