@@ -143,6 +143,7 @@ async function bootstrap() {
             'https://*.s3.ap-south-1.amazonaws.com'
           ],
           connectSrc: [
+            "http://localhost:5173",
             "'self'",
             'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com'
           ],
