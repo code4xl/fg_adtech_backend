@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Earshot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0;
+            background: #f5f5f5;
+            color: #222;
+        }
+
+        /* Layout */
+        header {
+            background: #ffffff;
+            border-bottom: 1px solid #ddd;
+            padding: 20px 0;
+        }
+
+        .masthead {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+        }
+
+        .masthead-left h1 {
+            margin: 0;
+            font-size: 2.4rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .masthead-left span {
+            font-size: 0.9rem;
+            color: #777;
+        }
+
+        .masthead-right {
+            text-align: right;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        nav {
+            background: #222;
+            color: white;
+            padding: 10px 0;
+            font-size: 0.95rem;
+        }
+
+        nav ul {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        nav li {
+            cursor: pointer;
+        }
+
+        nav li:hover {
+            text-decoration: underline;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            padding: 20px 0 40px;
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .section {
+            background: white;
+            padding: 16px 20px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+        }
+
+        .section h2 {
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 6px;
+            font-size: 1.2rem;
+        }
+
+        /* Top headline */
+        .lead-article {
+            display: grid;
+            grid-template-columns: 2fr 1.2fr;
+            gap: 20px;
+        }
+
+        .lead-article-main h2 {
+            font-size: 1.6rem;
+        }
+
+        .lead-article-main p {
+            line-height: 1.5;
+        }
+
+        .lead-article-meta {
+            font-size: 0.85rem;
+            color: #777;
+            margin-bottom: 8px;
+        }
+
+        .lead-article-side {
+            border-left: 1px solid #eee;
+            padding-left: 16px;
+            font-size: 0.9rem;
+        }
+
+        /* Article list */
+        .article-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .article-card {
+            border-top: 2px solid #e91e63;
+            padding-top: 8px;
+        }
+
+        .article-card h3 {
+            margin: 4px 0 6px;
+            font-size: 1rem;
+        }
+
+        .article-card p {
+            margin: 0;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            color: #555;
+        }
+
+        .article-meta {
+            font-size: 0.75rem;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        /* Sidebar */
+        aside {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .sidebar-section {
+            background: white;
+            padding: 16px 18px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+            font-size: 0.9rem;
+        }
+
+        .sidebar-section h3 {
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 6px;
+            font-size: 1.05rem;
+        }
+
+        .sidebar-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .sidebar-list li {
+            padding: 6px 0;
+            border-bottom: 1px dotted #eee;
+        }
+
+        .sidebar-list li:last-child {
+            border-bottom: none;
+        }
+
+        .sidebar-list span {
+            display: block;
+        }
+
+        .sidebar-list .tag {
+            font-size: 0.75rem;
+            color: #999;
+            text-transform: uppercase;
+        }
+
+        .sidebar-list .headline {
+            font-weight: bold;
+        }
+
+        .sidebar-list .time {
+            font-size: 0.75rem;
+            color: #aaa;
+        }
+
+        /* Footer */
+        footer {
+            background: #111;
+            color: #ccc;
+            padding: 20px 0 30px;
+            font-size: 0.85rem;
+        }
+
+        footer .footer-columns {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 16px;
+        }
+
+        footer h4 {
+            margin-top: 0;
+            font-size: 0.95rem;
+        }
+
+        footer ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        footer li {
+            padding: 3px 0;
+        }
+
+        footer li span {
+            cursor: pointer;
+        }
+
+        footer li span:hover {
+            text-decoration: underline;
+        }
+
+        footer .footer-bottom {
+            border-top: 1px solid #333;
+            padding-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        /* Existing Ocean ad styles (kept) */
+        .ocean-ad,
+        .ocean-ad-2 {
+            background: #f0f8ff;
+            border: 2px dashed #2196f3;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+            font-weight: bold;
+            color: #1976d2;
+            min-height: 100px;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .ocean-ad[data-size='800x600'],
+        .ocean-ad-2[data-size='800x600'] {
+            width: 800px;
+            height: 600px;
+        }
+
+        .ocean-ad[data-size='320x180'],
+        .ocean-ad-2[data-size='320x180'] {
+            width: 320px;
+            height: 180px;
+        }
+
+        .ocean-ad[data-size='728x90'],
+        .ocean-ad-2[data-size='728x90'] {
+            width: 728px;
+            height: 90px;
+        }
+
+        .ocean-ad[data-size='300x250'],
+        .ocean-ad-2[data-size='300x250'] {
+            width: 300px;
+            height: 250px;
+        }
+
+        /* .ocean-ad[data-size='1080x1080'],
+        .ocean-ad-2[data-size='1080x1080'] {
+            width: 1080px;
+            height: 1080px;
+        } */
+
+        .ocean-ad[data-size='1200x1200'],
+        .ocean-ad-2[data-size='1200x1200'] {
+            width: 1200px;
+            height: 1200px;
+        }
+
+
+        /* Make layout stack nicely on small screens */
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .lead-article {
+                grid-template-columns: 1fr;
+            }
+
+            .ocean-ad[data-size='800x600'] {
+                width: 100%;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="masthead">
+            <div class="masthead-left">
+                <h1>Ocean Times</h1>
+                <span>Independent journalism from around the world</span>
+            </div>
+            <div class="masthead-right">
+                <div>Wednesday, December 24, 2025</div>
+                <div>Edition: Global | Weather: 24°C, Partly Cloudy</div>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li>Home</li>
+            <li>World</li>
+            <li>Business</li>
+            <li>Technology</li>
+            <li>Health</li>
+            <li>Sports</li>
+            <li>Culture</li>
+            <li>Opinion</li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <main>
+            <!-- Lead story -->
+            <section class="section">
+                <div class="lead-article">
+                    <div class="lead-article-main">
+                        <div class="lead-article-meta">World News • Analysis • 6 min read</div>
+                        <h2>Coastal Cities Race to Reinvent Infrastructure as Tides Slowly Rise</h2>
+                        <p>
+                            From Mumbai to Miami, coastal cities are quietly rewriting their master plans.
+                            Elevated walkways, amphibious homes, and flexible power grids are no longer
+                            sketches in an architect’s notebook — they are line items in city budgets.
+                        </p>
+                        <p>
+                            Urban planners say the shift marks a new phase in climate adaptation. Instead of
+                            reacting to single disasters, cities are experimenting with long-horizon projects,
+                            betting that slow, steady investments will prove cheaper than rebuilding after
+                            every storm.
+                        </p>
+                        <p>
+                            Residents, meanwhile, are adjusting in more personal ways. Daily routines now
+                            account for flooding alerts, public transit outages, and seasonal evacuations
+                            that have become part of life along the world’s busiest shorelines.
+                        </p>
+                    </div>
+                    <div class="lead-article-side">
+                        <strong>In brief</strong>
+                        <p>
+                            • Three major ports announced joint plans for shared evacuation protocols.<br />
+                            • Insurance firms warn that premiums could double in the next decade.<br />
+                            • New research suggests that early adaptation can save billions in damage.
+                        </p>
+                        <p>
+                            “The question is no longer if the water will come,” said one planner.
+                            “It’s how much control we can build into the way it arrives.”
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Second row of articles -->
+            <section class="section">
+                <h2>Top Stories</h2>
+                <div class="article-list">
+                    <article class="article-card">
+                        <div class="article-meta">Business • Markets • 4 min read</div>
+                        <h3>Global Investors Pivot Toward ‘Quiet Growth’ as Volatility Eases</h3>
+                        <p>
+                            After two years of wild swings, investors are rediscovering the appeal of
+                            predictable returns. Pension funds and long-horizon institutions are quietly
+                            increasing exposure to infrastructure, healthcare, and logistics.
+                        </p>
+                    </article>
+
+                    <article class="article-card">
+                        <div class="article-meta">Technology • Innovation • 5 min read</div>
+                        <h3>New Wave of AI Tools Targets Boring Office Work, Not Flashy Gadgets</h3>
+                        <p>
+                            While consumer-facing apps grab headlines, a growing set of AI tools is
+                            reshaping back offices. From invoice matching to policy drafting, companies
+                            are quietly automating everything that once lived in spreadsheets.
+                        </p>
+                    </article>
+
+                    <article class="article-card">
+                        <div class="article-meta">Health • Research • 3 min read</div>
+                        <h3>Study Finds Small Habit Changes Can Rival Dramatic Diets Over Time</h3>
+                        <p>
+                            A ten-year study suggests that modest changes — walking an extra fifteen
+                            minutes a day, cooking one more meal at home each week — can match the health
+                            outcomes of restrictive, short-lived diets.
+                        </p>
+                    </article>
+
+                    <article class="article-card">
+                        <div class="article-meta">Culture • Media • 4 min read</div>
+                        <h3>Local Newsrooms Turn to Community Memberships to Survive</h3>
+                        <p>
+                            As advertising weakens, small newsrooms are experimenting with membership
+                            programs that treat readers as collaborators, not just subscribers. The model
+                            is fragile, but early adopters say it is rebuilding trust.
+                        </p>
+                    </article>
+                </div>
+            </section>
+
+            <!-- Place the single ad slot within the main content stream -->
+            <section class="section">
+                <h2>Sponsored</h2>
+
+                <!-- Desktop Interstitial Slot (kept EXACTLY as requested) -->
+                <!-- <div class="ocean-ad" data-size="728X90" data-inventory="15fb5073-c093-4595-b0bf-e4ec34e2e6c1"
+                    data-format="INTERSTITIAL" data-position="ABOVE_FOLD">
+                    Desktop Interstitial Ad Slot
+                </div> -->
+                <div class="ocean-ad" data-size="1200x1200" data-inventory="c7110847-092b-4d5f-9e79-5e5f36caf776" data-format="BANNER" data-position="IN_CONTENT">
+                    1200x1200 Sponsored Ad Slot
+                </div>
+            </section>
+
+            <!-- More news content below the ad -->
+            <section class="section">
+                <h2>In Depth</h2>
+                <div class="article-list">
+                    <article class="article-card">
+                        <div class="article-meta">Opinion • Editorial • 7 min read</div>
+                        <h3>Why Slow News May Be the Only Way to Cover a Fast-Moving World</h3>
+                        <p>
+                            Constant updates can obscure long-term trends. A growing movement of
+                            “slow newsrooms” is betting that readers will trade speed for clarity, context,
+                            and a better understanding of how stories connect.
+                        </p>
+                    </article>
+
+                    <article class="article-card">
+                        <div class="article-meta">Environment • Local • 5 min read</div>
+                        <h3>Small Coastal Town Turns Old Fishing Pier into Climate Lab</h3>
+                        <p>
+                            Once a hub for commercial fishing, the pier now houses sensors, marine
+                            nurseries, and a public boardwalk. Residents say the transformation captures
+                            their town’s shift from extraction to restoration.
+                        </p>
+                    </article>
+
+                    <article class="article-card">
+                        <div class="article-meta">World • Feature • 6 min read</div>
+                        <h3>The Night Trains Quietly Returning Across Europe</h3>
+                        <p>
+                            After years of decline, overnight rail routes are coming back. Travelers
+                            cite lower emissions, less airport stress, and the simple romance of waking
+                            up in a new city.
+                        </p>
+                    </article>
+
+                    <article class="article-card">
+                        <div class="article-meta">Science • Exploration • 4 min read</div>
+                        <h3>Deep-Ocean Robots Reveal Surprising Patterns of Marine Life</h3>
+                        <p>
+                            New autonomous vehicles are mapping ocean floors with unprecedented detail,
+                            uncovering ecosystems that challenge assumptions about where life can thrive.
+                        </p>
+                    </article>
+                </div>
+            </section>
+        </main>
+
+        <aside>
+            <div class="sidebar-section">
+                <h3>Latest Updates</h3>
+                <ul class="sidebar-list">
+                    <li>
+                        <span class="tag">Breaking</span>
+                        <span class="headline">Central bank hints at slower pace of rate cuts</span>
+                        <span class="time">12 minutes ago</span>
+                    </li>
+                    <li>
+                        <span class="tag">World</span>
+                        <span class="headline">Election observers report record turnout in coastal region</span>
+                        <span class="time">32 minutes ago</span>
+                    </li>
+                    <li>
+                        <span class="tag">Tech</span>
+                        <span class="headline">Encrypted messaging app adds tools for small businesses</span>
+                        <span class="time">47 minutes ago</span>
+                    </li>
+                    <li>
+                        <span class="tag">Health</span>
+                        <span class="headline">Hospitals test “quiet hours” to improve recovery</span>
+                        <span class="time">1 hour ago</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>Most Read</h3>
+                <ul class="sidebar-list">
+                    <li>
+                        <span class="headline">How one village turned a failed dam into a public park</span>
+                    </li>
+                    <li>
+                        <span class="headline">What new workweek experiments reveal about productivity</span>
+                    </li>
+                    <li>
+                        <span class="headline">Five charts that explain the year in global energy</span>
+                    </li>
+                    <li>
+                        <span class="headline">A photographer’s quiet portraits of commuters at dawn</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>Sections</h3>
+                <ul class="sidebar-list">
+                    <li><span>Local &amp; Metro</span></li>
+                    <li><span>Climate &amp; Environment</span></li>
+                    <li><span>Science &amp; Space</span></li>
+                    <li><span>Books &amp; Ideas</span></li>
+                    <li><span>Travel &amp; Escape</span></li>
+                </ul>
+            </div>
+        </aside>
+    </div>
+
+    <footer>
+        <div class="footer-columns">
+            <div>
+                <h4>About Ocean Times</h4>
+                <p>
+                    Ocean Times is an independent newsroom focused on context-rich reporting
+                    about the people, places, and ideas reshaping our coasts and our cities.
+                </p>
+            </div>
+            <div>
+                <h4>Sections</h4>
+                <ul>
+                    <li><span>World</span></li>
+                    <li><span>Business</span></li>
+                    <li><span>Technology</span></li>
+                    <li><span>Health</span></li>
+                    <li><span>Sports</span></li>
+                </ul>
+            </div>
+            <div>
+                <h4>Subscribe</h4>
+                <ul>
+                    <li><span>Newsletters</span></li>
+                    <li><span>Print edition</span></li>
+                    <li><span>Digital access</span></li>
+                    <li><span>Corporate offers</span></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span>© 2025 Ocean Times Media Group</span>
+            <span>Privacy • Terms • Cookies • Contact</span>
+        </div>
+    </footer>
+
+    <!-- 🌊 OCEAN ADS CDN SCRIPT - SINGLE AD SLOT HANDLER -->
+    <!-- You can replace the src with your other backend project's CDN link when ready -->
+    <script src="https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com/p/7f38f282-11c2-4aa9-bcc2-d69bebfc1fc4/init.js
+" async></script>
+</body>
+
+</html>

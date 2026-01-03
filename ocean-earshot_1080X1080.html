@@ -298,6 +298,13 @@
             height: 250px;
         }
 
+        .ocean-ad[data-size='1080x1080'],
+        .ocean-ad-2[data-size='1080x1080'] {
+            width: 1080px;
+            height: 1080px;
+        }
+
+
         /* Make layout stack nicely on small screens */
         @media (max-width: 900px) {
             .container {
@@ -434,9 +441,12 @@
                 <h2>Sponsored</h2>
 
                 <!-- Desktop Interstitial Slot (kept EXACTLY as requested) -->
-                <div class="ocean-ad" data-size="728X90" data-inventory="15fb5073-c093-4595-b0bf-e4ec34e2e6c1"
+                <!-- <div class="ocean-ad" data-size="728X90" data-inventory="15fb5073-c093-4595-b0bf-e4ec34e2e6c1"
                     data-format="INTERSTITIAL" data-position="ABOVE_FOLD">
                     Desktop Interstitial Ad Slot
+                </div> -->
+                <div class="ocean-ad" data-size="1080x1080" data-inventory="c7110847-092b-4d5f-9e79-5e5f36caf776" data-format="BANNER" data-position="IN_CONTENT">
+                    1080x1080 Sponsored Ad Slot
                 </div>
             </section>
 
@@ -581,7 +591,7 @@
 
     <!-- 🌊 OCEAN ADS CDN SCRIPT - SINGLE AD SLOT HANDLER -->
     <!-- You can replace the src with your other backend project's CDN link when ready -->
-    <script src="http://localhost:3001/cdn/p/c52e12ea-46e5-426b-9995-d582e7d8d875/init.js" async></script>
+    <script src="https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com/cdn/p/1bdef8a4-e188-4a8f-b81b-105f4569547e/init.js" async></script>
 </body>
 
 </html>

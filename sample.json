@@ -1,0 +1,81 @@
+[
+    {
+        "id": "000619e7-9312-433e-ac69-26089fbda7cb",
+        "campaignId": "8936595e-1c95-47ab-b85d-07108ff5d980",
+        "name": "productize sustainable technologies IMAGE Creative",
+        "type": "IMAGE",
+        "fileUrl": "https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-12.webp",
+        "s3Key": "creatives/image/320x50/img-Zv09lWWx-1767075587010.jpg",
+        "landingUrl": "https://lustrous-feather.com",
+        "status": "APPROVED",
+        "reviewNotes": "Uredo adsum caterva supra possimus deprecator demo.",
+        "createdAt": "2025-02-05 00:38:02.676",
+        "updatedAt": "2025-12-30 05:49:41.819",
+        "contentSafetyThreshold": 0.5,
+        "templateId": "2a7ca1f7-e0c3-4c70-8f0b-a27b86de8e78"
+    },
+    {
+        "id": "002bf59e-2d8e-4744-b884-4f8b058337b8",
+        "campaignId": "6f7ccba9-c6da-4343-881f-480328a70ea3",
+        "name": "deliver world-class infrastructures HTML5 Creative",
+        "type": "HTML5",
+        "fileUrl": "https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-7.jpg",
+        "s3Key": "creatives/html5/320x50/html5-ijnhTcYC-1767075586994.zip",
+        "landingUrl": "https://murky-deer.biz",
+        "status": "APPROVED",
+        "reviewNotes": null,
+        "createdAt": "2025-06-17 05:04:54.225",
+        "updatedAt": "2025-12-30 00:33:02.707",
+        "contentSafetyThreshold": 0.45,
+        "templateId": "2a7ca1f7-e0c3-4c70-8f0b-a27b86de8e78"
+    },
+    {
+        "id": "002cf5d2-642f-42b2-9089-2f7403179a20",
+        "campaignId": "65f26c82-85e5-4a12-b93e-9a1559f3e8a9",
+        "name": "productize ubiquitous large language models HTML5 Creative",
+        "type": "HTML5",
+        "fileUrl": "https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-8.jpg",
+        "s3Key": "creatives/html5/320x50/html5-eJRPEUS0-1767075587009.zip",
+        "landingUrl": "https://naughty-lifestyle.biz",
+        "status": "APPROVED",
+        "reviewNotes": null,
+        "createdAt": "2025-02-12 03:25:49.399",
+        "updatedAt": "2025-12-29 06:52:43.525",
+        "contentSafetyThreshold": 0.22,
+        "templateId": "2a7ca1f7-e0c3-4c70-8f0b-a27b86de8e78"
+    },
+    {
+        "id": "00406498-6229-4821-b5c8-22feaf0899a7",
+        "campaignId": "01d64dfd-122d-4862-968b-38c11c7f16c8",
+        "name": "incubate plug-and-play networks RICH_MEDIA Creative",
+        "type": "RICH_MEDIA",
+        "fileUrl": "https://s3.ap-south-1.amazonaws.com/bucket.programmatic.oceanadnetwork/uploads/campaigns/updated-summer-sale-2025-eba5d4ec-5828-4db9-8b33-46796da2a239/creatives/ad-14.jpg",
+        "s3Key": "creatives/rich_media/320x480/rm-6Dgof4MK-1767075587000.zip",
+        "landingUrl": "https://weekly-travel.name",
+        "status": "APPROVED",
+        "reviewNotes": null,
+        "createdAt": "2025-07-26 09:38:07.135",
+        "updatedAt": "2025-12-29 23:18:38.336",
+        "contentSafetyThreshold": 0.29,
+        "templateId": "8422ba23-4c89-4b01-a560-6a94a70a6936"
+    }
+]
+
+[
+    {
+        "id": "8d3f524a-1cd2-4fc6-8de2-efd31b411905",
+        "name": "Entertainment",
+        "description": "Movies, TV shows, music, and celebrity news",
+        "createdAt": "2025-12-30 06:18:54.287",
+        "updatedAt": "2025-12-30 06:18:54.287",
+        "isActive": true
+    },
+    {
+        "id": "a304c019-a2d7-4bfd-b4d3-fe446d706d34",
+        "name": "News",
+        "description": "General news, current events, and journalism",
+        "createdAt": "2025-12-30 06:18:54.36",
+        "updatedAt": "2025-12-30 06:18:54.36",
+        "isActive": true
+    }
+]

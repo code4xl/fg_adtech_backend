@@ -160,7 +160,7 @@ export class AdvertiserHelper {
     }
 
     // Done
-    async verifyCampaignOwnership(campaignId: string, advertiserId: string): Promise<CampaignWithTargeting> {
+    async verifyCampaignOwnership(advertiserId: string, campaignId: string): Promise<CampaignWithTargeting> {
         const campaign = await this.prisma.campaign.findUnique({
             where: { id: campaignId },
             select: {

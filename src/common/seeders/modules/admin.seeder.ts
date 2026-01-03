@@ -27,7 +27,7 @@ export class AdminSeeder implements ISeeder {
 
       // Generate fake admins
       for (let i = 0; i < count; i++) {
-        const password = faker.internet.password();
+        const password = 'qwerty';
         const hashedPassword = await bcrypt.hash(password, 10);
 
         adminData.push({
