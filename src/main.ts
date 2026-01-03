@@ -42,6 +42,7 @@ async function bootstrap() {
 
     origin: [
       'http://localhost:3000',
+      'http://localhost:5173',
       'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com',
       'http://127.0.0.1:3000',
       'http://127.0.0.1:3001',
@@ -142,6 +143,7 @@ async function bootstrap() {
             'https://*.s3.ap-south-1.amazonaws.com'
           ],
           connectSrc: [
+            "http://localhost:5173",
             "'self'",
             'https://ec2-13-202-24-106.ap-south-1.compute.amazonaws.com'
           ],
